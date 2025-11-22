@@ -1,28 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // TypeScript hatalarını görmezden gel
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // ESLint hatalarını görmezden gel
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Resim kaynaklarına izin ver (Supabase, Unsplash vb.)
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
+        hostname: '**',
       },
     ],
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  experimental: {
-    esmExternals: false,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
   },
 }
 
 module.exports = nextConfig
-
