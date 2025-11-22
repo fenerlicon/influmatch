@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import OfferActionButtons from '@/components/dashboard/OfferActionButtons'
 import type { OfferListItem } from '@/components/dashboard/InfluencerOffersFeed'
 import { dismissOffer } from '@/app/dashboard/influencer/offers/dismiss/actions'
-import { X } from 'lucide-react'
+import { X, BadgeCheck } from 'lucide-react'
 
 interface OffersManagerProps {
   initialOffers: OfferListItem[]
@@ -407,27 +407,23 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   )
 
   const handleOpenChat = useCallback(
-    async (offer: OfferListItem) => {
-      setChatLoadingId(offer.id)
-      try {
-        // Get sender user ID
-        const senderId = offer.sender?.id
-        if (!senderId) {
-          console.error('Sender ID not found')
-          return
-        }
-
-        // Check if room exists
-        let roomId = offer.room_id ?? (await fetchRoomId(offer.id))
-        
-        // If no room exists, we'll let the messages page create it
-        // Navigate to messages page with participant ID
-        router.push(`/dashboard/messages?userId=${senderId}`)
-      } finally {
-        setChatLoadingId(null)
+    (offer: OfferListItem, e?: React.MouseEvent) => {
+      if (e) {
+        e.preventDefault()
+        e.stopPropagation()
       }
+      
+      // Get sender user ID
+      const senderId = offer.sender?.id
+      if (!senderId) {
+        console.error('Sender ID not found', offer)
+        return
+      }
+
+      // Navigate to messages page with participant ID
+      window.location.href = `/dashboard/messages?userId=${senderId}`
     },
-    [fetchRoomId, router],
+    [],
   )
 
   if (offers.length === 0) {
@@ -504,7 +500,17 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-white">{offer.campaign_name ?? 'İsimsiz kampanya'}</p>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-gray-400">{sender?.full_name ?? 'Marka'}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-gray-400">{sender?.full_name ?? 'Marka'}</p>
+                {sender?.verification_status === 'verified' && (
+                  <div className="group relative">
+                    <BadgeCheck className="h-3.5 w-3.5 text-blue-400" />
+                    <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                      Onaylı hesap
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <span
               className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
@@ -557,7 +563,17 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-soft-gold">Marka</p>
-              <h2 className="text-xl font-semibold text-white">{sender?.full_name ?? 'Marka'}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-white">{sender?.full_name ?? 'Marka'}</h2>
+                {sender?.verification_status === 'verified' && (
+                  <div className="group relative">
+                    <BadgeCheck className="h-5 w-5 text-blue-400" />
+                    <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                      Onaylı hesap
+                    </div>
+                  </div>
+                )}
+              </div>
               <p className="text-sm text-gray-400">@{sender?.email?.split('@')[0] ?? 'unknown'}</p>
             </div>
           </div>
@@ -575,27 +591,18 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               <OfferActionButtons offerId={selectedOffer.id} onStatusChange={handleStatusChange} />
             ) : null}
 
-            {canChat ? (
-              <button
-                type="button"
-                onClick={() => handleOpenChat(selectedOffer)}
-                disabled={chatLoadingId === selectedOffer.id}
-                className="relative rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {chatLoadingId === selectedOffer.id ? (
-                  'Açılıyor...'
-                ) : (
-                  <>
-                    Mesaj Gönder
-                    {selectedOffer.room_id && unreadCounts.get(selectedOffer.room_id) && unreadCounts.get(selectedOffer.room_id)! > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
-                        {unreadCounts.get(selectedOffer.room_id)! > 9 ? '9+' : unreadCounts.get(selectedOffer.room_id)}
-                      </span>
-                    )}
-                  </>
-                )}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={(e) => handleOpenChat(selectedOffer, e)}
+              className="relative rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25"
+            >
+              Mesaj Gönder
+              {selectedOffer.room_id && unreadCounts.get(selectedOffer.room_id) && unreadCounts.get(selectedOffer.room_id)! > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
+                  {unreadCounts.get(selectedOffer.room_id)! > 9 ? '9+' : unreadCounts.get(selectedOffer.room_id)}
+                </span>
+              )}
+            </button>
           </div>
         </header>
 

@@ -5,6 +5,7 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { BadgeCheck } from 'lucide-react'
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'border-yellow-400/50 bg-yellow-400/10 text-yellow-200',
@@ -36,6 +37,7 @@ export interface OfferListItem {
     avatar_url: string | null
     email: string | null
     social_links: Record<string, string | null> | null
+    verification_status?: string | null
   } | null
 }
 
@@ -137,27 +139,23 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
   )
 
   const handleOpenChat = useCallback(
-    async (offer: OfferListItem) => {
-      setChatLoadingId(offer.id)
-      try {
-        // Get sender user ID
-        const senderId = offer.sender?.id
-        if (!senderId) {
-          console.error('Sender ID not found')
-          return
-        }
-
-        // Check if room exists
-        let roomId = offer.room_id ?? (await fetchRoomId(offer.id))
-        
-        // If no room exists, we'll let the messages page create it
-        // Navigate to messages page with participant ID
-        router.push(`/dashboard/messages?userId=${senderId}`)
-      } finally {
-        setChatLoadingId(null)
+    (offer: OfferListItem, e?: React.MouseEvent) => {
+      if (e) {
+        e.preventDefault()
+        e.stopPropagation()
       }
+      
+      // Get sender user ID
+      const senderId = offer.sender?.id
+      if (!senderId) {
+        console.error('Sender ID not found', offer)
+        return
+      }
+
+      // Navigate to messages page with participant ID
+      window.location.href = `/dashboard/messages?userId=${senderId}`
     },
-    [fetchRoomId, router],
+    [],
   )
 
   const handleDismissRejected = useCallback((offerId: string) => {
@@ -219,7 +217,17 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Kampanya</p>
                 <h3 className="text-lg font-semibold">{offer.campaign_name ?? 'İsimsiz kampanya'}</h3>
-                <p className="text-sm text-gray-400">{sender?.full_name ?? 'Marka'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-400">{sender?.full_name ?? 'Marka'}</p>
+                  {sender?.verification_status === 'verified' && (
+                    <div className="group relative">
+                      <BadgeCheck className="h-4 w-4 text-blue-400" />
+                      <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                        Onaylı hesap
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -229,7 +237,15 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
             </div>
 
             <div className="flex flex-col items-end gap-3">
-              {!isAccepted ? (
+              <button
+                type="button"
+                onClick={(e) => handleOpenChat(offer, e)}
+                className="rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25"
+              >
+                Mesaj Gönder
+              </button>
+
+              {!isAccepted && (
                 <span
                   className={`rounded-full border px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] ${
                     STATUS_STYLES[offer.status] ?? 'border-white/20 text-white'
@@ -237,15 +253,6 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
                 >
                   {offer.status}
                 </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleOpenChat(offer)}
-                  disabled={chatLoadingId === offer.id}
-                  className="rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {chatLoadingId === offer.id ? 'Açılıyor...' : 'Mesaj Gönder'}
-                </button>
               )}
 
               {offer.status === 'pending' ? (

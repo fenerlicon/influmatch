@@ -38,11 +38,11 @@ export default async function InfluencerAdvertPage() {
     if (row.brand_user_id) brandUserIds.add(row.brand_user_id)
   })
 
-  let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null }>()
+  let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null; verification_status: string | null }>()
   if (brandUserIds.size > 0) {
     const { data: brandUsers } = await supabase
       .from('users')
-      .select('id, full_name, avatar_url, displayed_badges')
+      .select('id, full_name, avatar_url, displayed_badges, verification_status')
       .in('id', Array.from(brandUserIds))
 
     brandMap = new Map(
@@ -53,6 +53,7 @@ export default async function InfluencerAdvertPage() {
           full_name: u.full_name,
           avatar_url: u.avatar_url,
           displayed_badges: (u.displayed_badges as string[] | null) ?? null,
+          verification_status: u.verification_status ?? null,
         },
       ]) ?? [],
     )
@@ -69,6 +70,7 @@ export default async function InfluencerAdvertPage() {
         brandName: row.brand_name ?? brandUser?.full_name ?? 'Marka',
         brandUserId: row.brand_user_id ?? null,
         brandDisplayedBadges: brandUser?.displayed_badges ?? null,
+        brandVerificationStatus: brandUser?.verification_status ?? null,
         budgetCurrency: row.budget_currency ?? 'TRY',
         budgetMin: row.budget_min ?? null,
         budgetMax: row.budget_max ?? null,

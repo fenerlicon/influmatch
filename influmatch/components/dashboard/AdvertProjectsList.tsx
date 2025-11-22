@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { CalendarDays, CheckCircle2, Loader2, MapPin, Megaphone, Search, SendHorizontal, X } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Loader2, MapPin, Megaphone, Search, SendHorizontal, X, BadgeCheck } from 'lucide-react'
 import { applyToAdvert } from '@/app/dashboard/influencer/advert/actions'
 import BadgeDisplay from '@/components/badges/BadgeDisplay'
 
@@ -15,6 +15,7 @@ export interface AdvertProject {
   brandAvatar: string | null
   brandUserId?: string | null // ID of the brand user who owns this project
   brandDisplayedBadges?: string[] | null // Badges displayed by the brand
+  brandVerificationStatus?: string | null // Verification status of the brand
   budgetCurrency: string
   budgetMin: number | null
   budgetMax: number | null
@@ -310,7 +311,17 @@ export default function AdvertProjectsList({
                     )}
                   </div>
                   <div>
-                    <p className="font-semibold text-white">{selectedProject.brandName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-white">{selectedProject.brandName}</p>
+                      {selectedProject.brandVerificationStatus === 'verified' && (
+                        <div className="group relative">
+                          <BadgeCheck className="h-4 w-4 text-blue-400" />
+                          <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                            Onaylı hesap
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     {isBrandMode && currentUserId && selectedProject.brandUserId === currentUserId && (
                       <span className="mt-1 inline-block rounded-full border-2 border-emerald-400 bg-emerald-500/90 px-2 py-0.5 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
                         Senin İlanın

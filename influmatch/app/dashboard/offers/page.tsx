@@ -24,7 +24,7 @@ export default async function DashboardOffersPage() {
     .from('offers')
     .select(
       `id, campaign_name, campaign_type, budget, message, status, created_at,
-      sender:sender_user_id(id, full_name, avatar_url, email, social_links)`,
+      sender:sender_user_id(id, full_name, avatar_url, email, social_links, verification_status)`,
     )
     .eq('receiver_user_id', user.id)
     .order('created_at', { ascending: false })
