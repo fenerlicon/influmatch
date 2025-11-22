@@ -1,0 +1,101 @@
+'use client'
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const { signInWithEmail, authError, isSubmitting } = useSupabaseAuth()
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  const isFormValid = useMemo(() => email.includes('@') && password.length >= 6, [email, password])
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!isFormValid) return
+
+    const { data, error } = await signInWithEmail({ email, password })
+
+    if (!error) {
+      setSuccessMessage('Giriş başarılı, paneline yönlendiriliyorsun...')
+      const role = data.user?.user_metadata?.role
+      setTimeout(() => {
+        if (role === 'brand') {
+          router.push('/dashboard/brand')
+        } else if (role === 'influencer') {
+          router.push('/dashboard/influencer')
+        } else {
+          router.push('/')
+        }
+      }, 1200)
+    }
+  }
+
+  return (
+    <main className="px-6 py-24 md:px-12 lg:px-24">
+      <div className="mx-auto max-w-3xl">
+        <div className="glass-panel rounded-[32px] p-10">
+          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Giriş Yap</p>
+          <h1 className="mt-4 text-3xl font-semibold text-white">Tekrar hoş geldin</h1>
+          <p className="mt-2 text-gray-300">Email ve şifrenle giriş yaparak panelini aç.</p>
+
+          <form onSubmit={handleSubmit} className="mt-10 space-y-6">
+            <div>
+              <label htmlFor="email" className="text-sm text-gray-300">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="ornek@influmatch.com"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="text-sm text-gray-300">
+                Şifre
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Şifreni gir"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+                minLength={6}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!isFormValid || isSubmitting}
+              className="w-full rounded-full bg-soft-gold px-8 py-4 font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            </button>
+          </form>
+
+          <div className="mt-6 space-y-2 text-sm">
+            {authError && <p className="text-red-400">{authError}</p>}
+            {successMessage && <p className="text-emerald-400">{successMessage}</p>}
+          </div>
+
+          <p className="mt-8 text-sm text-gray-400">
+            Henüz hesabın yok mu?{' '}
+            <Link href="/signup-role" className="font-semibold text-soft-gold underline-offset-4 hover:underline">
+              Hemen Başla
+            </Link>
+          </p>
+        </div>
+      </div>
+    </main>
+  )
+}
+

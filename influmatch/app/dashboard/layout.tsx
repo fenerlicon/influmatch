@@ -1,0 +1,77 @@
+import type { ReactNode } from 'react'
+import { redirect } from 'next/navigation'
+import DashboardHeader from '@/components/dashboard/DashboardHeader'
+import DashboardSidebar from '@/components/dashboard/DashboardSidebar'
+import IncompleteProfileBanner from '@/components/dashboard/IncompleteProfileBanner'
+import PageTransition from '@/components/layout/PageTransition'
+import type { UserRole } from '@/types/auth'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
+
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const role = (user.user_metadata?.role ?? 'influencer') as UserRole
+  const fullName = user.user_metadata?.full_name ?? user.email ?? 'Kullanıcı'
+
+  // Check verification status and profile completeness
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('verification_status, social_links, bio, category, city, avatar_url')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const verificationStatus = userProfile?.verification_status ?? 'pending'
+  const showVerificationBanner = verificationStatus === 'pending'
+  const socialLinks = (userProfile?.social_links as Record<string, string | null> | null) ?? {}
+
+  return (
+    <div className="min-h-screen bg-background text-white">
+      <div className="flex min-h-screen flex-col lg:flex-row">
+        <DashboardSidebar role={role} fullName={fullName} email={user.email} />
+        <div className="flex flex-1 flex-col bg-[#0F1014]">
+          <DashboardHeader role={role} fullName={fullName} />
+          {showVerificationBanner && (
+            <div className="border-b border-yellow-500/30 bg-yellow-500/10 px-4 py-3 sm:px-6 lg:px-10">
+              <div className="mx-auto flex items-center gap-3 text-sm text-yellow-200">
+                <svg
+                  className="h-5 w-5 flex-shrink-0 text-yellow-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <p>
+                  Hesabınız şu an inceleme aşamasındadır. Onaylanana kadar bazı özellikler kısıtlıdır.
+                </p>
+              </div>
+            </div>
+          )}
+          <IncompleteProfileBanner
+            userId={user.id}
+            role={role}
+            initialVerificationStatus={verificationStatus}
+            initialSocialLinks={socialLinks}
+          />
+          <div className="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-10">
+            <PageTransition>{children}</PageTransition>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
