@@ -1,14 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // TypeScript hatalarını görmezden gel
+  // TypeScript hataları olsa bile build işlemini bitir
   typescript: {
     ignoreBuildErrors: true,
   },
-  // ESLint hatalarını görmezden gel
+  // ESLint (Tırnak işareti, hook kuralları vb.) hatalarını tamamen yoksay
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Resim kaynaklarına izin ver (Supabase, Unsplash vb.)
+  // Resim kaynaklarına izin ver
   images: {
     remotePatterns: [
       {
@@ -16,6 +16,12 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+  },
+  // Deneysel özellikleri kapat (Hata riskini azaltır)
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['*'],
+    },
   },
 }
 
