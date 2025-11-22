@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Image from 'next/image'
 import { createSupportTicket } from '@/app/dashboard/influencer/settings/support/actions'
 import { HelpCircle, Upload, X, CheckCircle } from 'lucide-react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -293,7 +294,7 @@ export default function SupportTicketForm({ onTicketCreated }: SupportTicketForm
               >
                 <X className="h-4 w-4" />
               </button>
-              <img src={filePreview} alt="Preview" className="max-h-48 w-full rounded-lg object-contain" />
+              <Image src={filePreview} alt="Preview" width={400} height={192} className="max-h-48 w-full rounded-lg object-contain" />
               <p className="mt-2 text-xs text-gray-400">{file?.name}</p>
             </div>
           )}

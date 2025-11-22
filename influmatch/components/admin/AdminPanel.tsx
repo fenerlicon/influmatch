@@ -609,7 +609,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers 
                           {instagramLink && (
                             <div className="mb-2 flex items-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
                               <AlertCircle className="h-3.5 w-3.5 text-yellow-300" />
-                              <span className="text-xs text-yellow-200">Instagram'ı kontrol et</span>
+                              <span className="text-xs text-yellow-200">Instagram&apos;ı kontrol et</span>
                             </div>
                           )}
                           <button

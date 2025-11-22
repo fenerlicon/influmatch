@@ -455,7 +455,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         setProfileLoading(false)
       }
     },
-    [supabase],
+    [supabase, currentUserId],
   )
 
   const handleCloseProfile = useCallback(() => {
