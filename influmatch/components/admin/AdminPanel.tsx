@@ -515,7 +515,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers 
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-1.5 text-xs font-semibold text-pink-300 transition hover:border-pink-500 hover:bg-pink-500/20"
-                            title="Instagram'ı Kontrol Et"
+                            title="Instagram&apos;ı Kontrol Et"
                           >
                             <Instagram className="h-3.5 w-3.5" />
                             Instagram
