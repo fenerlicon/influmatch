@@ -247,7 +247,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers 
       return
     }
 
-    if (!confirm(`"${badgeId}" rozetini bu kullanıcıya vermek istediğinizden emin misiniz?`)) {
+    if (!confirm(`&quot;${badgeId}&quot; rozetini bu kullanıcıya vermek istediğinizden emin misiniz?`)) {
       return
     }
 
