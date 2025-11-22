@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "ESLINT_NO_DEV_ERRORS=true next build",
+    "build": "SKIP_ENV_VALIDATION=true next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint --fix"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",

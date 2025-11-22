@@ -466,14 +466,6 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     [fetchOfferById],
   )
 
-  if (offers.length === 0) {
-    return (
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
-        Henüz teklif yok. Spotlight vitrinini aktif tutarak markalardan gelen iş birliklerini burada yönetebilirsin.
-      </div>
-    )
-  }
-
   const renderListItem = (offer: OfferListItem) => {
     const sender = offer.sender
     const isActive = offer.id === selectedOfferId
