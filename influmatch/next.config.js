@@ -15,7 +15,9 @@ const nextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-    dirs: [],
+  },
+  experimental: {
+    esmExternals: false,
   },
   typescript: {
     ignoreBuildErrors: true,
