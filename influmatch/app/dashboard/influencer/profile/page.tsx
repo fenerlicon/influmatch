@@ -38,7 +38,7 @@ export default async function InfluencerProfileSettingsPage() {
     username: profile?.username ?? '',
     city: profile?.city ?? '',
     bio: profile?.bio ?? '',
-    category: profile?.category ?? 'Beauty',
+    category: profile?.category ?? 'beauty',
     avatarUrl: profile?.avatar_url ?? null,
     socialLinks: (profile?.social_links as Record<string, string | null>) ?? {},
     displayedBadges,

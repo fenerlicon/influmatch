@@ -8,6 +8,7 @@ import { X, BadgeCheck } from 'lucide-react'
 import ChatWindow from '@/components/chat/ChatWindow'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
+import { getCategoryLabel } from '@/utils/categories'
 
 interface Conversation {
   roomId: string
@@ -710,7 +711,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                         {profileData.category && (
                           <div>
                             <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Kategori</p>
-                            <p className="mt-2 text-base text-white">{profileData.category}</p>
+                            <p className="mt-2 text-base text-white">{getCategoryLabel(profileData.category)}</p>
                           </div>
                         )}
                       </div>

@@ -7,6 +7,7 @@ import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardBadges, manually
 import { influencerBadges, brandBadges } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
+import { getCategoryLabel } from '@/utils/categories'
 
 interface User {
   id: string
@@ -522,7 +523,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                       {user.category && (
                         <div className="flex items-center gap-2 text-sm text-gray-300">
                           <Briefcase className="h-4 w-4 text-gray-500" />
-                          <span>{user.category}</span>
+                          <span>{getCategoryLabel(user.category)}</span>
                         </div>
                       )}
                     </div>

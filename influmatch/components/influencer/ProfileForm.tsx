@@ -10,8 +10,7 @@ import { validateInstagram, validateTikTok, validateYouTube, validateKick, valid
 import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
-
-const CATEGORY_OPTIONS = ['Beauty', 'Fashion', 'Lifestyle', 'Tech'] as const
+import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '@/utils/categories'
 const AVATAR_BUCKET = 'avatars'
 
 interface ProfileFormProps {
@@ -44,7 +43,7 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
     username: initialData.username ?? '',
     city: initialData.city ?? '',
     bio: initialData.bio ?? '',
-    category: initialData.category ?? CATEGORY_OPTIONS[0],
+    category: initialData.category ?? INFLUENCER_CATEGORY_KEYS[0],
     instagram: initialData.socialLinks?.instagram ?? '',
     tiktok: initialData.socialLinks?.tiktok ?? '',
     youtube: initialData.socialLinks?.youtube ?? '',
@@ -431,9 +430,9 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                 disabled={!isEditing}
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {CATEGORY_OPTIONS.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                {INFLUENCER_CATEGORY_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {INFLUENCER_CATEGORIES[key]}
                   </option>
                 ))}
               </select>
@@ -595,7 +594,7 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                   username: initialData.username ?? '',
                   city: initialData.city ?? '',
                   bio: initialData.bio ?? '',
-                  category: initialData.category ?? CATEGORY_OPTIONS[0],
+                  category: initialData.category ?? INFLUENCER_CATEGORY_KEYS[0],
                   instagram: initialData.socialLinks?.instagram ?? '',
                   tiktok: initialData.socialLinks?.tiktok ?? '',
                   youtube: initialData.socialLinks?.youtube ?? '',

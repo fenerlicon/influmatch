@@ -34,7 +34,7 @@ const defaultInfluencerForm: InfluencerFormState = {
   fullName: '',
   username: '',
   bio: '',
-  category: 'Beauty',
+  category: 'beauty',
   city: '',
   instagram: '',
   tiktok: '',
@@ -104,7 +104,7 @@ export default function OnboardingPage() {
             fullName: data.full_name ?? '',
             username: data.username ?? '',
             bio: data.bio ?? '',
-            category: (data.category as InfluencerFormState['category']) ?? 'Beauty',
+            category: (data.category as InfluencerFormState['category']) ?? 'beauty',
             city: data.city ?? '',
             instagram: socialLinks.instagram ?? '',
             tiktok: socialLinks.tiktok ?? '',
@@ -345,7 +345,7 @@ export default function OnboardingPage() {
       username: (role === 'influencer' ? influencerForm.username : brandForm.username).trim().toLowerCase(),
       city: role === 'influencer' ? influencerForm.city : brandForm.city,
       bio: role === 'influencer' ? influencerForm.bio : '', // Brands don't have bio in form
-      category: role === 'influencer' ? influencerForm.category : 'Teknoloji', // Default category for brands
+      category: role === 'influencer' ? influencerForm.category : 'tech', // Default category for brands
       avatarUrl: avatarUrl,
       socialLinks: socialLinks,
     })

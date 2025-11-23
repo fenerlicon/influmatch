@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { BadgeCheck } from 'lucide-react'
 import BadgeDisplay from '@/components/badges/BadgeDisplay'
+import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey, getCategoryLabel } from '@/utils/categories'
 
 export interface DiscoverInfluencer {
   id: string
@@ -17,7 +18,7 @@ export interface DiscoverInfluencer {
   verification_status?: 'pending' | 'verified' | 'rejected' | null
 }
 
-const CATEGORY_OPTIONS = ['All', 'Beauty', 'Fashion', 'Lifestyle'] as const
+const CATEGORY_OPTIONS = ['All', ...INFLUENCER_CATEGORY_KEYS] as const
 
 interface BrandDiscoverGridProps {
   influencers: DiscoverInfluencer[]
@@ -50,7 +51,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId }: BrandD
           >
             {CATEGORY_OPTIONS.map((category) => (
               <option key={category} value={category} className="bg-[#0F1014] text-white">
-                {category === 'All' ? 'Tümü' : category}
+                {category === 'All' ? 'Tümü' : INFLUENCER_CATEGORIES[category as InfluencerCategoryKey]}
               </option>
             ))}
           </select>
@@ -125,7 +126,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId }: BrandD
                     {influencer.category && (
                       <div className="flex flex-col gap-2">
                         <span className="flex-shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-gray-300">
-                          {influencer.category}
+                          {getCategoryLabel(influencer.category)}
                         </span>
                         {influencer.displayed_badges && Array.isArray(influencer.displayed_badges) && influencer.displayed_badges.length > 0 && influencer.displayed_badges.filter(Boolean).length > 0 && (
                           <BadgeDisplay

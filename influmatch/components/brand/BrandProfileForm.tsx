@@ -10,8 +10,7 @@ import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, val
 import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
-
-const CATEGORY_OPTIONS = ['Teknoloji', 'Giyim', 'Kozmetik', 'Hizmet', 'Ajans', 'Oyun', 'Finans']
+import { BRAND_CATEGORIES, BRAND_CATEGORY_KEYS } from '@/utils/categories'
 const LOGO_BUCKET = 'avatars'
 
 interface BrandProfileFormProps {
@@ -51,7 +50,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     username: initialData.username ?? '',
     city: initialData.city ?? '',
     bio: initialData.bio ?? '',
-    category: initialData.category ?? CATEGORY_OPTIONS[0],
+    category: initialData.category ?? BRAND_CATEGORY_KEYS[0],
     website: initialData.website ?? '',
     linkedin: initialData.linkedin ?? '',
     instagram: initialData.instagram ?? '',
@@ -446,9 +445,9 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 disabled={!isEditing}
                 className="w-full bg-transparent text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option} value={option} className="bg-[#1B1C24] text-white">
-                    {option}
+                {BRAND_CATEGORY_KEYS.map((key) => (
+                  <option key={key} value={key} className="bg-[#1B1C24] text-white">
+                    {BRAND_CATEGORIES[key]}
                   </option>
                 ))}
               </select>
@@ -578,7 +577,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 username: initialData.username ?? '',
                 city: initialData.city ?? '',
                 bio: initialData.bio ?? '',
-                category: initialData.category ?? CATEGORY_OPTIONS[0],
+                category: initialData.category ?? BRAND_CATEGORY_KEYS[0],
                 website: initialData.website ?? '',
                 linkedin: initialData.linkedin ?? '',
                 instagram: initialData.instagram ?? '',

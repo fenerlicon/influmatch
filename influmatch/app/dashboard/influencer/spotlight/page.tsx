@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { BadgeDollarSign, Eye, MousePointerClick, Star } from 'lucide-react'
 import SpotlightToggleCard from '@/components/dashboard/SpotlightToggleCard'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { getCategoryLabel } from '@/utils/categories'
 
 const advantages = [
   { icon: Eye, title: '4x Daha Fazla Görüntülenme', description: 'Spotlight vitrininde öne çık, aktif markaların radarına gir.' },
@@ -42,7 +43,7 @@ export default async function InfluencerSpotlightPage() {
   const verificationStatus = profile?.verification_status ?? 'pending'
   const displayName = profile?.full_name ?? user.user_metadata?.full_name ?? 'Influencer'
   const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? 'profil'
-  const category = profile?.category ?? 'Lifestyle'
+  const category = profile?.category ?? 'lifestyle'
   const avatarUrl =
     profile?.avatar_url ??
     'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80'
@@ -99,7 +100,7 @@ export default async function InfluencerSpotlightPage() {
                   <p className="text-sm text-gray-400">@{username}</p>
                 </div>
                 <span className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-gray-300">
-                  {category}
+                  {getCategoryLabel(category)}
                 </span>
               </div>
               <p className="mt-4 text-sm text-gray-300">
@@ -119,7 +120,7 @@ export default async function InfluencerSpotlightPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Kategori</p>
-                  <p className="text-lg font-semibold text-white">{category}</p>
+                  <p className="text-lg font-semibold text-white">{getCategoryLabel(category)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Durum</p>

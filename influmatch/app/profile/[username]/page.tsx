@@ -6,6 +6,7 @@ import OfferModal from '@/components/profile/OfferModal'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import BadgeDetailList from '@/components/badges/BadgeDetailList'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
+import { getCategoryLabel } from '@/utils/categories'
 
 interface ProfilePageProps {
   params: { username: string }
@@ -108,7 +109,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                   )}
                   {profile.category && (
                     <span className="rounded-full border border-white/15 px-3 py-1">
-                      {profile.category}
+                      {getCategoryLabel(profile.category)}
                     </span>
                   )}
                 </div>

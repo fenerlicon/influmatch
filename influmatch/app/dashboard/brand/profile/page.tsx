@@ -39,7 +39,7 @@ export default async function BrandProfileSettingsPage() {
     username: profile?.username ?? '',
     city: profile?.city ?? '',
     bio: profile?.bio ?? '',
-    category: profile?.category ?? 'Teknoloji',
+    category: profile?.category ?? 'tech',
     logoUrl: profile?.avatar_url ?? null,
     website: socialLinks?.website ?? '',
     linkedin: socialLinks?.linkedin ?? '',

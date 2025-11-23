@@ -5,12 +5,13 @@ import { validateInstagram, validateTikTok, validateYouTube } from '@/utils/soci
 import { validateUsername } from '@/utils/usernameValidation'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
+import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey } from '@/utils/categories'
 
 export interface InfluencerFormState {
   fullName: string
   username: string
   bio: string
-  category: 'Beauty' | 'Fashion' | 'Lifestyle'
+  category: InfluencerCategoryKey
   city: string
   instagram: string
   tiktok: string
@@ -21,8 +22,6 @@ interface InfluencerFormProps {
   form: InfluencerFormState
   onChange: (field: keyof InfluencerFormState, value: string) => void
 }
-
-const categories: InfluencerFormState['category'][] = ['Beauty', 'Fashion', 'Lifestyle']
 
 export default function InfluencerForm({ form, onChange }: InfluencerFormProps) {
   const { session } = useSupabaseAuth()
@@ -204,9 +203,9 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
             onChange={handleInput('category')}
             className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
           >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
+            {INFLUENCER_CATEGORY_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {INFLUENCER_CATEGORIES[key]}
               </option>
             ))}
           </select>
