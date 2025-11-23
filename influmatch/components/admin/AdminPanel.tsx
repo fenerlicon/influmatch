@@ -123,8 +123,12 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         },
         async (payload) => {
           const updatedUserData = payload.new as any
+          const oldUserData = payload.old as any
           const userId = updatedUserData.id
           const newStatus = updatedUserData.verification_status
+          const oldStatus = oldUserData?.verification_status
+          const newDisplayedBadges = updatedUserData.displayed_badges
+          const oldDisplayedBadges = oldUserData?.displayed_badges
 
           // Fetch complete user data to ensure we have all fields
           const { data: completeUser } = await supabase
@@ -136,6 +140,24 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           if (!completeUser) return
 
           const updatedUser = completeUser as User
+
+          // Helper function to update user in all lists
+          const updateUserInAllLists = (user: User) => {
+            setPendingUsersState((prev) => 
+              prev.map((u) => (u.id === userId ? user : u))
+            )
+            setVerifiedUsersState((prev) => 
+              prev.map((u) => (u.id === userId ? user : u))
+            )
+            setRejectedUsersState((prev) => 
+              prev.map((u) => (u.id === userId ? user : u))
+            )
+          }
+
+          // If displayed_badges changed, update user in all lists
+          if (JSON.stringify(newDisplayedBadges) !== JSON.stringify(oldDisplayedBadges)) {
+            updateUserInAllLists(updatedUser)
+          }
 
           // Update all state lists based on new status
           if (newStatus === 'verified') {
@@ -168,6 +190,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
               }
               return [updatedUser, ...prev]
             })
+          } else if (oldStatus === newStatus) {
+            // Status didn't change, but other fields might have (like displayed_badges)
+            updateUserInAllLists(updatedUser)
           }
         }
       )
@@ -411,6 +436,27 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           alert(result.error)
           console.error('Badge awarding error:', result.error)
         } else {
+          // Fetch updated user data to get the new displayed_badges
+          const { data: updatedUser } = await supabase
+            .from('users')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified')
+            .eq('id', userId)
+            .single()
+
+          if (updatedUser) {
+            const user = updatedUser as User
+            // Update user in all state lists
+            setPendingUsersState((prev) => 
+              prev.map((u) => (u.id === userId ? user : u))
+            )
+            setVerifiedUsersState((prev) => 
+              prev.map((u) => (u.id === userId ? user : u))
+            )
+            setRejectedUsersState((prev) => 
+              prev.map((u) => (u.id === userId ? user : u))
+            )
+          }
+
           alert(result.message || 'Rozet başarıyla verildi.')
           setBadgeModalUserId(null)
           setSelectedBadgeId('')
