@@ -36,8 +36,28 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     throw new Error('Oturum bulunamadı. Lütfen yeniden giriş yapın.')
   }
 
-  // Validate username format and uniqueness if username is provided
-  if (payload.username && payload.username.trim()) {
+  // Get current user's username from database
+  const { data: currentUser } = await supabase
+    .from('users')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const currentUsername = currentUser?.username
+
+  // If user already has a username, prevent changing it
+  if (currentUsername && payload.username && payload.username.trim()) {
+    const trimmedNewUsername = payload.username.trim().toLowerCase()
+    const trimmedCurrentUsername = currentUsername.trim().toLowerCase()
+    
+    // If trying to change username, reject it
+    if (trimmedNewUsername !== trimmedCurrentUsername) {
+      throw new Error('Kullanıcı adı bir kez belirlendikten sonra değiştirilemez.')
+    }
+  }
+
+  // Validate username format and uniqueness if username is provided and user doesn't have one yet
+  if (payload.username && payload.username.trim() && !currentUsername) {
     const trimmedUsername = payload.username.trim().toLowerCase()
     
     // Validate format (Instagram rules)
@@ -61,6 +81,9 @@ export async function updateProfile(payload: UpdateProfilePayload) {
 
     // Use normalized username
     payload.username = normalizedUsername
+  } else if (currentUsername) {
+    // Keep existing username if user already has one
+    payload.username = currentUsername
   }
 
   // Validate social links

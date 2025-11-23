@@ -417,21 +417,24 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
-                  disabled={!isEditing}
+                  disabled={!isEditing || (initialData.username && initialData.username.trim() !== '')}
                   placeholder="@marka"
                   className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
+              {initialData.username && initialData.username.trim() !== '' && (
+                <p className="mt-1 text-xs text-gray-400">Kullanıcı adı bir kez belirlendikten sonra değiştirilemez.</p>
+              )}
               {validationErrors.username && (
                 <p className="mt-1 text-xs text-red-400">{validationErrors.username}</p>
               )}
-              {!validationErrors.username && usernameStatus === 'checking' && (
+              {!validationErrors.username && !initialData.username && usernameStatus === 'checking' && (
                 <p className="mt-1 text-xs text-gray-400">Kullanıcı adı kontrol ediliyor...</p>
               )}
-              {!validationErrors.username && usernameStatus === 'available' && (
+              {!validationErrors.username && !initialData.username && usernameStatus === 'available' && (
                 <p className="mt-1 text-xs text-emerald-400">Kullanıcı adı müsait</p>
               )}
-              {!validationErrors.username && usernameStatus === 'taken' && (
+              {!validationErrors.username && !initialData.username && usernameStatus === 'taken' && (
                 <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı kullanılmakta</p>
               )}
             </label>
