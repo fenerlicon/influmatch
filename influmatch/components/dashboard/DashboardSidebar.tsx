@@ -47,8 +47,14 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
   const pathname = usePathname()
   const navItems = navMap[role]
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
+  const isActive = (href: string) => {
+    // For home pages, use exact match
+    if (href === roleHomePath.influencer || href === roleHomePath.brand) {
+      return pathname === href
+    }
+    // For other pages, check if pathname starts with the href
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
 
   const renderNavLinks = (variant: 'vertical' | 'horizontal') =>
     navItems.map((item) => {

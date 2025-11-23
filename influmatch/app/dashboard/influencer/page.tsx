@@ -19,17 +19,11 @@ export default async function InfluencerDashboardPage() {
     redirect('/login')
   }
 
-  const [{ data: profile, error }, { data: userBadges }] = await Promise.all([
-    supabase
-      .from('users')
-      .select('spotlight_active, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('user_badges')
-      .select('badge_id')
-      .eq('user_id', user.id),
-  ])
+  const { data: profile, error } = await supabase
+    .from('users')
+    .select('spotlight_active, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
+    .eq('id', user.id)
+    .maybeSingle()
 
   if (error) {
     console.error('[InfluencerDashboardPage] profile load error', error.message)
@@ -37,10 +31,9 @@ export default async function InfluencerDashboardPage() {
 
   const rawSpotlightActive = profile?.spotlight_active ?? false
   const verificationStatus = profile?.verification_status ?? 'pending'
-  const hasSpotlightPremium = userBadges?.some((ub) => ub.badge_id === 'spotlight-premium') ?? false
   
-  // Spotlight is only truly active if user is verified AND has spotlight premium AND spotlight_active is true
-  const spotlightActive = rawSpotlightActive && verificationStatus === 'verified' && hasSpotlightPremium
+  // Vitrin is active if user is verified AND spotlight_active is true
+  const spotlightActive = rawSpotlightActive && verificationStatus === 'verified'
 
   const profileData: ProfileRecord = {
     full_name: profile?.full_name ?? null,
@@ -194,7 +187,6 @@ export default async function InfluencerDashboardPage() {
       <SpotlightToggleCard 
         initialActive={spotlightActive} 
         verificationStatus={verificationStatus}
-        hasSpotlightPremium={hasSpotlightPremium}
       />
 
       {/* Verification Guide Card */}

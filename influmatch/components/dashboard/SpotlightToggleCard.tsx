@@ -6,13 +6,11 @@ import { toggleSpotlight } from '@/app/dashboard/influencer/actions'
 interface SpotlightToggleCardProps {
   initialActive: boolean
   verificationStatus?: 'pending' | 'verified' | 'rejected'
-  hasSpotlightPremium?: boolean
 }
 
 export default function SpotlightToggleCard({ 
   initialActive, 
-  verificationStatus = 'pending',
-  hasSpotlightPremium = false 
+  verificationStatus = 'pending'
 }: SpotlightToggleCardProps) {
   // If user is not verified, always show as inactive
   const effectiveActive = verificationStatus === 'verified' ? initialActive : false
@@ -39,20 +37,13 @@ export default function SpotlightToggleCard({
       return
     }
 
-    // Check if user has spotlight premium
-    if (!hasSpotlightPremium && !isActive) {
-      // If trying to activate but doesn't have premium, don't allow
-      setToast('Vitrin modu için Spotlight Premium satın almanız gerekmektedir.')
-      setIsActive(false)
-      return
-    }
-
+    // No premium check needed - just toggle vitrin visibility
     const nextValue = !isActive
     setIsActive(nextValue)
     startTransition(async () => {
       try {
         await toggleSpotlight(nextValue)
-        setToast(nextValue ? 'Vitrin modun aktif.' : 'Vitrin modun kapatıldı.')
+        setToast(nextValue ? 'Vitrin modun aktif. Profilin vitrin sayfasında görünüyor.' : 'Vitrin modun kapatıldı.')
       } catch (error) {
         console.error('toggleSpotlight failed', error)
         setIsActive(!nextValue)
@@ -62,7 +53,7 @@ export default function SpotlightToggleCard({
     })
   }
 
-  const isDisabled = verificationStatus !== 'verified' || (!hasSpotlightPremium && !isActive)
+  const isDisabled = verificationStatus !== 'verified'
 
   return (
     <>
@@ -100,12 +91,10 @@ export default function SpotlightToggleCard({
           </span>
           <span className="text-gray-400">
             {isActive && verificationStatus === 'verified'
-              ? 'Markalar seni görmeye hazır.' 
+              ? 'Profilin vitrin sayfasında görünüyor.' 
               : verificationStatus !== 'verified'
                 ? 'Hesabın onaylanana kadar vitrine çıkamazsın.'
-                : !hasSpotlightPremium
-                  ? 'Vitrin modu için Spotlight Premium satın almanız gerekmektedir.'
-                  : 'İstersen dilediğin zaman açabilirsin.'}
+                : 'Vitrin sayfasında görünmek için aktif et.'}
           </span>
         </div>
       </div>

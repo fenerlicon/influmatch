@@ -30,19 +30,7 @@ export async function toggleSpotlight(nextValue: boolean) {
     throw new Error('HESABINIZ ONAYLANANA KADAR VİTRİNE ÇIKAMAZSINIZ')
   }
 
-  // Check if user has spotlight premium badge (only if trying to activate)
-  if (nextValue) {
-    const { data: userBadges } = await supabase
-      .from('user_badges')
-      .select('badge_id')
-      .eq('user_id', user.id)
-
-    const hasSpotlightPremium = userBadges?.some((ub) => ub.badge_id === 'spotlight-premium') ?? false
-
-    if (!hasSpotlightPremium) {
-      throw new Error('Vitrin modu için Spotlight Premium satın almanız gerekmektedir.')
-    }
-  }
+  // No premium check needed - verified users can toggle vitrin visibility
 
   const { data: existing, error: fetchError } = await supabase
     .from('users')

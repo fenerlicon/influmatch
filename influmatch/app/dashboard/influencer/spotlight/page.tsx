@@ -28,17 +28,11 @@ export default async function InfluencerSpotlightPage() {
     redirect('/login')
   }
 
-  const [{ data: profile, error }, { data: userBadges }] = await Promise.all([
-    supabase
-      .from('users')
-      .select('spotlight_active, avatar_url, full_name, username, category, verification_status')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('user_badges')
-      .select('badge_id')
-      .eq('user_id', user.id),
-  ])
+  const { data: profile, error } = await supabase
+    .from('users')
+    .select('spotlight_active, avatar_url, full_name, username, category, verification_status')
+    .eq('id', user.id)
+    .maybeSingle()
 
   if (error) {
     console.error('[InfluencerSpotlightPage] profile load error', error.message)
@@ -46,7 +40,6 @@ export default async function InfluencerSpotlightPage() {
 
   const spotlightActive = profile?.spotlight_active ?? false
   const verificationStatus = profile?.verification_status ?? 'pending'
-  const hasSpotlightPremium = userBadges?.some((ub) => ub.badge_id === 'spotlight-premium') ?? false
   const displayName = profile?.full_name ?? user.user_metadata?.full_name ?? 'Influencer'
   const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? 'profil'
   const category = profile?.category ?? 'Lifestyle'
@@ -70,7 +63,6 @@ export default async function InfluencerSpotlightPage() {
           <SpotlightToggleCard 
             initialActive={spotlightActive} 
             verificationStatus={verificationStatus}
-            hasSpotlightPremium={hasSpotlightPremium}
           />
 
           <div className="rounded-3xl border border-white/10 bg-[#0F1014] p-5">
