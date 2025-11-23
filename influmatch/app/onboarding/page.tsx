@@ -168,7 +168,16 @@ export default function OnboardingPage() {
   }
 
   const handleSubmit = async () => {
-    if (!session || !role) return
+    if (!session) {
+      setErrorMessage('Oturum açmanız gerekiyor.')
+      return
+    }
+    
+    if (!role) {
+      setErrorMessage('Rol bilgisi bulunamadı. Lütfen tekrar giriş yapın.')
+      return
+    }
+    
     setIsSaving(true)
     setErrorMessage(null)
 
@@ -181,6 +190,11 @@ export default function OnboardingPage() {
         setIsSaving(false)
         return
       }
+    } else {
+      // Username is required
+      setErrorMessage('Kullanıcı adı zorunludur.')
+      setIsSaving(false)
+      return
     }
 
     // Validate social links
@@ -259,67 +273,7 @@ export default function OnboardingPage() {
       }
     }
 
-    const basePayload: Record<string, unknown> = {
-      avatar_url: avatarUrl,
-    }
-
-    if (role === 'influencer') {
-      const instagramResult = validateInstagram(influencerForm.instagram)
-      const tiktokResult = validateTikTok(influencerForm.tiktok)
-      const youtubeResult = validateYouTube(influencerForm.youtube)
-
-      basePayload.full_name = influencerForm.fullName
-      basePayload.username = influencerForm.username.trim().toLowerCase()
-      basePayload.bio = influencerForm.bio
-      basePayload.category = influencerForm.category
-      basePayload.city = influencerForm.city
-      basePayload.social_links = {
-        instagram: instagramResult.normalizedUrl || influencerForm.instagram || null,
-        tiktok: tiktokResult.normalizedUrl || influencerForm.tiktok || null,
-        youtube: youtubeResult.normalizedUrl || influencerForm.youtube || null,
-      }
-    } else {
-      const websiteResult = validateWebsite(brandForm.website)
-      const instagramResult = validateInstagram(brandForm.instagram)
-      const tiktokResult = validateTikTok(brandForm.tiktok)
-      const youtubeResult = validateYouTube(brandForm.youtube)
-
-      basePayload.full_name = brandForm.brandName
-      basePayload.username = brandForm.username.trim().toLowerCase()
-      basePayload.city = brandForm.city
-      basePayload.tax_id = brandForm.taxId.trim() || null
-      basePayload.social_links = {
-        website: websiteResult.normalizedUrl || brandForm.website || null,
-        instagram: instagramResult.normalizedUrl || brandForm.instagram || null,
-        tiktok: tiktokResult.normalizedUrl || brandForm.tiktok || null,
-        youtube: youtubeResult.normalizedUrl || brandForm.youtube || null,
-      }
-    }
-
-    // Check username uniqueness before saving
-    if (basePayload.username && basePayload.username.trim()) {
-      const { data: existingUser } = await supabaseClient
-        .from('users')
-        .select('id')
-        .eq('username', basePayload.username.trim())
-        .neq('id', session.user.id)
-        .maybeSingle()
-
-      if (existingUser) {
-        setErrorMessage('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
-        setIsSaving(false)
-        return
-      }
-    }
-
-    // Use server action to save profile (more reliable than client-side)
-    console.log('[Onboarding] Attempting to save profile via server action:', {
-      userId: session.user.id,
-      email: session.user.email,
-      role: role,
-      payload: basePayload,
-    })
-
+    // Prepare social links (already validated above)
     const socialLinks: Record<string, string | null> = {}
     if (role === 'influencer') {
       const instagramResult = validateInstagram(influencerForm.instagram)
@@ -340,11 +294,33 @@ export default function OnboardingPage() {
       socialLinks.linkedin = null // Brands don't have linkedin in form
     }
 
+    // Check username uniqueness before saving (username is already validated and required above)
+    const normalizedUsername = (role === 'influencer' ? influencerForm.username : brandForm.username).trim().toLowerCase()
+    const { data: existingUser } = await supabaseClient
+      .from('users')
+      .select('id')
+      .eq('username', normalizedUsername)
+      .neq('id', session.user.id)
+      .maybeSingle()
+
+    if (existingUser) {
+      setErrorMessage('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
+      setIsSaving(false)
+      return
+    }
+
+    // Use server action to save profile (more reliable than client-side)
+    console.log('[Onboarding] Attempting to save profile via server action:', {
+      userId: session.user.id,
+      email: session.user.email,
+      role: role,
+    })
+
     const result = await saveOnboardingProfile({
       userId: session.user.id,
       role: role || 'influencer',
       fullName: role === 'influencer' ? influencerForm.fullName : brandForm.brandName,
-      username: (role === 'influencer' ? influencerForm.username : brandForm.username).trim().toLowerCase(),
+      username: normalizedUsername,
       city: role === 'influencer' ? influencerForm.city : brandForm.city,
       bio: role === 'influencer' ? influencerForm.bio : '', // Brands don't have bio in form
       taxId: role === 'brand' ? brandForm.taxId : null,
