@@ -524,6 +524,19 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                       </div>
                     </div>
 
+                    {/* Tax ID Pending Notice - Only for brands */}
+                    {!isInfluencer && user.tax_id && !user.tax_id_verified && (
+                      <div className="mt-4 rounded-2xl border-2 border-yellow-500/50 bg-yellow-500/15 p-3 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-yellow-300 mb-1">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          ⚠️ Vergi Numarası Onay Bekliyor
+                        </div>
+                        <p className="text-xs text-yellow-200/90">
+                          Bu markanın vergi numarası girilmiş ancak henüz onaylanmamış. Onaylamak için aşağıdaki &quot;Vergi Numarasını Onayla&quot; butonunu kullanın.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Profile Completeness Info */}
                     {activeTab === 'pending' && (
                       <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3">

@@ -23,7 +23,16 @@ export default function EmailVerificationBanner({ userEmail }: EmailVerification
         })
 
         if (error) {
-          setResendMessage('Email gönderilemedi. Lütfen tekrar deneyin.')
+          const errorMsg = error.message?.toLowerCase() || ''
+          if (errorMsg.includes('rate limit') || 
+              errorMsg.includes('too many requests') ||
+              errorMsg.includes('rate limit exceeded') ||
+              errorMsg.includes('exceeded') ||
+              errorMsg.includes('40 seconds')) {
+            setResendMessage('Email gönderme limiti aşıldı. Lütfen 40 saniye bekleyip tekrar deneyin.')
+          } else {
+            setResendMessage('Email gönderilemedi. Lütfen tekrar deneyin.')
+          }
           setTimeout(() => setResendMessage(null), 5000)
         } else {
           setResendMessage('Doğrulama emaili tekrar gönderildi! Lütfen email kutunuzu kontrol edin.')
