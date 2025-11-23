@@ -48,9 +48,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!verifyError) {
-      console.log('[auth/callback] OTP verification successful, redirecting to login with success message')
-      // Email verified successfully - redirect to login with success message
+      console.log('[auth/callback] OTP verification successful, clearing session and redirecting to login')
+      // Email verified successfully - clear session and redirect to login
       // User needs to login again after email verification
+      await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/login?verified=true', requestUrl.origin))
     } else {
       console.error('[auth/callback] OTP verification error:', verifyError)
