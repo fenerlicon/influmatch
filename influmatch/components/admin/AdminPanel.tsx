@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search } from 'lucide-react'
 import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -58,6 +58,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [rejectedUsersState, setRejectedUsersState] = useState<User[]>(rejectedUsers)
   const [badgeModalUserId, setBadgeModalUserId] = useState<string | null>(null)
   const [selectedBadgeId, setSelectedBadgeId] = useState<string>('')
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState<string>('')
   
   const [users, setUsers] = useState<User[]>(() => {
     switch (activeTab) {
@@ -95,6 +97,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         setUsers(rejectedUsersState)
         break
     }
+    // Clear selection when tab changes
+    setSelectedUserIds(new Set())
+    setSearchQuery('')
   }, [activeTab, pendingUsersState, verifiedUsersState, rejectedUsersState])
   
   // Sync with initial data
@@ -173,7 +178,102 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     }
   }, [supabase])
 
-  const getCurrentUsers = () => users
+  // Filter users based on search query (only for verified tab)
+  const getFilteredUsers = () => {
+    if (activeTab === 'verified' && searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase()
+      return users.filter((user) => {
+        const fullName = user.full_name?.toLowerCase() || ''
+        const email = user.email?.toLowerCase() || ''
+        const username = user.username?.toLowerCase() || ''
+        return fullName.includes(query) || email.includes(query) || username.includes(query)
+      })
+    }
+    return users
+  }
+
+  const getCurrentUsers = () => getFilteredUsers()
+  
+  // Selection handlers
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) {
+        next.delete(userId)
+      } else {
+        next.add(userId)
+      }
+      return next
+    })
+  }
+
+  const selectAllUsers = () => {
+    const currentUsers = getCurrentUsers()
+    setSelectedUserIds(new Set(currentUsers.map((u) => u.id)))
+  }
+
+  const clearSelection = () => {
+    setSelectedUserIds(new Set())
+  }
+
+  // Bulk actions
+  const handleBulkVerify = async () => {
+    if (selectedUserIds.size === 0) return
+    if (!confirm(`${selectedUserIds.size} kullanıcıyı onaylamak istediğinizden emin misiniz?`)) return
+
+    startTransition(async () => {
+      const userIds = Array.from(selectedUserIds)
+      let successCount = 0
+      let errorCount = 0
+
+      for (const userId of userIds) {
+        try {
+          const result = await verifyUser(userId)
+          if (result.error) {
+            errorCount++
+            console.error(`Verify error for ${userId}:`, result.error)
+          } else {
+            successCount++
+          }
+        } catch (error) {
+          errorCount++
+          console.error(`Verify exception for ${userId}:`, error)
+        }
+      }
+
+      alert(`${successCount} kullanıcı onaylandı.${errorCount > 0 ? ` ${errorCount} kullanıcı için hata oluştu.` : ''}`)
+      setSelectedUserIds(new Set())
+    })
+  }
+
+  const handleBulkReject = async () => {
+    if (selectedUserIds.size === 0) return
+    if (!confirm(`${selectedUserIds.size} kullanıcıyı reddetmek istediğinizden emin misiniz?`)) return
+
+    startTransition(async () => {
+      const userIds = Array.from(selectedUserIds)
+      let successCount = 0
+      let errorCount = 0
+
+      for (const userId of userIds) {
+        try {
+          const result = await rejectUser(userId)
+          if (result.error) {
+            errorCount++
+            console.error(`Reject error for ${userId}:`, result.error)
+          } else {
+            successCount++
+          }
+        } catch (error) {
+          errorCount++
+          console.error(`Reject exception for ${userId}:`, error)
+        }
+      }
+
+      alert(`${successCount} kullanıcı reddedildi.${errorCount > 0 ? ` ${errorCount} kullanıcı için hata oluştu.` : ''}`)
+      setSelectedUserIds(new Set())
+    })
+  }
 
   const toggleCard = (userId: string) => {
     setExpandedCards((prev) => {
@@ -451,6 +551,85 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             })}
           </div>
 
+          {/* Search Bar - Only for verified tab */}
+          {activeTab === 'verified' && (
+            <div className="mt-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="İsim, email veya kullanıcı adı ile ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder-gray-500 focus:border-soft-gold/60 focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
+                />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Actions - Only for pending and rejected tabs */}
+          {(activeTab === 'pending' || activeTab === 'rejected') && (
+            <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={selectedUserIds.size === getCurrentUsers().length ? clearSelection : selectAllUsers}
+                  className="text-sm font-semibold text-soft-gold hover:text-champagne"
+                >
+                  {selectedUserIds.size === getCurrentUsers().length ? 'Seçimi Kaldır' : 'Tümünü Seç'}
+                </button>
+                <span className="text-sm text-gray-400">
+                  {selectedUserIds.size > 0 ? `${selectedUserIds.size} kullanıcı seçildi` : 'Kullanıcı seçilmedi'}
+                </span>
+              </div>
+              {selectedUserIds.size > 0 && (
+                <div className="flex gap-2">
+                  {activeTab === 'pending' && (
+                    <button
+                      type="button"
+                      onClick={handleBulkVerify}
+                      disabled={isPending}
+                      className="rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isPending ? (
+                        <>
+                          <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                          Onaylanıyor...
+                        </>
+                      ) : (
+                        `Seçili ${selectedUserIds.size} Kullanıcıyı Onayla`
+                      )}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleBulkReject}
+                    disabled={isPending}
+                    className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                        Reddediliyor...
+                      </>
+                    ) : (
+                      `Seçili ${selectedUserIds.size} Kullanıcıyı Reddet`
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* User Grid */}
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {currentUsers.length === 0 ? (
@@ -471,8 +650,30 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                 return (
                   <div
                     key={user.id}
-                    className="group rounded-3xl border border-white/10 bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow"
+                    className={`group rounded-3xl border bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow ${
+                      selectedUserIds.has(user.id)
+                        ? 'border-soft-gold/60 bg-soft-gold/5'
+                        : 'border-white/10'
+                    }`}
                   >
+                    {/* Checkbox - Only for pending and rejected tabs */}
+                    {(activeTab === 'pending' || activeTab === 'rejected') && (
+                      <div className="mb-4 flex items-center justify-end">
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.has(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                          className="h-4 w-4 rounded border-white/20 bg-white/5 text-soft-gold focus:ring-soft-gold/50"
+                        />
+                      </div>
+                    )}
+
+                    {/* User ID */}
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-xs text-gray-500">ID:</span>
+                      <span className="text-xs font-mono text-gray-400">{user.id}</span>
+                    </div>
+
                     {/* Header: Avatar, Name, Role, Status */}
                     <div className="flex items-start gap-4">
                       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-white/5">
