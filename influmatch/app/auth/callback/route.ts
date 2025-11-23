@@ -9,19 +9,20 @@ export async function GET(request: NextRequest) {
   const access_token = requestUrl.searchParams.get('access_token')
   const refresh_token = requestUrl.searchParams.get('refresh_token')
   
-  // Check for error parameters (from URL hash or query params)
-  const error = requestUrl.searchParams.get('error') || requestUrl.hash.match(/error=([^&]+)/)?.[1]
-  const errorCode = requestUrl.searchParams.get('error_code') || requestUrl.hash.match(/error_code=([^&]+)/)?.[1]
-  const errorDescription = requestUrl.searchParams.get('error_description') || requestUrl.hash.match(/error_description=([^&]+)/)?.[1]
+  // Check for error parameters (only from query params, hash is client-side only)
+  const error = requestUrl.searchParams.get('error')
+  const errorCode = requestUrl.searchParams.get('error_code')
+  const errorDescription = requestUrl.searchParams.get('error_description')
 
-  // If there's an error, redirect to login with appropriate message
-  if (error) {
+  // If there's an error in query params, redirect to login with appropriate message
+  // Only check for actual error values, not empty strings
+  if (error && error.trim() !== '') {
     console.error('[auth/callback] Error from Supabase:', { error, errorCode, errorDescription })
     
     let errorMessage = 'verification_failed'
     if (errorCode === 'otp_expired') {
       errorMessage = 'email_link_expired'
-    } else if (errorCode === 'access_denied') {
+    } else if (error === 'access_denied' || errorCode === 'access_denied') {
       errorMessage = 'verification_denied'
     }
     

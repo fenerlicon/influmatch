@@ -22,16 +22,23 @@ export default function LoginPage() {
     
     if (error === 'account_deleted') {
       setAccountDeletedError('Bu hesap silinmiş. Lütfen yeni bir hesap oluşturun.')
+      // Clean URL after showing error
+      router.replace('/login', { scroll: false })
     } else if (error === 'rate_limit' && message) {
       setAccountDeletedError(decodeURIComponent(message))
+      router.replace('/login', { scroll: false })
     } else if (error === 'email_link_expired') {
       setAccountDeletedError('Email doğrulama linkinin süresi dolmuş. Lütfen yeni bir doğrulama emaili isteyin.')
+      // Clean URL after showing error
+      router.replace('/login', { scroll: false })
     } else if (error === 'verification_denied') {
       setAccountDeletedError('Email doğrulama işlemi reddedildi. Lütfen tekrar deneyin.')
+      router.replace('/login', { scroll: false })
     } else if (error === 'verification_failed') {
       setAccountDeletedError('Email doğrulama başarısız oldu. Lütfen tekrar deneyin.')
+      router.replace('/login', { scroll: false })
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
   const isFormValid = useMemo(() => email.includes('@') && password.length >= 6, [email, password])
 
