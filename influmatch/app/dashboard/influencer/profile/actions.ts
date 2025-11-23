@@ -37,15 +37,45 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   }
 
   // Get current user's data from database
-  const { data: currentUser } = await supabase
-    .from('users')
-    .select('username, social_links, social_links_last_updated')
-    .eq('id', user.id)
-    .maybeSingle()
+  // Try to select social_links_last_updated, but handle gracefully if column doesn't exist yet
+  let currentUser: any = null
+  let currentUserError: any = null
+  
+  try {
+    const result = await supabase
+      .from('users')
+      .select('username, social_links, social_links_last_updated')
+      .eq('id', user.id)
+      .maybeSingle()
+    currentUser = result.data
+    currentUserError = result.error
+  } catch (err: any) {
+    // If column doesn't exist, try without it
+    if (err.message?.includes('social_links_last_updated') || err.message?.includes('column')) {
+      const result = await supabase
+        .from('users')
+        .select('username, social_links')
+        .eq('id', user.id)
+        .maybeSingle()
+      currentUser = result.data
+      currentUserError = result.error
+    } else {
+      throw err
+    }
+  }
+
+  if (currentUserError) {
+    console.error('[updateProfile] Error fetching current user:', currentUserError)
+    throw new Error('Kullanıcı bilgileri alınamadı. Lütfen tekrar deneyin.')
+  }
+
+  if (!currentUser) {
+    throw new Error('Kullanıcı bulunamadı.')
+  }
 
   const currentUsername = currentUser?.username
   const currentSocialLinks = (currentUser?.social_links as Record<string, string | null>) || {}
-  const socialLinksLastUpdated = currentUser?.social_links_last_updated
+  const socialLinksLastUpdated = currentUser?.social_links_last_updated || null
 
   // If user already has a username, prevent changing it
   if (currentUsername && payload.username && payload.username.trim()) {
@@ -151,7 +181,9 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   }
 
   // Normalize values: empty strings become null to satisfy constraints
-  const normalizedUsername = payload.username?.trim() || null
+  // Ensure username is set (either from payload or keep existing)
+  const finalUsername = payload.username?.trim() || currentUsername || null
+  const normalizedUsername = finalUsername
   const normalizedCity = payload.city?.trim() || null
   const normalizedBio = payload.bio?.trim() || null
   const normalizedFullName = payload.fullName?.trim() || null
