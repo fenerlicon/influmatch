@@ -66,14 +66,15 @@ export default function SignupPage() {
     setErrorMessage(null)
     setSuccessMessage(null)
 
-    const { error } = await signUpWithEmail({
+    const response = await signUpWithEmail({
       email,
       password,
       fullName,
       role,
     })
 
-    if (error) {
+    if (response.error) {
+      const error = response.error
       // Check if it's a "user already registered" error
       if (error.message?.toLowerCase().includes('user already registered') || 
           error.message?.toLowerCase().includes('already registered')) {
@@ -100,21 +101,28 @@ export default function SignupPage() {
     }
 
     // Success - Check if email confirmation is required
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user && !user.email_confirmed_at) {
-      // Email confirmation required
-      setSuccessMessage('Kayıt başarılı! Email adresinize gönderilen doğrulama linkine tıklayarak hesabınızı aktifleştirin.')
+    // Supabase returns user in response if email confirmation is disabled
+    // If email confirmation is enabled, user will be null until email is confirmed
+    if (response.data?.user) {
+      const user = response.data.user
+      
+      if (!user.email_confirmed_at) {
+        // Email confirmation required
+        setSuccessMessage('Kayıt başarılı! Email adresinize gönderilen doğrulama linkine tıklayarak hesabınızı aktifleştirin. Email gelmediyse spam klasörünü kontrol edin.')
+      } else {
+        // Email already confirmed (shouldn't happen if confirmation is enabled)
+        setSuccessMessage('Kayıt başarılı! Şimdi profilini tamamlayalım.')
+        setFullName('')
+        setEmail('')
+        setPassword('')
+        setConfirmPassword('')
+        setTimeout(() => {
+          router.push('/onboarding')
+        }, 1000)
+      }
     } else {
-      // Email already confirmed or confirmation not required
-      setSuccessMessage('Kayıt başarılı! Şimdi profilini tamamlayalım.')
-      setFullName('')
-      setEmail('')
-      setPassword('')
-      setConfirmPassword('')
-      setTimeout(() => {
-        router.push('/onboarding')
-      }, 1000)
+      // User is null - email confirmation is required
+      setSuccessMessage('Kayıt başarılı! Email adresinize gönderilen doğrulama linkine tıklayarak hesabınızı aktifleştirin. Email gelmediyse spam klasörünü kontrol edin.')
     }
   }
 

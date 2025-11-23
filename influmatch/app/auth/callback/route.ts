@@ -7,10 +7,13 @@ export async function GET(request: NextRequest) {
   const token_hash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
   const next = requestUrl.searchParams.get('next') ?? '/dashboard'
+  const access_token = requestUrl.searchParams.get('access_token')
+  const refresh_token = requestUrl.searchParams.get('refresh_token')
 
+  const supabase = createSupabaseServerClient()
+
+  // Handle email confirmation with token_hash (OTP method)
   if (token_hash && type) {
-    const supabase = createSupabaseServerClient()
-
     const { error } = await supabase.auth.verifyOtp({
       type: type as any,
       token_hash,
@@ -19,10 +22,30 @@ export async function GET(request: NextRequest) {
     if (!error) {
       // Email verified successfully
       return NextResponse.redirect(new URL(`/auth/verify-success?next=${encodeURIComponent(next)}`, requestUrl.origin))
+    } else {
+      console.error('[auth/callback] OTP verification error:', error)
+      return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
     }
   }
 
-  // If verification failed or no token, redirect to login with error
+  // Handle email confirmation with access_token and refresh_token (magic link method)
+  if (access_token && refresh_token) {
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token,
+      refresh_token,
+    })
+
+    if (!sessionError) {
+      // Session set successfully, email is confirmed
+      return NextResponse.redirect(new URL(`/auth/verify-success?next=${encodeURIComponent(next)}`, requestUrl.origin))
+    } else {
+      console.error('[auth/callback] Session set error:', sessionError)
+      return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
+    }
+  }
+
+  // If no valid parameters, redirect to login with error
+  console.error('[auth/callback] No valid verification parameters found')
   return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
 }
 
