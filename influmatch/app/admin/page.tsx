@@ -55,7 +55,7 @@ export default async function AdminPage() {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const result = await supabase
         .from('users')
-        .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, spotlight_active')
+        .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, spotlight_active, displayed_badges, tax_id_verified')
         .order('created_at', { ascending: false })
 
       if (result.error) {

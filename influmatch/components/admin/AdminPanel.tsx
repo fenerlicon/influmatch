@@ -3,11 +3,12 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardBadges, manuallyAwardSpecificBadge, toggleUserSpotlight } from '@/app/admin/actions'
-import { influencerBadges, brandBadges } from '@/app/badges/data'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId } from '@/app/admin/actions'
+import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
 import { getCategoryLabel } from '@/utils/categories'
+import BadgeCompactList from '@/components/badges/BadgeCompactList'
 
 interface User {
   id: string
@@ -26,6 +27,8 @@ interface User {
   tax_id?: string | null
   company_legal_name?: string | null
   spotlight_active?: boolean | null
+  displayed_badges?: string[] | null
+  tax_id_verified?: boolean | null
 }
 
 interface AdminPanelProps {
@@ -121,7 +124,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // Fetch complete user data to ensure we have all fields
           const { data: completeUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified')
             .eq('id', userId)
             .single()
 
@@ -226,23 +229,33 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
-  const handleAwardBadges = async (userId: string) => {
-    if (!confirm('Bu kullanıcı için rozetleri tekrar vermek istediğinizden emin misiniz?')) {
+  const handleVerifyTaxId = async (userId: string) => {
+    if (!confirm('Bu markanın vergi numarasını onaylamak istediğinizden emin misiniz? Onaylandıktan sonra "Resmi İşletme" rozeti verilecektir.')) {
       return
     }
     
     startTransition(async () => {
       try {
-        const result = await manuallyAwardBadges(userId)
+        const result = await verifyTaxId(userId)
         if (result.error) {
           alert(result.error)
-          console.error('Badge awarding error:', result.error)
+          console.error('Tax ID verification error:', result.error)
         } else {
-          alert(result.message || 'Rozetler başarıyla verildi.')
-          console.log('Badges awarded successfully for user:', userId)
+          alert(result.message || 'Vergi numarası başarıyla onaylandı.')
+          if (result.warning) {
+            console.warn('Tax ID verification warning:', result.warning)
+          }
+          // Update local state
+          const updateUserInState = (users: User[]) => 
+            users.map((u) => (u.id === userId ? { ...u, tax_id_verified: true } : u))
+          
+          setPendingUsersState(updateUserInState)
+          setVerifiedUsersState(updateUserInState)
+          setRejectedUsersState(updateUserInState)
+          console.log('Tax ID verified successfully for user:', userId)
         }
       } catch (error) {
-        console.error('Badge awarding exception:', error)
+        console.error('Tax ID verification exception:', error)
         alert('Bir hata oluştu. Lütfen tekrar deneyin.')
       }
     })
@@ -577,14 +590,25 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             {user.tax_id ? (
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-mono text-white">{user.tax_id}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleVerifyUser(user.id)}
-                                  disabled={isPending}
-                                  className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300 transition hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  Doğrula
-                                </button>
+                                {user.tax_id_verified ? (
+                                  <div className="flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1">
+                                    <CheckCircle className="h-3 w-3 text-emerald-300" />
+                                    <span className="text-xs font-semibold text-emerald-300">Onaylandı</span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleVerifyTaxId(user.id)}
+                                    disabled={isPending}
+                                    className="rounded-lg border border-soft-gold/40 bg-soft-gold/10 px-3 py-1 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {isPending ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      'Vergi Numarasını Onayla'
+                                    )}
+                                  </button>
+                                )}
                               </div>
                             ) : (
                               <span className="text-xs text-gray-500">Vergi bilgisi girilmedi</span>
@@ -722,6 +746,23 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                       </div>
                     )}
 
+                    {/* User Badges - Only for verified users */}
+                    {activeTab === 'verified' && user.displayed_badges && Array.isArray(user.displayed_badges) && user.displayed_badges.length > 0 && (() => {
+                      const badgeIds = user.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)
+                      const availableBadges = getAvailableBadges(user.role)
+                      const userBadges = badgeIds
+                        .map((badgeId) => availableBadges.find((b) => b.id === badgeId))
+                        .filter((badge): badge is Badge => badge !== undefined)
+                      
+                      if (userBadges.length === 0) return null
+                      
+                      return (
+                        <div className="mt-4 border-t border-white/10 pt-4">
+                          <BadgeCompactList badges={userBadges} userRole={user.role ?? 'influencer'} />
+                        </div>
+                      )
+                    })()}
+
                     {/* Action Buttons */}
                     <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-4">
                       {activeTab === 'pending' && (
@@ -773,19 +814,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                           >
                             <Award className="h-4 w-4" />
                             Manuel Rozet Ver
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAwardBadges(user.id)}
-                            disabled={isPending}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Award className="h-4 w-4" />
-                            )}
-                            Rozetleri Tekrar Ver
                           </button>
                           <button
                             type="button"

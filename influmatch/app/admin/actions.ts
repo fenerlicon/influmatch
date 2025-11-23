@@ -273,3 +273,87 @@ export async function toggleUserSpotlight(userId: string, spotlightActive: boole
   
   return { success: true, message: spotlightActive ? 'Spotlight aktif edildi.' : 'Spotlight deaktif edildi.' }
 }
+
+// Verify tax ID for a brand (admin only)
+export async function verifyTaxId(userId: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  // Check if user has tax_id
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('tax_id, role')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (!userProfile) {
+    return { error: 'Kullanıcı bulunamadı.' }
+  }
+
+  if (!userProfile.tax_id) {
+    return { error: 'Bu kullanıcının vergi numarası bulunmuyor.' }
+  }
+
+  if (userProfile.role !== 'brand') {
+    return { error: 'Bu işlem sadece markalar için geçerlidir.' }
+  }
+
+  // Update tax_id_verified
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ tax_id_verified: true })
+    .eq('id', userId)
+
+  if (updateError) {
+    console.error('[verifyTaxId] Supabase error:', updateError)
+    return { error: `Vergi numarası onaylama hatası: ${updateError.message}` }
+  }
+
+  // Award official-business badge
+  try {
+    const { error: rpcError } = await supabase.rpc('award_user_badge', {
+      target_user_id: userId,
+      badge_id_to_award: 'official-business',
+    })
+
+    if (rpcError) {
+      console.error('[verifyTaxId] Badge awarding error:', rpcError)
+      // Don't fail if badge awarding fails, but log it
+      return { 
+        success: true, 
+        warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${rpcError.message}` 
+      }
+    }
+  } catch (badgeError) {
+    console.error('[verifyTaxId] Badge awarding exception:', badgeError)
+    return { 
+      success: true, 
+      warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${badgeError instanceof Error ? badgeError.message : 'Bilinmeyen hata'}` 
+    }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath(`/dashboard/brand/badges`)
+  revalidatePath(`/dashboard/brand`)
+  
+  return { success: true, message: 'Vergi numarası onaylandı ve "Resmi İşletme" rozeti verildi.' }
+}

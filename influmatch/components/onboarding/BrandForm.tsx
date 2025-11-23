@@ -14,6 +14,7 @@ export interface BrandFormState {
   instagram: string
   tiktok: string
   youtube: string
+  taxId: string
 }
 
 interface BrandFormProps {
@@ -225,6 +226,23 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             <p className="mt-1 text-xs text-red-300">{validationErrors.website}</p>
           )}
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="taxId" className="text-sm text-gray-300">
+          Vergi Numarası <span className="text-gray-500 text-xs">(Opsiyonel)</span>
+        </label>
+        <input
+          id="taxId"
+          type="text"
+          value={form.taxId}
+          onChange={handleInput('taxId')}
+          placeholder="1234567890"
+          className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Vergi numaranızı girerseniz, onay sürecine alınacaksınız. Onaylandıktan sonra &quot;Resmi İşletme&quot; rozetini alacaksınız.
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

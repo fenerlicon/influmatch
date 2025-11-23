@@ -49,6 +49,7 @@ const defaultBrandForm: BrandFormState = {
   instagram: '',
   tiktok: '',
   youtube: '',
+  taxId: '',
 }
 
 export default function OnboardingPage() {
@@ -286,6 +287,7 @@ export default function OnboardingPage() {
       basePayload.full_name = brandForm.brandName
       basePayload.username = brandForm.username.trim().toLowerCase()
       basePayload.city = brandForm.city
+      basePayload.tax_id = brandForm.taxId.trim() || null
       basePayload.social_links = {
         website: websiteResult.normalizedUrl || brandForm.website || null,
         instagram: instagramResult.normalizedUrl || brandForm.instagram || null,
@@ -345,6 +347,7 @@ export default function OnboardingPage() {
       username: (role === 'influencer' ? influencerForm.username : brandForm.username).trim().toLowerCase(),
       city: role === 'influencer' ? influencerForm.city : brandForm.city,
       bio: role === 'influencer' ? influencerForm.bio : '', // Brands don't have bio in form
+      taxId: role === 'brand' ? brandForm.taxId : null,
       category: role === 'influencer' ? influencerForm.category : 'tech', // Default category for brands
       avatarUrl: avatarUrl,
       socialLinks: socialLinks,

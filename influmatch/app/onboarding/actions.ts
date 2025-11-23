@@ -12,6 +12,7 @@ interface SaveOnboardingPayload {
   bio: string
   category: string
   avatarUrl: string | null
+  taxId?: string | null
   socialLinks: {
     instagram?: string | null
     tiktok?: string | null
@@ -67,6 +68,7 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
         bio: normalizedBio,
         category: payload.category || null,
         avatar_url: payload.avatarUrl,
+        tax_id: payload.taxId?.trim() || null,
         social_links: payload.socialLinks,
       })
       .eq('id', payload.userId)
@@ -89,6 +91,7 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
         bio: normalizedBio,
         category: payload.category || null,
         avatar_url: payload.avatarUrl,
+        tax_id: payload.taxId?.trim() || null,
         social_links: payload.socialLinks,
       })
       .select()
