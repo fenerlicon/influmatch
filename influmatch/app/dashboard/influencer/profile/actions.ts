@@ -90,11 +90,17 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     throw new Error(twitchResult.error || 'Geçersiz Twitch linki.')
   }
 
+  // Normalize values: empty strings become null to satisfy constraints
+  const normalizedUsername = payload.username?.trim() || null
+  const normalizedCity = payload.city?.trim() || null
+  const normalizedBio = payload.bio?.trim() || null
+  const normalizedFullName = payload.fullName?.trim() || null
+
   const updates: any = {
-    full_name: payload.fullName || null,
-    username: payload.username || null,
-    city: payload.city || null,
-    bio: payload.bio || null,
+    full_name: normalizedFullName,
+    username: normalizedUsername,
+    city: normalizedCity,
+    bio: normalizedBio,
     category: payload.category || null,
     avatar_url: payload.avatarUrl,
     social_links: {

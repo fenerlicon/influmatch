@@ -93,15 +93,21 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     throw new Error(twitchResult.error || 'Geçersiz Twitch linki.')
   }
 
+  // Normalize values: empty strings become null to satisfy constraints
+  const normalizedUsername = payload.username?.trim() || null
+  const normalizedCity = payload.city?.trim() || null
+  const normalizedBio = payload.bio?.trim() || null
+  const normalizedBrandName = payload.brandName?.trim() || null
+
   const updates: any = {
-    full_name: payload.brandName.trim(),
-    username: payload.username.trim() || null,
-    city: payload.city.trim() || null,
-    bio: payload.bio.trim() || null,
+    full_name: normalizedBrandName,
+    username: normalizedUsername,
+    city: normalizedCity,
+    bio: normalizedBio,
     category: payload.category || null,
     avatar_url: payload.logoUrl,
-    company_legal_name: payload.companyLegalName || null,
-    tax_id: payload.taxId || null,
+    company_legal_name: payload.companyLegalName?.trim() || null,
+    tax_id: payload.taxId?.trim() || null,
     social_links: {
       website: websiteResult.normalizedUrl || null,
       linkedin: linkedinResult.normalizedUrl || null,

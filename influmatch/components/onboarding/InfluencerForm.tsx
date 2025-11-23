@@ -4,6 +4,7 @@ import { ChangeEvent, useState, useEffect, useCallback } from 'react'
 import { validateInstagram, validateTikTok, validateYouTube } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+import { TURKISH_CITIES } from '@/utils/turkishCities'
 
 export interface InfluencerFormState {
   fullName: string
@@ -214,13 +215,19 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
           <label htmlFor="city" className="text-sm text-gray-300">
             Şehir
           </label>
-          <input
+          <select
             id="city"
             value={form.city}
             onChange={handleInput('city')}
-            placeholder="İstanbul"
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
-          />
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
+          >
+            <option value="">Şehir seçin</option>
+            {TURKISH_CITIES.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

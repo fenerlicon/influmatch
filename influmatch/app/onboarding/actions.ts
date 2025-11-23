@@ -47,6 +47,12 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
 
   let data, error
 
+  // Normalize username: empty string becomes null to satisfy constraint
+  const normalizedUsername = payload.username?.trim() || null
+  const normalizedCity = payload.city?.trim() || null
+  const normalizedBio = payload.bio?.trim() || null
+  const normalizedFullName = payload.fullName?.trim() || null
+
   if (existingProfile) {
     // Profile exists - use UPDATE
     console.log('[saveOnboardingProfile] Profile exists, using UPDATE')
@@ -55,11 +61,11 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
       .update({
         email: user.email || '',
         role: payload.role,
-        full_name: payload.fullName,
-        username: payload.username,
-        city: payload.city,
-        bio: payload.bio,
-        category: payload.category,
+        full_name: normalizedFullName,
+        username: normalizedUsername,
+        city: normalizedCity,
+        bio: normalizedBio,
+        category: payload.category || null,
         avatar_url: payload.avatarUrl,
         social_links: payload.socialLinks,
       })
@@ -77,11 +83,11 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
         id: payload.userId,
         email: user.email || '',
         role: payload.role,
-        full_name: payload.fullName,
-        username: payload.username,
-        city: payload.city,
-        bio: payload.bio,
-        category: payload.category,
+        full_name: normalizedFullName,
+        username: normalizedUsername,
+        city: normalizedCity,
+        bio: normalizedBio,
+        category: payload.category || null,
         avatar_url: payload.avatarUrl,
         social_links: payload.socialLinks,
       })

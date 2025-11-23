@@ -9,6 +9,7 @@ import { updateBrandProfile } from '@/app/dashboard/brand/profile/actions'
 import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
+import { TURKISH_CITIES } from '@/utils/turkishCities'
 
 const CATEGORY_OPTIONS = ['Teknoloji', 'Giyim', 'Kozmetik', 'Hizmet', 'Ajans', 'Oyun', 'Finans']
 const LOGO_BUCKET = 'avatars'
@@ -333,6 +334,29 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     </label>
   )
 
+  const renderCitySelect = (label: string, name: string, value: string, icon: ReactNode) => (
+    <label className="space-y-2 text-sm text-gray-300">
+      <span>{label}</span>
+      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+        <span className="text-soft-gold">{icon}</span>
+        <select
+          name={name}
+          value={value}
+          onChange={handleChange}
+          disabled={!isEditing}
+          className="w-full bg-transparent text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">Şehir seçin</option>
+          {TURKISH_CITIES.map((city) => (
+            <option key={city} value={city}>
+              {city}
+            </option>
+          ))}
+        </select>
+      </div>
+    </label>
+  )
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#101117] to-[#090a0f] p-6 text-white shadow-glow">
@@ -442,7 +466,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
             )}
           </div>
 
-          {renderInput('Merkez / Şehir', 'city', formState.city, <MapPin className="h-4 w-4" />, 'İstanbul, Türkiye')}
+          {renderCitySelect('Merkez / Şehir', 'city', formState.city, <MapPin className="h-4 w-4" />)}
 
           <label className="space-y-2 text-sm text-gray-300">
             <span>Hakkımızda / Vizyon</span>

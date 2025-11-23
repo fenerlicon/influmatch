@@ -9,6 +9,7 @@ import { updateProfile } from '@/app/dashboard/influencer/profile/actions'
 import { validateInstagram, validateTikTok, validateYouTube, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
+import { TURKISH_CITIES } from '@/utils/turkishCities'
 
 const CATEGORY_OPTIONS = ['Beauty', 'Fashion', 'Lifestyle', 'Tech'] as const
 const AVATAR_BUCKET = 'avatars'
@@ -405,14 +406,20 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               </div>
               <div>
                 <label className="text-sm text-gray-300">Şehir</label>
-                <input
-                  type="text"
+                <select
                   name="city"
                   value={formState.city}
                   onChange={handleChange}
                   disabled={!isEditing}
                   className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
-                />
+                >
+                  <option value="">Şehir seçin</option>
+                  {TURKISH_CITIES.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <div>
