@@ -24,6 +24,12 @@ export default function LoginPage() {
       setAccountDeletedError('Bu hesap silinmiş. Lütfen yeni bir hesap oluşturun.')
     } else if (error === 'rate_limit' && message) {
       setAccountDeletedError(decodeURIComponent(message))
+    } else if (error === 'email_link_expired') {
+      setAccountDeletedError('Email doğrulama linkinin süresi dolmuş. Lütfen yeni bir doğrulama emaili isteyin.')
+    } else if (error === 'verification_denied') {
+      setAccountDeletedError('Email doğrulama işlemi reddedildi. Lütfen tekrar deneyin.')
+    } else if (error === 'verification_failed') {
+      setAccountDeletedError('Email doğrulama başarısız oldu. Lütfen tekrar deneyin.')
     }
   }, [searchParams])
 
