@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { type ReactNode, useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info } from 'lucide-react'
+import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info, Edit2, X } from 'lucide-react'
 import { updateBrandProfile } from '@/app/dashboard/brand/profile/actions'
 import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
@@ -77,6 +77,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [selectedBadges, setSelectedBadges] = useState<string[]>(initialData.displayedBadges ?? [])
   const [isEditing, setIsEditing] = useState(false)
+  const [isEditingCorporate, setIsEditingCorporate] = useState(false)
 
   const checkUsername = useCallback(async (username: string) => {
     if (!username || username.trim().length === 0) {
@@ -315,7 +316,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     })
   }
 
-  const renderInput = (label: string, name: string, value: string, icon: ReactNode, placeholder?: string, type: string = 'text') => (
+  const renderInput = (label: string, name: string, value: string, icon: ReactNode, placeholder?: string, disabled?: boolean, type: string = 'text') => (
     <label className="space-y-2 text-sm text-gray-300">
       <span>{label}</span>
       <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
@@ -325,7 +326,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           name={name}
           value={value}
           onChange={handleChange}
-          disabled={!isEditing}
+          disabled={disabled !== undefined ? disabled : !isEditing}
           placeholder={placeholder}
           className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         />
@@ -517,11 +518,25 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
 
       {/* Kurumsal Kimlik Section */}
       <div className="space-y-5 rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Kurumsal Kimlik</p>
-          <p className="mt-2 text-sm text-gray-400">
-            Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="font-semibold text-soft-gold">&quot;Resmi İşletme&quot;</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Kurumsal Kimlik</p>
+              {!isEditingCorporate && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingCorporate(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-soft-gold/40 bg-soft-gold/10 px-3 py-1.5 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  Düzenle
+                </button>
+              )}
+            </div>
+            <p className="mt-2 text-sm text-gray-400">
+              Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="font-semibold text-soft-gold">&quot;Resmi İşletme&quot;</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
+            </p>
+          </div>
         </div>
 
         {renderInput(
@@ -529,7 +544,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           'companyLegalName',
           formState.companyLegalName,
           <FileText className="h-4 w-4" />,
-          'Opsiyonel'
+          'Opsiyonel',
+          !isEditingCorporate
         )}
 
         {renderInput(
@@ -537,7 +553,70 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           'taxId',
           formState.taxId,
           <FileText className="h-4 w-4" />,
-          'Opsiyonel - Doğrulama Rozeti için önerilir'
+          'Opsiyonel - Doğrulama Rozeti için önerilir',
+          !isEditingCorporate
+        )}
+
+        {isEditingCorporate && (
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={async () => {
+                setErrorMsg(null)
+                startTransition(async () => {
+                  try {
+                    const result = await updateBrandProfile({
+                      brandName: formState.brandName,
+                      username: formState.username,
+                      city: formState.city,
+                      bio: formState.bio,
+                      category: formState.category,
+                      logoUrl,
+                      website: formState.website.trim() || '',
+                      linkedin: formState.linkedin.trim() || '',
+                      instagram: formState.instagram.trim() || '',
+                      kick: formState.kick?.trim() || null,
+                      twitter: formState.twitter?.trim() || null,
+                      twitch: formState.twitch?.trim() || null,
+                      displayedBadges: selectedBadges,
+                      companyLegalName: formState.companyLegalName.trim() || null,
+                      taxId: formState.taxId.trim() || null,
+                    })
+                    if (result.error) {
+                      setErrorMsg(result.error)
+                    } else {
+                      setToast('Kurumsal kimlik bilgileri güncellendi.')
+                      setIsEditingCorporate(false)
+                      router.refresh()
+                    }
+                  } catch (error) {
+                    console.error('Update failed:', error)
+                    setErrorMsg('Güncelleme başarısız oldu. Lütfen tekrar deneyin.')
+                  }
+                })
+              }}
+              disabled={isPending}
+              className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPending ? 'Kaydediliyor...' : 'Kaydet'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditingCorporate(false)
+                setFormState((prev) => ({
+                  ...prev,
+                  companyLegalName: initialData.companyLegalName ?? '',
+                  taxId: initialData.taxId ?? '',
+                }))
+                setErrorMsg(null)
+              }}
+              disabled={isPending}
+              className="rounded-2xl border border-gray-500/60 bg-gray-500/10 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:border-gray-500 hover:bg-gray-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              İptal
+            </button>
+          </div>
         )}
 
         <div className="rounded-2xl border border-soft-gold/20 bg-soft-gold/5 p-4">

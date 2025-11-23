@@ -1,7 +1,6 @@
 import {
   BadgeCheck,
   Crown,
-  Building2,
   UserCheck,
   Megaphone,
   Zap,
@@ -50,13 +49,6 @@ export const influencerBadges: Badge[] = [
     name: 'Profil Uzmanı',
     description: '%100 doluluk oranı',
     icon: UserCheck,
-    phase: 'mvp',
-  },
-  {
-    id: 'corporate',
-    name: 'Kurumsal',
-    description: 'Vergi levhalı profiller',
-    icon: Building2,
     phase: 'mvp',
   },
   {

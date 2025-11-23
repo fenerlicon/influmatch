@@ -231,7 +231,18 @@ export default function AdvertProjectsList({
                 <div className="mt-4 flex flex-1 flex-col gap-3">
                   <div>
                     <h3 className="text-lg font-semibold line-clamp-2">{project.title}</h3>
-                    <p className="mt-1 text-sm text-gray-400">{project.brandName}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="text-sm text-gray-400">{project.brandName}</p>
+                      {project.brandVerificationStatus === 'verified' && (
+                        <div className="group/verify relative flex-shrink-0">
+                          <BadgeCheck className="h-4 w-4 text-soft-gold cursor-help" />
+                          <div className="absolute left-full top-1/2 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover/verify:block z-50">
+                            Onaylanmış İşletme
+                            <div className="absolute right-full top-1/2 -mr-1 -translate-y-1/2 border-4 border-transparent border-r-black/90" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {project.brandDisplayedBadges && project.brandDisplayedBadges.length > 0 && (
                     <div className="flex items-center">
@@ -314,10 +325,11 @@ export default function AdvertProjectsList({
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-white">{selectedProject.brandName}</p>
                       {selectedProject.brandVerificationStatus === 'verified' && (
-                        <div className="group relative">
-                          <BadgeCheck className="h-4 w-4 text-soft-gold" />
-                          <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                        <div className="group/verify relative flex-shrink-0">
+                          <BadgeCheck className="h-5 w-5 text-soft-gold cursor-help" />
+                          <div className="absolute left-full top-1/2 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover/verify:block z-50">
                             Onaylanmış İşletme
+                            <div className="absolute right-full top-1/2 -mr-1 -translate-y-1/2 border-4 border-transparent border-r-black/90" />
                           </div>
                         </div>
                       )}

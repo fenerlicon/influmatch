@@ -70,7 +70,7 @@ export async function saveBrandAdvert(payload: SaveAdvertPayload) {
     deadline: deadline || null,
     brand_user_id: user.id,
     brand_id: user.id,
-    description: description || null,
+    description: description?.trim() || '',
   }
 
   if (status) {
