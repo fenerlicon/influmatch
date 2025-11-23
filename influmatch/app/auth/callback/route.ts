@@ -48,10 +48,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!verifyError) {
-      console.log('[auth/callback] OTP verification successful, redirecting to onboarding')
-      // Email verified successfully - redirect directly to onboarding
-      // Onboarding page will handle role detection and show appropriate form
-      return NextResponse.redirect(new URL('/onboarding', requestUrl.origin))
+      console.log('[auth/callback] OTP verification successful, redirecting to success page')
+      // Email verified successfully - redirect to success page
+      // Success page will auto-login and redirect to dashboard
+      return NextResponse.redirect(new URL('/auth/verify-success', requestUrl.origin))
     } else {
       console.error('[auth/callback] OTP verification error:', verifyError)
       return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
@@ -67,10 +67,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!sessionError) {
-      console.log('[auth/callback] Session set successfully, redirecting to onboarding')
-      // Session set successfully, email is confirmed - redirect directly to onboarding
-      // Onboarding page will handle role detection and show appropriate form
-      return NextResponse.redirect(new URL('/onboarding', requestUrl.origin))
+      console.log('[auth/callback] Session set successfully, redirecting to success page')
+      // Session set successfully, email is confirmed - redirect to success page
+      // Success page will auto-login and redirect to dashboard
+      return NextResponse.redirect(new URL('/auth/verify-success', requestUrl.origin))
     } else {
       console.error('[auth/callback] Session set error:', sessionError)
       return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
