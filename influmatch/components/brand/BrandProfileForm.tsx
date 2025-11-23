@@ -32,6 +32,7 @@ interface BrandProfileFormProps {
     companyLegalName?: string
     taxId?: string
     taxIdVerified?: boolean | null
+    socialLinksLastUpdated?: string | null
   }
 }
 
@@ -484,6 +485,27 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
+
+          {initialData.socialLinksLastUpdated && (() => {
+            const lastUpdated = new Date(initialData.socialLinksLastUpdated)
+            const now = new Date()
+            const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
+            const daysRemaining = 30 - daysSinceLastUpdate
+            
+            if (daysRemaining > 0) {
+              return (
+                <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 mb-5">
+                  <p className="text-sm text-yellow-200">
+                    <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz. 
+                    {daysRemaining > 0 && (
+                      <span className="ml-1"> {daysRemaining} gün sonra tekrar değiştirebilirsiniz.</span>
+                    )}
+                  </p>
+                </div>
+              )
+            }
+            return null
+          })()}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>

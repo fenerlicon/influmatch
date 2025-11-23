@@ -36,14 +36,16 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     throw new Error('Oturum bulunamadı. Lütfen yeniden giriş yapın.')
   }
 
-  // Get current user's username from database
+  // Get current user's data from database
   const { data: currentUser } = await supabase
     .from('users')
-    .select('username')
+    .select('username, social_links, social_links_last_updated')
     .eq('id', user.id)
     .maybeSingle()
 
   const currentUsername = currentUser?.username
+  const currentSocialLinks = (currentUser?.social_links as Record<string, string | null>) || {}
+  const socialLinksLastUpdated = currentUser?.social_links_last_updated
 
   // If user already has a username, prevent changing it
   if (currentUsername && payload.username && payload.username.trim()) {
@@ -84,6 +86,41 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   } else if (currentUsername) {
     // Keep existing username if user already has one
     payload.username = currentUsername
+  }
+
+  // Check if social links have changed
+  const newSocialLinks = {
+    instagram: payload.socialLinks.instagram?.trim() || null,
+    tiktok: payload.socialLinks.tiktok?.trim() || null,
+    youtube: payload.socialLinks.youtube?.trim() || null,
+    kick: payload.socialLinks.kick?.trim() || null,
+    twitter: payload.socialLinks.twitter?.trim() || null,
+    twitch: payload.socialLinks.twitch?.trim() || null,
+  }
+
+  // Normalize current social links for comparison
+  const normalizedCurrentSocialLinks = {
+    instagram: currentSocialLinks.instagram?.trim() || null,
+    tiktok: currentSocialLinks.tiktok?.trim() || null,
+    youtube: currentSocialLinks.youtube?.trim() || null,
+    kick: currentSocialLinks.kick?.trim() || null,
+    twitter: currentSocialLinks.twitter?.trim() || null,
+    twitch: currentSocialLinks.twitch?.trim() || null,
+  }
+
+  // Check if any social link has changed
+  const socialLinksChanged = JSON.stringify(newSocialLinks) !== JSON.stringify(normalizedCurrentSocialLinks)
+
+  // If social links changed, check if 30 days have passed since last update
+  if (socialLinksChanged && socialLinksLastUpdated) {
+    const lastUpdated = new Date(socialLinksLastUpdated)
+    const now = new Date()
+    const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (daysSinceLastUpdate < 30) {
+      const daysRemaining = 30 - daysSinceLastUpdate
+      throw new Error(`Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz. ${daysRemaining} gün sonra tekrar değiştirebilirsiniz.`)
+    }
   }
 
   // Validate social links
@@ -134,6 +171,11 @@ export async function updateProfile(payload: UpdateProfilePayload) {
       twitter: twitterResult.normalizedUrl || null,
       twitch: twitchResult.normalizedUrl || null,
     },
+  }
+
+  // Update social_links_last_updated if social links changed
+  if (socialLinksChanged) {
+    updates.social_links_last_updated = new Date().toISOString()
   }
 
   // Update displayed_badges if provided

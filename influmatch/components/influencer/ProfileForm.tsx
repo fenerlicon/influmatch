@@ -24,6 +24,7 @@ interface ProfileFormProps {
     socialLinks: Record<string, string | null>
     displayedBadges?: string[]
     availableBadgeIds?: string[]
+    socialLinksLastUpdated?: string | null
   }
 }
 
@@ -465,6 +466,27 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
             userId={userId}
           />
         </div>
+
+        {initialData.socialLinksLastUpdated && (() => {
+          const lastUpdated = new Date(initialData.socialLinksLastUpdated)
+          const now = new Date()
+          const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
+          const daysRemaining = 30 - daysSinceLastUpdate
+          
+          if (daysRemaining > 0) {
+            return (
+              <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 mb-5">
+                <p className="text-sm text-yellow-200">
+                  <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz. 
+                  {daysRemaining > 0 && (
+                    <span className="ml-1"> {daysRemaining} gün sonra tekrar değiştirebilirsiniz.</span>
+                  )}
+                </p>
+              </div>
+            )
+          }
+          return null
+        })()}
 
         <div className="grid gap-5 md:grid-cols-3">
           <div>

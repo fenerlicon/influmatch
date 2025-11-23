@@ -17,7 +17,7 @@ export default async function InfluencerProfileSettingsPage() {
   const [{ data: profile, error }, { data: userBadges }] = await Promise.all([
     supabase
       .from('users')
-      .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role')
+      .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role, social_links_last_updated')
       .eq('id', user.id)
       .maybeSingle(),
     supabase
@@ -43,6 +43,7 @@ export default async function InfluencerProfileSettingsPage() {
     socialLinks: (profile?.social_links as Record<string, string | null>) ?? {},
     displayedBadges,
     availableBadgeIds,
+    socialLinksLastUpdated: profile?.social_links_last_updated ?? null,
   }
 
   return (
