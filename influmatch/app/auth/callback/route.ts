@@ -48,10 +48,10 @@ export async function GET(request: NextRequest) {
     })
 
     if (!verifyError) {
-      console.log('[auth/callback] OTP verification successful, redirecting to success page')
-      // Email verified successfully - redirect to success page
-      // Success page will auto-login and redirect to dashboard
-      return NextResponse.redirect(new URL('/auth/verify-success', requestUrl.origin))
+      console.log('[auth/callback] OTP verification successful, redirecting to login with success message')
+      // Email verified successfully - redirect to login with success message
+      // User needs to login again after email verification
+      return NextResponse.redirect(new URL('/login?verified=true', requestUrl.origin))
     } else {
       console.error('[auth/callback] OTP verification error:', verifyError)
       return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
@@ -67,10 +67,11 @@ export async function GET(request: NextRequest) {
     })
 
     if (!sessionError) {
-      console.log('[auth/callback] Session set successfully, redirecting to success page')
-      // Session set successfully, email is confirmed - redirect to success page
-      // Success page will auto-login and redirect to dashboard
-      return NextResponse.redirect(new URL('/auth/verify-success', requestUrl.origin))
+      console.log('[auth/callback] Session set successfully, but redirecting to login for user to login again')
+      // Email verified successfully - but user needs to login again
+      // Clear the session and redirect to login with success message
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/login?verified=true', requestUrl.origin))
     } else {
       console.error('[auth/callback] Session set error:', sessionError)
       return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))

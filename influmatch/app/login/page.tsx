@@ -19,23 +19,26 @@ export default function LoginPage() {
   useEffect(() => {
     const error = searchParams.get('error')
     const message = searchParams.get('message')
+    const verified = searchParams.get('verified')
     
-    if (error === 'account_deleted') {
+    if (verified === 'true') {
+      setSuccessMessage('Mail adresiniz doğrulanmıştır, lütfen tekrar giriş yapın.')
+      // Clean URL after showing message
+      router.replace('/login', { scroll: false })
+    } else if (error === 'account_deleted') {
       setAccountDeletedError('Bu hesap silinmiş. Lütfen yeni bir hesap oluşturun.')
-      // Clean URL after showing error
       router.replace('/login', { scroll: false })
     } else if (error === 'rate_limit' && message) {
       setAccountDeletedError(decodeURIComponent(message))
       router.replace('/login', { scroll: false })
     } else if (error === 'email_link_expired') {
       setAccountDeletedError('Email doğrulama linkinin süresi dolmuş. Lütfen yeni bir doğrulama emaili isteyin.')
-      // Clean URL after showing error
       router.replace('/login', { scroll: false })
     } else if (error === 'verification_denied') {
       setAccountDeletedError('Email doğrulama işlemi reddedildi. Lütfen tekrar deneyin.')
       router.replace('/login', { scroll: false })
     } else if (error === 'verification_failed') {
-      setAccountDeletedError('Email doğrulama başarısız oldu. Lütfen tekrar deneyin.')
+      // Remove this error message as requested
       router.replace('/login', { scroll: false })
     }
   }, [searchParams, router])
@@ -49,16 +52,10 @@ export default function LoginPage() {
     const { data, error } = await signInWithEmail({ email, password })
 
     if (!error && data.user) {
-      setSuccessMessage('Giriş başarılı, paneline yönlendiriliyorsun...')
-      const role = data.user?.user_metadata?.role
+      setSuccessMessage('Giriş başarılı, profil bilgilerinizi tamamlamak için yönlendiriliyorsunuz...')
+      // Always redirect to onboarding after login
       setTimeout(() => {
-        if (role === 'brand') {
-          router.push('/dashboard/brand')
-        } else if (role === 'influencer') {
-          router.push('/dashboard/influencer')
-        } else {
-          router.push('/')
-        }
+        router.push('/onboarding')
       }, 1200)
     }
   }
