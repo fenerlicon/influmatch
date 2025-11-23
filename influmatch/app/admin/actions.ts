@@ -232,3 +232,44 @@ export async function manuallyAwardSpecificBadge(userId: string, badgeId: string
     return { error: error.message || 'Rozet verme hatası.' }
   }
 }
+
+// Toggle spotlight for a user (admin only)
+export async function toggleUserSpotlight(userId: string, spotlightActive: boolean) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ spotlight_active: spotlightActive })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('[toggleUserSpotlight] Supabase error:', error)
+    return { error: `Spotlight güncelleme hatası: ${error.message}` }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/dashboard/influencer')
+  revalidatePath('/vitrin')
+  
+  return { success: true, message: spotlightActive ? 'Spotlight aktif edildi.' : 'Spotlight deaktif edildi.' }
+}

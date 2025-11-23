@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardBadges, manuallyAwardSpecificBadge } from '@/app/admin/actions'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star } from 'lucide-react'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardBadges, manuallyAwardSpecificBadge, toggleUserSpotlight } from '@/app/admin/actions'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -25,6 +25,7 @@ interface User {
   city: string | null
   tax_id?: string | null
   company_legal_name?: string | null
+  spotlight_active?: boolean | null
 }
 
 interface AdminPanelProps {
@@ -120,7 +121,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // Fetch complete user data to ensure we have all fields
           const { data: completeUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active')
             .eq('id', userId)
             .single()
 
@@ -242,6 +243,39 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         }
       } catch (error) {
         console.error('Badge awarding exception:', error)
+        alert('Bir hata oluştu. Lütfen tekrar deneyin.')
+      }
+    })
+  }
+
+  const handleToggleSpotlight = async (userId: string, currentSpotlight: boolean | null) => {
+    const newValue = !currentSpotlight
+    const action = newValue ? 'aktif etmek' : 'deaktif etmek'
+    
+    if (!confirm(`Bu kullanıcının spotlight'ını ${action} istediğinizden emin misiniz?`)) {
+      return
+    }
+    
+    startTransition(async () => {
+      try {
+        const result = await toggleUserSpotlight(userId, newValue)
+        if (result.error) {
+          alert(result.error)
+          console.error('Spotlight toggle error:', result.error)
+        } else {
+          // Update local state immediately
+          const updateUserInState = (users: User[]) => 
+            users.map((u) => (u.id === userId ? { ...u, spotlight_active: newValue } : u))
+          
+          setPendingUsersState(updateUserInState)
+          setVerifiedUsersState(updateUserInState)
+          setRejectedUsersState(updateUserInState)
+          
+          alert(result.message || `Spotlight ${newValue ? 'aktif' : 'deaktif'} edildi.`)
+          console.log('Spotlight toggled successfully for user:', userId)
+        }
+      } catch (error) {
+        console.error('Spotlight toggle exception:', error)
         alert('Bir hata oluştu. Lütfen tekrar deneyin.')
       }
     })
@@ -752,6 +786,23 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               <Award className="h-4 w-4" />
                             )}
                             Rozetleri Tekrar Ver
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSpotlight(user.id, user.spotlight_active ?? false)}
+                            disabled={isPending}
+                            className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              user.spotlight_active
+                                ? 'border-purple-500/60 bg-purple-500/10 text-purple-300 hover:border-purple-500 hover:bg-purple-500/20'
+                                : 'border-gray-500/60 bg-gray-500/10 text-gray-300 hover:border-gray-500 hover:bg-gray-500/20'
+                            }`}
+                          >
+                            {isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Star className={`h-4 w-4 ${user.spotlight_active ? 'fill-purple-300 text-purple-300' : ''}`} />
+                            )}
+                            {user.spotlight_active ? 'Spotlight Aktif' : 'Spotlight Deaktif'}
                           </button>
                           <button
                             type="button"
