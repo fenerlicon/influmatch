@@ -20,7 +20,7 @@ const ROLE_CARDS: Array<{
     role: 'brand',
     title: 'Markayım',
     description: 'Kategori bazlı keşfet, güvenli teklif gönder.',
-    highlights: ['Discover grid', 'Teklif akışı', 'Bütçe yönetimi'],
+    highlights: ['Discover grid', 'Teklif akışı', 'Proje yönetimi'],
   },
 ]
 

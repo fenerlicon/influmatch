@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import DashboardHeader from '@/components/dashboard/DashboardHeader'
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar'
 import IncompleteProfileBanner from '@/components/dashboard/IncompleteProfileBanner'
+import EmailVerificationBanner from '@/components/dashboard/EmailVerificationBanner'
 import PageTransition from '@/components/layout/PageTransition'
 import type { UserRole } from '@/types/auth'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
@@ -19,6 +20,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   const role = (user.user_metadata?.role ?? 'influencer') as UserRole
   const fullName = user.user_metadata?.full_name ?? user.email ?? 'Kullanıcı'
+
+  // Check email confirmation status
+  const isEmailConfirmed = !!user.email_confirmed_at
 
   // Check verification status and profile completeness
   const { data: userProfile, error: profileError } = await supabase
@@ -80,6 +84,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <DashboardSidebar role={role} fullName={fullName} email={user.email} />
         <div className="flex flex-1 flex-col bg-[#0F1014]">
           <DashboardHeader role={role} fullName={fullName} />
+          {!isEmailConfirmed && (
+            <EmailVerificationBanner userEmail={user.email || ''} />
+          )}
           {showVerificationBanner && (
             <div className="border-b border-yellow-500/30 bg-yellow-500/10 px-4 py-3 sm:px-6 lg:px-10">
               <div className="mx-auto flex items-center gap-3 text-sm text-yellow-200">

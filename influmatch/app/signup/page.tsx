@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { UserRole } from '@/types/auth'
@@ -22,6 +23,9 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isAgreed, setIsAgreed] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -42,13 +46,22 @@ export default function SignupPage() {
     }
   }, [email])
 
+  const passwordMatch = useMemo(() => {
+    return password === confirmPassword
+  }, [password, confirmPassword])
+
   const isFormValid = useMemo(() => {
-    return fullName.trim().length > 2 && email.includes('@') && password.length >= 6 && isAgreed
-  }, [fullName, email, password, isAgreed])
+    return fullName.trim().length > 2 && email.includes('@') && password.length >= 6 && passwordMatch && isAgreed
+  }, [fullName, email, password, passwordMatch, isAgreed])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!isFormValid) return
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Şifreler eşleşmiyor. Lütfen kontrol edin.')
+      return
+    }
 
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -86,14 +99,23 @@ export default function SignupPage() {
       return
     }
 
-    // Success
-    setSuccessMessage('Kayıt başarılı! Şimdi profilini tamamlayalım.')
-    setFullName('')
-    setEmail('')
-    setPassword('')
-    setTimeout(() => {
-      router.push('/onboarding')
-    }, 1000)
+    // Success - Check if email confirmation is required
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user && !user.email_confirmed_at) {
+      // Email confirmation required
+      setSuccessMessage('Kayıt başarılı! Email adresinize gönderilen doğrulama linkine tıklayarak hesabınızı aktifleştirin.')
+    } else {
+      // Email already confirmed or confirmation not required
+      setSuccessMessage('Kayıt başarılı! Şimdi profilini tamamlayalım.')
+      setFullName('')
+      setEmail('')
+      setPassword('')
+      setConfirmPassword('')
+      setTimeout(() => {
+        router.push('/onboarding')
+      }, 1000)
+    }
   }
 
   return (
@@ -145,16 +167,58 @@ export default function SignupPage() {
               <label htmlFor="password" className="text-sm text-gray-300">
                 Şifre
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Minimum 6 karakter"
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
-                minLength={6}
-                required
-              />
+              <div className="relative mt-2">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Minimum 6 karakter"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 pr-12 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+                  minLength={6}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
+                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                >
+                  {showPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className="text-sm text-gray-300">
+                Şifre Tekrar
+              </label>
+              <div className="relative mt-2">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Şifrenizi tekrar girin"
+                  className={`w-full rounded-2xl border bg-white/5 px-5 py-4 pr-12 text-white placeholder:text-gray-500 focus:outline-none ${
+                    confirmPassword && !passwordMatch
+                      ? 'border-red-500/50 focus:border-red-500'
+                      : 'border-white/10 focus:border-soft-gold'
+                  }`}
+                  minLength={6}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
+                  aria-label={showConfirmPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                >
+                  {showConfirmPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                </button>
+              </div>
+              {confirmPassword && !passwordMatch && (
+                <p className="mt-1 text-xs text-red-400">Şifreler eşleşmiyor</p>
+              )}
             </div>
 
             {/* Legal Agreement Checkbox */}

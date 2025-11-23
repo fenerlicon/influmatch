@@ -166,7 +166,7 @@ export function validateYouTube(link: string | null | undefined): ValidationResu
 
 /**
  * Validates website URL
- * Must start with http:// or https://
+ * Accepts: www.ornek.com, ornek.com, http://ornek.com, https://ornek.com
  */
 export function validateWebsite(link: string | null | undefined): ValidationResult {
   if (!link || link.trim().length === 0) {
@@ -175,26 +175,43 @@ export function validateWebsite(link: string | null | undefined): ValidationResu
 
   const trimmed = link.trim()
 
-  // Must start with http:// or https://
-  if (!/^https?:\/\//i.test(trimmed)) {
-    return {
-      isValid: false,
-      error: 'Web sitesi linki http:// veya https:// ile başlamalıdır.',
+  // If it already starts with http:// or https://, validate as URL
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      new URL(trimmed)
+      return {
+        isValid: true,
+        normalizedUrl: trimmed,
+      }
+    } catch {
+      return {
+        isValid: false,
+        error: 'Geçersiz web sitesi linki.',
+      }
     }
   }
 
-  // Basic URL validation
-  try {
-    new URL(trimmed)
-    return {
-      isValid: true,
-      normalizedUrl: trimmed,
-    }
-  } catch {
+  // Validate domain format (www.ornek.com or ornek.com)
+  // Domain regex: allows letters, numbers, dots, hyphens
+  // Must have at least one dot (for TLD)
+  const domainPattern = /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/
+  
+  // Remove www. prefix for validation (optional)
+  const domainToValidate = trimmed.replace(/^www\./i, '')
+  
+  if (!domainPattern.test(domainToValidate)) {
     return {
       isValid: false,
-      error: 'Geçersiz web sitesi linki.',
+      error: 'Geçersiz web sitesi adresi. Örnek: www.ornek.com veya ornek.com',
     }
+  }
+
+  // Normalize: add https:// if not present
+  const normalized = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
+  
+  return {
+    isValid: true,
+    normalizedUrl: normalized,
   }
 }
 

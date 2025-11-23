@@ -460,7 +460,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Detaylar & İletişim</p>
 
           <div>
-            {renderInput('Web Sitesi', 'website', formState.website, <Globe className="h-4 w-4" />, 'https://')}
+            {renderInput('Web Sitesi', 'website', formState.website, <Globe className="h-4 w-4" />, 'www.ornek.com')}
             {validationErrors.website && (
               <p className="mt-1 text-xs text-red-300">{validationErrors.website}</p>
             )}

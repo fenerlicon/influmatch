@@ -214,7 +214,7 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             type="text"
             value={form.website}
             onChange={handleInput('website')}
-            placeholder="https://marka.com"
+            placeholder="www.ornek.com"
             className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${
               validationErrors.website
                 ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'

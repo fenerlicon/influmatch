@@ -234,11 +234,11 @@ export default function AdvertProjectsList({
                     <div className="mt-1 flex items-center gap-2">
                       <p className="text-sm text-gray-400">{project.brandName}</p>
                       {project.brandVerificationStatus === 'verified' && (
-                        <div className="group/verify relative flex-shrink-0">
+                        <div className="group/verify relative inline-flex items-center flex-shrink-0">
                           <BadgeCheck className="h-4 w-4 text-soft-gold cursor-help" />
-                          <div className="absolute left-full top-1/2 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover/verify:block z-50">
+                          <div className="absolute left-full top-0 ml-2 hidden whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover/verify:block z-50 pointer-events-none">
                             Onaylanmış İşletme
-                            <div className="absolute right-full top-1/2 -mr-1 -translate-y-1/2 border-4 border-transparent border-r-black/90" />
+                            <div className="absolute right-full top-2 -mr-1 border-4 border-transparent border-r-black/90" />
                           </div>
                         </div>
                       )}
@@ -325,11 +325,11 @@ export default function AdvertProjectsList({
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-white">{selectedProject.brandName}</p>
                       {selectedProject.brandVerificationStatus === 'verified' && (
-                        <div className="group/verify relative flex-shrink-0">
+                        <div className="group/verify relative inline-flex items-center flex-shrink-0">
                           <BadgeCheck className="h-5 w-5 text-soft-gold cursor-help" />
-                          <div className="absolute left-full top-1/2 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover/verify:block z-50">
+                          <div className="absolute left-full top-0 ml-2 hidden whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover/verify:block z-50 pointer-events-none">
                             Onaylanmış İşletme
-                            <div className="absolute right-full top-1/2 -mr-1 -translate-y-1/2 border-4 border-transparent border-r-black/90" />
+                            <div className="absolute right-full top-2 -mr-1 border-4 border-transparent border-r-black/90" />
                           </div>
                         </div>
                       )}
