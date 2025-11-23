@@ -47,7 +47,7 @@ export default async function DashboardMessagesPage({
 
   const { data: participants, error: participantsError } = await supabase
     .from('users')
-    .select('id, full_name, username, avatar_url, role')
+    .select('id, full_name, username, avatar_url, role, verification_status')
     .in('id', Array.from(participantIds))
 
   if (participantsError) {
@@ -158,6 +158,7 @@ export default async function DashboardMessagesPage({
               username: otherParticipant.username,
               avatarUrl: otherParticipant.avatar_url,
               role: otherParticipant.role,
+              verificationStatus: otherParticipant.verification_status as 'pending' | 'verified' | 'rejected' | undefined,
             }
           : null,
         lastMessage: lastMessage

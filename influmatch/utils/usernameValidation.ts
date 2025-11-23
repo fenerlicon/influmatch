@@ -4,7 +4,8 @@
  * - 3-30 characters
  * - Only letters, numbers, dots (.), and underscores (_)
  * - Dots and underscores cannot be consecutive (.. or __)
- * - Dots and underscores cannot be at the start or end
+ * - Cannot start with dot (.) or underscore (_)
+ * - Cannot end with dot (.) - underscore (_) is allowed at the end
  * - No uppercase letters (will be converted to lowercase)
  * - No spaces or special characters
  */
@@ -61,7 +62,7 @@ export function validateUsername(username: string): UsernameValidationResult {
     }
   }
 
-  // Check if starts or ends with dot or underscore
+  // Check if starts with dot or underscore
   if (lowercased.startsWith('.') || lowercased.startsWith('_')) {
     return {
       isValid: false,
@@ -69,10 +70,11 @@ export function validateUsername(username: string): UsernameValidationResult {
     }
   }
 
-  if (lowercased.endsWith('.') || lowercased.endsWith('_')) {
+  // Check if ends with dot (underscore is allowed at the end)
+  if (lowercased.endsWith('.')) {
     return {
       isValid: false,
-      error: 'Kullanıcı adı nokta (.) veya alt çizgi (_) ile bitemez.',
+      error: 'Kullanıcı adı nokta (.) ile bitemez.',
     }
   }
 

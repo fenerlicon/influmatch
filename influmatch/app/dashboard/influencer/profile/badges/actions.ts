@@ -50,7 +50,6 @@ export async function updateDisplayedBadges(badgeIds: string[]) {
 
   revalidatePath('/dashboard/influencer/profile')
   revalidatePath('/dashboard/influencer/discover')
-  revalidatePath('/dashboard/brand/discover')
   revalidatePath('/profile/[username]', 'page')
 
   return { success: true }

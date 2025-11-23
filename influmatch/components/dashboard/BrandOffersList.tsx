@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
-import { MessageCircle, CalendarDays, X } from 'lucide-react'
+import { MessageCircle, CalendarDays, X, BadgeCheck } from 'lucide-react'
 import { dismissInfluencer } from '@/app/dashboard/brand/offers/dismiss/actions'
 import type { BrandOfferItem } from '@/app/dashboard/brand/offers/page'
 
@@ -495,9 +495,19 @@ export default function BrandOffersList({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
-                    {receiver?.full_name ?? 'Influencer'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-white truncate">
+                      {receiver?.full_name ?? 'Influencer'}
+                    </p>
+                    {receiver?.verification_status === 'verified' && (
+                      <div className="group relative flex-shrink-0">
+                        <BadgeCheck className="h-4 w-4 text-blue-400" />
+                        <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                          Onaylı hesap
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   {receiver?.username && (
                     <p className="text-xs text-gray-400 truncate">@{receiver.username}</p>
                   )}

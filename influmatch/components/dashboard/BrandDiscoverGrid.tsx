@@ -14,6 +14,7 @@ export interface DiscoverInfluencer {
   avatar_url: string | null
   spotlight_active: boolean | null
   displayed_badges?: string[] | null
+  verification_status?: 'pending' | 'verified' | 'rejected' | null
 }
 
 const CATEGORY_OPTIONS = ['All', 'Beauty', 'Fashion', 'Lifestyle'] as const
@@ -99,17 +100,19 @@ export default function BrandDiscoverGrid({ influencers, currentUserId }: BrandD
                       <div className="min-w-0 flex-1">
                         <div className="text-lg font-semibold flex items-center gap-2 line-clamp-1">
                           <span className="truncate">{influencer.full_name}</span>
-                          <div className="group/verify relative flex-shrink-0">
-                            <BadgeCheck className="h-5 w-5 text-blue-500 transition-all hover:text-blue-400 hover:scale-110 cursor-pointer" />
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
-                              <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
-                                Onaylı hesap
-                                <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
-                                  <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
+                          {influencer.verification_status === 'verified' && (
+                            <div className="group/verify relative flex-shrink-0">
+                              <BadgeCheck className="h-5 w-5 text-blue-500 transition-all hover:text-blue-400 hover:scale-110 cursor-pointer" />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
+                                <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
+                                  Onaylı hesap
+                                  <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
+                                    <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          )}
                           {isCurrentUser ? (
                             <span className="flex-shrink-0 rounded-full border border-soft-gold/40 bg-soft-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-soft-gold">
                               Sen

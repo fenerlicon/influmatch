@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { CheckCircle, XCircle, Archive, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
 import { updateFeedbackStatus } from '@/app/admin/feedback/actions'
@@ -39,6 +40,7 @@ const ROLE_STYLES: Record<FeedbackSubmission['role'], string> = {
 }
 
 export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdminPanelProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'reviewed' | 'resolved' | 'archived'>('all')
   const [isPending, startTransition] = useTransition()
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -54,7 +56,7 @@ export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdmi
       if (result.error) {
         alert(result.error)
       } else {
-        window.location.reload()
+        router.refresh()
       }
     })
   }

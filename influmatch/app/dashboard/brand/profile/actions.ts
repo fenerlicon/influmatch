@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { validateInstagram, validateLinkedIn, validateWebsite } from '@/utils/socialLinkValidation'
+import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
 
@@ -16,7 +16,12 @@ interface UpdateBrandProfilePayload {
   website: string
   linkedin: string
   instagram: string
+  kick?: string | null
+  twitter?: string | null
+  twitch?: string | null
   displayedBadges?: string[]
+  companyLegalName?: string | null
+  taxId?: string | null
 }
 
 export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
@@ -65,6 +70,9 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
   const websiteResult = validateWebsite(payload.website)
   const linkedinResult = validateLinkedIn(payload.linkedin)
   const instagramResult = validateInstagram(payload.instagram)
+  const kickResult = validateKick(payload.kick)
+  const twitterResult = validateTwitter(payload.twitter)
+  const twitchResult = validateTwitch(payload.twitch)
 
   if (!websiteResult.isValid) {
     throw new Error(websiteResult.error || 'Geçersiz web sitesi linki.')
@@ -75,6 +83,15 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
   if (!instagramResult.isValid) {
     throw new Error(instagramResult.error || 'Geçersiz Instagram linki.')
   }
+  if (!kickResult.isValid) {
+    throw new Error(kickResult.error || 'Geçersiz Kick linki.')
+  }
+  if (!twitterResult.isValid) {
+    throw new Error(twitterResult.error || 'Geçersiz Twitter/X linki.')
+  }
+  if (!twitchResult.isValid) {
+    throw new Error(twitchResult.error || 'Geçersiz Twitch linki.')
+  }
 
   const updates: any = {
     full_name: payload.brandName.trim(),
@@ -83,10 +100,15 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     bio: payload.bio.trim() || null,
     category: payload.category || null,
     avatar_url: payload.logoUrl,
+    company_legal_name: payload.companyLegalName || null,
+    tax_id: payload.taxId || null,
     social_links: {
       website: websiteResult.normalizedUrl || null,
       linkedin: linkedinResult.normalizedUrl || null,
       instagram: instagramResult.normalizedUrl || null,
+      kick: kickResult.normalizedUrl || null,
+      twitter: twitterResult.normalizedUrl || null,
+      twitch: twitchResult.normalizedUrl || null,
     },
   }
 
@@ -95,40 +117,31 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     updates.displayed_badges = payload.displayedBadges
   }
 
-  const { error: upsertError } = await supabase
-    .from('users')
-    .upsert(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.user_metadata?.role ?? 'brand',
-        ...updates,
-      },
-      { onConflict: 'id' },
-    )
+  console.log('[updateBrandProfile] Attempting update for user:', user.id)
+  console.log('[updateBrandProfile] Updates:', JSON.stringify(updates, null, 2))
 
-  if (upsertError) {
+  const { data: updateResult, error: updateError } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', user.id)
+    .select()
+
+  if (updateError) {
+    console.error('[updateBrandProfile] Update error:', updateError)
     // Check if it's a unique constraint violation for username
-    if (upsertError.code === '23505' || upsertError.message.includes('unique') || upsertError.message.includes('duplicate')) {
+    if (updateError.code === '23505' || updateError.message.includes('unique') || updateError.message.includes('duplicate')) {
       throw new Error('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
     }
     
     // Check if it's a column not found error for displayed_badges
-    if (upsertError.message.includes('displayed_badges') || upsertError.message.includes('schema cache')) {
-      console.error('[updateBrandProfile] displayed_badges column error:', upsertError.message)
+    if (updateError.message.includes('displayed_badges') || updateError.message.includes('schema cache')) {
+      console.error('[updateBrandProfile] displayed_badges column error:', updateError.message)
       // Remove displayed_badges from updates and try again
       delete updates.displayed_badges
       const { error: retryError } = await supabase
         .from('users')
-        .upsert(
-          {
-            id: user.id,
-            email: user.email,
-            role: user.user_metadata?.role ?? 'brand',
-            ...updates,
-          },
-          { onConflict: 'id' },
-        )
+        .update(updates)
+        .eq('id', user.id)
       
       if (retryError) {
         throw new Error(retryError.message)
@@ -137,8 +150,16 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
       // Log warning about displayed_badges column
       console.warn('[updateBrandProfile] displayed_badges column not found, profile updated without badges. Please run migration: add_displayed_badges_column.sql')
     } else {
-      throw new Error(upsertError.message)
+      console.error('[updateBrandProfile] Update failed with error:', updateError)
+      throw new Error(updateError.message)
     }
+  }
+
+  // Log update result
+  if (updateResult && updateResult.length > 0) {
+    console.log('[updateBrandProfile] Update successful, returned data:', JSON.stringify(updateResult[0], null, 2))
+  } else {
+    console.warn('[updateBrandProfile] Update completed but no data returned (this is normal for UPDATE operations)')
   }
 
   // Award badges after profile update

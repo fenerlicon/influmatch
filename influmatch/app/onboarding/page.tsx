@@ -8,6 +8,7 @@ import InfluencerForm, { InfluencerFormState } from '@/components/onboarding/Inf
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import type { UserRole } from '@/types/auth'
 import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } from '@/utils/socialLinkValidation'
+import { saveOnboardingProfile } from './actions'
 import { validateUsername } from '@/utils/usernameValidation'
 
 type SocialLinks = {
@@ -77,44 +78,61 @@ export default function OnboardingPage() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!session) return
+      
       setIsLoadingProfile(true)
-      const { data, error } = await supabaseClient
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
+      setErrorMessage(null) // Clear previous errors
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle() // Use maybeSingle instead of single to handle missing profiles gracefully
 
-      if (error) {
-        setErrorMessage('Profil bilgileri alınamadı. Lütfen tekrar deneyin.')
-      } else if (data) {
-        const socialLinks: SocialLinks = data.social_links ?? {}
-        setProfile(data as UserProfile)
-        setAvatarUrl(data.avatar_url ?? null)
-        setInfluencerForm({
-          fullName: data.full_name ?? '',
-          username: data.username ?? '',
-          bio: data.bio ?? '',
-          category: (data.category as InfluencerFormState['category']) ?? 'Beauty',
-          city: data.city ?? '',
-          instagram: socialLinks.instagram ?? '',
-          tiktok: socialLinks.tiktok ?? '',
-          youtube: socialLinks.youtube ?? '',
-        })
-        setBrandForm({
-          brandName: data.full_name ?? '',
-          username: data.username ?? '',
-          city: data.city ?? '',
-          website: socialLinks.website ?? '',
-          instagram: socialLinks.instagram ?? '',
-          tiktok: socialLinks.tiktok ?? '',
-          youtube: socialLinks.youtube ?? '',
-        })
+        if (error) {
+          // Only show error if it's not a "not found" error (new users don't have profiles yet)
+          if (error.code !== 'PGRST116' && error.message !== 'JSON object requested, multiple (or no) rows returned') {
+            console.error('[OnboardingPage] Profile fetch error:', error)
+            setErrorMessage('Profil bilgileri alınamadı. Lütfen tekrar deneyin.')
+          }
+          // If profile doesn't exist, that's fine - user is new and will create it
+        } else if (data) {
+          const socialLinks: SocialLinks = data.social_links ?? {}
+          setProfile(data as UserProfile)
+          setAvatarUrl(data.avatar_url ?? null)
+          setInfluencerForm({
+            fullName: data.full_name ?? '',
+            username: data.username ?? '',
+            bio: data.bio ?? '',
+            category: (data.category as InfluencerFormState['category']) ?? 'Beauty',
+            city: data.city ?? '',
+            instagram: socialLinks.instagram ?? '',
+            tiktok: socialLinks.tiktok ?? '',
+            youtube: socialLinks.youtube ?? '',
+          })
+          setBrandForm({
+            brandName: data.full_name ?? '',
+            username: data.username ?? '',
+            city: data.city ?? '',
+            website: socialLinks.website ?? '',
+            instagram: socialLinks.instagram ?? '',
+            tiktok: socialLinks.tiktok ?? '',
+            youtube: socialLinks.youtube ?? '',
+          })
+        }
+      } catch (err) {
+        console.error('[OnboardingPage] Unexpected error:', err)
+        // Don't show error for network issues or session refresh - user can retry
+      } finally {
+        setIsLoadingProfile(false)
       }
-      setIsLoadingProfile(false)
     }
 
-    fetchProfile()
-  }, [session, supabaseClient])
+    // Only fetch if session is ready
+    if (session && !isSessionLoading) {
+      fetchProfile()
+    }
+  }, [session, supabaseClient, isSessionLoading])
 
   const handleAvatarUpload = async (file: File) => {
     if (!session) return
@@ -292,18 +310,54 @@ export default function OnboardingPage() {
       }
     }
 
-    const { error } = await supabaseClient.from('users').update(basePayload).eq('id', session.user.id)
+    // Use server action to save profile (more reliable than client-side)
+    console.log('[Onboarding] Attempting to save profile via server action:', {
+      userId: session.user.id,
+      email: session.user.email,
+      role: role,
+      payload: basePayload,
+    })
+
+    const socialLinks: Record<string, string | null> = {}
+    if (role === 'influencer') {
+      const instagramResult = validateInstagram(influencerForm.instagram)
+      const tiktokResult = validateTikTok(influencerForm.tiktok)
+      const youtubeResult = validateYouTube(influencerForm.youtube)
+      socialLinks.instagram = instagramResult.normalizedUrl || influencerForm.instagram || null
+      socialLinks.tiktok = tiktokResult.normalizedUrl || influencerForm.tiktok || null
+      socialLinks.youtube = youtubeResult.normalizedUrl || influencerForm.youtube || null
+    } else {
+      const websiteResult = validateWebsite(brandForm.website)
+      const instagramResult = validateInstagram(brandForm.instagram)
+      const tiktokResult = validateTikTok(brandForm.tiktok)
+      const youtubeResult = validateYouTube(brandForm.youtube)
+      socialLinks.website = websiteResult.normalizedUrl || brandForm.website || null
+      socialLinks.instagram = instagramResult.normalizedUrl || brandForm.instagram || null
+      socialLinks.tiktok = tiktokResult.normalizedUrl || brandForm.tiktok || null
+      socialLinks.youtube = youtubeResult.normalizedUrl || brandForm.youtube || null
+      socialLinks.linkedin = null // Brands don't have linkedin in form
+    }
+
+    const result = await saveOnboardingProfile({
+      userId: session.user.id,
+      role: role || 'influencer',
+      fullName: role === 'influencer' ? influencerForm.fullName : brandForm.brandName,
+      username: (role === 'influencer' ? influencerForm.username : brandForm.username).trim().toLowerCase(),
+      city: role === 'influencer' ? influencerForm.city : brandForm.city,
+      bio: role === 'influencer' ? influencerForm.bio : '', // Brands don't have bio in form
+      category: role === 'influencer' ? influencerForm.category : 'Teknoloji', // Default category for brands
+      avatarUrl: avatarUrl,
+      socialLinks: socialLinks,
+    })
+
     setIsSaving(false)
 
-    if (error) {
-      // Check if it's a unique constraint violation
-      if (error.code === '23505' || error.message.includes('unique') || error.message.includes('duplicate')) {
-        setErrorMessage('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
-      } else {
-        setErrorMessage('Profil kaydedilemedi. Lütfen alanları kontrol ederek tekrar deneyin.')
-      }
+    if (!result.success) {
+      setErrorMessage(result.error || 'Profil kaydedilemedi. Lütfen tekrar deneyin.')
       return
     }
+
+    console.log('[Onboarding] Profile saved successfully via server action')
 
     // Award badges after onboarding completion
     try {
@@ -319,7 +373,8 @@ export default function OnboardingPage() {
       console.error('Error awarding badges:', err)
     }
 
-    router.push(role === 'brand' ? '/dashboard/brand' : '/dashboard/influencer')
+    // Hard redirect to ensure cache is cleared and profile is loaded
+    window.location.href = role === 'brand' ? '/dashboard/brand' : '/dashboard/influencer'
   }
 
   if (!session && !isSessionLoading) {

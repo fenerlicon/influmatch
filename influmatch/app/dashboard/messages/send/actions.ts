@@ -81,6 +81,26 @@ export async function sendMessage(roomId: string, content: string) {
     return { success: false, error: `Mesaj gönderilemedi: ${insertError.message}` }
   }
 
+  // Log message to Supabase (using PostgreSQL function for logging)
+  // This will appear in Supabase logs and message_logs table
+  try {
+    const { error: logError } = await supabase.rpc('log_message', {
+      p_message_id: data.id,
+      p_room_id: roomId,
+      p_sender_id: user.id,
+      p_receiver_id: otherUserId,
+      p_content: content.trim(),
+      p_created_at: new Date().toISOString(),
+    })
+    if (logError) {
+      // Log function might not exist yet, that's okay
+      console.warn('[sendMessage] Log function error (non-critical):', logError.message)
+    }
+  } catch (logError) {
+    // Log function might not exist, that's okay - migration needs to be run
+    console.warn('[sendMessage] Message log function not available (run migration: create_message_log_function.sql):', logError)
+  }
+
   revalidatePath('/dashboard/messages')
   return { success: true, data }
 }

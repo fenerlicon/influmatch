@@ -54,6 +54,39 @@ export default function ProfileCompletionCard({
   const completion = useMemo(() => calculateProfileCompletion(profile, role), [profile, role])
   const remainingTasks = completion.pendingTasks.slice(0, 3)
 
+  // Award profile-expert badge when completion reaches 100%
+  useEffect(() => {
+    if (completion.percent >= 100 && role === 'influencer') {
+      // Check if user already has profile-expert badge
+      supabase
+        .from('user_badges')
+        .select('badge_id')
+        .eq('user_id', userId)
+        .eq('badge_id', 'profile-expert')
+        .maybeSingle()
+        .then(({ data: existingBadge }) => {
+          // Only award if badge doesn't exist
+          if (!existingBadge) {
+            // Call API to award badge
+            fetch('/api/award-badges', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  console.log('[ProfileCompletionCard] Profile Expert badge awarded successfully')
+                }
+              })
+              .catch((error) => {
+                console.error('[ProfileCompletionCard] Failed to award badge:', error)
+              })
+          }
+        })
+    }
+  }, [completion.percent, role, userId, supabase])
+
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
       <div className="flex items-center justify-between">

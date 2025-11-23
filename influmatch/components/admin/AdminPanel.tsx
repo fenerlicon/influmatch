@@ -22,12 +22,17 @@ interface User {
   bio: string | null
   category: string | null
   city: string | null
+  tax_id?: string | null
+  company_legal_name?: string | null
 }
 
 interface AdminPanelProps {
   pendingUsers: User[]
   verifiedUsers: User[]
   rejectedUsers: User[]
+  totalUsers?: number
+  influencerCount?: number
+  brandCount?: number
 }
 
 const tabs = [
@@ -38,7 +43,7 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]['key']
 
-export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers }: AdminPanelProps) {
+export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0 }: AdminPanelProps) {
   const supabase = useSupabaseClient()
   const [activeTab, setActiveTab] = useState<TabKey>('pending')
   const [isPending, startTransition] = useTransition()
@@ -335,6 +340,22 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers 
               <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Admin Paneli</p>
               <h1 className="mt-4 text-3xl font-semibold text-white">Hesap Doğrulama Yönetimi</h1>
               <p className="mt-2 text-gray-300">Kullanıcı hesaplarını detaylı inceleyin ve doğrulama durumlarını yönetin.</p>
+              
+              {/* Statistics */}
+              <div className="mt-6 grid grid-cols-3 gap-4">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Toplam Üye</p>
+                  <p className="mt-2 text-2xl font-semibold text-soft-gold">{totalUsers}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Influencer</p>
+                  <p className="mt-2 text-2xl font-semibold text-blue-400">{influencerCount}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Marka</p>
+                  <p className="mt-2 text-2xl font-semibold text-purple-400">{brandCount}</p>
+                </div>
+              </div>
             </div>
             <div className="flex gap-2">
               <Link
@@ -505,6 +526,70 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers 
                         </div>
                       )}
                     </div>
+
+                    {/* Brand Verification Info - Only for brands */}
+                    {!isInfluencer && (
+                      <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
+                          <Award className="h-3.5 w-3.5" />
+                          Kurumsal Doğrulama Bilgileri
+                        </div>
+                        
+                        {/* Tax ID */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-gray-400">Vergi Numarası:</span>
+                            {user.tax_id ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-mono text-white">{user.tax_id}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleVerifyUser(user.id)}
+                                  disabled={isPending}
+                                  className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300 transition hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Doğrula
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500">Vergi bilgisi girilmedi</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Company Legal Name */}
+                        {user.company_legal_name && (
+                          <div className="space-y-1">
+                            <span className="text-xs text-gray-400">Resmi Şirket Unvanı:</span>
+                            <p className="text-sm text-white">{user.company_legal_name}</p>
+                          </div>
+                        )}
+
+                        {/* Email Domain Check */}
+                        {user.email && websiteLink && (() => {
+                          const emailDomain = user.email.split('@')[1]?.toLowerCase()
+                          const websiteDomain = websiteLink
+                            .replace(/^https?:\/\//, '')
+                            .replace(/^www\./, '')
+                            .split('/')[0]
+                            .toLowerCase()
+                          
+                          const domainsMatch = emailDomain && websiteDomain && emailDomain === websiteDomain
+                          
+                          return domainsMatch ? (
+                            <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
+                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
+                                <CheckCircle className="h-4 w-4" />
+                                Bu hesap güvenilir görünüyor
+                              </div>
+                              <p className="mt-1 text-xs text-gray-400">
+                                Email domain ({emailDomain}) ve website domain ({websiteDomain}) eşleşiyor.
+                              </p>
+                            </div>
+                          ) : null
+                        })()}
+                      </div>
+                    )}
 
                     {/* Social Media Links */}
                     {(instagramLink || tiktokLink || youtubeLink || websiteLink) && (

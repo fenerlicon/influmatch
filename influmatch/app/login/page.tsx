@@ -1,16 +1,31 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useMemo, useState, useEffect } from 'react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const supabase = useSupabaseClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const { signInWithEmail, authError, isSubmitting } = useSupabaseAuth()
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [accountDeletedError, setAccountDeletedError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const error = searchParams.get('error')
+    const message = searchParams.get('message')
+    
+    if (error === 'account_deleted') {
+      setAccountDeletedError('Bu hesap silinmiş. Lütfen yeni bir hesap oluşturun.')
+    } else if (error === 'rate_limit' && message) {
+      setAccountDeletedError(decodeURIComponent(message))
+    }
+  }, [searchParams])
 
   const isFormValid = useMemo(() => email.includes('@') && password.length >= 6, [email, password])
 
@@ -20,7 +35,7 @@ export default function LoginPage() {
 
     const { data, error } = await signInWithEmail({ email, password })
 
-    if (!error) {
+    if (!error && data.user) {
       setSuccessMessage('Giriş başarılı, paneline yönlendiriliyorsun...')
       const role = data.user?.user_metadata?.role
       setTimeout(() => {
@@ -83,6 +98,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 space-y-2 text-sm">
+            {accountDeletedError && <p className="text-red-400">{accountDeletedError}</p>}
             {authError && <p className="text-red-400">{authError}</p>}
             {successMessage && <p className="text-emerald-400">{successMessage}</p>}
           </div>

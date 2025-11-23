@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck } from 'lucide-react'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 
@@ -37,12 +37,14 @@ export interface AdvertApplication {
     full_name: string | null
     username: string | null
     avatar_url: string | null
+    verification_status?: 'pending' | 'verified' | 'rejected' | null
   }
   brand?: {
     id: string
     full_name: string | null
     username: string | null
     avatar_url: string | null
+    verification_status?: 'pending' | 'verified' | 'rejected' | null
   }
   cover_letter: string | null
   deliverable_idea: string | null
@@ -376,12 +378,28 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
                   )}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold text-white">
                       {isInfluencerView 
                         ? (application.brand?.full_name ?? 'Marka')
                         : (application.influencer.full_name ?? 'Influencer')}
                     </h3>
+                    {isInfluencerView && application.brand?.verification_status === 'verified' && (
+                      <div className="group relative flex-shrink-0">
+                        <BadgeCheck className="h-4 w-4 text-soft-gold" />
+                        <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                          Onaylanmış İşletme
+                        </div>
+                      </div>
+                    )}
+                    {!isInfluencerView && application.influencer.verification_status === 'verified' && (
+                      <div className="group relative flex-shrink-0">
+                        <BadgeCheck className="h-4 w-4 text-blue-400" />
+                        <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                          Onaylı hesap
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {isInfluencerView && application.brand?.username && (
                     <p className="mt-1 text-sm text-gray-400">@{application.brand.username}</p>

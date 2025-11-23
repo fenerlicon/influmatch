@@ -127,8 +127,9 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
       return { success: false, error: 'Oturum açmanız gerekiyor' }
     }
 
+    console.log('[deleteAccount] Attempting to delete user:', user.id)
+
     // Delete from public.users table (cascade will handle related data)
-    // Note: Auth user will remain but won't have access to the platform
     const { error: dbDeleteError } = await supabase
       .from('users')
       .delete()
@@ -136,11 +137,17 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
 
     if (dbDeleteError) {
       console.error('[deleteAccount] db delete error:', dbDeleteError)
-      return { success: false, error: 'Hesap silinirken bir hata oluştu' }
+      return { success: false, error: `Hesap silinirken bir hata oluştu: ${dbDeleteError.message}` }
     }
 
-    // Sign out the user
+    console.log('[deleteAccount] User deleted from public.users table')
+
+    // Sign out the user first
     await supabase.auth.signOut()
+    
+    // Note: Auth user deletion requires admin privileges
+    // The public.users record is deleted, which prevents access to the platform
+    // The auth.users record can be manually deleted by admin if needed
     
     return { success: true, redirect: '/login' }
   } catch (error) {

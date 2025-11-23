@@ -6,7 +6,7 @@ import { updateOfferStatus } from '@/app/dashboard/influencer/offers/actions'
 
 interface OfferActionButtonsProps {
   offerId: string
-  onStatusChange?: (offerId: string, status: 'accepted' | 'rejected', meta?: { roomId?: string | null }) => void
+  onStatusChange?: (offerId: string, status: 'accepted' | 'rejected', meta?: { roomId?: string | null; senderUserId?: string | null }) => void
 }
 
 export default function OfferActionButtons({ offerId, onStatusChange }: OfferActionButtonsProps) {
@@ -17,9 +17,10 @@ export default function OfferActionButtons({ offerId, onStatusChange }: OfferAct
     startTransition(async () => {
       try {
         const result = await updateOfferStatus(offerId, status)
-        onStatusChange?.(offerId, status, { roomId: result?.roomId ?? null })
-        if (status === 'accepted' && result?.roomId) {
-          router.push(`/chat/${result.roomId}`)
+        onStatusChange?.(offerId, status, { roomId: result?.roomId ?? null, senderUserId: result?.senderUserId ?? null })
+        if (status === 'accepted' && result?.senderUserId) {
+          // Navigate to messages page with sender user ID
+          router.push(`/dashboard/messages?userId=${result.senderUserId}`)
         }
       } catch (error) {
         console.error('Offer update failed', error)

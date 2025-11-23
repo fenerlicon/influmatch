@@ -3,6 +3,7 @@
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { BadgeCheck } from 'lucide-react'
 import MessageActionsMenu from './MessageActionsMenu'
 import { isUserBlocked } from '@/app/dashboard/users/block/actions'
 import { checkIfBlocked } from '@/app/dashboard/messages/actions'
@@ -23,9 +24,11 @@ interface ChatWindowProps {
   returnUrl?: string
   otherParticipantId?: string
   activeRoomIds?: string[] // For messages page: all room IDs with the same participant
+  otherParticipantVerificationStatus?: 'pending' | 'verified' | 'rejected' | null
+  otherParticipantRole?: 'influencer' | 'brand' | null
 }
 
-export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds }: ChatWindowProps) {
+export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds, otherParticipantVerificationStatus, otherParticipantRole }: ChatWindowProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -189,7 +192,17 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
           </button>
           <div className="flex-1 text-center">
             <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Marka</p>
-            <p className="mt-1 text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
+            <div className="mt-1 flex items-center justify-center gap-2">
+              <p className="text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
+              {otherParticipantVerificationStatus === 'verified' && (
+                <div className="group relative flex-shrink-0">
+                  <BadgeCheck className={`h-5 w-5 ${otherParticipantRole === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
+                  <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                    {otherParticipantRole === 'brand' ? 'Onaylanmış İşletme' : 'Onaylı hesap'}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="hidden w-[96px] sm:block" />
         </div>
@@ -198,7 +211,17 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
         <div className="mb-4 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <p className="text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
+                {otherParticipantVerificationStatus === 'verified' && (
+                  <div className="group relative flex-shrink-0">
+                    <BadgeCheck className="h-5 w-5 text-blue-400" />
+                    <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                      Onaylı hesap
+                    </div>
+                  </div>
+                )}
+              </div>
               {otherParticipantId && (
                 <p className="text-xs text-gray-400 mt-0.5">
                   {otherParticipantId === currentUserId ? 'Sen' : 'Diğer kullanıcı'}

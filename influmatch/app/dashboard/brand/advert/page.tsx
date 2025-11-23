@@ -151,11 +151,11 @@ export default async function BrandAdvertPage() {
     advertMap = new Map(adverts?.map((a) => [a.id, a]) ?? [])
   }
 
-  let influencerMap = new Map<string, { id: string; full_name: string | null; username: string | null; avatar_url: string | null }>()
+  let influencerMap = new Map<string, { id: string; full_name: string | null; username: string | null; avatar_url: string | null; verification_status: string | null }>()
   if (influencerIds.size > 0) {
     const { data: influencers } = await supabase
       .from('users')
-      .select('id, full_name, username, avatar_url')
+      .select('id, full_name, username, avatar_url, verification_status')
       .in('id', Array.from(influencerIds))
     
     influencerMap = new Map(influencers?.map((i) => [i.id, i]) ?? [])
@@ -194,6 +194,7 @@ export default async function BrandAdvertPage() {
         full_name: influencer?.full_name ?? null,
         username: influencer?.username ?? null,
         avatar_url: influencer?.avatar_url ?? null,
+        verification_status: influencer?.verification_status as 'pending' | 'verified' | 'rejected' | null | undefined,
       },
       cover_letter: row.cover_letter ?? null,
       deliverable_idea: row.deliverable_idea ?? null,

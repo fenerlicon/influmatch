@@ -2,9 +2,11 @@
 
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState, useTransition, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { updateProfile } from '@/app/dashboard/influencer/profile/actions'
-import { validateInstagram, validateTikTok, validateYouTube } from '@/utils/socialLinkValidation'
+import { validateInstagram, validateTikTok, validateYouTube, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
 
@@ -27,6 +29,15 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ initialData }: ProfileFormProps) {
   const supabase = useSupabaseClient()
+  const router = useRouter()
+  const [userId, setUserId] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id)
+    })
+  }, [supabase])
+
   const [formState, setFormState] = useState({
     fullName: initialData.fullName ?? '',
     username: initialData.username ?? '',
@@ -36,6 +47,9 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
     instagram: initialData.socialLinks?.instagram ?? '',
     tiktok: initialData.socialLinks?.tiktok ?? '',
     youtube: initialData.socialLinks?.youtube ?? '',
+    kick: initialData.socialLinks?.kick ?? '',
+    twitter: initialData.socialLinks?.twitter ?? '',
+    twitch: initialData.socialLinks?.twitch ?? '',
   })
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialData.avatarUrl ?? null)
   const [isUploading, setIsUploading] = useState(false)
@@ -47,9 +61,13 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
     instagram?: string
     tiktok?: string
     youtube?: string
+    kick?: string
+    twitter?: string
+    twitch?: string
   }>({})
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [selectedBadges, setSelectedBadges] = useState<string[]>(initialData.displayedBadges ?? [])
+  const [isEditing, setIsEditing] = useState(false)
 
   const checkUsername = useCallback(async (username: string) => {
     if (!username || username.trim().length === 0) {
@@ -143,6 +161,24 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
         ...prev,
         youtube: result.isValid ? undefined : result.error,
       }))
+    } else if (name === 'kick') {
+      const result = validateKick(value)
+      setValidationErrors((prev) => ({
+        ...prev,
+        kick: result.isValid ? undefined : result.error,
+      }))
+    } else if (name === 'twitter') {
+      const result = validateTwitter(value)
+      setValidationErrors((prev) => ({
+        ...prev,
+        twitter: result.isValid ? undefined : result.error,
+      }))
+    } else if (name === 'twitch') {
+      const result = validateTwitch(value)
+      setValidationErrors((prev) => ({
+        ...prev,
+        twitch: result.isValid ? undefined : result.error,
+      }))
     }
   }
 
@@ -214,11 +250,17 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
     const instagramResult = validateInstagram(formState.instagram)
     const tiktokResult = validateTikTok(formState.tiktok)
     const youtubeResult = validateYouTube(formState.youtube)
+    const kickResult = validateKick(formState.kick)
+    const twitterResult = validateTwitter(formState.twitter)
+    const twitchResult = validateTwitch(formState.twitch)
 
     const errors: typeof validationErrors = {}
     if (!instagramResult.isValid) errors.instagram = instagramResult.error
     if (!tiktokResult.isValid) errors.tiktok = tiktokResult.error
     if (!youtubeResult.isValid) errors.youtube = youtubeResult.error
+    if (!kickResult.isValid) errors.kick = kickResult.error
+    if (!twitterResult.isValid) errors.twitter = twitterResult.error
+    if (!twitchResult.isValid) errors.twitch = twitchResult.error
 
     setValidationErrors(errors)
 
@@ -229,7 +271,7 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
 
     startTransition(async () => {
       try {
-        await updateProfile({
+        const result = await updateProfile({
           fullName: formState.fullName.trim(),
           username: formState.username.trim(),
           previousUsername: initialData.username,
@@ -241,10 +283,21 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
             instagram: instagramResult.normalizedUrl || null,
             tiktok: tiktokResult.normalizedUrl || null,
             youtube: youtubeResult.normalizedUrl || null,
+            kick: kickResult.normalizedUrl || null,
+            twitter: twitterResult.normalizedUrl || null,
+            twitch: twitchResult.normalizedUrl || null,
           },
           displayedBadges: selectedBadges,
         })
-        setToast('Profil başarıyla güncellendi.')
+        
+        if (result?.success) {
+          setToast('Profil başarıyla güncellendi.')
+          setIsEditing(false) // Exit edit mode after successful save
+          // Don't refresh - form state is already correct
+          // The revalidatePath in the action will handle cache invalidation
+        } else {
+          throw new Error('Profil güncellenemedi.')
+        }
       } catch (error) {
         console.error('updateProfile failed', error)
         setErrorMsg(error instanceof Error ? error.message : 'Profil güncellenemedi.')
@@ -259,6 +312,27 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
           <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Profil Ayarları</p>
           <h1 className="mt-2 text-2xl font-semibold text-white">Bilgilerini güncelle</h1>
         </div>
+        {!isEditing && (
+          <div className="flex items-center gap-3">
+            {formState.username && (
+              <Link
+                href={`/profile/${formState.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
+              >
+                Kartımı Gör
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="rounded-full border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+            >
+              Profili Düzenle
+            </button>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-8">
@@ -293,7 +367,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                 name="fullName"
                 value={formState.fullName}
                 onChange={handleChange}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold"
+                disabled={!isEditing}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
                 required
               />
             </div>
@@ -305,7 +380,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
-                  className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
+                  disabled={!isEditing}
+                  className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     validationErrors.username || usernameStatus === 'taken'
                       ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                       : usernameStatus === 'available'
@@ -334,7 +410,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                   name="city"
                   value={formState.city}
                   onChange={handleChange}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold"
+                  disabled={!isEditing}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
             </div>
@@ -344,7 +421,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                 name="category"
                 value={formState.category}
                 onChange={handleChange}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold"
+                disabled={!isEditing}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {CATEGORY_OPTIONS.map((category) => (
                   <option key={category} value={category}>
@@ -363,7 +441,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
             rows={4}
             value={formState.bio}
             onChange={handleChange}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold"
+            disabled={!isEditing}
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Kendinden kısaca bahset..."
           />
         </div>
@@ -374,6 +453,7 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
             selectedBadgeIds={selectedBadges}
             availableBadgeIds={initialData.availableBadgeIds ?? []}
             onSelectionChange={setSelectedBadges}
+            userId={userId}
           />
         </div>
 
@@ -385,8 +465,9 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               name="instagram"
               value={formState.instagram}
               onChange={handleChange}
+              disabled={!isEditing}
               placeholder="@kullaniciadi veya https://instagram.com/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 validationErrors.instagram
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
@@ -403,8 +484,9 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               name="tiktok"
               value={formState.tiktok}
               onChange={handleChange}
+              disabled={!isEditing}
               placeholder="@kullaniciadi veya https://tiktok.com/@..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 validationErrors.tiktok
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
@@ -421,8 +503,9 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               name="youtube"
               value={formState.youtube}
               onChange={handleChange}
+              disabled={!isEditing}
               placeholder="@kullaniciadi veya https://youtube.com/@..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 validationErrors.youtube
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
@@ -432,17 +515,106 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               <p className="mt-1 text-xs text-red-300">{validationErrors.youtube}</p>
             )}
           </div>
+          <div>
+            <label className="text-sm text-gray-300">Kick</label>
+            <input
+              type="text"
+              name="kick"
+              value={formState.kick}
+              onChange={handleChange}
+              disabled={!isEditing}
+              placeholder="@kullaniciadi veya https://kick.com/..."
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                validationErrors.kick
+                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+              }`}
+            />
+            {validationErrors.kick && (
+              <p className="mt-1 text-xs text-red-300">{validationErrors.kick}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-sm text-gray-300">Twitter/X</label>
+            <input
+              type="text"
+              name="twitter"
+              value={formState.twitter}
+              onChange={handleChange}
+              disabled={!isEditing}
+              placeholder="@kullaniciadi veya https://twitter.com/..."
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                validationErrors.twitter
+                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+              }`}
+            />
+            {validationErrors.twitter && (
+              <p className="mt-1 text-xs text-red-300">{validationErrors.twitter}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-sm text-gray-300">Twitch</label>
+            <input
+              type="text"
+              name="twitch"
+              value={formState.twitch}
+              onChange={handleChange}
+              disabled={!isEditing}
+              placeholder="@kullaniciadi veya https://twitch.tv/..."
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                validationErrors.twitch
+                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+              }`}
+            />
+            {validationErrors.twitch && (
+              <p className="mt-1 text-xs text-red-300">{validationErrors.twitch}</p>
+            )}
+          </div>
         </div>
 
         {errorMsg ? <p className="text-sm text-red-300">{errorMsg}</p> : null}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? 'Kaydediliyor...' : 'Profili Kaydet'}
-        </button>
+        {isEditing && (
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false)
+                // Reset form to initial data
+                setFormState({
+                  fullName: initialData.fullName ?? '',
+                  username: initialData.username ?? '',
+                  city: initialData.city ?? '',
+                  bio: initialData.bio ?? '',
+                  category: initialData.category ?? CATEGORY_OPTIONS[0],
+                  instagram: initialData.socialLinks?.instagram ?? '',
+                  tiktok: initialData.socialLinks?.tiktok ?? '',
+                  youtube: initialData.socialLinks?.youtube ?? '',
+                  kick: initialData.socialLinks?.kick ?? '',
+                  twitter: initialData.socialLinks?.twitter ?? '',
+                  twitch: initialData.socialLinks?.twitch ?? '',
+                })
+                setAvatarUrl(initialData.avatarUrl ?? null)
+                setSelectedBadges(initialData.displayedBadges ?? [])
+                setErrorMsg(null)
+                setValidationErrors({})
+                setUsernameStatus('idle')
+              }}
+              className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10"
+            >
+              İptal
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPending ? 'Kaydediliyor...' : 'Profili Kaydet'}
+            </button>
+          </div>
+        )}
       </form>
 
       {toast ? (

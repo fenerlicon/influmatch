@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Fragment } from 'react'
 import type { UserRole } from '@/types/auth'
 import SignOutButton from './SignOutButton'
@@ -14,23 +14,23 @@ const roleHomePath: Record<UserRole, string> = {
 
 const navMap: Record<UserRole, Array<{ label: string; href: string }>> = {
   influencer: [
-    { label: 'Home', href: roleHomePath.influencer },
-    { label: 'Profile', href: '/dashboard/influencer/profile' },
-    { label: 'Discover', href: '/dashboard/influencer/discover' },
-    { label: 'Advert', href: '/dashboard/influencer/advert' },
-    { label: 'Offers', href: '/dashboard/offers' },
-    { label: 'Messages', href: '/dashboard/messages' },
+    { label: 'Ana Sayfa', href: roleHomePath.influencer },
+    { label: 'Profil', href: '/dashboard/influencer/profile' },
+    { label: 'Vitrin', href: '/dashboard/influencer/discover' },
+    { label: 'İlanlar', href: '/dashboard/influencer/advert' },
+    { label: 'Teklifler', href: '/dashboard/offers' },
+    { label: 'Mesajlar', href: '/dashboard/messages' },
     { label: 'Spotlight', href: '/dashboard/spotlight' },
-    { label: 'Badges', href: '/dashboard/influencer/badges' },
+    { label: 'Rozetler', href: '/dashboard/influencer/badges' },
   ],
   brand: [
-    { label: 'Home', href: roleHomePath.brand },
-    { label: 'Profile', href: '/dashboard/brand/profile' },
-    { label: 'Discover', href: '/dashboard/brand/discover' },
-    { label: 'Advert', href: '/dashboard/brand/advert' },
-    { label: 'Offers', href: '/dashboard/brand/offers' },
-    { label: 'Messages', href: '/dashboard/messages' },
-    { label: 'Badges', href: '/dashboard/brand/badges' },
+    { label: 'Ana Sayfa', href: roleHomePath.brand },
+    { label: 'Profil', href: '/dashboard/brand/profile' },
+    { label: 'Vitrin', href: '/dashboard/brand/discover' },
+    { label: 'İlanlar', href: '/dashboard/brand/advert' },
+    { label: 'Teklifler', href: '/dashboard/brand/offers' },
+    { label: 'Mesajlar', href: '/dashboard/messages' },
+    { label: 'Rozetler', href: '/dashboard/brand/badges' },
   ],
 }
 
@@ -45,46 +45,13 @@ interface DashboardSidebarProps {
 
 export default function DashboardSidebar({ role, fullName, email, currentUserId }: DashboardSidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
   const navItems = navMap[role]
 
   const isActive = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
 
-  const handleNavClick = (href: string, e: React.MouseEvent) => {
-    // For badges pages, use router.push to ensure proper navigation
-    if (href.includes('/badges')) {
-      e.preventDefault()
-      router.push(href)
-      return
-    }
-    // For other pages, use default Link behavior
-  }
-
   const renderNavLinks = (variant: 'vertical' | 'horizontal') =>
     navItems.map((item) => {
-      const isBadgesPage = item.href.includes('/badges')
-      
-      if (isBadgesPage) {
-        return (
-          <button
-            key={item.label}
-            type="button"
-            onClick={(e) => handleNavClick(item.href, e)}
-            className={cx(
-              variant === 'vertical'
-                ? 'w-full rounded-2xl border px-4 py-3 text-sm font-medium transition text-left'
-                : 'rounded-full border px-4 py-2 text-xs font-semibold transition',
-              isActive(item.href)
-                ? 'border-soft-gold/80 bg-white/5 text-soft-gold shadow-[0_0_22px_rgba(212,175,55,0.45)]'
-                : 'border-white/5 text-gray-300 hover:border-white/20 hover:text-white',
-            )}
-          >
-            {item.label}
-          </button>
-        )
-      }
-
       return (
         <Link
           key={item.label}
@@ -93,7 +60,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
           scroll={true}
           className={cx(
             variant === 'vertical'
-              ? 'w-full rounded-2xl border px-4 py-3 text-sm font-medium transition'
+              ? 'w-full rounded-2xl border px-4 py-3 text-sm font-medium transition text-left'
               : 'rounded-full border px-4 py-2 text-xs font-semibold transition',
             isActive(item.href)
               ? 'border-soft-gold/80 bg-white/5 text-soft-gold shadow-[0_0_22px_rgba(212,175,55,0.45)]'

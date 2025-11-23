@@ -10,29 +10,29 @@ const valueCards: ValueCard[] = [
     title: 'Güvenli teklif yönetimi',
     description:
       'Supabase tabanlı veritabanı ve rol bazlı kimlik doğrulama ile tüm teklifler kayıt altında tutulur.',
-    metricLabel: 'Onaylı teklif',
-    metricValue: '2.4K+',
+    metricLabel: 'Veri güvenliği',
+    metricValue: 'SSL/TLS',
   },
   {
     title: 'Kategori & şehir filtreleri',
     description:
       'Beauty, Fashion ve Lifestyle kategorileri için detaylı filtreler ile doğru profili saniyeler içinde bulun.',
-    metricLabel: 'Filtrelenen arama',
-    metricValue: '12K',
+    metricLabel: 'Arama hızı',
+    metricValue: 'Anında',
   },
   {
     title: 'Vitrin & spotlight',
     description:
       'Influencer tarafı spotlight vitrini ile öne çıkar, markalar premium rozetli profilleri anında görebilir.',
-    metricLabel: 'Aktif vitrin',
-    metricValue: '180',
+    metricLabel: 'Vitrin özelliği',
+    metricValue: 'Aktif',
   },
   {
     title: 'Sürükleyici dashboard',
     description:
       'Influencer ve marka dashboardları sekmeli yapı ile profil, keşif ve teklifler arasında hızlı geçiş sağlar.',
-    metricLabel: 'Panel memnuniyeti',
-    metricValue: '%92',
+    metricLabel: 'Kullanıcı deneyimi',
+    metricValue: 'Optimize',
   },
 ]
 

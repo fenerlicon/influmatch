@@ -45,6 +45,22 @@ const pageVariants = {
 
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname()
+  const isBadgesPage = pathname?.includes('/badges')
+
+  // For badges pages, use faster transitions without wait mode
+  if (isBadgesPage) {
+    return (
+      <motion.div
+        key={pathname}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.1 }}
+        className="w-full h-full"
+      >
+        {children}
+      </motion.div>
+    )
+  }
 
   return (
     <AnimatePresence mode="wait" initial={true}>

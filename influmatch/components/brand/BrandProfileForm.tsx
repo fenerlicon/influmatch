@@ -2,10 +2,11 @@
 
 import Image from 'next/image'
 import { type ReactNode, useState, useTransition, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Building2, Globe, Instagram, Linkedin, MapPin, Upload } from 'lucide-react'
+import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info } from 'lucide-react'
 import { updateBrandProfile } from '@/app/dashboard/brand/profile/actions'
-import { validateInstagram, validateLinkedIn, validateWebsite } from '@/utils/socialLinkValidation'
+import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
 
@@ -23,13 +24,27 @@ interface BrandProfileFormProps {
     website: string
     linkedin: string
     instagram: string
+    kick?: string
+    twitter?: string
+    twitch?: string
     displayedBadges?: string[]
     availableBadgeIds?: string[]
+    companyLegalName?: string
+    taxId?: string
   }
 }
 
 export default function BrandProfileForm({ initialData }: BrandProfileFormProps) {
   const supabase = useSupabaseClient()
+  const router = useRouter()
+  const [userId, setUserId] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id)
+    })
+  }, [supabase])
+
   const [formState, setFormState] = useState({
     brandName: initialData.brandName ?? '',
     username: initialData.username ?? '',
@@ -39,6 +54,11 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     website: initialData.website ?? '',
     linkedin: initialData.linkedin ?? '',
     instagram: initialData.instagram ?? '',
+    kick: initialData.kick ?? '',
+    twitter: initialData.twitter ?? '',
+    twitch: initialData.twitch ?? '',
+    companyLegalName: initialData.companyLegalName ?? '',
+    taxId: initialData.taxId ?? '',
   })
   const [logoUrl, setLogoUrl] = useState<string | null>(initialData.logoUrl ?? null)
   const [isUploading, setIsUploading] = useState(false)
@@ -50,9 +70,13 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     website?: string
     linkedin?: string
     instagram?: string
+    kick?: string
+    twitter?: string
+    twitch?: string
   }>({})
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [selectedBadges, setSelectedBadges] = useState<string[]>(initialData.displayedBadges ?? [])
+  const [isEditing, setIsEditing] = useState(false)
 
   const checkUsername = useCallback(async (username: string) => {
     if (!username || username.trim().length === 0) {
@@ -146,6 +170,24 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         ...prev,
         instagram: result.isValid ? undefined : result.error,
       }))
+    } else if (name === 'kick') {
+      const result = validateKick(value)
+      setValidationErrors((prev) => ({
+        ...prev,
+        kick: result.isValid ? undefined : result.error,
+      }))
+    } else if (name === 'twitter') {
+      const result = validateTwitter(value)
+      setValidationErrors((prev) => ({
+        ...prev,
+        twitter: result.isValid ? undefined : result.error,
+      }))
+    } else if (name === 'twitch') {
+      const result = validateTwitch(value)
+      setValidationErrors((prev) => ({
+        ...prev,
+        twitch: result.isValid ? undefined : result.error,
+      }))
     }
   }
 
@@ -218,11 +260,17 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     const websiteResult = validateWebsite(formState.website)
     const linkedinResult = validateLinkedIn(formState.linkedin)
     const instagramResult = validateInstagram(formState.instagram)
+    const kickResult = validateKick(formState.kick)
+    const twitterResult = validateTwitter(formState.twitter)
+    const twitchResult = validateTwitch(formState.twitch)
 
     const errors: typeof validationErrors = {}
     if (!websiteResult.isValid) errors.website = websiteResult.error
     if (!linkedinResult.isValid) errors.linkedin = linkedinResult.error
     if (!instagramResult.isValid) errors.instagram = instagramResult.error
+    if (!kickResult.isValid) errors.kick = kickResult.error
+    if (!twitterResult.isValid) errors.twitter = twitterResult.error
+    if (!twitchResult.isValid) errors.twitch = twitchResult.error
 
     setValidationErrors(errors)
 
@@ -233,7 +281,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
 
     startTransition(async () => {
       try {
-        await updateBrandProfile({
+        const result = await updateBrandProfile({
           brandName: formState.brandName,
           username: formState.username,
           city: formState.city,
@@ -243,10 +291,23 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           website: websiteResult.normalizedUrl || formState.website.trim() || '',
           linkedin: linkedinResult.normalizedUrl || formState.linkedin.trim() || '',
           instagram: instagramResult.normalizedUrl || formState.instagram.trim() || '',
+          kick: kickResult.normalizedUrl || null,
+          twitter: twitterResult.normalizedUrl || null,
+          twitch: twitchResult.normalizedUrl || null,
           displayedBadges: selectedBadges,
+          companyLegalName: formState.companyLegalName.trim() || null,
+          taxId: formState.taxId.trim() || null,
         })
-        setToast('Şirket bilgileri güncellendi.')
-        setTimeout(() => setToast(null), 3000)
+        
+        if (result?.success) {
+          setToast('Şirket bilgileri güncellendi.')
+          setTimeout(() => setToast(null), 3000)
+          setIsEditing(false) // Exit edit mode after successful save
+          // Don't refresh - form state is already correct
+          // The revalidatePath in the action will handle cache invalidation
+        } else {
+          throw new Error('Profil güncellenemedi.')
+        }
       } catch (error) {
         console.error('updateBrandProfile failed', error)
         setErrorMsg(error instanceof Error ? error.message : 'Profil güncellenemedi.')
@@ -264,8 +325,9 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           name={name}
           value={value}
           onChange={handleChange}
+          disabled={!isEditing}
           placeholder={placeholder}
-          className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none"
+          className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
     </label>
@@ -274,11 +336,24 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#101117] to-[#090a0f] p-6 text-white shadow-glow">
-        <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Kurumsal Profil</p>
-        <h1 className="mt-3 text-3xl font-semibold">Kurumsal Profil Ayarları</h1>
-        <p className="mt-2 max-w-3xl text-sm text-gray-300">
-          Markanı influencer topluluğuna güven veren bir dille tanıt. Logo, temel kimlik bilgileri ve iletişim noktaların burada yönetilir.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Kurumsal Profil</p>
+            <h1 className="mt-3 text-3xl font-semibold">Kurumsal Profil Ayarları</h1>
+            <p className="mt-2 max-w-3xl text-sm text-gray-300">
+              Markanı influencer topluluğuna güven veren bir dille tanıt. Logo, temel kimlik bilgileri ve iletişim noktaların burada yönetilir.
+            </p>
+          </div>
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="rounded-full border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+            >
+              Profili Düzenle
+            </button>
+          )}
+        </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -317,8 +392,9 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
+                  disabled={!isEditing}
                   placeholder="@marka"
-                  className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none"
+                  className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
               {validationErrors.username && (
@@ -343,7 +419,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 name="category"
                 value={formState.category}
                 onChange={handleChange}
-                className="w-full bg-transparent text-white focus:outline-none"
+                disabled={!isEditing}
+                className="w-full bg-transparent text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {CATEGORY_OPTIONS.map((option) => (
                   <option key={option} value={option} className="bg-[#1B1C24] text-white">
@@ -373,9 +450,10 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               name="bio"
               value={formState.bio}
               onChange={handleChange}
+              disabled={!isEditing}
               rows={6}
               placeholder="Markanı ve kampanya yaklaşımını influencerlara anlat."
-              className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-gray-500 focus:outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
 
@@ -392,6 +470,62 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 <p className="mt-1 text-xs text-red-300">{validationErrors.instagram}</p>
               )}
             </div>
+            <div>
+              {renderInput('Kick', 'kick', formState.kick, <Globe className="h-4 w-4" />, '@kullaniciadi veya https://kick.com/...')}
+              {validationErrors.kick && (
+                <p className="mt-1 text-xs text-red-300">{validationErrors.kick}</p>
+              )}
+            </div>
+            <div>
+              {renderInput('Twitter/X', 'twitter', formState.twitter, <Globe className="h-4 w-4" />, '@kullaniciadi veya https://twitter.com/...')}
+              {validationErrors.twitter && (
+                <p className="mt-1 text-xs text-red-300">{validationErrors.twitter}</p>
+              )}
+            </div>
+            <div>
+              {renderInput('Twitch', 'twitch', formState.twitch, <Globe className="h-4 w-4" />, '@kullaniciadi veya https://twitch.tv/...')}
+              {validationErrors.twitch && (
+                <p className="mt-1 text-xs text-red-300">{validationErrors.twitch}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Kurumsal Kimlik Section */}
+      <div className="space-y-5 rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Kurumsal Kimlik</p>
+          <p className="mt-2 text-sm text-gray-400">
+            Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="font-semibold text-soft-gold">&quot;Resmi İşletme&quot;</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
+          </p>
+        </div>
+
+        {renderInput(
+          'Resmi Şirket Unvanı',
+          'companyLegalName',
+          formState.companyLegalName,
+          <FileText className="h-4 w-4" />,
+          'Opsiyonel'
+        )}
+
+        {renderInput(
+          'Vergi Numarası',
+          'taxId',
+          formState.taxId,
+          <FileText className="h-4 w-4" />,
+          'Opsiyonel - Doğrulama Rozeti için önerilir'
+        )}
+
+        <div className="rounded-2xl border border-soft-gold/20 bg-soft-gold/5 p-4">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-soft-gold flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-gray-300">
+              <p className="font-medium text-soft-gold mb-1">💡 Neden bu bilgileri paylaşmalıyım?</p>
+              <p className="text-gray-400">
+                Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <strong className="text-soft-gold">&quot;Resmi İşletme&quot;</strong> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -402,20 +536,53 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           selectedBadgeIds={selectedBadges}
           availableBadgeIds={initialData.availableBadgeIds ?? []}
           onSelectionChange={setSelectedBadges}
+          userId={userId}
         />
       </div>
 
       {errorMsg ? <p className="text-sm text-red-300">{errorMsg}</p> : null}
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
-        </button>
-      </div>
+      {isEditing && (
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              setIsEditing(false)
+              // Reset form to initial data
+              setFormState({
+                brandName: initialData.brandName ?? '',
+                username: initialData.username ?? '',
+                city: initialData.city ?? '',
+                bio: initialData.bio ?? '',
+                category: initialData.category ?? CATEGORY_OPTIONS[0],
+                website: initialData.website ?? '',
+                linkedin: initialData.linkedin ?? '',
+                instagram: initialData.instagram ?? '',
+                kick: initialData.kick ?? '',
+                twitter: initialData.twitter ?? '',
+                twitch: initialData.twitch ?? '',
+                companyLegalName: initialData.companyLegalName ?? '',
+                taxId: initialData.taxId ?? '',
+              })
+              setLogoUrl(initialData.logoUrl ?? null)
+              setSelectedBadges(initialData.displayedBadges ?? [])
+              setErrorMsg(null)
+              setValidationErrors({})
+              setUsernameStatus('idle')
+            }}
+            className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10"
+          >
+            İptal
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isPending ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+          </button>
+        </div>
+      )}
 
       {toast ? (
         <div className="fixed right-6 bottom-6 z-50 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm text-soft-gold shadow-glow">

@@ -19,18 +19,28 @@ export default async function InfluencerDashboardPage() {
     redirect('/login')
   }
 
-  const { data: profile, error } = await supabase
-    .from('users')
-    .select('spotlight_active, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
-    .eq('id', user.id)
-    .maybeSingle()
+  const [{ data: profile, error }, { data: userBadges }] = await Promise.all([
+    supabase
+      .from('users')
+      .select('spotlight_active, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('user_badges')
+      .select('badge_id')
+      .eq('user_id', user.id),
+  ])
 
   if (error) {
     console.error('[InfluencerDashboardPage] profile load error', error.message)
   }
 
-  const spotlightActive = profile?.spotlight_active ?? false
+  const rawSpotlightActive = profile?.spotlight_active ?? false
   const verificationStatus = profile?.verification_status ?? 'pending'
+  const hasSpotlightPremium = userBadges?.some((ub) => ub.badge_id === 'spotlight-premium') ?? false
+  
+  // Spotlight is only truly active if user is verified AND has spotlight premium AND spotlight_active is true
+  const spotlightActive = rawSpotlightActive && verificationStatus === 'verified' && hasSpotlightPremium
 
   const profileData: ProfileRecord = {
     full_name: profile?.full_name ?? null,
@@ -106,6 +116,7 @@ export default async function InfluencerDashboardPage() {
       label: 'Spotlight Durumu',
       value: spotlightActive ? 'Aktif' : 'Pasif',
       badge: spotlightActive ? 'Vitrine çıkıldı' : 'Kapalı',
+      variant: spotlightActive ? 'spotlight-active' : null,
     },
   ]
 
@@ -131,8 +142,12 @@ export default async function InfluencerDashboardPage() {
           {stats.map((item) => (
             <div
               key={item.label}
-              className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#11121A] p-4 text-sm text-gray-300 ${
-                item.variant === 'complete' ? 'border-white/15 bg-gradient-to-br from-[#1a1b23] to-[#101118] text-gray-200' : ''
+              className={`relative overflow-hidden rounded-2xl border p-4 text-sm ${
+                item.variant === 'complete'
+                  ? 'border-white/15 bg-gradient-to-br from-[#1a1b23] to-[#101118] text-gray-200'
+                  : item.variant === 'spotlight-active'
+                    ? 'border-soft-gold/60 bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 text-gray-200 shadow-[0_0_22px_rgba(212,175,55,0.3)]'
+                    : 'border-white/10 bg-[#11121A] text-gray-300'
               }`}
             >
               {item.variant === 'complete' ? (
@@ -146,11 +161,28 @@ export default async function InfluencerDashboardPage() {
                     }}
                   />
                 </>
+              ) : item.variant === 'spotlight-active' ? (
+                <>
+                  <span className="pointer-events-none absolute inset-0 bg-soft-gold/10 opacity-50" />
+                  <span
+                    className="pointer-events-none absolute inset-0 opacity-20"
+                    style={{
+                      backgroundImage:
+                        'repeating-linear-gradient(135deg, rgba(212,175,55,0.3) 0, rgba(212,175,55,0.3) 2px, transparent 2px, transparent 12px)',
+                    }}
+                  />
+                </>
               ) : null}
               <div className="relative z-10">
                 <p>{item.label}</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
-                <p className="mt-4 text-xs uppercase tracking-[0.3em] text-soft-gold">
+                <p
+                  className={`mt-4 text-xs uppercase tracking-[0.3em] ${
+                    item.variant === 'spotlight-active'
+                      ? 'font-bold text-soft-gold text-sm tracking-[0.4em]'
+                      : 'text-soft-gold'
+                  }`}
+                >
                   {item.badge}
                 </p>
               </div>
@@ -159,7 +191,11 @@ export default async function InfluencerDashboardPage() {
         </div>
       </section>
 
-      <SpotlightToggleCard initialActive={spotlightActive} />
+      <SpotlightToggleCard 
+        initialActive={spotlightActive} 
+        verificationStatus={verificationStatus}
+        hasSpotlightPremium={hasSpotlightPremium}
+      />
 
       {/* Verification Guide Card */}
       {verificationStatus === 'pending' && (

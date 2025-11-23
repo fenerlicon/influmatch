@@ -115,10 +115,10 @@ export default async function BrandDashboardPage() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            href="/dashboard/discover"
+            href="/dashboard/brand/discover"
             className="rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold shadow-[0_0_25px_rgba(212,175,55,0.35)] transition hover:border-soft-gold hover:bg-soft-gold/20"
           >
-            Keşfet'e Git <span className="text-xs font-normal opacity-75">(yakında)</span>
+            Vitrin'e Git
           </Link>
           <Link
             href="/dashboard/brand/advert?tab=mine"

@@ -12,6 +12,7 @@ interface CompletionField {
   key: string
   label: string
   task: string
+  weight: number // Percentage weight for this field
 }
 
 export interface ProfileCompletionResult {
@@ -22,21 +23,28 @@ export interface ProfileCompletionResult {
   checklist: Array<CompletionField & { completed: boolean }>
 }
 
+// Weighted completion fields
+// Total: 20% + 20% + 20% + 10% + 10% + 10% + 5% + 5% = 100%
 const COMPLETION_FIELDS: CompletionField[] = [
-  { key: 'full_name', label: 'Ad Soyad', task: 'Ad soyadını ekle' },
-  { key: 'username', label: 'Kullanıcı adı', task: 'Kullanıcı adını belirle' },
-  { key: 'avatar_url', label: 'Avatar', task: 'Profil fotoğrafı yükle' },
-  { key: 'bio', label: 'Biyografi', task: 'Biyografi alanını doldur' },
-  { key: 'category', label: 'Kategori', task: 'Kategori seç' },
-  { key: 'city', label: 'Şehir', task: 'Şehrini ekle' },
-  { key: 'social_links.instagram', label: 'Instagram', task: 'Instagram linkini ekle' },
-  { key: 'social_links.tiktok', label: 'TikTok', task: 'TikTok linkini ekle' },
-  { key: 'social_links.youtube', label: 'YouTube', task: 'YouTube linkini ekle' },
-  { key: 'social_links.linkedin', label: 'LinkedIn', task: 'LinkedIn linkini ekle' },
+  { key: 'avatar_url', label: 'Profil Fotoğrafı', task: 'Profil fotoğrafı yükle', weight: 20 },
+  { key: 'full_name', label: 'Ad Soyad', task: 'Ad soyadını ekle', weight: 20 },
+  { key: 'username', label: 'Kullanıcı Adı', task: 'Kullanıcı adını belirle', weight: 20 },
+  { key: 'city', label: 'Şehir', task: 'Şehrini ekle', weight: 10 },
+  { key: 'category', label: 'Kategori', task: 'Kategori seç', weight: 10 },
+  { key: 'bio', label: 'Biyografi', task: 'Biyografi alanını doldur', weight: 10 },
 ]
 
-// Fields that are optional for brands
-const BRAND_OPTIONAL_FIELDS = ['social_links.tiktok', 'social_links.youtube', 'social_links.linkedin']
+// Social media platforms (any one gives 5%, any additional gives 5% more, max 10%)
+const SOCIAL_PLATFORMS = [
+  'instagram',
+  'tiktok',
+  'youtube',
+  'linkedin',
+  'website',
+  'kick',
+  'twitter',
+  'twitch',
+] as const
 
 const getFieldValue = (profile: ProfileRecord, path: string) => {
   return path.split('.').reduce<unknown>((acc, key) => {
@@ -55,28 +63,76 @@ const isFilled = (value: unknown) => {
   return true
 }
 
+const hasAnySocialLink = (socialLinks: Record<string, string | null> | null): boolean => {
+  if (!socialLinks) return false
+  return SOCIAL_PLATFORMS.some((platform) => isFilled(socialLinks[platform]))
+}
+
+const getSocialLinksCount = (socialLinks: Record<string, string | null> | null): number => {
+  if (!socialLinks) return 0
+  return SOCIAL_PLATFORMS.filter((platform) => isFilled(socialLinks[platform])).length
+}
+
 export function calculateProfileCompletion(
   profile: ProfileRecord,
   role?: 'influencer' | 'brand',
 ): ProfileCompletionResult {
-  // For brands, exclude TikTok, YouTube, and LinkedIn from required fields
-  const fieldsToUse =
-    role === 'brand'
-      ? COMPLETION_FIELDS.filter((field) => !BRAND_OPTIONAL_FIELDS.includes(field.key))
-      : COMPLETION_FIELDS
-
-  const checklist = fieldsToUse.map((field) => {
+  // Calculate base fields completion
+  const checklist = COMPLETION_FIELDS.map((field) => {
     const value = getFieldValue(profile, field.key)
     const completed = isFilled(value)
     return { ...field, completed }
   })
 
-  const total = checklist.length
-  const completed = checklist.filter((item) => item.completed).length
-  const percent = total === 0 ? 0 : Math.round((completed / total) * 100)
-  const pendingTasks = checklist.filter((item) => !item.completed).map((item) => item.task)
+  // Calculate social media completion
+  const hasSocialLink = hasAnySocialLink(profile.social_links)
+  const socialLinksCount = getSocialLinksCount(profile.social_links)
+  
+  // First social link: 5%, second or more: additional 5% (max 10% total)
+  const socialMediaWeight = hasSocialLink ? (socialLinksCount >= 2 ? 10 : 5) : 0
 
-  return { percent, completed, total, pendingTasks, checklist }
+  // Calculate total completion percentage
+  let totalPercent = 0
+  
+  // Add weights for completed base fields
+  checklist.forEach((field) => {
+    if (field.completed) {
+      totalPercent += field.weight
+    }
+  })
+  
+  // Add social media weight
+  totalPercent += socialMediaWeight
+
+  // Calculate completed count (base fields + social media)
+  const completedBaseFields = checklist.filter((item) => item.completed).length
+  const completed = completedBaseFields + (hasSocialLink ? 1 : 0) + (socialLinksCount >= 2 ? 1 : 0)
+  const total = COMPLETION_FIELDS.length + 2 // Base fields + 2 social media slots
+
+  // Generate pending tasks
+  const pendingTasks: string[] = []
+  
+  checklist.forEach((field) => {
+    if (!field.completed) {
+      pendingTasks.push(field.task)
+    }
+  })
+
+  // Add social media task if no links
+  if (!hasSocialLink) {
+    pendingTasks.push('Sosyal medya hesaplarınızdan birini doldurun')
+  } else if (socialLinksCount < 2) {
+    // If only one social link, suggest adding another for full 10%
+    pendingTasks.push('Bir sosyal medya hesabı daha ekleyin')
+  }
+
+  return {
+    percent: Math.min(Math.round(totalPercent), 100),
+    completed,
+    total,
+    pendingTasks,
+    checklist,
+  }
 }
 
 export const profileCompletionFields = COMPLETION_FIELDS

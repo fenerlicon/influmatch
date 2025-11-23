@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { BadgeCheck } from 'lucide-react'
 
 interface SpotlightInfluencer {
   id: string
@@ -14,20 +15,22 @@ interface SpotlightInfluencer {
   engagement: string
   badges: string[]
   avatarUrl: string
+  verified?: boolean
 }
 
 const mockInfluencers: SpotlightInfluencer[] = [
   {
     id: '1',
-    name: 'Ayşe Yılmaz',
-    username: '@ayseyilmaz',
+    name: 'Lara Soydan',
+    username: '@larasoydan',
     category: 'Güzellik',
     city: 'İstanbul',
-    followers: '420K',
-    engagement: '%4.8',
+    followers: '380K',
+    engagement: '%5.1',
     badges: ['Vitrin Aktif', 'Premium'],
     avatarUrl:
-      'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=600&q=60',
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=60',
+    verified: true,
   },
   {
     id: '2',
@@ -40,6 +43,7 @@ const mockInfluencers: SpotlightInfluencer[] = [
     badges: ['Trend', 'Moda'],
     avatarUrl:
       'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=60',
+    verified: true,
   },
   {
     id: '3',
@@ -81,30 +85,22 @@ export default function Spotlight() {
   return (
     <section
       id="spotlight"
-      className="relative px-6 py-20 md:px-12 lg:px-24 xl:px-32"
+      className="relative px-6 py-12 md:px-12 lg:px-24 xl:px-32"
     >
       <div className="absolute inset-0 -z-10 rounded-[48px] bg-gradient-to-b from-white/5 via-transparent to-transparent blur-3xl" />
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-soft-gold/80">
-              Spotlight
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold text-white md:text-4xl">
-              <span className="text-soft-gold">Öne Çıkan</span> influencer
-              vitrinimiz
-            </h2>
-            <p className="mt-3 max-w-2xl text-base text-gray-300">
-              Markalar için hazır vitrin: kategori, şehir ve vitrin durumuna göre
-              filtrelenmiş profiller gerçek zamanlı olarak öne çıkar.
-            </p>
-          </div>
-          <Link
-            href="/discover"
-            className="inline-flex w-full items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-soft-gold/60 hover:text-soft-gold md:w-auto"
-          >
-            Tümünü Gör
-          </Link>
+        <div>
+          <p className="text-sm uppercase tracking-[0.3em] text-soft-gold/80">
+            Vitrin
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold text-white md:text-4xl">
+            <span className="text-soft-gold">Öne Çıkan</span> influencer
+            vitrinimiz
+          </h2>
+          <p className="mt-3 max-w-2xl text-base text-gray-300">
+            Markalar için hazır vitrin: kategori, şehir ve vitrin durumuna göre
+            filtrelenmiş profiller gerçek zamanlı olarak öne çıkar.
+          </p>
         </div>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -115,7 +111,7 @@ export default function Spotlight() {
             return (
               <Link
                 key={influencer.id}
-                href={`/profile/${profileSlug}`}
+                href="/signup-role"
                 className={`group relative rounded-3xl border border-white/5 bg-white/5 p-5 transition duration-300 hover:border-soft-gold/60 hover:bg-white/10 ${
                   isActive ? 'ring-2 ring-soft-gold/60' : 'opacity-90'
                 }`}
@@ -137,9 +133,14 @@ export default function Spotlight() {
 
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-lg font-semibold text-white">
-                      {influencer.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-semibold text-white">
+                        {influencer.name}
+                      </p>
+                      {influencer.verified && (
+                        <BadgeCheck className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                      )}
+                    </div>
                     <p className="text-sm text-soft-gold">
                       {influencer.username}
                     </p>

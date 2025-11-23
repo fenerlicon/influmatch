@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, Eye, CheckCircle, XCircle, Archive, Trash2, Loader2 } from 'lucide-react'
@@ -77,6 +78,7 @@ const REASON_LABELS: Record<MessageReport['reason'], string> = {
 
 export default function MessageReportsPanel({ initialReports }: MessageReportsPanelProps) {
   const supabase = useSupabaseClient()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabKey>('pending')
   const [reports, setReports] = useState<MessageReport[]>(initialReports)
   const [isPending, startTransition] = useTransition()
@@ -95,8 +97,8 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
         { event: '*', schema: 'public', table: 'message_reports' },
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            // Reload reports when new ones are added or updated
-            window.location.reload()
+            // Refresh reports when new ones are added or updated
+            router.refresh()
           }
         },
       )

@@ -21,15 +21,58 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const fullName = user.user_metadata?.full_name ?? user.email ?? 'Kullanıcı'
 
   // Check verification status and profile completeness
-  const { data: userProfile } = await supabase
+  const { data: userProfile, error: profileError } = await supabase
     .from('users')
     .select('verification_status, social_links, bio, category, city, avatar_url')
     .eq('id', user.id)
     .maybeSingle()
 
-  const verificationStatus = userProfile?.verification_status ?? 'pending'
+  // Log any errors for debugging
+  if (profileError) {
+    console.error('[DashboardLayout] Profile query error:', profileError)
+  }
+
+  // If user profile doesn't exist in public.users
+  if (!userProfile) {
+    // Try to create a basic profile first (in case trigger didn't run)
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert({
+        id: user.id,
+        email: user.email || '',
+        role: user.user_metadata?.role || 'influencer',
+        full_name: user.user_metadata?.full_name || null,
+        username: user.user_metadata?.username || null,
+      })
+
+    if (insertError) {
+      // Insert failed - check the error type
+      console.error('[DashboardLayout] Profile insert error:', insertError)
+      
+      // If it's a conflict (profile already exists but query failed), try to fetch again
+      if (insertError.code === '23505' || insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
+        // Profile might exist but query failed - redirect to onboarding to let user complete it
+        redirect('/onboarding')
+      } else if (insertError.message.includes('row-level security') || insertError.code === '42501') {
+        // RLS issue - redirect to onboarding
+        redirect('/onboarding')
+      } else {
+        // Other error - assume profile doesn't exist and redirect to onboarding
+        // Don't sign out - let user complete onboarding
+        redirect('/onboarding')
+      }
+    } else {
+      // Profile created successfully, reload the page to get the profile
+      redirect('/dashboard')
+    }
+  }
+
+  // Use the profile we found
+  const finalUserProfile = userProfile
+
+  const verificationStatus = finalUserProfile.verification_status ?? 'pending'
   const showVerificationBanner = verificationStatus === 'pending'
-  const socialLinks = (userProfile?.social_links as Record<string, string | null> | null) ?? {}
+  const socialLinks = (finalUserProfile.social_links as Record<string, string | null> | null) ?? {}
 
   return (
     <div className="min-h-screen bg-background text-white">

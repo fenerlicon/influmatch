@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { motion } from 'framer-motion'
 import { CheckCircle2, Circle, Info } from 'lucide-react'
 import type { Badge } from '@/app/badges/data'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
@@ -139,21 +138,17 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
             Sahip Olduğunuz Rozetler ({ownedMvpBadges.length})
           </h3>
           <div className="space-y-2">
-            {ownedMvpBadges.map((badge, index) => (
-              <motion.div
+            {ownedMvpBadges.map((badge) => (
+              <div
                 key={badge.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                whileHover={{ y: -2, scale: 1.01 }}
-                className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition-all"
+                className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition-transform hover:scale-[1.01]"
               >
                 <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-400" />
                 <div className="flex-1">
                   <p className="font-semibold text-white">{badge.name}</p>
                   <p className="mt-1 text-sm text-gray-300">{badge.description}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -166,16 +161,12 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
             Kazanılabilir Rozetler ({unownedMvpBadges.length})
           </h3>
           <div className="space-y-2">
-            {unownedMvpBadges.map((badge, index) => {
+            {unownedMvpBadges.map((badge) => {
               const comingSoon = isComingSoon(badge)
               return (
-                <motion.div
+                <div
                   key={badge.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  whileHover={{ y: -2, scale: 1.01 }}
-                  className={`flex items-start gap-3 rounded-2xl border p-4 transition-all ${
+                  className={`flex items-start gap-3 rounded-2xl border p-4 transition-transform hover:scale-[1.01] ${
                     comingSoon
                       ? 'border-amber-500/25 bg-amber-500/8 opacity-85'
                       : 'border-amber-500/30 bg-amber-500/10'
@@ -203,7 +194,7 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
                     </p>
                     <p className="mt-2 text-xs text-gray-500">{getBadgeRequirement(badge)}</p>
                   </div>
-                </motion.div>
+                </div>
               )
             })}
           </div>

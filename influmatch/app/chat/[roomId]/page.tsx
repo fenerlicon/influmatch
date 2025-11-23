@@ -36,7 +36,7 @@ export default async function ChatRoomPage({ params }: ChatPageProps) {
   const participantIds = [room.brand_id, room.influencer_id].filter(Boolean)
   const { data: participants, error: participantsError } = await supabase
     .from('users')
-    .select('id, full_name, username')
+    .select('id, full_name, username, verification_status, role')
     .in('id', participantIds)
 
   if (participantsError) {
@@ -59,8 +59,11 @@ export default async function ChatRoomPage({ params }: ChatPageProps) {
     }
   }
 
-  // Get the other participant's ID
+  // Get the other participant's ID, verification status, and role
   const otherParticipantId = room.brand_id === user.id ? room.influencer_id : room.brand_id
+  const otherParticipant = participants?.find((p) => p.id === otherParticipantId)
+  const otherParticipantVerificationStatus = otherParticipant?.verification_status as 'pending' | 'verified' | 'rejected' | null | undefined
+  const otherParticipantRole = otherParticipant?.role as 'influencer' | 'brand' | null | undefined
 
   const { data: messages, error: messagesError } = await supabase
     .from('messages')
@@ -82,6 +85,8 @@ export default async function ChatRoomPage({ params }: ChatPageProps) {
           brandName={brandName}
           returnUrl={returnUrl}
           otherParticipantId={otherParticipantId}
+          otherParticipantVerificationStatus={otherParticipantVerificationStatus}
+          otherParticipantRole={otherParticipantRole}
         />
       </div>
     </main>

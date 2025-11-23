@@ -20,23 +20,29 @@ create table if not exists public.users (
   city text,
   social_links jsonb default '{}'::jsonb,
   spotlight_active boolean default false,
+  tax_id text,
+  company_legal_name text,
   created_at timestamptz not null default timezone('utc'::text, now())
 );
 
 alter table public.users enable row level security;
 
 -- Everyone can read profiles
+drop policy if exists "Profiles are viewable by everyone" on public.users;
 create policy "Profiles are viewable by everyone"
   on public.users
   for select
   using (true);
 
 -- Users can update only their own profile
+drop policy if exists "Users can update their own profile" on public.users;
 create policy "Users can update their own profile"
   on public.users
   for update
-  using (auth.uid() = id);
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
+drop policy if exists "Users can insert their own profile" on public.users;
 create policy "Users can insert their own profile"
   on public.users
   for insert
@@ -91,28 +97,33 @@ create table if not exists public.offers (
 alter table public.offers enable row level security;
 
 -- Brands (senders) can manage their own outgoing offers
+drop policy if exists "Brands can view their sent offers" on public.offers;
 create policy "Brands can view their sent offers"
   on public.offers
   for select
   using (auth.uid() = sender_user_id);
 
+drop policy if exists "Brands can insert offers they send" on public.offers;
 create policy "Brands can insert offers they send"
   on public.offers
   for insert
   with check (auth.uid() = sender_user_id);
 
+drop policy if exists "Brands can update their sent offers" on public.offers;
 create policy "Brands can update their sent offers"
   on public.offers
   for update
   using (auth.uid() = sender_user_id);
 
 -- Influencers (receivers) can read offers sent to them
+drop policy if exists "Influencers can view offers sent to them" on public.offers;
 create policy "Influencers can view offers sent to them"
   on public.offers
   for select
   using (auth.uid() = receiver_user_id);
 
 -- Optionally allow influencers to update status when they are receivers
+drop policy if exists "Influencers can update offers addressed to them" on public.offers;
 create policy "Influencers can update offers addressed to them"
   on public.offers
   for update
@@ -143,11 +154,13 @@ create table if not exists public.advert_projects (
 
 alter table public.advert_projects enable row level security;
 
+drop policy if exists "Everyone can view open adverts or own drafts" on public.advert_projects;
 create policy "Everyone can view open adverts or own drafts"
   on public.advert_projects
   for select
   using (status = 'open' or auth.uid() = brand_user_id);
 
+drop policy if exists "Brands can manage their adverts" on public.advert_projects;
 create policy "Brands can manage their adverts"
   on public.advert_projects
   for all
@@ -171,12 +184,14 @@ create table if not exists public.advert_applications (
 
 alter table public.advert_applications enable row level security;
 
+drop policy if exists "Influencers manage their applications" on public.advert_applications;
 create policy "Influencers manage their applications"
   on public.advert_applications
   for all
   using (auth.uid() = influencer_user_id)
   with check (auth.uid() = influencer_user_id);
 
+drop policy if exists "Brands view applications to their adverts" on public.advert_applications;
 create policy "Brands view applications to their adverts"
   on public.advert_applications
   for select
@@ -185,4 +200,10 @@ create policy "Brands view applications to their adverts"
     from public.advert_projects ap
     where ap.id = advert_id and ap.brand_user_id = auth.uid()
   ));
+
+-- ============================================================
+-- INDEXES FOR BRAND VERIFICATION FIELDS
+-- ============================================================
+create index if not exists idx_users_tax_id on public.users(tax_id) where tax_id is not null;
+create index if not exists idx_users_company_legal_name on public.users(company_legal_name) where company_legal_name is not null;
 

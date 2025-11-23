@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import type { Badge, BadgePhase } from '@/app/badges/data'
 import { phaseConfig } from '@/app/badges/data'
 
@@ -20,26 +19,21 @@ export default function BadgeCard({ badge, phase }: BadgeCardProps) {
   }
 
   return (
-    <motion.div
-      whileHover={{ y: -4, scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className={`group relative overflow-hidden rounded-2xl border ${config.borderColor} ${phase === 'mvp' ? 'bg-white/5' : 'bg-white/3'} p-5 backdrop-blur-sm transition-all md:p-6`}
+    <div
+      className={`group relative overflow-hidden rounded-2xl border ${config.borderColor} ${phase === 'mvp' ? 'bg-white/5' : 'bg-white/3'} p-5 backdrop-blur-sm transition-transform hover:scale-[1.02] hover:-translate-y-1 md:p-6`}
     >
       {/* Glow effect on hover */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl pointer-events-none"
+      <div
+        className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         style={{
           boxShadow: getGlowShadow(),
         }}
-        initial={{ opacity: 0 }}
-        whileHover={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
       />
 
       <div className="relative z-10 flex items-start gap-4">
         {/* Icon */}
         <div
-          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border ${config.borderColor} ${config.bgColor} ${config.textColor} transition-all group-hover:scale-110 md:h-14 md:w-14`}
+          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border ${config.borderColor} ${config.bgColor} ${config.textColor} transition-transform group-hover:scale-110 md:h-14 md:w-14`}
         >
           <Icon className="h-6 w-6 md:h-7 md:w-7" />
         </div>
@@ -55,7 +49,7 @@ export default function BadgeCard({ badge, phase }: BadgeCardProps) {
       <div
         className={`absolute -right-4 -top-4 h-16 w-16 rounded-full ${config.bgColor} opacity-20 blur-xl`}
       />
-    </motion.div>
+    </div>
   )
 }
 

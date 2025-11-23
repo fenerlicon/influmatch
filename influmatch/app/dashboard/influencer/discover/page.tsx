@@ -15,7 +15,7 @@ export default async function InfluencerDiscoverPage() {
 
   const { data, error } = await supabase
     .from('users')
-    .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges')
+    .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status')
     .eq('role', 'influencer')
     .eq('verification_status', 'verified')
     .order('spotlight_active', { ascending: false })
@@ -51,6 +51,7 @@ export default async function InfluencerDiscoverPage() {
       avatar_url: user.avatar_url,
       spotlight_active: user.spotlight_active,
       displayed_badges: displayedBadges,
+      verification_status: user.verification_status as 'pending' | 'verified' | 'rejected' | null,
     }
   })
 

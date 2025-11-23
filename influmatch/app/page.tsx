@@ -1,6 +1,7 @@
 import Hero from '@/components/landing/Hero'
 import Spotlight from '@/components/landing/Spotlight'
 import ValueProposition from '@/components/landing/ValueProposition'
+import BadgesSection from '@/components/landing/BadgesSection'
 
 export default function Home() {
   return (
@@ -19,6 +20,7 @@ export default function Home() {
         <Hero />
         <Spotlight />
         <ValueProposition />
+        <BadgesSection />
       </div>
     </main>
   )

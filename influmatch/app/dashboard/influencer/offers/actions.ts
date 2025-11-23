@@ -79,6 +79,6 @@ export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus
 
   revalidatePath('/dashboard/influencer/offers')
   revalidatePath('/dashboard/offers')
-  return { success: true, roomId }
+  return { success: true, roomId, senderUserId: offer.sender_user_id }
 }
 

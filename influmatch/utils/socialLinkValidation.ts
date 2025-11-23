@@ -238,3 +238,147 @@ export function validateLinkedIn(link: string | null | undefined): ValidationRes
   }
 }
 
+/**
+ * Normalizes and validates Kick link
+ * Accepts: kick.com/username, @username, https://kick.com/username
+ */
+export function validateKick(link: string | null | undefined): ValidationResult {
+  if (!link || link.trim().length === 0) {
+    return { isValid: true } // Empty is allowed
+  }
+
+  const trimmed = link.trim()
+
+  // Remove @ if present
+  let username = trimmed.replace(/^@/, '')
+
+  // If it's already a full URL, extract username
+  if (trimmed.includes('kick.com')) {
+    const match = trimmed.match(/kick\.com\/([^/?]+)/i)
+    if (match) {
+      username = match[1]
+    } else {
+      return {
+        isValid: false,
+        error: 'Geçersiz Kick linki. Örnek: https://kick.com/kullaniciadi veya @kullaniciadi',
+      }
+    }
+  }
+
+  // Validate username format (alphanumeric, dots, underscores, hyphens)
+  if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+    return {
+      isValid: false,
+      error: 'Kick kullanıcı adı sadece harf, rakam, nokta, alt çizgi ve tire içerebilir.',
+    }
+  }
+
+  if (username.length < 1 || username.length > 25) {
+    return {
+      isValid: false,
+      error: 'Kick kullanıcı adı 1-25 karakter arasında olmalıdır.',
+    }
+  }
+
+  return {
+    isValid: true,
+    normalizedUrl: `https://kick.com/${username}`,
+  }
+}
+
+/**
+ * Normalizes and validates Twitter/X link
+ * Accepts: twitter.com/username, x.com/username, @username
+ */
+export function validateTwitter(link: string | null | undefined): ValidationResult {
+  if (!link || link.trim().length === 0) {
+    return { isValid: true } // Empty is allowed
+  }
+
+  const trimmed = link.trim()
+
+  // Remove @ if present
+  let username = trimmed.replace(/^@/, '')
+
+  // If it's already a full URL, extract username
+  if (trimmed.includes('twitter.com') || trimmed.includes('x.com')) {
+    const match = trimmed.match(/(?:twitter|x)\.com\/([^/?]+)/i)
+    if (match) {
+      username = match[1]
+    } else {
+      return {
+        isValid: false,
+        error: 'Geçersiz Twitter/X linki. Örnek: https://twitter.com/kullaniciadi veya @kullaniciadi',
+      }
+    }
+  }
+
+  // Validate username format (alphanumeric, underscores)
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return {
+      isValid: false,
+      error: 'Twitter/X kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir.',
+    }
+  }
+
+  if (username.length < 1 || username.length > 15) {
+    return {
+      isValid: false,
+      error: 'Twitter/X kullanıcı adı 1-15 karakter arasında olmalıdır.',
+    }
+  }
+
+  return {
+    isValid: true,
+    normalizedUrl: `https://twitter.com/${username}`,
+  }
+}
+
+/**
+ * Normalizes and validates Twitch link
+ * Accepts: twitch.tv/username, @username, https://twitch.tv/username
+ */
+export function validateTwitch(link: string | null | undefined): ValidationResult {
+  if (!link || link.trim().length === 0) {
+    return { isValid: true } // Empty is allowed
+  }
+
+  const trimmed = link.trim()
+
+  // Remove @ if present
+  let username = trimmed.replace(/^@/, '')
+
+  // If it's already a full URL, extract username
+  if (trimmed.includes('twitch.tv')) {
+    const match = trimmed.match(/twitch\.tv\/([^/?]+)/i)
+    if (match) {
+      username = match[1]
+    } else {
+      return {
+        isValid: false,
+        error: 'Geçersiz Twitch linki. Örnek: https://twitch.tv/kullaniciadi veya @kullaniciadi',
+      }
+    }
+  }
+
+  // Validate username format (alphanumeric, underscores)
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return {
+      isValid: false,
+      error: 'Twitch kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir.',
+    }
+  }
+
+  if (username.length < 4 || username.length > 25) {
+    return {
+      isValid: false,
+      error: 'Twitch kullanıcı adı 4-25 karakter arasında olmalıdır.',
+    }
+  }
+
+  return {
+    isValid: true,
+    normalizedUrl: `https://twitch.tv/${username}`,
+  }
+}
+

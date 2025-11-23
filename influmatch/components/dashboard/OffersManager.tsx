@@ -496,9 +496,9 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-400">{sender?.full_name ?? 'Marka'}</p>
                 {sender?.verification_status === 'verified' && (
                   <div className="group relative">
-                    <BadgeCheck className="h-3.5 w-3.5 text-blue-400" />
+                    <BadgeCheck className="h-3.5 w-3.5 text-soft-gold" />
                     <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                      Onaylı hesap
+                      Onaylanmış İşletme
                     </div>
                   </div>
                 )}
@@ -559,9 +559,9 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
                 <h2 className="text-xl font-semibold text-white">{sender?.full_name ?? 'Marka'}</h2>
                 {sender?.verification_status === 'verified' && (
                   <div className="group relative">
-                    <BadgeCheck className="h-5 w-5 text-blue-400" />
+                    <BadgeCheck className="h-5 w-5 text-soft-gold" />
                     <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                      Onaylı hesap
+                      Onaylanmış İşletme
                     </div>
                   </div>
                 )}

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { UserRole } from '@/types/auth'
 
 const ROLE_TITLES: Record<UserRole, string> = {
@@ -14,6 +15,7 @@ const ROLE_TITLES: Record<UserRole, string> = {
 export default function SignupPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const supabase = useSupabaseClient()
   const defaultRole = (searchParams.get('role') as UserRole) || 'influencer'
 
   const [role, setRole] = useState<UserRole>(defaultRole)
@@ -22,8 +24,9 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [isAgreed, setIsAgreed] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const { signUpWithEmail, authError, isSubmitting } = useSupabaseAuth()
+  const { signUpWithEmail, isSubmitting } = useSupabaseAuth()
 
   useEffect(() => {
     if (defaultRole && defaultRole !== role) {
@@ -31,6 +34,13 @@ export default function SignupPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultRole])
+
+  // Clear error when form is reset or email changes
+  useEffect(() => {
+    if (email) {
+      setErrorMessage(null)
+    }
+  }, [email])
 
   const isFormValid = useMemo(() => {
     return fullName.trim().length > 2 && email.includes('@') && password.length >= 6 && isAgreed
@@ -40,6 +50,9 @@ export default function SignupPage() {
     event.preventDefault()
     if (!isFormValid) return
 
+    setErrorMessage(null)
+    setSuccessMessage(null)
+
     const { error } = await signUpWithEmail({
       email,
       password,
@@ -47,15 +60,40 @@ export default function SignupPage() {
       role,
     })
 
-    if (!error) {
-      setSuccessMessage('Kayıt başarılı! Şimdi profilini tamamlayalım.')
-      setFullName('')
-      setEmail('')
-      setPassword('')
-      setTimeout(() => {
-        router.push('/onboarding')
-      }, 1000)
+    if (error) {
+      // Check if it's a "user already registered" error
+      if (error.message?.toLowerCase().includes('user already registered') || 
+          error.message?.toLowerCase().includes('already registered')) {
+        // Check if user exists in public.users
+        const { data: publicUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle()
+
+        if (!publicUser) {
+          // Auth user exists but public.users doesn't - account was deleted
+          setErrorMessage('Bu email adresi ile daha önce bir hesap oluşturulmuş ancak hesap silinmiş. Yeni bir hesap oluşturmak için lütfen farklı bir email adresi kullanın veya destek ekibiyle iletişime geçin.')
+          return
+        } else {
+          // User exists in public.users - normal "already registered" error
+          setErrorMessage('Bu email adresi zaten kayıtlı. Giriş yapmayı deneyin.')
+          return
+        }
+      }
+      // Other errors - use the error message from the hook's translation
+      setErrorMessage(error.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.')
+      return
     }
+
+    // Success
+    setSuccessMessage('Kayıt başarılı! Şimdi profilini tamamlayalım.')
+    setFullName('')
+    setEmail('')
+    setPassword('')
+    setTimeout(() => {
+      router.push('/onboarding')
+    }, 1000)
   }
 
   return (
@@ -161,7 +199,7 @@ export default function SignupPage() {
           </form>
 
           <div className="mt-6 space-y-2 text-sm">
-            {authError && <p className="text-red-400">{authError}</p>}
+            {errorMessage && <p className="text-red-400">{errorMessage}</p>}
             {successMessage && <p className="text-emerald-400">{successMessage}</p>}
           </div>
 

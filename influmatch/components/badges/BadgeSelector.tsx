@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { influencerBadges, brandBadges, type Badge, phaseConfig } from '@/app/badges/data'
 import type { LucideIcon } from 'lucide-react'
 
@@ -9,16 +10,78 @@ interface BadgeSelectorProps {
   selectedBadgeIds: string[]
   availableBadgeIds: string[]
   onSelectionChange: (badgeIds: string[]) => void
+  disabled?: boolean
+  userId?: string
 }
 
 export default function BadgeSelector({
   userRole,
   selectedBadgeIds,
-  availableBadgeIds,
+  availableBadgeIds: initialAvailableBadgeIds,
   onSelectionChange,
+  disabled = false,
+  userId,
 }: BadgeSelectorProps) {
-  const allBadges = userRole === 'influencer' ? influencerBadges : brandBadges
-  const availableBadges = allBadges.filter((badge) => availableBadgeIds.includes(badge.id))
+  const supabase = useSupabaseClient()
+  const [availableBadgeIds, setAvailableBadgeIds] = useState<string[]>(initialAvailableBadgeIds)
+
+  // Real-time subscription for user_badges
+  useEffect(() => {
+    if (!userId) return
+
+    // Update from initial props
+    setAvailableBadgeIds(initialAvailableBadgeIds)
+
+    const channel = supabase
+      .channel(`user-badges-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_badges',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const newBadgeId = payload.new.badge_id as string
+          setAvailableBadgeIds((prev) => {
+            if (!prev.includes(newBadgeId)) {
+              return [...prev, newBadgeId]
+            }
+            return prev
+          })
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'user_badges',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const removedBadgeId = payload.old.badge_id as string
+          setAvailableBadgeIds((prev) => prev.filter((id) => id !== removedBadgeId))
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, userId, initialAvailableBadgeIds])
+
+  const allBadges = useMemo(() => {
+    return userRole === 'influencer' ? influencerBadges : brandBadges
+  }, [userRole])
+
+  // Filter out verified-account badge as it's automatically shown with blue tick
+  const availableBadges = useMemo(() => {
+    return allBadges.filter(
+      (badge) => availableBadgeIds.includes(badge.id) && badge.id !== 'verified-account'
+    )
+  }, [allBadges, availableBadgeIds])
 
   const handleToggle = (badgeId: string) => {
     if (selectedBadgeIds.includes(badgeId)) {
@@ -62,12 +125,12 @@ export default function BadgeSelector({
               key={badge.id}
               type="button"
               onClick={() => handleToggle(badge.id)}
-              disabled={!isSelected && selectedBadgeIds.length >= 3}
+              disabled={disabled || (!isSelected && selectedBadgeIds.length >= 3)}
               className={`group relative flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
                 isSelected
                   ? `${config.borderColor} ${config.bgColor} ${config.glowColor}`
                   : 'border-white/10 bg-white/5 hover:border-white/20'
-              } ${!isSelected && selectedBadgeIds.length >= 3 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              } ${disabled || (!isSelected && selectedBadgeIds.length >= 3) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <div
                 className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${

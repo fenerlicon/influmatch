@@ -17,6 +17,7 @@ interface Conversation {
     username: string | null
     avatarUrl: string | null
     role: 'influencer' | 'brand' | null
+    verificationStatus?: 'pending' | 'verified' | 'rejected'
   } | null
   lastMessage: {
     content: string
@@ -514,13 +515,23 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <div
-                            onClick={(e) => handleOpenProfile(conversation.otherParticipant!.id, e)}
-                            className={`text-sm font-semibold truncate hover:text-soft-gold transition cursor-pointer ${
-                              isUnread ? 'text-white' : 'text-gray-300'
-                            }`}
-                          >
-                            {conversation.otherParticipant.fullName}
+                          <div className="flex items-center gap-2">
+                            <div
+                              onClick={(e) => handleOpenProfile(conversation.otherParticipant!.id, e)}
+                              className={`text-sm font-semibold truncate hover:text-soft-gold transition cursor-pointer ${
+                                isUnread ? 'text-white' : 'text-gray-300'
+                              }`}
+                            >
+                              {conversation.otherParticipant.fullName}
+                            </div>
+                            {conversation.otherParticipant.verificationStatus === 'verified' && (
+                              <div className="group relative flex-shrink-0">
+                                <BadgeCheck className={`h-4 w-4 ${conversation.otherParticipant.role === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
+                                <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                                  {conversation.otherParticipant.role === 'brand' ? 'Onaylanmış İşletme' : 'Onaylı hesap'}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           {conversation.lastMessage && (
                             <span className="text-xs text-gray-500 flex-shrink-0">
@@ -578,6 +589,8 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               returnUrl="/dashboard/messages"
               otherParticipantId={otherParticipantId ?? undefined}
               activeRoomIds={activeRoomIds}
+              otherParticipantVerificationStatus={otherParticipant.verificationStatus}
+              otherParticipantRole={otherParticipant.role}
             />
           </>
         ) : (
@@ -636,10 +649,10 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                       <h2 className="text-2xl font-semibold text-white">{profileData.fullName}</h2>
                       {profileData.verificationStatus === 'verified' && (
                         <div className="group/verify relative flex-shrink-0">
-                          <BadgeCheck className="h-6 w-6 text-blue-500 transition-all hover:text-blue-400 hover:scale-110 cursor-pointer" />
+                          <BadgeCheck className={`h-6 w-6 transition-all hover:scale-110 cursor-pointer ${profileData.role === 'brand' ? 'text-soft-gold hover:text-soft-gold/80' : 'text-blue-500 hover:text-blue-400'}`} />
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
                             <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
-                              Onaylı hesap
+                              {profileData.role === 'brand' ? 'Onaylanmış İşletme' : 'Onaylı hesap'}
                               <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
                                 <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
                               </div>

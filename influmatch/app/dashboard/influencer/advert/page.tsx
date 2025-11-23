@@ -113,7 +113,7 @@ export default async function InfluencerAdvertPage() {
     if (brandIds.size > 0) {
       const { data: brands } = await supabase
         .from('users')
-        .select('id, full_name, username, avatar_url')
+        .select('id, full_name, username, avatar_url, verification_status')
         .in('id', Array.from(brandIds))
       
       brandMapForApplications = new Map(brands?.map((b) => [b.id, b]) ?? [])
@@ -189,6 +189,7 @@ export default async function InfluencerAdvertPage() {
         full_name: brand.full_name ?? null,
         username: brand.username ?? null,
         avatar_url: brand.avatar_url ?? null,
+        verification_status: brand.verification_status as 'pending' | 'verified' | 'rejected' | null | undefined,
       } : undefined,
       cover_letter: row.cover_letter ?? null,
       deliverable_idea: row.deliverable_idea ?? null,

@@ -221,9 +221,9 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
                   <p className="text-sm text-gray-400">{sender?.full_name ?? 'Marka'}</p>
                   {sender?.verification_status === 'verified' && (
                     <div className="group relative">
-                      <BadgeCheck className="h-4 w-4 text-blue-400" />
+                      <BadgeCheck className="h-4 w-4 text-soft-gold" />
                       <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                        Onaylı hesap
+                        Onaylanmış İşletme
                       </div>
                     </div>
                   )}

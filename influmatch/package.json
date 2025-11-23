@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "set ESLINT_NO_DEV_ERRORS=true && set ESLINT_SKIP=true && set NEXT_SKIP_ESLINT=true && next dev",
     "build": "ESLINT_NO_DEV_ERRORS=true ESLINT_SKIP=true next build",
     "start": "next start",
     "lint": "next lint --fix"

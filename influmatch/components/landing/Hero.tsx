@@ -7,9 +7,12 @@ const featurePills = [
 ]
 
 const stats = [
-  { label: 'Onaylı influencer', value: '1.200+' },
-  { label: 'Aktif kampanya', value: '320+' },
-  { label: 'Ortalama eşleşme süresi', value: '~48s' },
+  { label: 'Güvenli platform', value: 'Supabase' },
+  { label: 'Hızlı eşleşme', value: 'Anında' },
+  { label: 'Şeffaf süreç', value: '100%' },
+  { label: 'Rozet sistemi', value: 'Aktif' },
+  { label: 'Mesajlaşma', value: 'Entegre' },
+  { label: 'Doğrulama', value: 'Manuel' },
 ]
 
 const workflowSteps = [
@@ -47,7 +50,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="relative px-6 py-24 md:px-12 lg:px-24 xl:px-32"
+      className="relative px-6 pb-12 pt-24 md:px-12 lg:px-24 xl:px-32"
     >
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white/5 via-transparent to-transparent opacity-40 blur-3xl" />
       <div className="max-w-6xl mx-auto grid gap-16 lg:grid-cols-[1.1fr_0.9fr] items-center">
@@ -84,7 +87,7 @@ export default function Hero() {
               Hemen Başla
             </Link>
             <Link
-              href="/discover"
+              href="/signup-role"
               className="rounded-full border border-white/15 px-8 py-4 text-base font-semibold text-white transition hover:border-soft-gold/60 hover:text-soft-gold"
             >
               Influencerları Keşfet
@@ -101,13 +104,13 @@ export default function Hero() {
             </Link>
           </p>
 
-          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-2xl border border-white/5 bg-white/5 p-5 text-center"
+                className="rounded-2xl border border-white/5 bg-white/5 p-5 text-center transition hover:border-soft-gold/30 hover:bg-white/10"
               >
-                <p className="text-3xl font-semibold text-soft-gold">
+                <p className="text-2xl font-semibold text-soft-gold md:text-3xl">
                   {stat.value}
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-wide text-gray-400">

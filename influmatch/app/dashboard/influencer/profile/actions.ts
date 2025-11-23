@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { validateInstagram, validateTikTok, validateYouTube } from '@/utils/socialLinkValidation'
+import { validateInstagram, validateTikTok, validateYouTube, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
 
@@ -18,6 +18,9 @@ interface UpdateProfilePayload {
     instagram?: string | null
     tiktok?: string | null
     youtube?: string | null
+    kick?: string | null
+    twitter?: string | null
+    twitch?: string | null
   }
   displayedBadges?: string[]
 }
@@ -64,6 +67,9 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   const instagramResult = validateInstagram(payload.socialLinks.instagram)
   const tiktokResult = validateTikTok(payload.socialLinks.tiktok)
   const youtubeResult = validateYouTube(payload.socialLinks.youtube)
+  const kickResult = validateKick(payload.socialLinks.kick)
+  const twitterResult = validateTwitter(payload.socialLinks.twitter)
+  const twitchResult = validateTwitch(payload.socialLinks.twitch)
 
   if (!instagramResult.isValid) {
     throw new Error(instagramResult.error || 'Geçersiz Instagram linki.')
@@ -73,6 +79,15 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   }
   if (!youtubeResult.isValid) {
     throw new Error(youtubeResult.error || 'Geçersiz YouTube linki.')
+  }
+  if (!kickResult.isValid) {
+    throw new Error(kickResult.error || 'Geçersiz Kick linki.')
+  }
+  if (!twitterResult.isValid) {
+    throw new Error(twitterResult.error || 'Geçersiz Twitter/X linki.')
+  }
+  if (!twitchResult.isValid) {
+    throw new Error(twitchResult.error || 'Geçersiz Twitch linki.')
   }
 
   const updates: any = {
@@ -86,6 +101,9 @@ export async function updateProfile(payload: UpdateProfilePayload) {
       instagram: instagramResult.normalizedUrl || null,
       tiktok: tiktokResult.normalizedUrl || null,
       youtube: youtubeResult.normalizedUrl || null,
+      kick: kickResult.normalizedUrl || null,
+      twitter: twitterResult.normalizedUrl || null,
+      twitch: twitchResult.normalizedUrl || null,
     },
   }
 
@@ -94,40 +112,31 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     updates.displayed_badges = payload.displayedBadges
   }
 
-  const { error: upsertError } = await supabase
-    .from('users')
-    .upsert(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.user_metadata?.role ?? 'influencer',
-        ...updates,
-      },
-      { onConflict: 'id' },
-    )
+  console.log('[updateProfile] Attempting update for user:', user.id)
+  console.log('[updateProfile] Updates:', JSON.stringify(updates, null, 2))
 
-  if (upsertError) {
+  const { data: updateResult, error: updateError } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', user.id)
+    .select()
+
+  if (updateError) {
+    console.error('[updateProfile] Update error:', updateError)
     // Check if it's a unique constraint violation for username
-    if (upsertError.code === '23505' || upsertError.message.includes('unique') || upsertError.message.includes('duplicate')) {
+    if (updateError.code === '23505' || updateError.message.includes('unique') || updateError.message.includes('duplicate')) {
       throw new Error('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
     }
     
     // Check if it's a column not found error for displayed_badges
-    if (upsertError.message.includes('displayed_badges') || upsertError.message.includes('schema cache')) {
-      console.error('[updateProfile] displayed_badges column error:', upsertError.message)
+    if (updateError.message.includes('displayed_badges') || updateError.message.includes('schema cache')) {
+      console.error('[updateProfile] displayed_badges column error:', updateError.message)
       // Remove displayed_badges from updates and try again
       delete updates.displayed_badges
       const { error: retryError } = await supabase
         .from('users')
-        .upsert(
-          {
-            id: user.id,
-            email: user.email,
-            role: user.user_metadata?.role ?? 'influencer',
-            ...updates,
-          },
-          { onConflict: 'id' },
-        )
+        .update(updates)
+        .eq('id', user.id)
       
       if (retryError) {
         throw new Error(retryError.message)
@@ -136,16 +145,23 @@ export async function updateProfile(payload: UpdateProfilePayload) {
       // Log warning about displayed_badges column
       console.warn('[updateProfile] displayed_badges column not found, profile updated without badges. Please run migration: add_displayed_badges_column.sql')
     } else {
-      throw new Error(upsertError.message)
+      console.error('[updateProfile] Update failed with error:', updateError)
+      throw new Error(updateError.message)
     }
+  }
+
+  // Log update result
+  if (updateResult && updateResult.length > 0) {
+    console.log('[updateProfile] Update successful, returned data:', JSON.stringify(updateResult[0], null, 2))
+  } else {
+    console.warn('[updateProfile] Update completed but no data returned (this is normal for UPDATE operations)')
   }
 
   // Award badges after profile update
   await awardBadgesForUser(user.id)
 
   revalidatePath('/dashboard/influencer/profile')
-  revalidatePath('/dashboard/brand/profile')
-  revalidatePath('/dashboard/brand/discover')
+  revalidatePath('/dashboard/influencer/discover')
   revalidatePath(`/profile/${payload.username}`)
   revalidatePath(`/dashboard/influencer/badges`)
   if (payload.previousUsername && payload.previousUsername !== payload.username) {

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Award } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Award, Loader2 } from 'lucide-react'
 import BadgeCard from '@/components/badges/BadgeCard'
 import BadgeToggle from '@/components/badges/BadgeToggle'
 import BadgeProgressInfo from '@/components/badges/BadgeProgressInfo'
@@ -10,13 +9,32 @@ import { influencerBadges, brandBadges, phaseConfig, type BadgePhase } from '@/a
 
 export default function InfluencerBadgesPage() {
   const [activeTab, setActiveTab] = useState<'influencer' | 'brand'>('influencer')
+  const [isMounted, setIsMounted] = useState(false)
 
-  const badges = activeTab === 'influencer' ? influencerBadges : brandBadges
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
-  const badgesByPhase = {
-    mvp: badges.filter((b) => b.phase === 'mvp'),
-    'v1.2': badges.filter((b) => b.phase === 'v1.2'),
-    'v1.3': badges.filter((b) => b.phase === 'v1.3'),
+  const badges = useMemo(() => {
+    return activeTab === 'influencer' ? influencerBadges : brandBadges
+  }, [activeTab])
+
+  const badgesByPhase = useMemo(() => {
+    const mvp = badges.filter((b) => b.phase === 'mvp')
+    const v12 = badges.filter((b) => b.phase === 'v1.2')
+    const v13 = badges.filter((b) => b.phase === 'v1.3')
+    return { mvp, 'v1.2': v12, 'v1.3': v13 }
+  }, [badges])
+
+  if (!isMounted) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-soft-gold" />
+          <p className="text-sm text-gray-400">Rozetler yükleniyor...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -47,51 +65,38 @@ export default function InfluencerBadgesPage() {
 
       {/* Badges Listing */}
       <section className="space-y-12">
-        <AnimatePresence mode="wait">
-          {(['mvp', 'v1.2', 'v1.3'] as BadgePhase[]).map((phase) => {
-            const phaseBadges = badgesByPhase[phase]
-            if (phaseBadges.length === 0) return null
+        {(['mvp', 'v1.2', 'v1.3'] as BadgePhase[]).map((phase) => {
+          const phaseBadges = badgesByPhase[phase]
+          if (phaseBadges.length === 0) return null
 
-            const config = phaseConfig[phase]
+          const config = phaseConfig[phase]
 
-            return (
-              <motion.div
-                key={`${activeTab}-${phase}`}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -30 }}
-                transition={{ duration: 0.5 }}
-                className={`rounded-3xl border ${config.borderColor} ${config.bgColor} p-6 backdrop-blur-sm ${config.glowColor} md:p-8`}
-              >
-                <div className="mb-6 flex items-center gap-3">
-                  <div
-                    className={`h-1 w-12 rounded-full bg-gradient-to-r ${
-                      phase === 'mvp'
-                        ? 'from-amber-500'
-                        : phase === 'v1.2'
-                          ? 'from-slate-500 opacity-70'
-                          : 'from-purple-500 opacity-70'
-                    } to-transparent`}
-                  />
-                  <h2 className={`text-xl font-semibold ${config.textColor} md:text-2xl`}>{config.label}</h2>
-                </div>
+          return (
+            <div
+              key={`${activeTab}-${phase}`}
+              className={`rounded-3xl border ${config.borderColor} ${config.bgColor} p-6 backdrop-blur-sm ${config.glowColor} md:p-8`}
+            >
+              <div className="mb-6 flex items-center gap-3">
+                <div
+                  className={`h-1 w-12 rounded-full bg-gradient-to-r ${
+                    phase === 'mvp'
+                      ? 'from-amber-500'
+                      : phase === 'v1.2'
+                        ? 'from-slate-500 opacity-70'
+                        : 'from-purple-500 opacity-70'
+                  } to-transparent`}
+                />
+                <h2 className={`text-xl font-semibold ${config.textColor} md:text-2xl`}>{config.label}</h2>
+              </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {phaseBadges.map((badge, index) => (
-                    <motion.div
-                      key={badge.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: index * 0.1 }}
-                    >
-                      <BadgeCard badge={badge} phase={phase} />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )
-          })}
-        </AnimatePresence>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {phaseBadges.map((badge) => (
+                  <BadgeCard key={badge.id} badge={badge} phase={phase} />
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </section>
 
       {/* Progress Info */}
