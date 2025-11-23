@@ -66,14 +66,21 @@ export default function SignupPage() {
     setErrorMessage(null)
     setSuccessMessage(null)
 
-    const response = await signUpWithEmail({
-      email,
-      password,
-      fullName,
-      role,
-    })
+    try {
+      const response = await signUpWithEmail({
+        email,
+        password,
+        fullName,
+        role,
+      })
 
-    if (response.error) {
+      console.log('[Signup] Response:', { 
+        hasError: !!response.error, 
+        hasUser: !!response.data?.user,
+        userEmailConfirmed: response.data?.user?.email_confirmed_at 
+      })
+
+      if (response.error) {
       const error = response.error
       // Check if it's a "user already registered" error
       if (error.message?.toLowerCase().includes('user already registered') || 
@@ -95,34 +102,34 @@ export default function SignupPage() {
           return
         }
       }
+      // Check for rate limit errors
+      const errorMsg = error.message?.toLowerCase() || ''
+      if (errorMsg.includes('rate limit') || 
+          errorMsg.includes('too many requests') ||
+          errorMsg.includes('rate limit exceeded') ||
+          errorMsg.includes('exceeded')) {
+        // Rate limit - but email might have been sent on first attempt
+        // Redirect immediately to check-email page
+        // Use window.location for immediate redirect to prevent page refresh issues
+        window.location.href = '/auth/check-email'
+        return
+      }
+      
       // Other errors - use the error message from the hook's translation
       setErrorMessage(error.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.')
       return
     }
 
-    // Success - Check if email confirmation is required
-    // Supabase returns user in response if email confirmation is disabled
-    // If email confirmation is enabled, user will be null until email is confirmed
-    if (response.data?.user) {
-      const user = response.data.user
+      // Success - Always redirect to check-email page
+      // Supabase with email confirmation enabled returns user as null until email is confirmed
+      // Even if user exists in response, if email_confirmed_at is null, we need verification
+      console.log('[Signup] Signup successful, redirecting to check-email page')
       
-      if (!user.email_confirmed_at) {
-        // Email confirmation required
-        setSuccessMessage('Kayıt başarılı! Email adresinize gönderilen doğrulama linkine tıklayarak hesabınızı aktifleştirin. Email gelmediyse spam klasörünü kontrol edin.')
-      } else {
-        // Email already confirmed (shouldn't happen if confirmation is enabled)
-        setSuccessMessage('Kayıt başarılı! Şimdi profilini tamamlayalım.')
-        setFullName('')
-        setEmail('')
-        setPassword('')
-        setConfirmPassword('')
-        setTimeout(() => {
-          router.push('/onboarding')
-        }, 1000)
-      }
-    } else {
-      // User is null - email confirmation is required
-      setSuccessMessage('Kayıt başarılı! Email adresinize gönderilen doğrulama linkine tıklayarak hesabınızı aktifleştirin. Email gelmediyse spam klasörünü kontrol edin.')
+      // Use window.location for immediate redirect to prevent page refresh issues
+      window.location.href = '/auth/check-email'
+    } catch (error) {
+      console.error('[Signup] Unexpected error:', error)
+      setErrorMessage('Kayıt sırasında beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.')
     }
   }
 

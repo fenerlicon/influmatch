@@ -20,8 +20,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (!error) {
-      // Email verified successfully
-      return NextResponse.redirect(new URL(`/auth/verify-success?next=${encodeURIComponent(next)}`, requestUrl.origin))
+      // Email verified successfully - redirect directly to onboarding
+      // Onboarding page will handle role detection and show appropriate form
+      return NextResponse.redirect(new URL('/onboarding', requestUrl.origin))
     } else {
       console.error('[auth/callback] OTP verification error:', error)
       return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
@@ -36,8 +37,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (!sessionError) {
-      // Session set successfully, email is confirmed
-      return NextResponse.redirect(new URL(`/auth/verify-success?next=${encodeURIComponent(next)}`, requestUrl.origin))
+      // Session set successfully, email is confirmed - redirect directly to onboarding
+      // Onboarding page will handle role detection and show appropriate form
+      return NextResponse.redirect(new URL('/onboarding', requestUrl.origin))
     } else {
       console.error('[auth/callback] Session set error:', sessionError)
       return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
