@@ -217,6 +217,7 @@ insert into public.advert_projects (
   brand_id,
   title,
   summary,
+  description,
   category,
   platforms,
   deliverables,
@@ -233,6 +234,7 @@ values
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- TechStyle
     'Yaz Koleksiyonu Lansmanı',
     'Yeni sezon neon renkli yaz koleksiyonumuz için enerjik, genç ve dinamik Reels içerikleri arıyoruz. Ürünler hediye edilecek + bütçe sağlanacaktır.',
+    'Yeni sezon neon renkli yaz koleksiyonumuz için enerjik, genç ve dinamik Reels içerikleri arıyoruz. Ürünler hediye edilecek + bütçe sağlanacaktır.',
     'Fashion',
     array['instagram', 'tiktok'],
     array['1x Reels', '3x Story'],
@@ -247,6 +249,7 @@ values
   (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- TechStyle
     'Akıllı Saat İncelemesi',
+    'Yeni model Watch X Pro akıllı saatimizin spor modlarını test edecek ve deneyimlerini paylaşacak teknoloji/spor influencerları arıyoruz.',
     'Yeni model Watch X Pro akıllı saatimizin spor modlarını test edecek ve deneyimlerini paylaşacak teknoloji/spor influencerları arıyoruz.',
     'Technology',
     array['youtube', 'instagram'],
@@ -263,6 +266,7 @@ values
     'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', -- Glow Beauty
     'C Vitaminli Serum Deneyimi',
     'Leke karşıtı yeni serumumuzu 14 gün boyunca düzenli kullanıp, öncesi/sonrası değişimini şeffaf bir şekilde paylaşacak içerik üreticileri.',
+    'Leke karşıtı yeni serumumuzu 14 gün boyunca düzenli kullanıp, öncesi/sonrası değişimini şeffaf bir şekilde paylaşacak içerik üreticileri.',
     'Beauty',
     array['instagram'],
     array['1x Reels', '2x Story Serisi'],
@@ -278,6 +282,7 @@ values
     'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', -- Coffee Lovers
     'Sabah Rutini & Kahve',
     'Güne bizim kahvelerimizle başladığınız, estetik ve "cozy" sabah rutini videoları istiyoruz. ASMR tarzı içerikler tercih sebebidir.',
+    'Güne bizim kahvelerimizle başladığınız, estetik ve "cozy" sabah rutini videoları istiyoruz. ASMR tarzı içerikler tercih sebebidir.',
     'Lifestyle',
     array['tiktok', 'instagram'],
     array['1x TikTok', '1x Reels'],
@@ -292,6 +297,7 @@ values
   (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- TechStyle
     'Sokak Stili Yarışması',
+    'Markamızın ürünleriyle oluşturduğunuz en iyi sokak stilini paylaşın, takipçilerinizi yarışmaya davet edin.',
     'Markamızın ürünleriyle oluşturduğunuz en iyi sokak stilini paylaşın, takipçilerinizi yarışmaya davet edin.',
     'Fashion',
     array['instagram'],
