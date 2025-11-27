@@ -60,7 +60,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [selectedBadgeId, setSelectedBadgeId] = useState<string>('')
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState<string>('')
-  
+
   const [users, setUsers] = useState<User[]>(() => {
     switch (activeTab) {
       case 'pending':
@@ -101,7 +101,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     setSelectedUserIds(new Set())
     setSearchQuery('')
   }, [activeTab, pendingUsersState, verifiedUsersState, rejectedUsersState])
-  
+
   // Sync with initial data
   useEffect(() => {
     setPendingUsersState(pendingUsers)
@@ -143,13 +143,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
           // Helper function to update user in all lists
           const updateUserInAllLists = (user: User) => {
-            setPendingUsersState((prev) => 
+            setPendingUsersState((prev) =>
               prev.map((u) => (u.id === userId ? user : u))
             )
-            setVerifiedUsersState((prev) => 
+            setVerifiedUsersState((prev) =>
               prev.map((u) => (u.id === userId ? user : u))
             )
-            setRejectedUsersState((prev) => 
+            setRejectedUsersState((prev) =>
               prev.map((u) => (u.id === userId ? user : u))
             )
           }
@@ -218,7 +218,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   }
 
   const getCurrentUsers = () => getFilteredUsers()
-  
+
   // Selection handlers
   const toggleUserSelection = (userId: string) => {
     setSelectedUserIds((prev) => {
@@ -314,7 +314,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
   const handleVerify = async (userId: string) => {
     if (!confirm('Bu kullanıcıyı onaylamak istediğinizden emin misiniz?')) return
-    
+
     startTransition(async () => {
       try {
         const result = await verifyUser(userId)
@@ -336,7 +336,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     if (!confirm('Bu kullanıcıyı reddetmek istediğinizden emin misiniz?')) {
       return
     }
-    
+
     startTransition(async () => {
       try {
         const result = await rejectUser(userId)
@@ -358,7 +358,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     if (!confirm('Bu markanın vergi numarasını onaylamak istediğinizden emin misiniz? Onaylandıktan sonra "Resmi İşletme" rozeti verilecektir.')) {
       return
     }
-    
+
     startTransition(async () => {
       try {
         const result = await verifyTaxId(userId)
@@ -371,9 +371,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             console.warn('Tax ID verification warning:', result.warning)
           }
           // Update local state
-          const updateUserInState = (users: User[]) => 
+          const updateUserInState = (users: User[]) =>
             users.map((u) => (u.id === userId ? { ...u, tax_id_verified: true } : u))
-          
+
           setPendingUsersState(updateUserInState)
           setVerifiedUsersState(updateUserInState)
           setRejectedUsersState(updateUserInState)
@@ -389,11 +389,11 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const handleToggleSpotlight = async (userId: string, currentSpotlight: boolean | null) => {
     const newValue = !currentSpotlight
     const action = newValue ? 'aktif etmek' : 'deaktif etmek'
-    
+
     if (!confirm(`Bu kullanıcının spotlight'ını ${action} istediğinizden emin misiniz?`)) {
       return
     }
-    
+
     startTransition(async () => {
       try {
         const result = await toggleUserSpotlight(userId, newValue)
@@ -402,13 +402,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           console.error('Spotlight toggle error:', result.error)
         } else {
           // Update local state immediately
-          const updateUserInState = (users: User[]) => 
+          const updateUserInState = (users: User[]) =>
             users.map((u) => (u.id === userId ? { ...u, spotlight_active: newValue } : u))
-          
+
           setPendingUsersState(updateUserInState)
           setVerifiedUsersState(updateUserInState)
           setRejectedUsersState(updateUserInState)
-          
+
           alert(result.message || `Spotlight ${newValue ? 'aktif' : 'deaktif'} edildi.`)
           console.log('Spotlight toggled successfully for user:', userId)
         }
@@ -446,13 +446,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           if (updatedUser) {
             const user = updatedUser as User
             // Update user in all state lists
-            setPendingUsersState((prev) => 
+            setPendingUsersState((prev) =>
               prev.map((u) => (u.id === userId ? user : u))
             )
-            setVerifiedUsersState((prev) => 
+            setVerifiedUsersState((prev) =>
               prev.map((u) => (u.id === userId ? user : u))
             )
-            setRejectedUsersState((prev) => 
+            setRejectedUsersState((prev) =>
               prev.map((u) => (u.id === userId ? user : u))
             )
           }
@@ -532,9 +532,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Admin Paneli</p>
-              <h1 className="mt-4 text-3xl font-semibold text-white">Hesap Doğrulama Yönetimi</h1>
+              <h1 className="mt-4 text-3xl font-semibold text-white">Hesap Doğrulama Sistemi</h1>
               <p className="mt-2 text-gray-300">Kullanıcı hesaplarını detaylı inceleyin ve doğrulama durumlarını yönetin.</p>
-              
+
               {/* Statistics */}
               <div className="mt-6 grid grid-cols-3 gap-4">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -585,11 +585,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                    isActive
+                  className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
                       ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
                       : 'text-gray-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   {tab.label} ({tab.count})
                 </button>
@@ -696,11 +695,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                 return (
                   <div
                     key={user.id}
-                    className={`group rounded-3xl border bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow ${
-                      selectedUserIds.has(user.id)
+                    className={`group rounded-3xl border bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow ${selectedUserIds.has(user.id)
                         ? 'border-soft-gold/60 bg-soft-gold/5'
                         : 'border-white/10'
-                    }`}
+                      }`}
                   >
                     {/* Checkbox - Only for pending and rejected tabs */}
                     {(activeTab === 'pending' || activeTab === 'rejected') && (
@@ -744,22 +742,20 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         )}
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <span
-                            className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                              isInfluencer
+                            className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${isInfluencer
                                 ? 'border-purple-500/40 bg-purple-500/10 text-purple-300'
                                 : 'border-soft-gold/40 bg-soft-gold/10 text-soft-gold'
-                            }`}
+                              }`}
                           >
                             {isInfluencer ? 'Influencer' : 'Marka'}
                           </span>
                           <span
-                            className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                              user.verification_status === 'pending'
+                            className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${user.verification_status === 'pending'
                                 ? 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200'
                                 : user.verification_status === 'verified'
                                   ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
                                   : 'border-red-400/40 bg-red-400/10 text-red-200'
-                            }`}
+                              }`}
                           >
                             {user.verification_status === 'pending'
                               ? 'Beklemede'
@@ -842,7 +838,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                           <Award className="h-3.5 w-3.5" />
                           Kurumsal Doğrulama Bilgileri
                         </div>
-                        
+
                         {/* Tax ID */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between gap-2">
@@ -892,9 +888,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             .replace(/^www\./, '')
                             .split('/')[0]
                             .toLowerCase()
-                          
+
                           const domainsMatch = emailDomain && websiteDomain && emailDomain === websiteDomain
-                          
+
                           return domainsMatch ? (
                             <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
                               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
@@ -1013,9 +1009,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                       const userBadges = badgeIds
                         .map((badgeId) => availableBadges.find((b) => b.id === badgeId))
                         .filter((badge): badge is Badge => badge !== undefined)
-                      
+
                       if (userBadges.length === 0) return null
-                      
+
                       return (
                         <div className="mt-4 border-t border-white/10 pt-4">
                           <BadgeCompactList badges={userBadges} userRole={user.role ?? 'influencer'} />
@@ -1079,11 +1075,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             type="button"
                             onClick={() => handleToggleSpotlight(user.id, user.spotlight_active ?? false)}
                             disabled={isPending}
-                            className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                              user.spotlight_active
+                            className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${user.spotlight_active
                                 ? 'border-purple-500/60 bg-purple-500/10 text-purple-300 hover:border-purple-500 hover:bg-purple-500/20'
                                 : 'border-gray-500/60 bg-gray-500/10 text-gray-300 hover:border-gray-500 hover:bg-gray-500/20'
-                            }`}
+                              }`}
                           >
                             {isPending ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
