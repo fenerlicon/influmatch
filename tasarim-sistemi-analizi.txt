@@ -1,0 +1,670 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    INFLUMATCH TASARIM SİSTEMİ ANALİZİ
+═══════════════════════════════════════════════════════════════════════════════
+
+Oluşturulma Tarihi: 2025
+Proje: Influmatch - Doğrudan İşbirliği Platformu
+
+═══════════════════════════════════════════════════════════════════════════════
+                              RENK PALETİ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ANA RENKLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Background (Ana Arka Plan)
+  Hex: #0C0D10
+  RGB: rgb(12, 13, 16)
+  Kullanım: Tüm sayfaların temel arka plan rengi
+  Oran: %100 (Tüm sayfalarda kullanılıyor)
+
+• Soft Gold (Vurgu Rengi)
+  Hex: #D4AF37
+  RGB: rgb(212, 175, 55)
+  Kullanım: Butonlar, vurgular, hover efektleri, önemli metinler
+  Toplam Kullanım: 398 kez
+  Oran: %27.4 (Renk kullanımları içinde)
+  Opaklık Varyasyonları:
+    - soft-gold/80: %80 opaklık (ince vurgular)
+    - soft-gold/60: %60 opaklık (border'lar)
+    - soft-gold/40: %40 opaklık (hafif vurgular)
+    - soft-gold/30: %30 opaklık (hover efektleri)
+    - soft-gold/20: %20 opaklık (arka plan vurguları)
+    - soft-gold/15: %15 opaklık (hafif arka plan)
+    - soft-gold/10: %10 opaklık (çok hafif arka plan)
+
+• Champagne (İkincil Vurgu)
+  Hex: #F7E7CE
+  RGB: rgb(247, 231, 206)
+  Kullanım: Hover durumlarında, alternatif vurgu rengi
+  Toplam Kullanım: ~5 kez
+  Oran: %0.3 (Renk kullanımları içinde)
+
+2. NÖTR RENKLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Beyaz (White)
+  Hex: #FFFFFF
+  RGB: rgb(255, 255, 255)
+  Toplam Kullanım: 587 kez
+  Oran: %40.5 (Renk kullanımları içinde)
+  Opaklık Varyasyonları:
+    - white: %100 opaklık (ana metin rengi)
+    - white/80: %80 opaklık
+    - white/40: %40 opaklık
+    - white/30: %30 opaklık
+    - white/20: %20 opaklık
+    - white/15: %15 opaklık
+    - white/10: %10 opaklık (border'lar, arka planlar)
+    - white/5: %5 opaklık (çok hafif arka planlar)
+
+• Gri (Gray)
+  Hex: Çeşitli tonlar
+  Toplam Kullanım: 466 kez
+  Oran: %32.1 (Renk kullanımları içinde)
+  Kullanılan Tonlar:
+    - gray-200: Açık gri metinler
+    - gray-300: Orta ton metinler (en çok kullanılan)
+    - gray-400: Koyu gri metinler
+    - gray-500: Çok koyu gri metinler ve border'lar
+
+3. DESTEKLEYİCİ RENKLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Koyu Panel Renkleri
+  - #11121A: Panel arka planları, input alanları
+  - #0C0D10: Ana arka plan (background ile aynı)
+  - #101117: Gradient renkler
+  - #090a0f: Gradient renkler
+  - #050506: Gradient renkler
+  - #0f0f16: Gradient renkler
+
+• Durum Renkleri
+  - Emerald (Yeşil): Başarı durumları, onay mesajları
+    * emerald-300: Metin rengi
+    * emerald-500: Border ve arka plan
+  - Red (Kırmızı): Hata durumları, uyarılar
+    * red-300: Metin rengi
+    * red-500: Border ve arka plan
+  - Blue (Mavi): Bilgi durumları, linkler
+    * blue-300: Metin rengi
+    * blue-400: Vurgu rengi
+    * blue-500: Border ve arka plan
+  - Yellow (Sarı): Uyarı durumları
+    * yellow-300: Metin rengi
+  - Pink (Pembe): Sosyal medya platformları (Instagram)
+    * pink-300: Metin rengi
+    * pink-500: Border ve arka plan
+
+4. GRADIENT VE EFEKTLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Glow Efektleri
+  - shadow-glow: rgba(212, 175, 55, 0.3) - 20px blur
+  - shadow-glow-hover: rgba(212, 175, 55, 0.5) - 30px blur
+
+• Arka Plan Gradyanları
+  - Radial gradient: rgba(212, 175, 55, 0.18) - Üst kısım
+  - Radial gradient: rgba(255, 255, 255, 0.05) - Sol üst
+  - Radial gradient: rgba(255, 255, 255, 0.08) - Sağ üst
+  - Linear gradient: #050506 → #0c0d10 (145deg açı)
+
+═══════════════════════════════════════════════════════════════════════════════
+                              TİPOGRAFİ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ANA FONT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Font Ailesi: Inter
+  Kaynak: Google Fonts (next/font/google)
+  Subset: Latin
+  Kullanım: Tüm projede tek font ailesi
+  Oran: %100 (Tüm metinlerde kullanılıyor)
+
+2. FONT AĞIRLIKLARI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• font-semibold (600)
+  Toplam Kullanım: 325 kez
+  Oran: %85.8 (Font ağırlıkları içinde)
+  Kullanım Alanları:
+    - Başlıklar (h1, h2, h3)
+    - Buton metinleri
+    - Önemli vurgular
+    - Navigasyon öğeleri
+    - Kart başlıkları
+    - Form etiketleri
+
+• font-medium (500)
+  Toplam Kullanım: 45 kez
+  Oran: %11.9 (Font ağırlıkları içinde)
+  Kullanım Alanları:
+    - Alt başlıklar
+    - İkincil butonlar
+    - Form alanları
+    - Yardımcı metinler
+
+• font-bold (700)
+  Toplam Kullanım: 9 kez
+  Oran: %2.4 (Font ağırlıkları içinde)
+  Kullanım Alanları:
+    - Çok önemli vurgular
+    - Özel durumlar (nadir kullanım)
+
+• Normal/Regular (400)
+  Kullanım: Varsayılan ağırlık
+  Oran: ~%0 (Açıkça belirtilmemiş, varsayılan)
+
+3. FONT BOYUTLARI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• text-xs (0.75rem / 12px)
+  Kullanım: Küçük etiketler, yardımcı metinler, badge'ler
+
+• text-sm (0.875rem / 14px)
+  Kullanım: Butonlar, form alanları, ikincil metinler (en çok kullanılan)
+
+• text-base (1rem / 16px)
+  Kullanım: Varsayılan paragraf metni
+
+• text-lg (1.125rem / 18px)
+  Kullanım: Büyük paragraf metinleri, açıklamalar
+
+• text-xl (1.25rem / 20px)
+  Kullanım: Orta başlıklar
+
+• text-2xl (1.5rem / 24px)
+  Kullanım: Alt başlıklar
+
+• text-3xl (1.875rem / 30px)
+  Kullanım: Ana başlıklar
+
+• text-4xl (2.25rem / 36px)
+  Kullanım: Büyük başlıklar (mobil)
+
+• text-5xl (3rem / 48px)
+  Kullanım: Büyük başlıklar (tablet)
+
+• text-6xl (3.75rem / 60px)
+  Kullanım: Hero başlıkları (desktop)
+
+4. TİPOGRAFİ ÖZELLİKLERİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• tracking-[0.2em] - 0.4em: Harf aralığı (uppercase metinler için)
+• uppercase: Büyük harf dönüşümü (etiketler, badge'ler)
+• leading-tight: Sıkı satır yüksekliği (başlıklar)
+• leading-relaxed: Rahat satır yüksekliği (paragraflar)
+• antialiased: Font yumuşatma (tüm body'de)
+
+═══════════════════════════════════════════════════════════════════════════════
+                          KULLANIM İSTATİSTİKLERİ
+═══════════════════════════════════════════════════════════════════════════════
+
+TOPLAM RENK KULLANIMI: 1,451 kez
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Beyaz (White):        587 kez  (%40.5)
+  • Gri (Gray):           466 kez  (%32.1)
+  • Soft Gold:            398 kez  (%27.4)
+  • Diğer Renkler:        ~10 kez  (%0.7)
+
+TOPLAM FONT AĞIRLIĞI KULLANIMI: 379 kez
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • font-semibold:        325 kez  (%85.8)
+  • font-medium:          45 kez   (%11.9)
+  • font-bold:            9 kez    (%2.4)
+
+═══════════════════════════════════════════════════════════════════════════════
+                          TASARIM PRENSİPLERİ
+═══════════════════════════════════════════════════════════════════════════════
+
+1. RENK KULLANIMI
+   • Dark Premium tema odaklı
+   • Soft Gold vurgu rengi ile premium hissiyat
+   • Yüksek kontrast oranları (erişilebilirlik)
+   • Opaklık varyasyonları ile derinlik hissi
+
+2. TİPOGRAFİ
+   • Tek font ailesi (Inter) ile tutarlılık
+   • font-semibold ağırlığı dominant kullanım
+   • Responsive font boyutları (md:, lg:, xl: breakpoint'leri)
+   • Uppercase tracking ile premium etiketler
+
+3. GÖRSEL HİYERARŞİ
+   • Soft Gold → Önemli öğeler
+   • White → Ana içerik
+   • Gray → İkincil içerik
+   • Durum renkleri → Sistem mesajları
+
+═══════════════════════════════════════════════════════════════════════════════
+                              SONUÇ
+═══════════════════════════════════════════════════════════════════════════════
+
+Influmatch projesi, dark premium tema üzerine kurulu, tutarlı bir tasarım 
+sistemine sahiptir. Soft Gold (#D4AF37) vurgu rengi ile premium bir görünüm 
+sağlanırken, Inter font ailesi ve font-semibold ağırlığı ile modern ve 
+profesyonel bir tipografi kullanılmaktadır.
+
+Renk dağılımı dengeli bir şekilde:
+  • %40.5 Beyaz (ana içerik)
+  • %32.1 Gri (ikincil içerik)
+  • %27.4 Soft Gold (vurgular)
+
+Font ağırlığı dağılımı:
+  • %85.8 font-semibold (dominant)
+  • %11.9 font-medium (destekleyici)
+  • %2.4 font-bold (nadir kullanım)
+
+Bu dağılım, tutarlı ve profesyonel bir kullanıcı deneyimi sunmaktadır.
+
+═══════════════════════════════════════════════════════════════════════════════
+                    AKTİF VİTRİN İNFLUENCER KARTLARI
+═══════════════════════════════════════════════════════════════════════════════
+
+Konum: Ana Sayfa - Spotlight Bölümü
+Dosya: components/landing/Spotlight.tsx
+Kart Sayısı: 4 adet (Grid layout)
+
+═══════════════════════════════════════════════════════════════════════════════
+                           KART KONTEYNERİ
+═══════════════════════════════════════════════════════════════════════════════
+
+• Grid Layout
+  - Responsive: sm:grid-cols-2 lg:grid-cols-4
+  - Gap: gap-6 (1.5rem / 24px)
+  - Max Width: max-w-6xl (container)
+  - Margin: mx-auto (ortalanmış)
+
+• Section Container
+  - Padding: px-6 py-12 md:px-12 lg:px-24 xl:px-32
+  - Background Effect: 
+    * Absolute positioned gradient blur
+    * rounded-[48px]
+    * bg-gradient-to-b from-white/5 via-transparent to-transparent
+    * blur-3xl
+
+═══════════════════════════════════════════════════════════════════════════════
+                           KART YAPISI
+═══════════════════════════════════════════════════════════════════════════════
+
+1. KART KONTEYNERİ (Link Wrapper)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Base Styles
+  - Position: relative
+  - Border Radius: rounded-3xl (1.5rem / 24px)
+  - Border: border border-white/5
+  - Background: bg-white/5
+  - Padding: p-5 (1.25rem / 20px)
+  - Transition: transition duration-300
+
+• Hover States
+  - Border: hover:border-soft-gold/60
+  - Background: hover:bg-white/10
+
+• Active State (Anlık Vitrin)
+  - Ring: ring-2 ring-soft-gold/60
+  - Opacity: opacity-90 (inactive kartlar için)
+
+• Group Hover
+  - Image Scale: group-hover:scale-105
+  - Transition: transition duration-500
+
+2. AVATAR/GÖRSEL ALANI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Container
+  - Position: relative
+  - Height: h-40 (10rem / 160px)
+  - Width: w-full (100%)
+  - Overflow: overflow-hidden
+  - Border Radius: rounded-2xl (1rem / 16px)
+  - Background: bg-black/30 (fallback)
+
+• Image
+  - Object Fit: object-cover
+  - Fill: fill (Next.js Image)
+  - Sizes: 
+    * Mobile: 100vw
+    * Tablet: 45vw
+    * Desktop: 25vw
+  - Hover Effect: group-hover:scale-105
+  - Transition: transition duration-500
+
+• "Anlık Vitrin" Badge (Active Kart)
+  - Position: absolute left-3 top-3
+  - Background: bg-black/70
+  - Padding: px-3 py-1
+  - Border Radius: rounded-full
+  - Font: text-xs font-semibold
+  - Color: text-soft-gold
+
+3. İSİM VE KULLANICI ADI BÖLÜMÜ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Container
+  - Margin Top: mt-5 (1.25rem / 20px)
+  - Display: flex
+  - Align Items: items-center
+  - Justify Content: justify-between
+  - Gap: gap-3 (0.75rem / 12px)
+
+• İsim Alanı
+  - Display: flex
+  - Align Items: items-center
+  - Gap: gap-2 (0.5rem / 8px)
+
+• İsim Metni
+  - Font Size: text-lg (1.125rem / 18px)
+  - Font Weight: font-semibold
+  - Color: text-white
+
+• Verified Badge (BadgeCheck Icon)
+  - Size: h-5 w-5 (1.25rem / 20px)
+  - Color: text-blue-500
+  - Flex Shrink: flex-shrink-0
+
+• Kullanıcı Adı
+  - Font Size: text-sm (0.875rem / 14px)
+  - Color: text-soft-gold
+
+• Kategori Badge
+  - Border Radius: rounded-full
+  - Background: bg-black/30
+  - Padding: px-3 py-1
+  - Font Size: text-xs (0.75rem / 12px)
+  - Color: text-gray-300
+
+4. BADGE LİSTESİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Container
+  - Margin Top: mt-4 (1rem / 16px)
+  - Display: flex
+  - Flex Wrap: flex-wrap
+  - Gap: gap-2 (0.5rem / 8px)
+
+• Badge Item
+  - Border Radius: rounded-full
+  - Border: border border-white/10
+  - Background: bg-black/30
+  - Padding: px-3 py-1
+  - Font Size: text-xs (0.75rem / 12px)
+  - Color: text-gray-300
+
+5. ŞEHİR VE TAKİPÇİ BİLGİSİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Container
+  - Margin Top: mt-4 (1rem / 16px)
+  - Display: flex
+  - Align Items: items-center
+  - Justify Content: justify-between
+  - Font Size: text-sm (0.875rem / 14px)
+  - Color: text-gray-400
+
+6. ETKİLEŞİM ORANI KARTI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Container
+  - Margin Top: mt-3 (0.75rem / 12px)
+  - Border Radius: rounded-2xl (1rem / 16px)
+  - Background: bg-black/30
+  - Padding: px-4 py-3
+  - Font Size: text-xs (0.75rem / 12px)
+  - Color: text-gray-300
+
+• İçerik Layout
+  - Display: flex
+  - Align Items: items-center
+  - Justify Content: justify-between
+
+• Etkileşim Oranı Değeri
+  - Font Weight: font-semibold
+  - Color: text-soft-gold
+
+═══════════════════════════════════════════════════════════════════════════════
+                        RENK DEĞERLERİ (KART İÇİ)
+═══════════════════════════════════════════════════════════════════════════════
+
+• Kart Arka Planı
+  - Normal: bg-white/5 (rgba(255, 255, 255, 0.05))
+  - Hover: bg-white/10 (rgba(255, 255, 255, 0.10))
+
+• Kart Border
+  - Normal: border-white/5 (rgba(255, 255, 255, 0.05))
+  - Hover: border-soft-gold/60 (rgba(212, 175, 55, 0.60))
+  - Active Ring: ring-soft-gold/60 (rgba(212, 175, 55, 0.60))
+
+• Avatar Container
+  - Background: bg-black/30 (rgba(0, 0, 0, 0.30))
+
+• "Anlık Vitrin" Badge
+  - Background: bg-black/70 (rgba(0, 0, 0, 0.70))
+  - Text: text-soft-gold (#D4AF37)
+
+• İsim Metni
+  - Color: text-white (#FFFFFF)
+
+• Kullanıcı Adı
+  - Color: text-soft-gold (#D4AF37)
+
+• Kategori Badge
+  - Background: bg-black/30 (rgba(0, 0, 0, 0.30))
+  - Text: text-gray-300
+
+• Badge Items
+  - Border: border-white/10 (rgba(255, 255, 255, 0.10))
+  - Background: bg-black/30 (rgba(0, 0, 0, 0.30))
+  - Text: text-gray-300
+
+• Şehir/Takipçi Bilgisi
+  - Text: text-gray-400
+
+• Etkileşim Oranı Kartı
+  - Background: bg-black/30 (rgba(0, 0, 0, 0.30))
+  - Text: text-gray-300
+  - Değer: text-soft-gold (#D4AF37)
+
+• Verified Icon
+  - Color: text-blue-500
+
+═══════════════════════════════════════════════════════════════════════════════
+                        BOYUT VE SPACING DEĞERLERİ
+═══════════════════════════════════════════════════════════════════════════════
+
+• Kart Padding: 20px (p-5)
+• Kart Border Radius: 24px (rounded-3xl)
+• Avatar Height: 160px (h-40)
+• Avatar Border Radius: 16px (rounded-2xl)
+• İsim Font Size: 18px (text-lg)
+• Kullanıcı Adı Font Size: 14px (text-sm)
+• Badge Font Size: 12px (text-xs)
+• Etkileşim Kartı Padding: 16px x 12px (px-4 py-3)
+• Etkileşim Kartı Border Radius: 16px (rounded-2xl)
+
+• Spacing Değerleri:
+  - mt-5: 20px (İsim bölümü üst boşluk)
+  - mt-4: 16px (Badge listesi ve şehir bilgisi üst boşluk)
+  - mt-3: 12px (Etkileşim kartı üst boşluk)
+  - gap-3: 12px (İsim bölümü içi gap)
+  - gap-2: 8px (Badge listesi gap ve isim içi gap)
+  - p-5: 20px (Kart içi padding)
+
+═══════════════════════════════════════════════════════════════════════════════
+                        ANİMASYON VE TRANSİTİYONLAR
+═══════════════════════════════════════════════════════════════════════════════
+
+• Kart Transition
+  - Property: all
+  - Duration: 300ms
+  - Timing: default (ease)
+
+• Image Hover Effect
+  - Transform: scale(1.05)
+  - Duration: 500ms
+  - Timing: default (ease)
+
+• Hover State Changes
+  - Border: white/5 → soft-gold/60
+  - Background: white/5 → white/10
+  - Transition: 300ms
+
+• Auto-Rotate (Vitrin Döngüsü)
+  - Interval: 3500ms (3.5 saniye)
+  - Effect: currentIndex değişimi
+  - Active kart: ring-2 ring-soft-gold/60
+  - Inactive kartlar: opacity-90
+
+═══════════════════════════════════════════════════════════════════════════════
+                        RESPONSIVE BREAKPOINTS
+═══════════════════════════════════════════════════════════════════════════════
+
+• Mobile (< 640px)
+  - Grid: 1 sütun (default)
+  - Section Padding: px-6 py-12
+
+• Tablet (sm: ≥ 640px)
+  - Grid: 2 sütun (sm:grid-cols-2)
+  - Section Padding: md:px-12
+
+• Desktop (lg: ≥ 1024px)
+  - Grid: 4 sütun (lg:grid-cols-4)
+  - Section Padding: lg:px-24
+
+• Large Desktop (xl: ≥ 1280px)
+  - Section Padding: xl:px-32
+
+═══════════════════════════════════════════════════════════════════════════════
+                        TİPOGRAFİ DEĞERLERİ (KART)
+═══════════════════════════════════════════════════════════════════════════════
+
+• İsim
+  - Font: Inter
+  - Size: 18px (text-lg)
+  - Weight: 600 (font-semibold)
+  - Color: #FFFFFF
+
+• Kullanıcı Adı
+  - Font: Inter
+  - Size: 14px (text-sm)
+  - Weight: 400 (normal)
+  - Color: #D4AF37 (soft-gold)
+
+• Kategori Badge
+  - Font: Inter
+  - Size: 12px (text-xs)
+  - Weight: 400 (normal)
+  - Color: gray-300
+
+• Badge Items
+  - Font: Inter
+  - Size: 12px (text-xs)
+  - Weight: 400 (normal)
+  - Color: gray-300
+
+• Şehir/Takipçi
+  - Font: Inter
+  - Size: 14px (text-sm)
+  - Weight: 400 (normal)
+  - Color: gray-400
+
+• "Anlık Vitrin" Badge
+  - Font: Inter
+  - Size: 12px (text-xs)
+  - Weight: 600 (font-semibold)
+  - Color: #D4AF37 (soft-gold)
+
+• Etkileşim Oranı Label
+  - Font: Inter
+  - Size: 12px (text-xs)
+  - Weight: 400 (normal)
+  - Color: gray-300
+
+• Etkileşim Oranı Değer
+  - Font: Inter
+  - Size: 12px (text-xs)
+  - Weight: 600 (font-semibold)
+  - Color: #D4AF37 (soft-gold)
+
+═══════════════════════════════════════════════════════════════════════════════
+                        ÖZEL DURUMLAR VE DAVRANIŞLAR
+═══════════════════════════════════════════════════════════════════════════════
+
+• Aktif Vitrin Kartı
+  - Ring: ring-2 ring-soft-gold/60
+  - "Anlık Vitrin" badge gösterilir
+  - Opacity: 100% (tam opak)
+
+• Pasif Kartlar
+  - Opacity: 90% (opacity-90)
+  - Ring yok
+  - "Anlık Vitrin" badge gösterilmez
+
+• Hover State
+  - Tüm kartlarda geçerli
+  - Border ve background değişimi
+  - Image zoom efekti (group-hover)
+
+• Link Behavior
+  - Tüm kart tıklanabilir
+  - href: "/signup-role"
+  - Prefetch: yok (default)
+
+═══════════════════════════════════════════════════════════════════════════════
+                        CSS SINIF ÖZETİ
+═══════════════════════════════════════════════════════════════════════════════
+
+Kart Container:
+  "group relative rounded-3xl border border-white/5 bg-white/5 p-5 
+   transition duration-300 hover:border-soft-gold/60 hover:bg-white/10 
+   ring-2 ring-soft-gold/60 opacity-90"
+
+Avatar Container:
+  "relative h-40 w-full overflow-hidden rounded-2xl bg-black/30"
+
+Image:
+  "object-cover transition duration-500 group-hover:scale-105"
+
+Anlık Vitrin Badge:
+  "absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 
+   text-xs font-semibold text-soft-gold"
+
+İsim:
+  "text-lg font-semibold text-white"
+
+Kullanıcı Adı:
+  "text-sm text-soft-gold"
+
+Kategori Badge:
+  "rounded-full bg-black/30 px-3 py-1 text-xs text-gray-300"
+
+Badge Item:
+  "rounded-full border border-white/10 bg-black/30 px-3 py-1 
+   text-xs text-gray-300"
+
+Etkileşim Kartı:
+  "rounded-2xl bg-black/30 px-4 py-3 text-xs text-gray-300"
+
+═══════════════════════════════════════════════════════════════════════════════
+                              ÖZET
+═══════════════════════════════════════════════════════════════════════════════
+
+Aktif Vitrin Influencer Kartları, dark premium tema ile uyumlu, modern ve
+profesyonel bir tasarıma sahiptir. Kartlar:
+
+• Glass morphism efekti (bg-white/5, border-white/5)
+• Soft Gold vurguları ile premium görünüm
+• Smooth hover animasyonları
+• Responsive grid layout (1-2-4 sütun)
+• Auto-rotate vitrin döngüsü (3.5 saniye)
+• Aktif kart vurgusu (ring-2 ring-soft-gold/60)
+• Detaylı bilgi hiyerarşisi
+• Optimize edilmiş görsel alan (160px yükseklik)
+
+Kartlar, markaların influencer profillerini hızlıca değerlendirmesine olanak
+sağlayan, bilgi dolu ama sade bir tasarıma sahiptir.
+
+═══════════════════════════════════════════════════════════════════════════════
+
