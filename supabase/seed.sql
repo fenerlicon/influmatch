@@ -214,7 +214,7 @@ values
 -- ADVERT PROJECTS (BRIEFS)
 -- ============================================================
 insert into public.advert_projects (
-  brand_user_id,
+  brand_id,
   title,
   summary,
   category,
