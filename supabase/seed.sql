@@ -3,10 +3,10 @@
 -- ============================================================
 
 -- Clean up existing data to avoid conflicts
-delete from public.advert_applications;
-delete from public.advert_projects;
-delete from public.offers;
-delete from public.users where role in ('influencer', 'brand');
+-- delete from public.advert_applications;
+-- delete from public.advert_projects;
+-- delete from public.offers;
+-- delete from public.users where role in ('influencer', 'brand');
 
 -- ============================================================
 -- BRANDS
