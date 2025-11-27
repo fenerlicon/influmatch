@@ -20,7 +20,7 @@ export default function LoginPage() {
     const error = searchParams.get('error')
     const message = searchParams.get('message')
     const verified = searchParams.get('verified')
-    
+
     if (verified === 'true') {
       setSuccessMessage('Mail adresiniz doğrulanmıştır, lütfen tekrar giriş yapın.')
       // Clean URL after showing message
@@ -53,9 +53,9 @@ export default function LoginPage() {
 
     if (!error && data.user) {
       setSuccessMessage('Giriş başarılı, profil bilgilerinizi tamamlamak için yönlendiriliyorsunuz...')
-      // Always redirect to onboarding after login
+      // Redirect to dashboard - let the dashboard layout handle onboarding redirection if needed
       setTimeout(() => {
-        router.push('/onboarding')
+        router.push('/dashboard')
       }, 1200)
     }
   }

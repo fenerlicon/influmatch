@@ -44,11 +44,11 @@ export default async function BrandAdvertPage() {
 
   // Get this brand's project IDs to filter applications
   const myProjectIdsForFilter = myRows?.map((row) => row.id).filter(Boolean) ?? []
-  
+
   // Fetch applications only for this brand's projects
   let applicationRows: any[] | null = null
   let applicationsError: any = null
-  
+
   if (myProjectIdsForFilter.length > 0) {
     const result = await supabase
       .from('advert_applications')
@@ -64,6 +64,9 @@ export default async function BrandAdvertPage() {
 
   // Fetch brand details separately for open projects
   const brandUserIds = new Set<string>()
+  // Add current user to brand IDs to ensure their profile is fetched
+  if (user.id) brandUserIds.add(user.id)
+
   allOpenRows?.forEach((row) => {
     if (row.brand_user_id) brandUserIds.add(row.brand_user_id)
   })
@@ -90,7 +93,8 @@ export default async function BrandAdvertPage() {
   }
 
   const mapRowToProject = (row: any, isOpenProject = false): AdvertProject => {
-    const brandUser = isOpenProject && row.brand_user_id ? brandMap.get(row.brand_user_id) : null
+    // Always try to find the brand user, whether it's an open project or my project
+    const brandUser = row.brand_user_id ? brandMap.get(row.brand_user_id) : null
     return {
       id: row.id,
       title: row.title ?? 'İsimsiz proje',
@@ -123,7 +127,7 @@ export default async function BrandAdvertPage() {
   if (applicationsError) {
     console.error('[BrandAdvertPage] applications error', applicationsError)
   }
-  
+
   // Also log if table might not exist
   if (openError?.code === 'PGRST116' || myError?.code === 'PGRST116') {
     console.error('[BrandAdvertPage] Table might not exist. Please run the schema migration.')
@@ -132,7 +136,7 @@ export default async function BrandAdvertPage() {
   const openProjects: AdvertProject[] = allOpenRows?.map((row) => mapRowToProject(row, true)) ?? []
   const myProjects: AdvertProject[] = myRows?.map((row) => mapRowToProject(row, false)) ?? []
   const myProjectIds = myRows?.map((row) => row.id).filter(Boolean) ?? []
-  
+
   // Fetch advert and influencer details separately for applications
   const advertIds = new Set<string>()
   const influencerIds = new Set<string>()
@@ -147,7 +151,7 @@ export default async function BrandAdvertPage() {
       .from('advert_projects')
       .select('id, title, category')
       .in('id', Array.from(advertIds))
-    
+
     advertMap = new Map(adverts?.map((a) => [a.id, a]) ?? [])
   }
 
@@ -157,10 +161,10 @@ export default async function BrandAdvertPage() {
       .from('users')
       .select('id, full_name, username, avatar_url, verification_status')
       .in('id', Array.from(influencerIds))
-    
+
     influencerMap = new Map(influencers?.map((i) => [i.id, i]) ?? [])
   }
-  
+
   // Fetch room IDs for applications
   const applicationIds = (applicationRows ?? []).map((row: any) => row.id).filter(Boolean)
   let roomMap = new Map<string, string>()
@@ -169,7 +173,7 @@ export default async function BrandAdvertPage() {
       .from('rooms')
       .select('id, advert_application_id')
       .in('advert_application_id', applicationIds)
-    
+
     if (rooms) {
       rooms.forEach((room: any) => {
         if (room.advert_application_id) {
@@ -183,7 +187,7 @@ export default async function BrandAdvertPage() {
   const applications: AdvertApplication[] = (applicationRows ?? []).map((row: any) => {
     const advert = row.advert_id ? advertMap.get(row.advert_id) : null
     const influencer = row.influencer_id ? influencerMap.get(row.influencer_id) : null
-    
+
     return {
       id: row.id,
       advert_id: row.advert_id,
@@ -204,7 +208,7 @@ export default async function BrandAdvertPage() {
       room_id: roomMap.get(row.id) ?? null,
     }
   })
-  
+
   const hasError = Boolean(openError || myError || applicationsError)
   const errorMessage = openError?.message ?? myError?.message ?? applicationsError?.message ?? null
 
@@ -225,8 +229,8 @@ export default async function BrandAdvertPage() {
           {errorMessage ? <p className="mt-2 text-xs text-red-300">Hata: {errorMessage}</p> : null}
         </div>
       ) : (
-        <BrandAdvertTabs 
-          myProjects={myProjects} 
+        <BrandAdvertTabs
+          myProjects={myProjects}
           communityProjects={openProjects}
           applications={applications}
           currentUserId={user.id}
