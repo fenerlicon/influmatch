@@ -1,9 +1,81 @@
 -- ============================================================
--- Influmatch Seed Data (Influencers)
+-- Influmatch Seed Data
 -- ============================================================
 
-delete from public.users where role = 'influencer';
+-- Clean up existing data to avoid conflicts
+delete from public.advert_applications;
+delete from public.advert_projects;
+delete from public.offers;
+delete from public.users where role in ('influencer', 'brand');
 
+-- ============================================================
+-- BRANDS
+-- ============================================================
+insert into public.users (
+  id,
+  role,
+  email,
+  full_name,
+  username,
+  category,
+  city,
+  bio,
+  avatar_url,
+  company_legal_name,
+  tax_id,
+  tax_id_verified,
+  spotlight_active
+)
+values
+  (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'brand',
+    'marketing@techstyle.com',
+    'TechStyle Co.',
+    'techstyle',
+    'Fashion',
+    'İstanbul',
+    'Giyilebilir teknoloji ve modern sokak modasının öncüsü.',
+    'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?auto=format&fit=crop&w=400&q=80',
+    'TechStyle Mağazacılık A.Ş.',
+    '1234567890',
+    true,
+    true
+  ),
+  (
+    'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    'brand',
+    'contact@glowbeauty.com',
+    'Glow Beauty',
+    'glowbeauty',
+    'Beauty',
+    'İzmir',
+    'Doğal içerikli, vegan ve hayvan dostu cilt bakım ürünleri.',
+    'https://images.unsplash.com/photo-1596462502278-27bfdd403348?auto=format&fit=crop&w=400&q=80',
+    'Glow Kozmetik Ltd. Şti.',
+    '9876543210',
+    true,
+    false
+  ),
+  (
+    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
+    'brand',
+    'hello@coffeelovers.com',
+    'Coffee Lovers',
+    'coffeelovers',
+    'Lifestyle',
+    'Ankara',
+    '3. dalga kahve kültürünü evinize getiren abonelik kutusu.',
+    'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=400&q=80',
+    'Kahve Tutkusu Gıda A.Ş.',
+    '5554443322',
+    false,
+    true
+  );
+
+-- ============================================================
+-- INFLUENCERS
+-- ============================================================
 insert into public.users (
   id,
   role,
@@ -138,3 +210,97 @@ values
     true
   );
 
+-- ============================================================
+-- ADVERT PROJECTS (BRIEFS)
+-- ============================================================
+insert into public.advert_projects (
+  brand_user_id,
+  title,
+  summary,
+  category,
+  platforms,
+  deliverables,
+  budget_min,
+  budget_max,
+  budget_currency,
+  status,
+  deadline,
+  hero_image,
+  location
+)
+values
+  (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- TechStyle
+    'Yaz Koleksiyonu Lansmanı',
+    'Yeni sezon neon renkli yaz koleksiyonumuz için enerjik, genç ve dinamik Reels içerikleri arıyoruz. Ürünler hediye edilecek + bütçe sağlanacaktır.',
+    'Fashion',
+    array['instagram', 'tiktok'],
+    array['1x Reels', '3x Story'],
+    5000,
+    15000,
+    'TRY',
+    'open',
+    '2025-06-30',
+    'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=800&q=80',
+    'İstanbul'
+  ),
+  (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- TechStyle
+    'Akıllı Saat İncelemesi',
+    'Yeni model Watch X Pro akıllı saatimizin spor modlarını test edecek ve deneyimlerini paylaşacak teknoloji/spor influencerları arıyoruz.',
+    'Technology',
+    array['youtube', 'instagram'],
+    array['1x YouTube Video', '1x Instagram Post'],
+    15000,
+    30000,
+    'TRY',
+    'open',
+    '2025-05-15',
+    'https://images.unsplash.com/photo-1510017803434-a899398421b3?auto=format&fit=crop&w=800&q=80',
+    'Türkiye Geneli'
+  ),
+  (
+    'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', -- Glow Beauty
+    'C Vitaminli Serum Deneyimi',
+    'Leke karşıtı yeni serumumuzu 14 gün boyunca düzenli kullanıp, öncesi/sonrası değişimini şeffaf bir şekilde paylaşacak içerik üreticileri.',
+    'Beauty',
+    array['instagram'],
+    array['1x Reels', '2x Story Serisi'],
+    3000,
+    8000,
+    'TRY',
+    'open',
+    '2025-04-20',
+    'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
+    'Türkiye Geneli'
+  ),
+  (
+    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', -- Coffee Lovers
+    'Sabah Rutini & Kahve',
+    'Güne bizim kahvelerimizle başladığınız, estetik ve "cozy" sabah rutini videoları istiyoruz. ASMR tarzı içerikler tercih sebebidir.',
+    'Lifestyle',
+    array['tiktok', 'instagram'],
+    array['1x TikTok', '1x Reels'],
+    2000,
+    5000,
+    'TRY',
+    'open',
+    '2025-05-01',
+    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
+    'Türkiye Geneli'
+  ),
+  (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- TechStyle
+    'Sokak Stili Yarışması',
+    'Markamızın ürünleriyle oluşturduğunuz en iyi sokak stilini paylaşın, takipçilerinizi yarışmaya davet edin.',
+    'Fashion',
+    array['instagram'],
+    array['1x Post', '1x Story'],
+    4000,
+    10000,
+    'TRY',
+    'paused',
+    '2025-08-01',
+    'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
+    'İstanbul'
+  );
