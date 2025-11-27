@@ -123,12 +123,12 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = event.target
-    
+
     // Normalize username to lowercase if it's the username field
     if (name === 'username') {
       const normalized = value.toLowerCase()
       setFormState((prev) => ({ ...prev, [name]: normalized }))
-      
+
       // Validate username format
       const validation = validateUsername(normalized)
       if (validation.isValid) {
@@ -301,7 +301,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           companyLegalName: formState.companyLegalName.trim() || null,
           taxId: formState.taxId.trim() || null,
         })
-        
+
         if (result?.success) {
           setToast('Şirket bilgileri güncellendi.')
           setTimeout(() => setToast(null), 3000)
@@ -393,10 +393,19 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">Logo yükleyin</div>
               )}
             </div>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-white/15 px-4 py-2 text-sm text-white transition hover:border-soft-gold hover:text-soft-gold">
+            <label className={`inline-flex items-center gap-2 rounded-2xl border border-white/15 px-4 py-2 text-sm text-white transition ${isEditing
+                ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
+                : 'cursor-not-allowed opacity-50'
+              }`}>
               <Upload className="h-4 w-4" />
               {isUploading ? 'Yükleniyor...' : 'Şirket Logosu (PNG/JPG)'}
-              <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoUpload} disabled={isUploading} />
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleLogoUpload}
+                disabled={isUploading || !isEditing}
+              />
             </label>
           </div>
 
@@ -405,13 +414,12 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           <div>
             <label className="space-y-2 text-sm text-gray-300">
               <span>Kullanıcı Adı</span>
-              <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
-                validationErrors.username || usernameStatus === 'taken'
+              <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${validationErrors.username || usernameStatus === 'taken'
                   ? 'border-red-500/60 bg-red-500/10'
                   : usernameStatus === 'available'
                     ? 'border-emerald-500/60 bg-emerald-500/10'
                     : 'border-white/10 bg-white/5'
-              }`}>
+                }`}>
                 <span className="text-soft-gold"><Building2 className="h-4 w-4" /></span>
                 <input
                   type="text"
@@ -491,12 +499,12 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
             const now = new Date()
             const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
             const daysRemaining = 30 - daysSinceLastUpdate
-            
+
             if (daysRemaining > 0) {
               return (
                 <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 mb-5">
                   <p className="text-sm text-yellow-200">
-                    <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz. 
+                    <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz.
                     {daysRemaining > 0 && (
                       <span className="ml-1"> {daysRemaining} gün sonra tekrar değiştirebilirsiniz.</span>
                     )}
@@ -582,14 +590,13 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           'Opsiyonel - Doğrulama Rozeti için önerilir',
           !isEditingCorporate
         )}
-        
+
         {/* Vergi Numarası Durumu */}
         {formState.taxId && formState.taxId.trim() && (
-          <div className={`mt-2 rounded-xl border p-3 ${
-            initialData.taxIdVerified
+          <div className={`mt-2 rounded-xl border p-3 ${initialData.taxIdVerified
               ? 'border-emerald-500/40 bg-emerald-500/10'
               : 'border-yellow-500/40 bg-yellow-500/10'
-          }`}>
+            }`}>
             <div className="flex items-center gap-2">
               {initialData.taxIdVerified ? (
                 <>

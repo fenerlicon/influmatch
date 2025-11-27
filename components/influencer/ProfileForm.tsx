@@ -112,12 +112,12 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = event.target
-    
+
     // Normalize username to lowercase if it's the username field
     if (name === 'username') {
       const normalized = value.toLowerCase()
       setFormState((prev) => ({ ...prev, [name]: normalized }))
-      
+
       // Validate username format
       const validation = validateUsername(normalized)
       if (validation.isValid) {
@@ -290,7 +290,7 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
           },
           displayedBadges: selectedBadges,
         })
-        
+
         if (result?.success) {
           setToast('Profil başarıyla güncellendi.')
           setIsEditing(false) // Exit edit mode after successful save
@@ -348,14 +348,17 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                 </div>
               )}
             </div>
-            <label className="inline-flex cursor-pointer items-center rounded-2xl border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-soft-gold hover:text-soft-gold">
+            <label className={`inline-flex items-center rounded-2xl border border-white/10 px-4 py-2 text-sm font-medium text-white transition ${isEditing
+                ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
+                : 'cursor-not-allowed opacity-50'
+              }`}>
               {isUploading ? 'Yükleniyor...' : 'Avatar Yükle'}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 className="hidden"
                 onChange={handleAvatarUpload}
-                disabled={isUploading}
+                disabled={isUploading || !isEditing}
               />
             </label>
           </div>
@@ -382,13 +385,12 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                   value={formState.username}
                   onChange={handleChange}
                   disabled={!isEditing || (initialData.username && initialData.username.trim() !== '')}
-                  className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    validationErrors.username || usernameStatus === 'taken'
+                  className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.username || usernameStatus === 'taken'
                       ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                       : usernameStatus === 'available'
                         ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
                         : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                  }`}
+                    }`}
                   required
                 />
                 {initialData.username && initialData.username.trim() !== '' && (
@@ -472,12 +474,12 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
           const now = new Date()
           const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
           const daysRemaining = 30 - daysSinceLastUpdate
-          
+
           if (daysRemaining > 0) {
             return (
               <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 mb-5">
                 <p className="text-sm text-yellow-200">
-                  <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz. 
+                  <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz.
                   {daysRemaining > 0 && (
                     <span className="ml-1"> {daysRemaining} gün sonra tekrar değiştirebilirsiniz.</span>
                   )}
@@ -498,11 +500,10 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               onChange={handleChange}
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://instagram.com/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                validationErrors.instagram
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.instagram
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-              }`}
+                }`}
             />
             {validationErrors.instagram && (
               <p className="mt-1 text-xs text-red-300">{validationErrors.instagram}</p>
@@ -517,11 +518,10 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               onChange={handleChange}
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://tiktok.com/@..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                validationErrors.tiktok
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.tiktok
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-              }`}
+                }`}
             />
             {validationErrors.tiktok && (
               <p className="mt-1 text-xs text-red-300">{validationErrors.tiktok}</p>
@@ -536,11 +536,10 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               onChange={handleChange}
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://youtube.com/@..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                validationErrors.youtube
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.youtube
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-              }`}
+                }`}
             />
             {validationErrors.youtube && (
               <p className="mt-1 text-xs text-red-300">{validationErrors.youtube}</p>
@@ -555,11 +554,10 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               onChange={handleChange}
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://kick.com/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                validationErrors.kick
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.kick
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-              }`}
+                }`}
             />
             {validationErrors.kick && (
               <p className="mt-1 text-xs text-red-300">{validationErrors.kick}</p>
@@ -574,11 +572,10 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               onChange={handleChange}
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://twitter.com/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                validationErrors.twitter
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.twitter
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-              }`}
+                }`}
             />
             {validationErrors.twitter && (
               <p className="mt-1 text-xs text-red-300">{validationErrors.twitter}</p>
@@ -593,11 +590,10 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               onChange={handleChange}
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://twitch.tv/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                validationErrors.twitch
+              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.twitch
                   ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                   : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-              }`}
+                }`}
             />
             {validationErrors.twitch && (
               <p className="mt-1 text-xs text-red-300">{validationErrors.twitch}</p>
