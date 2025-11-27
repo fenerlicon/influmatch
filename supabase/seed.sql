@@ -305,7 +305,7 @@ values
     4000,
     10000,
     'TRY',
-    'paused',
+    'open',
     '2025-08-01',
     'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
     'İstanbul'
