@@ -2,6 +2,8 @@ import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import type { DiscoverInfluencer } from '@/components/dashboard/BrandDiscoverGrid'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
+export const revalidate = 0
+
 export default async function BrandDiscoverPage() {
   const supabase = createSupabaseServerClient()
   const { data, error } = await supabase

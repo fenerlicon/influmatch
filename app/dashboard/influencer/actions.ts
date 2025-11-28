@@ -63,6 +63,7 @@ export async function toggleSpotlight(nextValue: boolean) {
   }
 
   revalidatePath('/dashboard/influencer')
+  revalidatePath('/dashboard/brand/discover')
   return { success: true }
 }
 
