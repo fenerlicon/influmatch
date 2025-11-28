@@ -27,7 +27,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Check verification status and profile completeness
   const { data: userProfile, error: profileError } = await supabase
     .from('users')
-    .select('verification_status, social_links, bio, category, city, avatar_url')
+    .select('verification_status, social_links, bio, category, city, avatar_url, username, full_name')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -52,7 +52,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     if (insertError) {
       // Insert failed - check the error type
       console.error('[DashboardLayout] Profile insert error:', insertError)
-      
+
       // If it's a conflict (profile already exists but query failed), try to fetch again
       if (insertError.code === '23505' || insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
         // Profile might exist but query failed - redirect to onboarding to let user complete it
@@ -73,6 +73,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   // Use the profile we found
   const finalUserProfile = userProfile
+
+  // Check if profile is complete (has username and full_name)
+  // If not, redirect to onboarding to complete the profile
+  if (!finalUserProfile.username || !finalUserProfile.full_name) {
+    redirect('/onboarding')
+  }
 
   const verificationStatus = finalUserProfile.verification_status ?? 'pending'
   const showVerificationBanner = verificationStatus === 'pending'
