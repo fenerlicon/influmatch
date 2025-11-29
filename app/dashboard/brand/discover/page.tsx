@@ -6,12 +6,15 @@ export const revalidate = 0
 
 export default async function BrandDiscoverPage() {
   const supabase = createSupabaseServerClient()
+
+  // Filter by is_showcase_visible = true
+  // Order by spotlight_active (premium users first)
   const { data, error } = await supabase
     .from('users')
     .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status')
     .eq('role', 'influencer')
     .eq('verification_status', 'verified')
-    .eq('spotlight_active', true)
+    .eq('is_showcase_visible', true)
     .order('spotlight_active', { ascending: false })
     .order('full_name', { ascending: true })
 
@@ -75,4 +78,3 @@ export default async function BrandDiscoverPage() {
     </div>
   )
 }
-

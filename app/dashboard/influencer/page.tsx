@@ -21,7 +21,7 @@ export default async function InfluencerDashboardPage() {
 
   const { data: profile, error } = await supabase
     .from('users')
-    .select('spotlight_active, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
+    .select('spotlight_active, is_showcase_visible, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -30,9 +30,10 @@ export default async function InfluencerDashboardPage() {
   }
 
   const rawSpotlightActive = profile?.spotlight_active ?? false
+  const isShowcaseVisible = profile?.is_showcase_visible ?? true // Default to true if null
   const verificationStatus = profile?.verification_status ?? 'pending'
-  
-  // Vitrin is active if user is verified AND spotlight_active is true
+
+  // Spotlight is active if user is verified AND spotlight_active is true
   const spotlightActive = rawSpotlightActive && verificationStatus === 'verified'
 
   const profileData: ProfileRecord = {
@@ -74,7 +75,14 @@ export default async function InfluencerDashboardPage() {
   const dismissedOfferIds = new Set(dismissedOffers?.map((d) => d.offer_id).filter(Boolean) ?? [])
 
   // Filter out dismissed offers and limit to 5
-  const filteredOffers = (recentOffers ?? []).filter((offer) => !dismissedOfferIds.has(offer.id)).slice(0, 5)
+  // Filter out dismissed offers and limit to 5
+  const filteredOffers = (recentOffers ?? [])
+    .filter((offer) => !dismissedOfferIds.has(offer.id))
+    .slice(0, 5)
+    .map((offer) => ({
+      ...offer,
+      sender: Array.isArray(offer.sender) ? offer.sender[0] : offer.sender,
+    }))
 
   const { data: offerStatuses, error: offerStatusError } = await supabase
     .from('offers')
@@ -135,13 +143,12 @@ export default async function InfluencerDashboardPage() {
           {stats.map((item) => (
             <div
               key={item.label}
-              className={`relative overflow-hidden rounded-2xl border p-4 text-sm ${
-                item.variant === 'complete'
-                  ? 'border-white/15 bg-gradient-to-br from-[#1a1b23] to-[#101118] text-gray-200'
-                  : item.variant === 'spotlight-active'
-                    ? 'border-soft-gold/60 bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 text-gray-200 shadow-[0_0_22px_rgba(212,175,55,0.3)]'
-                    : 'border-white/10 bg-[#11121A] text-gray-300'
-              }`}
+              className={`relative overflow-hidden rounded-2xl border p-4 text-sm ${item.variant === 'complete'
+                ? 'border-white/15 bg-gradient-to-br from-[#1a1b23] to-[#101118] text-gray-200'
+                : item.variant === 'spotlight-active'
+                  ? 'border-soft-gold/60 bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 text-gray-200 shadow-[0_0_22px_rgba(212,175,55,0.3)]'
+                  : 'border-white/10 bg-[#11121A] text-gray-300'
+                }`}
             >
               {item.variant === 'complete' ? (
                 <>
@@ -170,11 +177,10 @@ export default async function InfluencerDashboardPage() {
                 <p>{item.label}</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
                 <p
-                  className={`mt-4 text-xs uppercase tracking-[0.3em] ${
-                    item.variant === 'spotlight-active'
-                      ? 'font-bold text-soft-gold text-sm tracking-[0.4em]'
-                      : 'text-soft-gold'
-                  }`}
+                  className={`mt-4 text-xs uppercase tracking-[0.3em] ${item.variant === 'spotlight-active'
+                    ? 'font-bold text-soft-gold text-sm tracking-[0.4em]'
+                    : 'text-soft-gold'
+                    }`}
                 >
                   {item.badge}
                 </p>
@@ -184,8 +190,8 @@ export default async function InfluencerDashboardPage() {
         </div>
       </section>
 
-      <SpotlightToggleCard 
-        initialActive={spotlightActive} 
+      <SpotlightToggleCard
+        initialActive={isShowcaseVisible}
         verificationStatus={verificationStatus}
       />
 

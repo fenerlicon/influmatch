@@ -31,7 +31,7 @@ export default async function InfluencerSpotlightPage() {
 
   const { data: profile, error } = await supabase
     .from('users')
-    .select('spotlight_active, avatar_url, full_name, username, category, verification_status')
+    .select('spotlight_active, is_showcase_visible, avatar_url, full_name, username, category, verification_status')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -40,6 +40,8 @@ export default async function InfluencerSpotlightPage() {
   }
 
   const spotlightActive = profile?.spotlight_active ?? false
+  const isShowcaseVisible = profile?.is_showcase_visible ?? true // Default to true
+
   const verificationStatus = profile?.verification_status ?? 'pending'
   const displayName = profile?.full_name ?? user.user_metadata?.full_name ?? 'Influencer'
   const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? 'profil'
@@ -61,8 +63,8 @@ export default async function InfluencerSpotlightPage() {
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
-          <SpotlightToggleCard 
-            initialActive={spotlightActive} 
+          <SpotlightToggleCard
+            initialActive={isShowcaseVisible}
             verificationStatus={verificationStatus}
           />
 
@@ -109,9 +111,8 @@ export default async function InfluencerSpotlightPage() {
             </article>
 
             <div
-              className={`rounded-3xl border border-white/10 bg-white/5 p-5 text-left text-sm text-gray-300 ${
-                spotlightActive ? '' : 'border-dashed'
-              }`}
+              className={`rounded-3xl border border-white/10 bg-white/5 p-5 text-left text-sm text-gray-300 ${spotlightActive ? '' : 'border-dashed'
+                }`}
             >
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
@@ -210,5 +211,3 @@ export default async function InfluencerSpotlightPage() {
     </div>
   )
 }
-
-

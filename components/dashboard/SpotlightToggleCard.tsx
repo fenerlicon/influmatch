@@ -1,15 +1,15 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { toggleSpotlight } from '@/app/dashboard/influencer/actions'
+import { toggleShowcaseVisibility } from '@/app/dashboard/influencer/actions'
 
 interface SpotlightToggleCardProps {
   initialActive: boolean
   verificationStatus?: 'pending' | 'verified' | 'rejected'
 }
 
-export default function SpotlightToggleCard({ 
-  initialActive, 
+export default function SpotlightToggleCard({
+  initialActive,
   verificationStatus = 'pending'
 }: SpotlightToggleCardProps) {
   // If user is not verified, always show as inactive
@@ -37,15 +37,15 @@ export default function SpotlightToggleCard({
       return
     }
 
-    // No premium check needed - just toggle vitrin visibility
+    // Just toggle vitrin visibility
     const nextValue = !isActive
     setIsActive(nextValue)
     startTransition(async () => {
       try {
-        await toggleSpotlight(nextValue)
+        await toggleShowcaseVisibility(nextValue)
         setToast(nextValue ? 'Vitrin modun aktif. Profilin vitrin sayfasında görünüyor.' : 'Vitrin modun kapatıldı.')
       } catch (error) {
-        console.error('toggleSpotlight failed', error)
+        console.error('toggleShowcaseVisibility failed', error)
         setIsActive(!nextValue)
         const errorMessage = error instanceof Error ? error.message : 'Değişiklik uygulanamadı.'
         setToast(errorMessage)
@@ -68,30 +68,27 @@ export default function SpotlightToggleCard({
             type="button"
             onClick={handleToggle}
             disabled={isPending || isDisabled}
-            className={`relative h-10 w-20 rounded-full border transition ${
-              isActive && verificationStatus === 'verified'
+            className={`relative h-10 w-20 rounded-full border transition ${isActive && verificationStatus === 'verified'
                 ? 'border-soft-gold bg-soft-gold/30'
                 : 'border-white/15 bg-white/10'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''} disabled:cursor-not-allowed disabled:opacity-60`}
+              } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''} disabled:cursor-not-allowed disabled:opacity-60`}
           >
             <span
-              className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-white transition ${
-                isActive && verificationStatus === 'verified' ? 'right-2 shadow-glow bg-soft-gold text-background' : 'left-2 bg-white/90'
-              }`}
+              className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-white transition ${isActive && verificationStatus === 'verified' ? 'right-2 shadow-glow bg-soft-gold text-background' : 'left-2 bg-white/90'
+                }`}
             />
           </button>
         </div>
         <div className="mt-5 flex items-center gap-3 text-sm">
           <span
-            className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.3em] ${
-              isActive && verificationStatus === 'verified' ? 'bg-soft-gold/20 text-soft-gold' : 'bg-white/10 text-gray-300'
-            }`}
+            className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.3em] ${isActive && verificationStatus === 'verified' ? 'bg-soft-gold/20 text-soft-gold' : 'bg-white/10 text-gray-300'
+              }`}
           >
             {isActive && verificationStatus === 'verified' ? 'Aktif' : 'Pasif'}
           </span>
           <span className="text-gray-400">
             {isActive && verificationStatus === 'verified'
-              ? 'Profilin vitrin sayfasında görünüyor.' 
+              ? 'Profilin vitrin sayfasında görünüyor.'
               : verificationStatus !== 'verified'
                 ? 'Hesabın onaylanana kadar vitrine çıkamazsın.'
                 : 'Vitrin sayfasında görünmek için aktif et.'}
