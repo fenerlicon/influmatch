@@ -79,10 +79,10 @@ export default function OnboardingPage() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!session) return
-      
+
       setIsLoadingProfile(true)
       setErrorMessage(null) // Clear previous errors
-      
+
       try {
         const { data, error } = await supabaseClient
           .from('users')
@@ -119,6 +119,7 @@ export default function OnboardingPage() {
             instagram: socialLinks.instagram ?? '',
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
+            taxId: data.tax_id ?? '',
           })
         }
       } catch (err) {
@@ -172,12 +173,12 @@ export default function OnboardingPage() {
       setErrorMessage('Oturum açmanız gerekiyor.')
       return
     }
-    
+
     if (!role) {
       setErrorMessage('Rol bilgisi bulunamadı. Lütfen tekrar giriş yapın.')
       return
     }
-    
+
     setIsSaving(true)
     setErrorMessage(null)
 
@@ -204,7 +205,7 @@ export default function OnboardingPage() {
       const youtubeResult = validateYouTube(influencerForm.youtube)
 
       // Check if at least one social media account is provided
-      const hasAtLeastOneSocial = 
+      const hasAtLeastOneSocial =
         (influencerForm.instagram && instagramResult.isValid) ||
         (influencerForm.tiktok && tiktokResult.isValid) ||
         (influencerForm.youtube && youtubeResult.isValid)
@@ -238,7 +239,7 @@ export default function OnboardingPage() {
       const youtubeResult = validateYouTube(brandForm.youtube)
 
       // Check if at least one social media account or website is provided
-      const hasAtLeastOneSocial = 
+      const hasAtLeastOneSocial =
         (brandForm.website && websiteResult.isValid) ||
         (brandForm.instagram && instagramResult.isValid) ||
         (brandForm.tiktok && tiktokResult.isValid) ||
@@ -296,18 +297,6 @@ export default function OnboardingPage() {
 
     // Check username uniqueness before saving (username is already validated and required above)
     const normalizedUsername = (role === 'influencer' ? influencerForm.username : brandForm.username).trim().toLowerCase()
-    const { data: existingUser } = await supabaseClient
-      .from('users')
-      .select('id')
-      .eq('username', normalizedUsername)
-      .neq('id', session.user.id)
-      .maybeSingle()
-
-    if (existingUser) {
-      setErrorMessage('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
-      setIsSaving(false)
-      return
-    }
 
     // Use server action to save profile (more reliable than client-side)
     console.log('[Onboarding] Attempting to save profile via server action:', {
@@ -329,31 +318,18 @@ export default function OnboardingPage() {
       socialLinks: socialLinks,
     })
 
-    setIsSaving(false)
-
     if (!result.success) {
       setErrorMessage(result.error || 'Profil kaydedilemedi. Lütfen tekrar deneyin.')
+      setIsSaving(false)
       return
     }
 
     console.log('[Onboarding] Profile saved successfully via server action')
 
-    // Award badges after onboarding completion
-    try {
-      const response = await fetch('/api/award-badges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: session.user.id }),
-      })
-      if (!response.ok) {
-        console.error('Failed to award badges after onboarding')
-      }
-    } catch (err) {
-      console.error('Error awarding badges:', err)
-    }
-
-    // Hard redirect to ensure cache is cleared and profile is loaded
-    window.location.href = role === 'brand' ? '/dashboard/brand' : '/dashboard/influencer'
+    // Force a router refresh to update server components, then navigate
+    router.refresh()
+    router.replace('/dashboard')
+    setIsSaving(false)
   }
 
   if (!session && !isSessionLoading) {
@@ -407,4 +383,3 @@ export default function OnboardingPage() {
     </main>
   )
 }
-
