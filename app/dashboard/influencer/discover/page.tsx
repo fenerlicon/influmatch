@@ -18,13 +18,14 @@ export default async function InfluencerDiscoverPage() {
     .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status')
     .eq('role', 'influencer')
     .eq('verification_status', 'verified')
+    .eq('is_showcase_visible', true)
     .order('spotlight_active', { ascending: false })
     .order('full_name', { ascending: true })
-  
+
   // Ensure displayed_badges is properly parsed as array of strings only
   const influencers: DiscoverInfluencer[] = (data ?? []).map((user) => {
     let displayedBadges: string[] | null = null
-    
+
     if (user.displayed_badges) {
       if (Array.isArray(user.displayed_badges)) {
         // Filter to ensure only strings and valid badge IDs
@@ -41,7 +42,7 @@ export default async function InfluencerDiscoverPage() {
         }
       }
     }
-    
+
     // Return only serializable data (no functions)
     return {
       id: user.id,
