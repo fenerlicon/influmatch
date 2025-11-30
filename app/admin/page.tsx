@@ -39,10 +39,40 @@ export default async function AdminPage() {
       }
     }
 
-    const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+    const isAdmin = adminProfile?.role === 'admin' || user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+
+    console.log('[AdminPage] Access Check:', {
+      userId: user.id,
+      email: user.email,
+      role: adminProfile?.role,
+      isAdmin,
+      expectedEmail: ADMIN_EMAIL
+    })
 
     if (!isAdmin) {
-      redirect('/dashboard')
+      console.log('[AdminPage] Access Denied.')
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0C10] p-4 text-white">
+          <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
+            <h1 className="mb-4 text-2xl font-bold text-red-400">Erişim Reddedildi</h1>
+            <p className="mb-6 text-gray-300">Bu sayfayı görüntüleme yetkiniz bulunmuyor.</p>
+
+            <div className="mb-6 rounded-xl bg-black/50 p-4 text-left text-xs font-mono text-gray-400">
+              <p>User ID: {user.id}</p>
+              <p>Email: {user.email}</p>
+              <p>Role: {adminProfile?.role || 'null'}</p>
+              <p>Expected Admin: {ADMIN_EMAIL}</p>
+            </div>
+
+            <a
+              href="/dashboard"
+              className="rounded-xl bg-white/10 px-6 py-3 font-semibold transition hover:bg-white/20"
+            >
+              Dashboard'a Dön
+            </a>
+          </div>
+        </div>
+      )
     }
 
     // Optimize: Fetch all users in a single query to reduce rate limit issues
@@ -136,7 +166,26 @@ export default async function AdminPage() {
     }
 
     // For other errors, redirect to dashboard
-    redirect('/dashboard')
+    // For other errors, show error UI instead of redirecting
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0C10] p-4 text-white">
+        <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
+          <h1 className="mb-4 text-2xl font-bold text-red-400">Bir Hata Oluştu</h1>
+          <p className="mb-6 text-gray-300">Admin paneli yüklenirken bir sorun oluştu.</p>
+
+          <div className="mb-6 rounded-xl bg-black/50 p-4 text-left text-xs font-mono text-gray-400 overflow-auto max-h-40">
+            <p className="text-red-300">{errorMessage}</p>
+          </div>
+
+          <a
+            href="/dashboard"
+            className="rounded-xl bg-white/10 px-6 py-3 font-semibold transition hover:bg-white/20"
+          >
+            Dashboard'a Dön
+          </a>
+        </div>
+      </div>
+    )
   }
 }
 

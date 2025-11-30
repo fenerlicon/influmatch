@@ -134,7 +134,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // Fetch complete user data to ensure we have all fields
           const { data: completeUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
             .eq('id', userId)
             .single()
 
@@ -440,7 +440,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // Fetch updated user data to get the new displayed_badges
           const { data: updatedUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
             .eq('id', userId)
             .single()
 

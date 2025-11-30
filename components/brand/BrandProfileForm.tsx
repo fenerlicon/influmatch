@@ -440,7 +440,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
-                  disabled={!isEditing || (initialData.username && initialData.username.trim() !== '')}
+                  disabled={!isEditing || (initialData.username && initialData.username.trim() !== '') ? true : undefined}
                   placeholder="@marka"
                   className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />
@@ -658,7 +658,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                       taxId: formState.taxId.trim() || null,
                     })
                     if (!result.success) {
-                      setErrorMsg(result.error || 'Güncelleme başarısız oldu.')
+                      setErrorMsg((result as any).error || 'Güncelleme başarısız oldu.')
                     } else {
                       setToast('Kurumsal kimlik bilgileri güncellendi.')
                       setIsEditingCorporate(false)
