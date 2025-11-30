@@ -1,12 +1,15 @@
 import type { UserRole } from '@/types/auth'
 import { USER_ROLE_LABELS } from '@/types/auth'
 
+import NotificationsPopover from './NotificationsPopover'
+
 interface DashboardHeaderProps {
   fullName: string
   role: UserRole
+  userId: string
 }
 
-export default function DashboardHeader({ fullName, role }: DashboardHeaderProps) {
+export default function DashboardHeader({ fullName, role, userId }: DashboardHeaderProps) {
   return (
     <header className="border-b border-white/5 bg-[#101117]/80 px-4 py-4 text-white backdrop-blur lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -17,6 +20,7 @@ export default function DashboardHeader({ fullName, role }: DashboardHeaderProps
         </div>
 
         <div className="flex flex-col items-end gap-2 text-sm text-gray-300 sm:flex-row sm:items-center">
+          <NotificationsPopover userId={userId} />
           <span className="rounded-full border border-white/15 px-4 py-1 text-xs uppercase tracking-[0.2em] text-soft-gold">
             {USER_ROLE_LABELS[role]}
           </span>

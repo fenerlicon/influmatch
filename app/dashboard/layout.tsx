@@ -89,7 +89,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <div className="flex min-h-screen flex-col lg:flex-row">
         <DashboardSidebar role={role} fullName={fullName} email={user.email} />
         <div className="flex flex-1 flex-col bg-[#0F1014]">
-          <DashboardHeader role={role} fullName={fullName} />
+          <DashboardHeader role={role} fullName={fullName} userId={user.id} />
           {!isEmailConfirmed && (
             <EmailVerificationBanner userEmail={user.email || ''} />
           )}
