@@ -270,6 +270,20 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
       return
     }
 
+    // Check if at least one social media account is provided
+    const hasAtLeastOneSocial =
+      (instagramResult.isValid && (instagramResult.normalizedUrl || formState.instagram.trim())) ||
+      (tiktokResult.isValid && (tiktokResult.normalizedUrl || formState.tiktok.trim())) ||
+      (youtubeResult.isValid && (youtubeResult.normalizedUrl || formState.youtube.trim())) ||
+      (kickResult.isValid && (kickResult.normalizedUrl || formState.kick.trim())) ||
+      (twitterResult.isValid && (twitterResult.normalizedUrl || formState.twitter.trim())) ||
+      (twitchResult.isValid && (twitchResult.normalizedUrl || formState.twitch.trim()))
+
+    if (!hasAtLeastOneSocial) {
+      setErrorMsg('En az 1 adet sosyal medya hesabı bilgisi girmeniz gerekmektedir.')
+      return
+    }
+
     startTransition(async () => {
       try {
         const result = await updateProfile({
@@ -349,8 +363,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               )}
             </div>
             <label className={`inline-flex items-center rounded-2xl border border-white/10 px-4 py-2 text-sm font-medium text-white transition ${isEditing
-                ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
-                : 'cursor-not-allowed opacity-50'
+              ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
+              : 'cursor-not-allowed opacity-50'
               }`}>
               {isUploading ? 'Yükleniyor...' : 'Avatar Yükle'}
               <input
@@ -384,12 +398,12 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
-                  disabled={!isEditing || (initialData.username && initialData.username.trim() !== '')}
+                  disabled={!isEditing || (initialData.username && initialData.username.trim() !== '') ? true : undefined}
                   className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.username || usernameStatus === 'taken'
-                      ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                      : usernameStatus === 'available'
-                        ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
-                        : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+                    ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                    : usernameStatus === 'available'
+                      ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
+                      : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
                     }`}
                   required
                 />
@@ -501,8 +515,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://instagram.com/..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.instagram
-                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
                 }`}
             />
             {validationErrors.instagram && (
@@ -519,8 +533,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://tiktok.com/@..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.tiktok
-                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
                 }`}
             />
             {validationErrors.tiktok && (
@@ -537,8 +551,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://youtube.com/@..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.youtube
-                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
                 }`}
             />
             {validationErrors.youtube && (
@@ -555,8 +569,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://kick.com/..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.kick
-                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
                 }`}
             />
             {validationErrors.kick && (
@@ -573,8 +587,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://twitter.com/..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.twitter
-                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
                 }`}
             />
             {validationErrors.twitter && (
@@ -591,8 +605,8 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
               disabled={!isEditing}
               placeholder="@kullaniciadi veya https://twitch.tv/..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.twitch
-                  ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                  : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
+                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
                 }`}
             />
             {validationErrors.twitch && (

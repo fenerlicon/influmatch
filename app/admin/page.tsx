@@ -6,7 +6,7 @@ const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient()
-  
+
   try {
     const {
       data: { user },
@@ -55,7 +55,7 @@ export default async function AdminPage() {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const result = await supabase
         .from('users')
-        .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, spotlight_active, displayed_badges, tax_id_verified')
+        .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
         .order('created_at', { ascending: false })
 
       if (result.error) {
@@ -65,7 +65,7 @@ export default async function AdminPage() {
           result.error.message?.includes('429') ||
           result.error.code === 'PGRST116' ||
           result.error.message?.toLowerCase().includes('too many requests') ||
-          result.error.status === 429
+          (result.error as any).status === 429
 
         // If rate limit and not last attempt, retry
         if (isRateLimit && attempt < maxRetries) {
@@ -92,16 +92,16 @@ export default async function AdminPage() {
 
     // Filter and count on server side (single query instead of 6)
     const allUsersList = allUsers ?? []
-    
+
     // Filter by verification status
     const pendingUsers = allUsersList
       .filter((user) => user.verification_status === 'pending')
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    
+
     const verifiedUsers = allUsersList
       .filter((user) => user.verification_status === 'verified')
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    
+
     const rejectedUsers = allUsersList
       .filter((user) => user.verification_status === 'rejected')
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -124,7 +124,7 @@ export default async function AdminPage() {
   } catch (error) {
     console.error('[AdminPage] Error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu'
-    
+
     // If rate limit or maintenance error, redirect to a page with error message
     if (
       errorMessage.includes('rate limit') ||
@@ -134,7 +134,7 @@ export default async function AdminPage() {
     ) {
       redirect(`/login?error=rate_limit&message=${encodeURIComponent(errorMessage)}`)
     }
-    
+
     // For other errors, redirect to dashboard
     redirect('/dashboard')
   }

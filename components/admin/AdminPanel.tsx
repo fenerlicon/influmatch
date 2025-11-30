@@ -29,6 +29,7 @@ interface User {
   spotlight_active?: boolean | null
   displayed_badges?: string[] | null
   tax_id_verified?: boolean | null
+  email_verified_at?: string | null
 }
 
 interface AdminPanelProps {
@@ -586,8 +587,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
                   className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
-                      ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                      : 'text-gray-400 hover:text-white'
+                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                    : 'text-gray-400 hover:text-white'
                     }`}
                 >
                   {tab.label} ({tab.count})
@@ -696,8 +697,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                   <div
                     key={user.id}
                     className={`group rounded-3xl border bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow ${selectedUserIds.has(user.id)
-                        ? 'border-soft-gold/60 bg-soft-gold/5'
-                        : 'border-white/10'
+                      ? 'border-soft-gold/60 bg-soft-gold/5'
+                      : 'border-white/10'
                       }`}
                   >
                     {/* Checkbox - Only for pending and rejected tabs */}
@@ -740,21 +741,34 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         {user.username && (
                           <p className="text-sm text-gray-400 truncate">@{user.username}</p>
                         )}
+                        <div className="mt-1 flex items-center gap-2">
+                          {user.email_verified_at ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+                              <CheckCircle className="h-3 w-3" />
+                              E-posta Onaylı
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              E-posta Bekliyor
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <span
                             className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${isInfluencer
-                                ? 'border-purple-500/40 bg-purple-500/10 text-purple-300'
-                                : 'border-soft-gold/40 bg-soft-gold/10 text-soft-gold'
+                              ? 'border-purple-500/40 bg-purple-500/10 text-purple-300'
+                              : 'border-soft-gold/40 bg-soft-gold/10 text-soft-gold'
                               }`}
                           >
                             {isInfluencer ? 'Influencer' : 'Marka'}
                           </span>
                           <span
                             className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${user.verification_status === 'pending'
-                                ? 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200'
-                                : user.verification_status === 'verified'
-                                  ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-                                  : 'border-red-400/40 bg-red-400/10 text-red-200'
+                              ? 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200'
+                              : user.verification_status === 'verified'
+                                ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                                : 'border-red-400/40 bg-red-400/10 text-red-200'
                               }`}
                           >
                             {user.verification_status === 'pending'
@@ -1076,8 +1090,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             onClick={() => handleToggleSpotlight(user.id, user.spotlight_active ?? false)}
                             disabled={isPending}
                             className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${user.spotlight_active
-                                ? 'border-purple-500/60 bg-purple-500/10 text-purple-300 hover:border-purple-500 hover:bg-purple-500/20'
-                                : 'border-gray-500/60 bg-gray-500/10 text-gray-300 hover:border-gray-500 hover:bg-gray-500/20'
+                              ? 'border-purple-500/60 bg-purple-500/10 text-purple-300 hover:border-purple-500 hover:bg-purple-500/20'
+                              : 'border-gray-500/60 bg-gray-500/10 text-gray-300 hover:border-gray-500 hover:bg-gray-500/20'
                               }`}
                           >
                             {isPending ? (

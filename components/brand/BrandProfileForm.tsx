@@ -282,6 +282,20 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
       return
     }
 
+    // Check if at least one social media account or website is provided
+    const hasAtLeastOneSocial =
+      (websiteResult.isValid && (websiteResult.normalizedUrl || formState.website.trim())) ||
+      (linkedinResult.isValid && (linkedinResult.normalizedUrl || formState.linkedin.trim())) ||
+      (instagramResult.isValid && (instagramResult.normalizedUrl || formState.instagram.trim())) ||
+      (kickResult.isValid && (kickResult.normalizedUrl || formState.kick?.trim())) ||
+      (twitterResult.isValid && (twitterResult.normalizedUrl || formState.twitter?.trim())) ||
+      (twitchResult.isValid && (twitchResult.normalizedUrl || formState.twitch?.trim()))
+
+    if (!hasAtLeastOneSocial) {
+      setErrorMsg('En az 1 adet sosyal medya hesabı veya website bilgisi girmeniz gerekmektedir.')
+      return
+    }
+
     startTransition(async () => {
       try {
         const result = await updateBrandProfile({
@@ -394,8 +408,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               )}
             </div>
             <label className={`inline-flex items-center gap-2 rounded-2xl border border-white/15 px-4 py-2 text-sm text-white transition ${isEditing
-                ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
-                : 'cursor-not-allowed opacity-50'
+              ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
+              : 'cursor-not-allowed opacity-50'
               }`}>
               <Upload className="h-4 w-4" />
               {isUploading ? 'Yükleniyor...' : 'Şirket Logosu (PNG/JPG)'}
@@ -415,10 +429,10 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
             <label className="space-y-2 text-sm text-gray-300">
               <span>Kullanıcı Adı</span>
               <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${validationErrors.username || usernameStatus === 'taken'
-                  ? 'border-red-500/60 bg-red-500/10'
-                  : usernameStatus === 'available'
-                    ? 'border-emerald-500/60 bg-emerald-500/10'
-                    : 'border-white/10 bg-white/5'
+                ? 'border-red-500/60 bg-red-500/10'
+                : usernameStatus === 'available'
+                  ? 'border-emerald-500/60 bg-emerald-500/10'
+                  : 'border-white/10 bg-white/5'
                 }`}>
                 <span className="text-soft-gold"><Building2 className="h-4 w-4" /></span>
                 <input
@@ -579,7 +593,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           formState.companyLegalName,
           <FileText className="h-4 w-4" />,
           'Opsiyonel',
-          !isEditingCorporate
+          !isEditingCorporate ? true : undefined
         )}
 
         {renderInput(
@@ -588,14 +602,14 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           formState.taxId,
           <FileText className="h-4 w-4" />,
           'Opsiyonel - Doğrulama Rozeti için önerilir',
-          !isEditingCorporate
+          !isEditingCorporate ? true : undefined
         )}
 
         {/* Vergi Numarası Durumu */}
         {formState.taxId && formState.taxId.trim() && (
           <div className={`mt-2 rounded-xl border p-3 ${initialData.taxIdVerified
-              ? 'border-emerald-500/40 bg-emerald-500/10'
-              : 'border-yellow-500/40 bg-yellow-500/10'
+            ? 'border-emerald-500/40 bg-emerald-500/10'
+            : 'border-yellow-500/40 bg-yellow-500/10'
             }`}>
             <div className="flex items-center gap-2">
               {initialData.taxIdVerified ? (
@@ -643,8 +657,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                       companyLegalName: formState.companyLegalName.trim() || null,
                       taxId: formState.taxId.trim() || null,
                     })
-                    if (result.error) {
-                      setErrorMsg(result.error)
+                    if (!result.success) {
+                      setErrorMsg(result.error || 'Güncelleme başarısız oldu.')
                     } else {
                       setToast('Kurumsal kimlik bilgileri güncellendi.')
                       setIsEditingCorporate(false)

@@ -16,7 +16,7 @@ const getSupabaseEnv = () => {
   return { supabaseUrl, supabaseAnonKey }
 }
 
-export const createSupabaseBrowserClient = (): SupabaseClient => {
+export const createSupabaseBrowserClient = () => {
   const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv()
 
   return createPagesBrowserClient({

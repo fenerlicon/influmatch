@@ -74,57 +74,57 @@ export default function SignupPage() {
         role,
       })
 
-      console.log('[Signup] Response:', { 
-        hasError: !!response.error, 
+      console.log('[Signup] Response:', {
+        hasError: !!response.error,
         hasUser: !!response.data?.user,
-        userEmailConfirmed: response.data?.user?.email_confirmed_at 
+        userEmailConfirmed: response.data?.user?.email_confirmed_at
       })
 
       if (response.error) {
-      const error = response.error
-      // Check if it's a "user already registered" error
-      if (error.message?.toLowerCase().includes('user already registered') || 
+        const error = response.error
+        // Check if it's a "user already registered" error
+        if (error.message?.toLowerCase().includes('user already registered') ||
           error.message?.toLowerCase().includes('already registered')) {
-        // Check if user exists in public.users
-        const { data: publicUser } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', email)
-          .maybeSingle()
+          // Check if user exists in public.users
+          const { data: publicUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle()
 
-        if (!publicUser) {
-          // Auth user exists but public.users doesn't - account was deleted
-          setErrorMessage('Bu email adresi ile daha önce bir hesap oluşturulmuş ancak hesap silinmiş. Yeni bir hesap oluşturmak için lütfen farklı bir email adresi kullanın veya destek ekibiyle iletişime geçin.')
-          return
-        } else {
-          // User exists in public.users - normal "already registered" error
-          setErrorMessage('Bu email adresi zaten kayıtlı. Giriş yapmayı deneyin.')
-          return
+          if (!publicUser) {
+            // Auth user exists but public.users doesn't - account was deleted
+            setErrorMessage('Bu email adresi ile daha önce bir hesap oluşturulmuş ancak hesap silinmiş. Yeni bir hesap oluşturmak için lütfen farklı bir email adresi kullanın veya destek ekibiyle iletişime geçin.')
+            return
+          } else {
+            // User exists in public.users - normal "already registered" error
+            setErrorMessage('Bu email adresi zaten kayıtlı. Giriş yapmayı deneyin.')
+            return
+          }
         }
-      }
-      // Check for rate limit errors
-      const errorMsg = error.message?.toLowerCase() || ''
-      if (errorMsg.includes('rate limit') || 
+        // Check for rate limit errors
+        const errorMsg = error.message?.toLowerCase() || ''
+        if (errorMsg.includes('rate limit') ||
           errorMsg.includes('too many requests') ||
           errorMsg.includes('rate limit exceeded') ||
           errorMsg.includes('exceeded')) {
-        // Rate limit - but email might have been sent on first attempt
-        // Redirect immediately to check-email page
-        // Use window.location for immediate redirect to prevent page refresh issues
-        window.location.href = '/auth/check-email'
+          // Rate limit - but email might have been sent on first attempt
+          // Redirect immediately to check-email page
+          // Use window.location for immediate redirect to prevent page refresh issues
+          window.location.href = '/auth/check-email'
+          return
+        }
+
+        // Other errors - use the error message from the hook's translation
+        setErrorMessage(error.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.')
         return
       }
-      
-      // Other errors - use the error message from the hook's translation
-      setErrorMessage(error.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.')
-      return
-    }
 
       // Success - Always redirect to check-email page
       // Supabase with email confirmation enabled returns user as null until email is confirmed
       // Even if user exists in response, if email_confirmed_at is null, we need verification
       console.log('[Signup] Signup successful, redirecting to check-email page')
-      
+
       // Use window.location for immediate redirect to prevent page refresh issues
       window.location.href = '/auth/check-email'
     } catch (error) {
@@ -177,6 +177,9 @@ export default function SignupPage() {
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
                 required
               />
+              <p className="mt-1 text-xs text-yellow-400">
+                Lütfen aktif kullandığınız bir e-posta adresi girin. Hesabınızı doğrulamak için onay kodu gönderilecektir.
+              </p>
             </div>
             <div>
               <label htmlFor="password" className="text-sm text-gray-300">
@@ -214,11 +217,10 @@ export default function SignupPage() {
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   placeholder="Şifrenizi tekrar girin"
-                  className={`w-full rounded-2xl border bg-white/5 px-5 py-4 pr-12 text-white placeholder:text-gray-500 focus:outline-none ${
-                    confirmPassword && !passwordMatch
+                  className={`w-full rounded-2xl border bg-white/5 px-5 py-4 pr-12 text-white placeholder:text-gray-500 focus:outline-none ${confirmPassword && !passwordMatch
                       ? 'border-red-500/50 focus:border-red-500'
                       : 'border-white/10 focus:border-soft-gold'
-                  }`}
+                    }`}
                   minLength={6}
                   required
                 />
