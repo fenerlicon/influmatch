@@ -30,10 +30,6 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
     // Calculate time since last update
     // Calculate time since last update
     const calculateTimeRemaining = () => {
-        // TEMPORARY: Disable cooldown for testing/development
-        return { canUpdate: true, daysRemaining: 0 };
-
-        /* Original logic
         if (!lastUpdated) return { canUpdate: true, daysRemaining: 0 };
 
         const lastUpdateDate = new Date(lastUpdated);
@@ -48,7 +44,6 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
         } else {
             return { canUpdate: false, daysRemaining: cooldownDays - diffDays };
         }
-        */
     };
 
     const { canUpdate, daysRemaining } = calculateTimeRemaining();
