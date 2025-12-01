@@ -7,32 +7,32 @@ interface ValueCard {
 
 const valueCards: ValueCard[] = [
   {
-    title: 'Güvenli teklif yönetimi',
+    title: 'Güvenli İşbirliği',
     description:
-      'Supabase tabanlı veritabanı ve rol bazlı kimlik doğrulama ile tüm teklifler kayıt altında tutulur.',
+      'Tüm teklif ve anlaşmalarınız kayıt altında. Ödeme ve teslimat süreçlerini güvenle yönetin.',
     metricLabel: 'Veri güvenliği',
-    metricValue: 'SSL/TLS',
+    metricValue: 'Uçtan Uca Şifreli',
   },
   {
-    title: 'Kategori & şehir filtreleri',
+    title: 'Akıllı Filtreleme',
     description:
-      'Beauty, Fashion ve Lifestyle kategorileri için detaylı filtreler ile doğru profili saniyeler içinde bulun.',
+      'İstediğiniz kriterlere uygun influencerları anında bulun. Kategori, şehir ve etkileşim oranına göre filtreleyin.',
     metricLabel: 'Arama hızı',
-    metricValue: 'Anında',
+    metricValue: 'Milisaniyeler İçinde',
   },
   {
-    title: 'Vitrin & spotlight',
+    title: 'Öne Çıkanlar Vitrini',
     description:
-      'Influencer tarafı spotlight vitrini ile öne çıkar, markalar premium rozetli profilleri anında görebilir.',
-    metricLabel: 'Vitrin özelliği',
-    metricValue: 'Aktif',
+      'Profilinizi binlerce markanın görebileceği vitrine taşıyın. Premium rozet ile fark yaratın.',
+    metricLabel: 'Görünürlük',
+    metricValue: 'Yüksek Erişim',
   },
   {
-    title: 'Sürükleyici dashboard',
+    title: 'Profesyonel Yönetim Paneli',
     description:
-      'Influencer ve marka dashboardları sekmeli yapı ile profil, keşif ve teklifler arasında hızlı geçiş sağlar.',
+      'Tüm iş süreçlerinizi tek bir ekrandan kolayca yönetin. Teklifler, mesajlar ve istatistikler elinizin altında.',
     metricLabel: 'Kullanıcı deneyimi',
-    metricValue: 'Optimize',
+    metricValue: 'Kullanıcı Dostu',
   },
 ]
 

@@ -7,8 +7,7 @@ export const revalidate = 0
 export default async function BrandDiscoverPage() {
   const supabase = createSupabaseServerClient()
 
-  // Filter by is_showcase_visible = true
-  // Order by spotlight_active (premium users first)
+  // 1. Fetch Users
   const { data, error } = await supabase
     .from('users')
     .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status')
@@ -18,13 +17,36 @@ export default async function BrandDiscoverPage() {
     .order('spotlight_active', { ascending: false })
     .order('full_name', { ascending: true })
 
-  // Ensure displayed_badges is properly parsed as array of strings only
+  if (error) {
+    console.error('[BrandDiscoverPage] load error', error.message)
+  }
+
+  // 2. Fetch Social Accounts separately
+  const userIds = (data ?? []).map(u => u.id)
+  let socialAccountsMap: Record<string, any[]> = {}
+
+  if (userIds.length > 0) {
+    const { data: socialData } = await supabase
+      .from('social_accounts')
+      .select('user_id, platform, follower_count, engagement_rate, stats_payload')
+      .in('user_id', userIds)
+
+    if (socialData) {
+      socialData.forEach((account) => {
+        if (!socialAccountsMap[account.user_id]) {
+          socialAccountsMap[account.user_id] = []
+        }
+        socialAccountsMap[account.user_id].push(account)
+      })
+    }
+  }
+
+  // 3. Merge Data
   const influencers: DiscoverInfluencer[] = (data ?? []).map((user) => {
     let displayedBadges: string[] | null = null
 
     if (user.displayed_badges) {
       if (Array.isArray(user.displayed_badges)) {
-        // Filter to ensure only strings and valid badge IDs
         displayedBadges = user.displayed_badges
           .filter((id): id is string => typeof id === 'string' && id.length > 0)
       } else if (typeof user.displayed_badges === 'string') {
@@ -39,7 +61,21 @@ export default async function BrandDiscoverPage() {
       }
     }
 
-    // Return only serializable data (no functions)
+    const userAccounts = socialAccountsMap[user.id] || []
+    const socialAccount = userAccounts.length > 0 ? userAccounts[0] : null
+
+    let stats = undefined
+    if (socialAccount) {
+      const payload = socialAccount.stats_payload as any
+      stats = {
+        followers: socialAccount.follower_count ? `${socialAccount.follower_count}` : '0',
+        engagement: socialAccount.engagement_rate ? `${socialAccount.engagement_rate}%` : '0%',
+        avg_likes: payload?.avg_likes ? `${payload.avg_likes}` : undefined,
+        avg_views: payload?.avg_views ? `${payload.avg_views}` : undefined,
+        avg_comments: payload?.avg_comments ? `${payload.avg_comments}` : undefined,
+      }
+    }
+
     return {
       id: user.id,
       full_name: user.full_name,
@@ -49,13 +85,10 @@ export default async function BrandDiscoverPage() {
       spotlight_active: user.spotlight_active,
       displayed_badges: displayedBadges,
       verification_status: user.verification_status as 'pending' | 'verified' | 'rejected' | null,
+      platform: socialAccount?.platform as any,
+      stats: stats
     }
   })
-
-  if (error) {
-    console.error('[BrandDiscoverPage] load error', error.message)
-  }
-
 
   return (
     <div className="space-y-6">

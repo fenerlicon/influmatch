@@ -7,12 +7,12 @@ const featurePills = [
 ]
 
 const stats = [
-  { label: 'Güvenli platform', value: 'Supabase' },
-  { label: 'Hızlı eşleşme', value: 'Anında' },
-  { label: 'Şeffaf süreç', value: '100%' },
-  { label: 'Rozet sistemi', value: 'Aktif' },
-  { label: 'Mesajlaşma', value: 'Entegre' },
-  { label: 'Doğrulama', value: 'Manuel' },
+  { label: 'TAMAMEN ÜCRETSİZ', value: '%0 Komisyon' },
+  { label: 'ARACI YOK', value: 'Direkt İletişim' },
+  { label: 'GÜVENİLİR KİTLE', value: 'Onaylı Hesaplar' },
+  { label: 'ŞEFFAF VERİLER', value: 'Detaylı Analiz' },
+  { label: 'KOLAY SÜREÇ', value: 'Hızlı Eşleşme' },
+  { label: 'HER ZAMAN YANINDA', value: '7/24 Destek' },
 ]
 
 const workflowSteps = [
@@ -56,16 +56,14 @@ export default function Hero() {
       <div className="max-w-6xl mx-auto grid gap-16 lg:grid-cols-[1.1fr_0.9fr] items-center">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] text-soft-gold/80">
-            Influmatch • MVP
+            Influmatch • Tamamen Ücretsiz
           </p>
           <h1 className="mt-6 text-4xl font-semibold leading-tight text-white md:text-5xl lg:text-6xl">
             Doğru influencer işbirlikleri{' '}
             <span className="text-soft-gold">tek platformda</span>
           </h1>
           <p className="mt-6 text-lg text-gray-300 leading-relaxed">
-            Influmatch, markalar ile influencer&apos;ları ajans ihtiyacı
-            olmadan buluşturan güvenli, hızlı ve şeffaf pazar yeridir. Rolünü
-            seç, kaydol ve sana özel panelinde tekliflerini yönet.
+            Influmatch, markalar ile influencer&apos;ları <span className="text-white font-medium">ajans veya komisyon olmadan</span> buluşturan güvenli, hızlı ve şeffaf pazar yeridir. Rolünü seç, kaydol ve sana özel panelinde tekliflerini yönet.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">

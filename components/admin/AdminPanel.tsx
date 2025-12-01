@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database } from 'lucide-react'
 import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -751,7 +751,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                           {user.username && (
                             <p className="text-sm text-gray-400 truncate">@{user.username}</p>
                           )}
-                          <div className="mt-1 flex items-center gap-2">
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
                             {user.email_verified_at ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
                                 <CheckCircle className="h-3 w-3" />
@@ -761,6 +761,19 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">
                                 <Loader2 className="h-3 w-3 animate-spin" />
                                 E-posta Bekliyor
+                              </span>
+                            )}
+
+                            {/* Data Verification Status */}
+                            {user.displayed_badges?.includes('data-verified') ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                                <Database className="h-3 w-3" />
+                                Veri Doğrulandı
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
+                                <Database className="h-3 w-3" />
+                                Veri Doğrulanmadı
                               </span>
                             )}
                           </div>

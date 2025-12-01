@@ -15,6 +15,7 @@ import {
   Gem,
   Repeat,
   Globe2,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -35,6 +36,13 @@ export const influencerBadges: Badge[] = [
     name: 'Onaylı Hesap',
     description: 'Kimlik doğrulamasını tamamlayanlar',
     icon: BadgeCheck,
+    phase: 'mvp',
+  },
+  {
+    id: 'data-verified',
+    name: 'Veri Doğrulandı',
+    description: 'Instagram verileri doğrulanmış',
+    icon: ShieldCheck,
     phase: 'mvp',
   },
   {

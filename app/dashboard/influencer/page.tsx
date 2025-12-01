@@ -5,9 +5,11 @@ import { redirect } from 'next/navigation'
 import OfferActivityCard from '@/components/dashboard/OfferActivityCard'
 import ProfileCompletionCard from '@/components/dashboard/ProfileCompletionCard'
 import SpotlightToggleCard from '@/components/dashboard/SpotlightToggleCard'
+import InstagramConnect from '@/components/dashboard/InstagramConnect'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import type { ProfileRecord } from '@/utils/profileCompletion'
 import { calculateProfileCompletion } from '@/utils/profileCompletion'
+import InfluencerStats from '@/components/profile/InfluencerStats'
 
 export default async function InfluencerDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -28,6 +30,14 @@ export default async function InfluencerDashboardPage() {
   if (error) {
     console.error('[InfluencerDashboardPage] profile load error', error.message)
   }
+
+  // Fetch social account stats
+  const { data: socialAccount } = await supabase
+    .from('social_accounts')
+    .select('username, follower_count, engagement_rate, stats_payload, updated_at, has_stats')
+    .eq('user_id', user.id)
+    .eq('platform', 'instagram')
+    .single()
 
   const rawSpotlightActive = profile?.spotlight_active ?? false
   const isShowcaseVisible = profile?.is_showcase_visible ?? true // Default to true if null
@@ -74,7 +84,6 @@ export default async function InfluencerDashboardPage() {
 
   const dismissedOfferIds = new Set(dismissedOffers?.map((d) => d.offer_id).filter(Boolean) ?? [])
 
-  // Filter out dismissed offers and limit to 5
   // Filter out dismissed offers and limit to 5
   const filteredOffers = (recentOffers ?? [])
     .filter((offer) => !dismissedOfferIds.has(offer.id))
@@ -190,40 +199,43 @@ export default async function InfluencerDashboardPage() {
         </div>
       </section>
 
+      {/* Stats & Analysis Section - Influencer View */}
+      {socialAccount && socialAccount.has_stats ? (
+        <InfluencerStats
+          followerCount={socialAccount.follower_count || 0}
+          engagementRate={Number(socialAccount.engagement_rate) || 0}
+          statsPayload={socialAccount.stats_payload as any}
+          lastUpdated={socialAccount.updated_at}
+          mode="influencer-view"
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-10 text-center shadow-glow">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
+            {/* <BadgeCheck className="h-8 w-8 text-gray-500" /> */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.74Z" /><path d="m9 12 2 2 4-4" /></svg>
+          </div>
+          <h3 className="text-lg font-semibold text-white">Verileriniz Doğrulanmadı</h3>
+          <p className="mt-2 text-sm text-gray-400 max-w-xs">
+            Profil istatistiklerinizi ve yapay zeka analizlerini görmek için Instagram hesabınızı doğrulayın.
+          </p>
+        </div>
+      )}
+
       <SpotlightToggleCard
         initialActive={isShowcaseVisible}
         verificationStatus={verificationStatus}
       />
 
-      {/* Verification Guide Card */}
-      {verificationStatus === 'pending' && (
-        <div className="rounded-3xl border border-yellow-500/30 bg-yellow-500/10 p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-6 w-6 text-yellow-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-yellow-200">Hesap Doğrulama Kılavuzu</h3>
-              <p className="mt-2 text-sm text-yellow-100/90">
-                Hesabının daha hızlı onaylanması için Instagram biyografine geçici olarak{' '}
-                <span className="font-semibold text-yellow-200">#Influmatch</span> yazabilirsin.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Instagram Verification Component */}
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
+        <h3 className="text-lg font-semibold text-white mb-4">Hesap Doğrulama</h3>
+        <InstagramConnect
+          userId={user.id}
+          isVerified={!!socialAccount?.has_stats}
+          initialUsername={socialAccount?.username}
+          lastUpdated={socialAccount?.updated_at}
+        />
+      </div>
 
       {/* Feedback CTA */}
       <section className="rounded-3xl border border-orange-500/30 bg-orange-500/10 p-6 shadow-glow">
@@ -260,4 +272,3 @@ export default async function InfluencerDashboardPage() {
     </div>
   )
 }
-

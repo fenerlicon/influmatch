@@ -25,21 +25,25 @@ function BadgeItem({ badge }: BadgeItemProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className={`rounded-2xl border ${config.borderColor} ${config.bgColor} p-4 transition-all ${isHovered ? 'scale-[1.02]' : ''}`}>
-        <div className="flex items-start gap-3">
+      <div className={`h-full rounded-2xl border ${config.borderColor} ${config.bgColor} p-3 transition-all ${isHovered ? 'scale-[1.02]' : ''}`}>
+        <div className="flex h-full items-start gap-3">
           <div
-            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${config.bgColor}`}
+            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl ${config.bgColor}`}
           >
-            <Icon className={`h-5 w-5 ${config.textColor}`} />
+            <Icon className={`h-4 w-4 ${config.textColor}`} />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">{badge.name}</p>
-            <p className="mt-1 text-xs text-gray-400">{badge.description}</p>
-            <span
-              className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${config.textColor}`}
-            >
-              {config.label}
-            </span>
+          <div className="flex min-w-0 flex-1 flex-col h-full">
+            <div>
+              <p className="text-sm font-semibold text-white">{badge.name}</p>
+              <p className="mt-1 text-xs text-gray-400">{badge.description}</p>
+            </div>
+            <div className="mt-auto pt-2">
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${config.textColor}`}
+              >
+                {config.label}
+              </span>
+            </div>
           </div>
         </div>
       </div>
