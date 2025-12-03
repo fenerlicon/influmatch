@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateVerificationCode, verifyInstagramAccount } from '@/app/actions/social-verification';
 import { BadgeCheck } from 'lucide-react';
 import { USER_AGREEMENT, PRIVACY_POLICY, EXPLICIT_CONSENT } from '@/lib/legal-constants';
@@ -22,6 +22,51 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [agreedToConsent, setAgreedToConsent] = useState(false);
     const [modalState, setModalState] = useState({ isOpen: false, title: '', content: '' });
+
+    const STORAGE_KEY = `instagram_verification_state_${userId}`;
+    const EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
+
+    // Load state from localStorage on mount
+    useEffect(() => {
+        if (isVerified) return; // Don't load if already verified
+
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        if (savedState) {
+            try {
+                const { step: savedStep, username: savedUsername, verificationCode: savedCode, timestamp } = JSON.parse(savedState);
+                const now = new Date().getTime();
+
+                if (now - timestamp < EXPIRY_TIME) {
+                    if (savedStep) setStep(savedStep);
+                    if (savedUsername) setUsername(savedUsername);
+                    if (savedCode) setVerificationCode(savedCode);
+                } else {
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            } catch (e) {
+                console.error('Error parsing saved verification state:', e);
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        }
+    }, [userId, isVerified]);
+
+    // Save state to localStorage whenever relevant state changes
+    useEffect(() => {
+        if (step === 'success' || isVerified) {
+            localStorage.removeItem(STORAGE_KEY);
+            return;
+        }
+
+        if (step === 'code' && verificationCode) {
+            const stateToSave = {
+                step,
+                username,
+                verificationCode,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        }
+    }, [step, username, verificationCode, userId, isVerified]);
 
     const openModal = (title: string, content: string) => {
         setModalState({ isOpen: true, title, content });
@@ -85,6 +130,7 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
 
             if (result.success) {
                 setStep('success');
+                localStorage.removeItem(STORAGE_KEY);
             } else {
                 setError(result.error || 'Kod biyografide bulunamadı. Lütfen eklediğinizden emin olun.');
             }
@@ -264,7 +310,12 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                     </div>
 
                     <button
-                        onClick={() => setStep('input')}
+                        onClick={() => {
+                            setStep('input');
+                            localStorage.removeItem(STORAGE_KEY);
+                            setUsername('');
+                            setVerificationCode('');
+                        }}
                         className="text-xs text-gray-500 hover:text-gray-300"
                     >
                         Vazgeç ve Geri Dön
