@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
-import type { DiscoverInfluencer } from '@/components/dashboard/BrandDiscoverGrid'
+import type { DiscoverInfluencer } from '@/types/influencer'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export default async function InfluencerDiscoverPage() {
@@ -112,7 +112,7 @@ export default async function InfluencerDiscoverPage() {
           Influencer listesi yüklenemedi. Lütfen sayfayı yenileyin.
         </div>
       ) : (
-        <BrandDiscoverGrid influencers={influencers} currentUserId={user.id} />
+        <BrandDiscoverGrid influencers={influencers} currentUserId={user.id} userRole="influencer" />
       )}
     </div>
   )

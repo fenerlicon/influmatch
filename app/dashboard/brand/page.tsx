@@ -7,12 +7,9 @@ import ProfileCompletionCard from '@/components/dashboard/ProfileCompletionCard'
 import BrandOffersList from '@/components/dashboard/BrandOffersList'
 import type { ProfileRecord } from '@/utils/profileCompletion'
 import type { BrandOfferItem } from '@/app/dashboard/brand/offers/page'
-
-const quickStats = [
-  { label: 'Aylık Bütçe', value: 'yakında' },
-  { label: 'Etkileşim Ort.', value: 'yakında' },
-  { label: 'Aktif Kampanya', value: 'yakında' },
-]
+import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
+import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
+import type { DiscoverInfluencer } from '@/types/influencer'
 
 export default async function BrandDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -57,7 +54,7 @@ export default async function BrandDashboardPage() {
     .from('offers')
     .select(
       `id, campaign_name, campaign_type, budget, message, status, created_at,
-      receiver:receiver_user_id(id, full_name, avatar_url, username)`,
+      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status)`,
     )
     .eq('sender_user_id', user.id)
     .order('created_at', { ascending: false })
@@ -67,7 +64,7 @@ export default async function BrandDashboardPage() {
     console.error('[BrandDashboardPage] offers load error', offersError.message)
   }
 
-  let offersWithRoom: BrandOfferItem[] = (offers as BrandOfferItem[]) ?? []
+  let offersWithRoom: BrandOfferItem[] = (offers as unknown as BrandOfferItem[]) ?? []
 
   // Fetch room IDs for accepted offers
   if (offersWithRoom.length > 0) {
@@ -105,6 +102,24 @@ export default async function BrandDashboardPage() {
 
   const dismissedReceiverIds = new Set(dismissedOffers?.map((d) => d.receiver_user_id) ?? [])
 
+  // Fetch Recent Favorites
+  const { data: recentFavs } = await supabase
+    .from('favorites')
+    .select('influencer_id')
+    .eq('brand_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(4)
+
+  let favoriteInfluencers: DiscoverInfluencer[] = []
+  if (recentFavs && recentFavs.length > 0) {
+    const ids = recentFavs.map((f: any) => f.influencer_id)
+    favoriteInfluencers = await getEnrichedInfluencers({ ids })
+    // Re-sort to match recent order (getEnrichedInfluencers sorts by spotlight/name)
+    favoriteInfluencers.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id))
+  }
+
+  const userRole = user.user_metadata?.role || 'brand'
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#15161F] to-[#0C0D10] p-6 shadow-glow">
@@ -138,6 +153,34 @@ export default async function BrandDashboardPage() {
 
         <ProfileCompletionCard userId={user.id} initialProfile={profileData} role="brand" />
       </section>
+
+      {/* Recent Favorites Section */}
+      {favoriteInfluencers.length > 0 && (
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Favoriler</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Son Eklenenler</h2>
+            </div>
+            <Link
+              href="/dashboard/brand/favorites"
+              className="rounded-full border border-white/10 px-4 py-1.5 text-xs font-medium text-gray-300 transition hover:border-white/30 hover:text-white"
+            >
+              Tümünü (Detaylı) Gör
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {favoriteInfluencers.map(influencer => (
+              <div key={influencer.id} className="h-full">
+                <InfluencerGridCard influencer={influencer} initialIsFavorited={true} userRole={userRole} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ... */}
 
       {/* Campaign Flow List */}
       {offersWithRoom.length > 0 && (
@@ -186,4 +229,3 @@ export default async function BrandDashboardPage() {
     </div>
   )
 }
-

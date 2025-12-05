@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Flag, Ban, MoreVertical } from 'lucide-react'
+import { toast } from 'sonner'
 import { reportMessage, type ReportMessagePayload } from '@/app/dashboard/messages/report/actions'
 import { blockUser } from '@/app/dashboard/users/block/actions'
 
@@ -49,17 +50,20 @@ export default function MessageActionsMenu({
       })
 
       if (result.success) {
-        alert('Mesaj başarıyla rapor edildi. İnceleme için teşekkürler.')
+        toast.success('Mesaj başarıyla rapor edildi. İnceleme için teşekkürler.')
         setShowReportModal(false)
         setReportDescription('')
         setReportReason('harassment')
       } else {
-        alert(result.error || 'Rapor gönderilemedi. Lütfen tekrar deneyin.')
+        toast.error(result.error || 'Rapor gönderilemedi. Lütfen tekrar deneyin.')
       }
     })
   }
 
   const handleBlock = () => {
+    // Custom toast for confirmation or just execute? 
+    // Usually a confirm dialog is good, but native confirm is ugly. 
+    // For now keep native confirm but use toast for result.
     if (!confirm('Bu kullanıcıyı engellemek istediğinizden emin misiniz? Engellediğiniz kullanıcı size mesaj gönderemez.')) {
       return
     }
@@ -68,11 +72,11 @@ export default function MessageActionsMenu({
       const result = await blockUser(senderId)
 
       if (result.success) {
-        alert('Kullanıcı engellendi.')
+        toast.success('Kullanıcı engellendi.')
         setIsOpen(false)
         onBlocked?.()
       } else {
-        alert(result.error || 'Kullanıcı engellenemedi. Lütfen tekrar deneyin.')
+        toast.error(result.error || 'Kullanıcı engellenemedi. Lütfen tekrar deneyin.')
       }
     })
   }

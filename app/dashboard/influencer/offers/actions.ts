@@ -3,10 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-type OfferStatus = 'pending' | 'accepted' | 'rejected'
+type OfferStatus = 'pending' | 'accepted' | 'rejected' | 'hold'
 
 export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus) {
-  if (!['accepted', 'rejected'].includes(nextStatus)) {
+  if (!['accepted', 'rejected', 'hold'].includes(nextStatus)) {
     throw new Error('Geçersiz teklif durumu')
   }
 
@@ -38,15 +38,18 @@ export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus
     throw new Error('Sadece bekleyen teklifler güncellenebilir')
   }
 
-  const { error: updateError } = await supabase.from('offers').update({ status: nextStatus }).eq('id', offerId)
-
-  if (updateError) {
-    throw new Error(updateError.message)
+  // Only update DB status if not 'hold'
+  if (nextStatus !== 'hold') {
+    const { error: updateError } = await supabase.from('offers').update({ status: nextStatus }).eq('id', offerId)
+    if (updateError) {
+      throw new Error(updateError.message)
+    }
   }
 
   let roomId: string | null = null
 
-  if (nextStatus === 'accepted') {
+  // Create room if accepted or held
+  if (nextStatus === 'accepted' || nextStatus === 'hold') {
     const { data: existingRoom, error: roomError } = await supabase
       .from('rooms')
       .select('id')
@@ -66,6 +69,7 @@ export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus
           offer_id: offerId,
           brand_id: offer.sender_user_id,
           influencer_id: offer.receiver_user_id,
+          // If 'hold', we might want to distinguish the room logic? No, standard room is fine.
         })
         .select('id')
         .single()

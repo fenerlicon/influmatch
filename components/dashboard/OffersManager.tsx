@@ -84,7 +84,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
       const { data: room } = await supabase.from('rooms').select('id').eq('offer_id', offerId).maybeSingle()
 
       return {
-        ...(offer as OfferListItem),
+        ...(offer as unknown as OfferListItem),
         room_id: room?.id ?? null,
       }
     },
@@ -239,15 +239,15 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   )
 
   const handleStatusChange = useCallback(
-    (offerId: string, nextStatus: 'accepted' | 'rejected', meta?: { roomId?: string | null }) => {
+    (offerId: string, nextStatus: 'accepted' | 'rejected' | 'hold', meta?: { roomId?: string | null }) => {
       setOffers((prev) =>
         prev.map((offer) =>
           offer.id === offerId
             ? {
-                ...offer,
-                status: nextStatus,
-                room_id: meta?.roomId ?? offer.room_id,
-              }
+              ...offer,
+              status: nextStatus === 'hold' ? 'pending' : nextStatus,
+              room_id: meta?.roomId ?? offer.room_id,
+            }
             : offer,
         ),
       )
@@ -412,7 +412,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
         e.preventDefault()
         e.stopPropagation()
       }
-      
+
       // Get sender user ID
       const senderId = offer.sender?.id
       if (!senderId) {
@@ -474,11 +474,10 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
         <button
           type="button"
           onClick={() => setSelectedOfferId(offer.id)}
-          className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-            isActive
-              ? 'border-soft-gold/60 bg-white/5 text-white shadow-[0_0_18px_rgba(212,175,55,0.25)]'
-              : 'border-white/10 bg-[#10111A] text-gray-300 hover:border-soft-gold/40 hover:text-white'
-          }`}
+          className={`w-full rounded-2xl border px-4 py-4 text-left transition ${isActive
+            ? 'border-soft-gold/60 bg-white/5 text-white shadow-[0_0_18px_rgba(212,175,55,0.25)]'
+            : 'border-white/10 bg-[#10111A] text-gray-300 hover:border-soft-gold/40 hover:text-white'
+            }`}
         >
           <div className="flex items-center gap-3">
             <div className="relative h-12 w-12 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
@@ -505,9 +504,8 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               </div>
             </div>
             <span
-              className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                STATUS_STYLES[offer.status] ?? 'border-white/15 text-gray-400'
-              }`}
+              className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[offer.status] ?? 'border-white/15 text-gray-400'
+                }`}
             >
               {STATUS_LABELS[offer.status] ?? offer.status}
             </span>
@@ -572,9 +570,8 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
 
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <span
-              className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${
-                STATUS_STYLES[selectedOffer.status] ?? 'border-white/20 text-gray-300'
-              }`}
+              className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[selectedOffer.status] ?? 'border-white/20 text-gray-300'
+                }`}
             >
               {STATUS_LABELS[selectedOffer.status] ?? selectedOffer.status}
             </span>
@@ -583,18 +580,20 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               <OfferActionButtons offerId={selectedOffer.id} onStatusChange={handleStatusChange} />
             ) : null}
 
-            <button
-              type="button"
-              onClick={(e) => handleOpenChat(selectedOffer, e)}
-              className="relative rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25"
-            >
-              Mesaj Gönder
-              {selectedOffer.room_id && unreadCounts.get(selectedOffer.room_id) && unreadCounts.get(selectedOffer.room_id)! > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
-                  {unreadCounts.get(selectedOffer.room_id)! > 9 ? '9+' : unreadCounts.get(selectedOffer.room_id)}
-                </span>
-              )}
-            </button>
+            {(selectedOffer.status === 'accepted' || (selectedOffer.status === 'pending' && selectedOffer.room_id)) ? (
+              <button
+                type="button"
+                onClick={(e) => handleOpenChat(selectedOffer, e)}
+                className="relative rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25"
+              >
+                Mesaj Gönder
+                {selectedOffer.room_id && unreadCounts.get(selectedOffer.room_id) && unreadCounts.get(selectedOffer.room_id)! > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
+                    {unreadCounts.get(selectedOffer.room_id)! > 9 ? '9+' : unreadCounts.get(selectedOffer.room_id)}
+                  </span>
+                )}
+              </button>
+            ) : null}
           </div>
         </header>
 

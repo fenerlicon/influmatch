@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { X, BadgeCheck } from 'lucide-react'
+import { toast } from 'sonner'
 import ChatWindow from '@/components/chat/ChatWindow'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
@@ -62,6 +63,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
     isBlocked?: boolean
   } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [lastBlockUpdate, setLastBlockUpdate] = useState(0)
 
   // Load all rooms and build participant map on mount
   useEffect(() => {
@@ -589,6 +591,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               activeRoomIds={activeRoomIds}
               otherParticipantVerificationStatus={otherParticipant.verificationStatus}
               otherParticipantRole={otherParticipant.role}
+              lastBlockUpdate={lastBlockUpdate}
             />
           </>
         ) : (
@@ -668,27 +671,54 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                           {profileData.role === 'influencer' ? 'Influencer' : 'Marka'}
                         </span>
                       )}
-                      {profileData.isBlocked && (
+                      {profileData.isBlocked ? (
                         <button
                           type="button"
                           onClick={async () => {
                             if (!profileModalUserId) return
 
-                            // Optimistic update - immediately update UI
+                            // Optimistic update
                             setProfileData((prev) => prev ? { ...prev, isBlocked: false } : null)
 
                             const { unblockUser } = await import('@/app/dashboard/users/block/actions')
                             const result = await unblockUser(profileModalUserId)
 
                             if (!result.success) {
-                              // Revert if failed
                               setProfileData((prev) => prev ? { ...prev, isBlocked: true } : null)
-                              alert(result.error || 'İşlem başarısız.')
+                              toast.error(result.error || 'İşlem başarısız.')
+                            } else {
+                              toast.success('Engel kaldırıldı.')
+                              setLastBlockUpdate(Date.now())
                             }
                           }}
                           className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 transition hover:border-emerald-400 hover:bg-emerald-500/20"
                         >
                           Engeli Kaldır
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!profileModalUserId) return
+                            if (!confirm('Bu kullanıcıyı engellemek istediğinizden emin misiniz?')) return
+
+                            // Optimistic update
+                            setProfileData((prev) => prev ? { ...prev, isBlocked: true } : null)
+
+                            const { blockUser } = await import('@/app/dashboard/users/block/actions')
+                            const result = await blockUser(profileModalUserId)
+
+                            if (!result.success) {
+                              setProfileData((prev) => prev ? { ...prev, isBlocked: false } : null)
+                              toast.error(result.error || 'İşlem başarısız.')
+                            } else {
+                              toast.success('Kullanıcı engellendi.')
+                              setLastBlockUpdate(Date.now())
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 transition hover:border-red-400 hover:bg-red-500/20"
+                        >
+                          Engelle
                         </button>
                       )}
                     </div>

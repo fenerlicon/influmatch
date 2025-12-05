@@ -26,9 +26,10 @@ interface ChatWindowProps {
   activeRoomIds?: string[] // For messages page: all room IDs with the same participant
   otherParticipantVerificationStatus?: 'pending' | 'verified' | 'rejected' | null
   otherParticipantRole?: 'influencer' | 'brand' | null
+  lastBlockUpdate?: number
 }
 
-export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds, otherParticipantVerificationStatus, otherParticipantRole }: ChatWindowProps) {
+export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds, otherParticipantVerificationStatus, otherParticipantRole, lastBlockUpdate }: ChatWindowProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -60,7 +61,7 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
     if (otherParticipantId || messages.length > 0) {
       checkBlocked()
     }
-  }, [messages, currentUserId, otherParticipantId])
+  }, [messages, currentUserId, otherParticipantId, lastBlockUpdate])
 
   useEffect(() => {
     // If activeRoomIds is provided (messages page), subscribe to all those rooms
@@ -74,7 +75,11 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${rId}` },
           (payload) => {
-            setMessages((prev) => [...prev, payload.new as ChatMessage])
+            const newMsg = payload.new as ChatMessage
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
           },
         )
         .subscribe()
@@ -158,8 +163,12 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
         alert(result.error || 'Mesaj gönderilemedi.')
       }
     } else if (result.data) {
-      // Message sent successfully, add it to local state
-      setMessages((prev) => [...prev, result.data as ChatMessage])
+      // Message sent successfully, add it to local state (deduplicated)
+      const newMsg = result.data as ChatMessage
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMsg.id)) return prev
+        return [...prev, newMsg]
+      })
     }
     setIsSending(false)
   }

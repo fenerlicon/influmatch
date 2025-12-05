@@ -13,18 +13,19 @@ export async function dismissInfluencer(receiverUserId: string) {
     return { error: 'Oturum açmanız gerekiyor.' }
   }
 
-  // Insert dismissed offer (upsert to handle duplicates)
+  // Insert dismissed offer (indexes enforce uniqueness)
   const { error } = await supabase
     .from('dismissed_offers')
-    .upsert(
-      {
-        user_id: user.id,
-        receiver_user_id: receiverUserId,
-      },
-      { onConflict: 'user_id,receiver_user_id' },
-    )
+    .insert({
+      user_id: user.id,
+      receiver_user_id: receiverUserId,
+    })
 
   if (error) {
+    // If unique violation (already dismissed), consider it success
+    if (error.code === '23505') {
+      return { success: true }
+    }
     console.error('Dismiss influencer error:', error)
     return { error: `Influencer gizlenemedi: ${error.message}` }
   }

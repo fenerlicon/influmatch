@@ -1,5 +1,3 @@
-export const revalidate = 0
-
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import OfferActivityCard from '@/components/dashboard/OfferActivityCard'
@@ -11,6 +9,9 @@ import type { ProfileRecord } from '@/utils/profileCompletion'
 import { calculateProfileCompletion } from '@/utils/profileCompletion'
 import InfluencerStats from '@/components/profile/InfluencerStats'
 import VerificationWarningCard from '@/components/dashboard/VerificationWarningCard'
+import { getFavoriteCount } from '@/app/actions/favorites'
+
+export const revalidate = 0
 
 export default async function InfluencerDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -104,7 +105,9 @@ export default async function InfluencerDashboardPage() {
   }
 
   const pendingOffersCount = offerStatuses?.filter((row) => row.status === 'pending').length ?? 0
-  const acceptedOffersCount = offerStatuses?.filter((row) => row.status === 'accepted').length ?? 0
+
+  // Get favorite count
+  const favoriteCount = await getFavoriteCount(user.id)
 
   const stats = [
     {
@@ -114,9 +117,15 @@ export default async function InfluencerDashboardPage() {
       variant: isProfileComplete ? 'complete' : null,
     },
     {
-      label: 'Aktif Kampanya',
-      value: `${acceptedOffersCount}`,
-      badge: 'Kabul edilen',
+      label: 'Sizi Favorileyen Marka Sayısı',
+      value: spotlightActive ? `${favoriteCount}` : null,
+      badge: spotlightActive ? 'Markalar sizi takip ediyor' : 'Vitrine çıkarak markalara ulaş',
+      variant: null,
+      action: !spotlightActive ? (
+        <a href="/dashboard/spotlight" className="inline-block rounded-lg bg-soft-gold/20 px-3 py-1 text-xs font-semibold text-soft-gold hover:bg-soft-gold/30 transition">
+          Spotlight'ı Aç
+        </a>
+      ) : null
     },
     {
       label: 'Bekleyen Teklif',
@@ -185,7 +194,11 @@ export default async function InfluencerDashboardPage() {
               ) : null}
               <div className="relative z-10">
                 <p>{item.label}</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
+                {item.action ? (
+                  <div className="mt-2 min-h-[32px] flex items-center">{item.action}</div>
+                ) : (
+                  <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
+                )}
                 <p
                   className={`mt-4 text-xs uppercase tracking-[0.3em] ${item.variant === 'spotlight-active'
                     ? 'font-bold text-soft-gold text-sm tracking-[0.4em]'
