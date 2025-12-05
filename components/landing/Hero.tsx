@@ -1,69 +1,69 @@
+'use client'
+
 import Link from 'next/link'
 
-const featurePills = [
-  'Rol bazlı kayıt akışı',
-  'Kategori filtreleri',
-  'Şeffaf teklif yönetimi',
-]
-
-const stats = [
-  { label: 'TAMAMEN ÜCRETSİZ', value: '%0 Komisyon' },
-  { label: 'ARACI YOK', value: 'Direkt İletişim' },
-  { label: 'GÜVENİLİR KİTLE', value: 'Onaylı Hesaplar' },
-  { label: 'ŞEFFAF VERİLER', value: 'Detaylı Analiz' },
-  { label: 'KOLAY SÜREÇ', value: 'Hızlı Eşleşme' },
-  { label: 'HER ZAMAN YANINDA', value: '7/24 Destek' },
-]
-
-const workflowSteps = [
-  {
-    title: 'Rolünü Seç',
-    description:
-      'Influencerım veya Markayım diyerek kayıt sürecini başlat ve panelini aç.',
-  },
-  {
-    title: 'Teklif Oluştur / Al',
-    description:
-      'Markalar güvenli form ile teklif yollar, influencer tarafı tüm detayları görür.',
-  },
-  {
-    title: 'Onayla & İletişime Geç',
-    description:
-      'Teklif kabul edilince marka tarafı iletişim bilgilerine erişir ve süreç başlar.',
-  },
-]
-
-const roleCards = [
-  {
-    title: 'Influencerım',
-    description: 'Profilini vitrine taşı, teklifleri tek panelden yönet.',
-    href: '/dashboard/influencer',
-  },
-  {
-    title: 'Markayım',
-    description: 'Kategoriye göre keşfet, doğru profillere hızlı teklif gönder.',
-    href: '/dashboard/brand',
-  },
-]
-
 export default function Hero() {
+  const featurePills = [
+    'Rol Bazlı Kayıt',
+    'Gelişmiş Filtreleme',
+    'Şeffaf İstatistikler',
+  ]
+
+  const stats = [
+    { label: 'Ücretsiz', value: 'Kayıt Ol' },
+    { label: 'Doğrudan', value: 'İletişim' },
+    { label: 'Onaylı', value: 'Kullanıcılar' },
+    { label: 'Şeffaf', value: 'Veriler' },
+    { label: 'Kolay', value: 'Kullanım' },
+    { label: '7/24', value: 'Destek' },
+  ]
+
+  const workflowSteps = [
+    {
+      title: 'Kayıt Ol',
+      description: 'Marka veya Influencer olarak profilini oluştur.',
+    },
+    {
+      title: 'Keşfet & Eşleş',
+      description: 'İhtiyaçlarına uygun partnerleri bul ve iletişime geç.',
+    },
+    {
+      title: 'İşbirliği Yap',
+      description: 'Güvenli ve şeffaf bir şekilde kampanyalarını yönet.',
+    },
+  ]
+
+  const roleCards = [
+    {
+      title: 'Influencer Paneli',
+      description: 'Profilini yönet, markalarla iletişime geç ve istatistiklerini paylaş.',
+      href: '/dashboard/influencer',
+    },
+    {
+      title: 'Marka Paneli',
+      description: 'Kampanyalar oluştur, influencerları keşfet ve teklifler ver.',
+      href: '/dashboard/brand',
+    },
+  ]
+
   return (
     <section
       id="hero"
       className="relative px-6 pb-12 pt-24 md:px-12 lg:px-24 xl:px-32"
     >
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white/5 via-transparent to-transparent opacity-40 blur-3xl" />
+
       <div className="max-w-6xl mx-auto grid gap-16 lg:grid-cols-[1.1fr_0.9fr] items-center">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] text-soft-gold/80">
-            Influmatch • Tamamen Ücretsiz
+            YENİ NESİL İŞBİRLİĞİ
           </p>
           <h1 className="mt-6 text-4xl font-semibold leading-tight text-white md:text-5xl lg:text-6xl">
-            Doğru influencer işbirlikleri{' '}
-            <span className="text-soft-gold">tek platformda</span>
+            Influencer Marketing'in{' '}
+            <span className="text-soft-gold">Geleceği</span>
           </h1>
           <p className="mt-6 text-lg text-gray-300 leading-relaxed">
-            Influmatch, markalar ile influencer&apos;ları <span className="text-white font-medium">ajans veya komisyon olmadan</span> buluşturan güvenli, hızlı ve şeffaf pazar yeridir. Rolünü seç, kaydol ve sana özel panelinde tekliflerini yönet.
+            Markalar ve influencerlar için en şeffaf, güvenilir ve etkili işbirliği platformu. Aracı yok, komisyon yok, doğrudan iletişim var.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -82,18 +82,18 @@ export default function Hero() {
               href="/signup-role"
               className="glow-effect rounded-full bg-soft-gold px-8 py-4 text-base font-semibold text-background transition-all hover:bg-champagne hover:text-background"
             >
-              Hemen Başla
+              Hemen Kaydol
             </Link>
             <Link
               href="/signup-role"
               className="rounded-full border border-white/15 px-8 py-4 text-base font-semibold text-white transition hover:border-soft-gold/60 hover:text-soft-gold"
             >
-              Influencerları Keşfet
+              Keşfet
             </Link>
           </div>
 
           <p className="mt-4 text-sm text-gray-400">
-            Zaten hesabın var mı?{' '}
+            Zaten üye misiniz?{' '}
             <Link
               href="/login"
               className="font-semibold text-soft-gold underline-offset-4 hover:underline"
@@ -123,7 +123,7 @@ export default function Hero() {
           <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-br from-soft-gold/30 via-transparent to-transparent blur-3xl" />
           <div className="glass-panel rounded-[32px] p-8 shadow-glow">
             <p className="text-sm uppercase tracking-[0.2em] text-soft-gold/90">
-              Teklif Döngüsü
+              NASIL ÇALIŞIR?
             </p>
             <div className="mt-6 space-y-5">
               {workflowSteps.map((step, index) => (
@@ -156,14 +156,14 @@ export default function Hero() {
                   className="group rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:border-soft-gold/60 hover:bg-white/10"
                 >
                   <p className="text-xs uppercase tracking-[0.3em] text-soft-gold/70">
-                    Rol
+                    PANEL
                   </p>
                   <h4 className="mt-2 text-lg font-semibold text-white">
                     {card.title}
                   </h4>
                   <p className="mt-1 text-sm text-gray-400">{card.description}</p>
                   <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-soft-gold">
-                    Paneli Gör
+                    Panele Git
                     <svg
                       className="h-4 w-4 transition-transform group-hover:translate-x-1"
                       viewBox="0 0 16 16"
@@ -195,4 +195,3 @@ export default function Hero() {
     </section>
   )
 }
-

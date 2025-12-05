@@ -107,9 +107,9 @@ export default function BadgeSelector({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-white">Vitrin Kartında Gösterilecek Rozetler</p>
+          <p className="text-sm font-medium text-white">Rozet Seçimi</p>
           <p className="mt-1 text-xs text-gray-400">
-            Maksimum 3 rozet seçebilirsiniz ({selectedBadgeIds.length}/3)
+            Profilinizde görünecek en fazla 3 rozeti seçin. ({selectedBadgeIds.length}/3)
           </p>
         </div>
       </div>
@@ -126,16 +126,14 @@ export default function BadgeSelector({
               type="button"
               onClick={() => handleToggle(badge.id)}
               disabled={disabled || (!isSelected && selectedBadgeIds.length >= 3)}
-              className={`group relative flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
-                isSelected
-                  ? `${config.borderColor} ${config.bgColor} ${config.glowColor}`
-                  : 'border-white/10 bg-white/5 hover:border-white/20'
-              } ${disabled || (!isSelected && selectedBadgeIds.length >= 3) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              className={`group relative flex items-start gap-3 rounded-2xl border p-4 text-left transition ${isSelected
+                ? `${config.borderColor} ${config.bgColor} ${config.glowColor}`
+                : 'border-white/10 bg-white/5 hover:border-white/20'
+                } ${disabled || (!isSelected && selectedBadgeIds.length >= 3) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <div
-                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${
-                  isSelected ? config.bgColor : 'bg-white/5'
-                }`}
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isSelected ? config.bgColor : 'bg-white/5'
+                  }`}
               >
                 <Icon className={`h-5 w-5 ${isSelected ? config.textColor : 'text-gray-400'}`} />
               </div>
@@ -145,9 +143,8 @@ export default function BadgeSelector({
                 </p>
                 <p className="mt-1 text-xs text-gray-400 line-clamp-2">{badge.description}</p>
                 <span
-                  className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
-                    isSelected ? config.textColor : 'text-gray-500'
-                  }`}
+                  className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${isSelected ? config.textColor : 'text-gray-500'
+                    }`}
                 >
                   {config.label}
                 </span>

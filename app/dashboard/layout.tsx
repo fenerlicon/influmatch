@@ -110,7 +110,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                   />
                 </svg>
                 <p>
-                  Hesabınız şu an inceleme aşamasındadır. Onaylanana kadar bazı özellikler kısıtlıdır.
+                  Hesabınız henüz onaylanmadı. Tüm özelliklere erişmek için profilinizi tamamlayın ve onay bekleyin.
                 </p>
               </div>
             </div>
@@ -129,5 +129,3 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     </div>
   )
 }
-
-

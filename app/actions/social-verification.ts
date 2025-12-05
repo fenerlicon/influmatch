@@ -29,7 +29,7 @@ export async function generateVerificationCode(userId: string, username: string)
 
         if (error) {
             console.error('Error generating verification code:', error)
-            return { success: false, error: `Hata: ${error.message || error.details || 'Bilinmeyen veritabanı hatası'}` }
+            return { success: false, error: `Veritabanı hatası: ${error.message || error.details || 'Bilinmeyen hata'}` }
         }
 
         revalidatePath('/dashboard/profile')
@@ -53,7 +53,7 @@ export async function verifyInstagramAccount(userId: string) {
             .single()
 
         if (fetchError || !account) {
-            return { success: false, error: 'Instagram hesabı bulunamadı. Lütfen önce kullanıcı adınızı girin.' }
+            return { success: false, error: 'Hesap bulunamadı.' }
         }
 
         const username = account.username
@@ -62,7 +62,7 @@ export async function verifyInstagramAccount(userId: string) {
 
         if (!rapidApiKey) {
             console.error('RAPIDAPI_KEY is missing')
-            return { success: false, error: 'Sistem yapılandırma hatası: API anahtarı eksik.' }
+            return { success: false, error: 'API anahtarı eksik.' }
         }
 
         // 2. API REQUEST: Get User Info & Media (Single Request)
@@ -80,7 +80,7 @@ export async function verifyInstagramAccount(userId: string) {
         if (!response.ok) {
             const errorText = await response.text()
             console.error('StarAPI Error:', errorText)
-            return { success: false, error: `Instagram verileri alınamadı. API Hatası: ${errorText}` }
+            return { success: false, error: `API hatası: ${errorText}` }
         }
 
         const data = await response.json()
@@ -91,7 +91,7 @@ export async function verifyInstagramAccount(userId: string) {
 
         if (!user) {
             console.error('StarAPI: User object not found in response', JSON.stringify(data, null, 2))
-            return { success: false, error: 'Instagram kullanıcı verisi çözümlenemedi. API yanıt yapısı beklenenden farklı.' }
+            return { success: false, error: 'Veri ayrıştırma hatası.' }
         }
 
         const biography = user.biography || ''
@@ -106,7 +106,7 @@ export async function verifyInstagramAccount(userId: string) {
 
         // Check verification code
         if (!biography.includes(verificationCode)) {
-            return { success: false, error: 'Doğrulama kodu biyografinizde bulunamadı. Lütfen kodu eklediğinizden emin olun.' }
+            return { success: false, error: 'Doğrulama kodu biyografide bulunamadı.' }
         }
 
         // Calculate Stats from Timeline Media
@@ -184,7 +184,7 @@ export async function verifyInstagramAccount(userId: string) {
 
         if (updateError) {
             console.error('Error updating verification status:', updateError)
-            return { success: false, error: 'Doğrulama durumu güncellenirken bir hata oluştu.' }
+            return { success: false, error: 'Güncelleme hatası.' }
         }
 
         // 5. Award "Data Verified" Badge
@@ -209,7 +209,7 @@ export async function verifyInstagramAccount(userId: string) {
         revalidatePath('/dashboard/profile')
         return {
             success: true,
-            message: 'Instagram hesabınız başarıyla doğrulandı!',
+            message: 'Hesap başarıyla doğrulandı.',
             data: {
                 platform_user_id: platformUserId,
                 follower_count: followerCount,
@@ -220,6 +220,6 @@ export async function verifyInstagramAccount(userId: string) {
 
     } catch (error) {
         console.error('Exception verifying instagram account:', error)
-        return { success: false, error: 'Doğrulama işlemi sırasında bir hata oluştu.' }
+        return { success: false, error: 'Genel hata oluştu.' }
     }
 }

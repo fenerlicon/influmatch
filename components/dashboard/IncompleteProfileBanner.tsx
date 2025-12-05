@@ -72,14 +72,14 @@ export default function IncompleteProfileBanner({
             />
           </svg>
           <p>
-            <strong>Önemli:</strong> En az 1 adet sosyal medya hesap bilginizi girmezseniz hesabınızın onaylanma süreci uzar.
+            <strong>Önemli:</strong> Profilinizin onaylanması ve markalarla eşleşebilmeniz için en az bir sosyal medya hesabı eklemeniz gerekmektedir.
           </p>
         </div>
         <a
           href={role === 'brand' ? '/dashboard/brand/profile' : '/dashboard/influencer/profile'}
           className="inline-flex items-center gap-1 rounded-xl border border-orange-400/40 bg-orange-500/20 px-3 py-1.5 text-xs font-semibold text-orange-200 transition hover:border-orange-400 hover:bg-orange-500/30 whitespace-nowrap"
         >
-          Profil Ayarlarına Git
+          Profili Tamamla
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
@@ -88,4 +88,3 @@ export default function IncompleteProfileBanner({
     </div>
   )
 }
-

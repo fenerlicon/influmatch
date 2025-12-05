@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Fragment } from 'react'
+import { Fragment, useMemo } from 'react'
 import type { UserRole } from '@/types/auth'
 import SignOutButton from './SignOutButton'
 import SettingsButton from './SettingsButton'
@@ -10,28 +10,6 @@ import SettingsButton from './SettingsButton'
 const roleHomePath: Record<UserRole, string> = {
   influencer: '/dashboard/influencer',
   brand: '/dashboard/brand',
-}
-
-const navMap: Record<UserRole, Array<{ label: string; href: string }>> = {
-  influencer: [
-    { label: 'Ana Sayfa', href: roleHomePath.influencer },
-    { label: 'Profil', href: '/dashboard/influencer/profile' },
-    { label: 'Vitrin', href: '/dashboard/influencer/discover' },
-    { label: 'İlanlar', href: '/dashboard/influencer/advert' },
-    { label: 'Teklifler', href: '/dashboard/offers' },
-    { label: 'Mesajlar', href: '/dashboard/messages' },
-    { label: 'Spotlight', href: '/dashboard/spotlight' },
-    { label: 'Rozetler', href: '/dashboard/influencer/badges' },
-  ],
-  brand: [
-    { label: 'Ana Sayfa', href: roleHomePath.brand },
-    { label: 'Profil', href: '/dashboard/brand/profile' },
-    { label: 'Vitrin', href: '/dashboard/brand/discover' },
-    { label: 'İlanlar', href: '/dashboard/brand/advert' },
-    { label: 'Teklifler', href: '/dashboard/brand/offers' },
-    { label: 'Mesajlar', href: '/dashboard/messages' },
-    { label: 'Rozetler', href: '/dashboard/brand/badges' },
-  ],
 }
 
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ')
@@ -45,7 +23,31 @@ interface DashboardSidebarProps {
 
 export default function DashboardSidebar({ role, fullName, email, currentUserId }: DashboardSidebarProps) {
   const pathname = usePathname()
-  const navItems = navMap[role]
+
+  const navItems = useMemo(() => {
+    const map: Record<UserRole, Array<{ label: string; href: string }>> = {
+      influencer: [
+        { label: 'Ana Sayfa', href: roleHomePath.influencer },
+        { label: 'Profilim', href: '/dashboard/influencer/profile' },
+        { label: 'Vitrin', href: '/dashboard/influencer/discover' },
+        { label: 'İlanlar', href: '/dashboard/influencer/advert' },
+        { label: 'Teklifler', href: '/dashboard/offers' },
+        { label: 'Mesajlar', href: '/dashboard/messages' },
+        { label: 'Spotlight', href: '/dashboard/spotlight' },
+        { label: 'Rozetlerim', href: '/dashboard/influencer/badges' },
+      ],
+      brand: [
+        { label: 'Ana Sayfa', href: roleHomePath.brand },
+        { label: 'Profilim', href: '/dashboard/brand/profile' },
+        { label: 'Vitrin', href: '/dashboard/brand/discover' },
+        { label: 'İlanlar', href: '/dashboard/brand/advert' },
+        { label: 'Teklifler', href: '/dashboard/brand/offers' },
+        { label: 'Mesajlar', href: '/dashboard/messages' },
+        { label: 'Rozetler', href: '/dashboard/brand/badges' },
+      ],
+    }
+    return map[role]
+  }, [role])
 
   const isActive = (href: string) => {
     // For home pages, use exact match
@@ -82,7 +84,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
     <Fragment>
       <aside className="hidden w-full max-w-xs flex-col border-r border-white/5 bg-[#0B0C10] px-6 py-8 text-white lg:flex">
         <div className="mb-8 rounded-2xl border border-white/5 bg-gradient-to-b from-white/5 to-transparent p-5">
-          <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Influmatch</p>
+          <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">INFLUMATCH</p>
           <h2 className="mt-3 text-lg font-semibold">{fullName}</h2>
           {email && <p className="text-sm text-gray-400">{email}</p>}
         </div>
@@ -98,7 +100,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
       <div className="border-b border-white/5 bg-[#09090c]/80 px-4 py-3 backdrop-blur lg:hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Influmatch</p>
+            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">INFLUMATCH</p>
             <p className="font-semibold text-white">{fullName}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -111,5 +113,3 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
     </Fragment>
   )
 }
-
-

@@ -33,6 +33,8 @@ const emptyFormValues = {
   heroImage: '',
   deadline: '',
   status: 'open' as AdvertStatus,
+  paymentType: 'cash',
+  customQuestions: [] as { id: string; type: 'text' | 'single_select' | 'multiple_choice'; question: string; options: string[] }[],
 }
 
 const parseList = (value: string) =>
@@ -79,6 +81,8 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
       heroImage: '',
       deadline: project.deadline ?? '',
       status: (project.status as AdvertStatus) ?? 'open',
+      paymentType: project.paymentType ?? 'cash',
+      customQuestions: project.customQuestions?.map(q => ({ ...q, options: q.options || [] })) || [],
     })
     setHeroImageUrl(project.heroImage)
   }
@@ -158,6 +162,8 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
         hero_image: formValues.heroImage || null,
         deadline: formValues.deadline || null,
         status: formValues.status,
+        payment_type: formValues.paymentType,
+        custom_questions: formValues.customQuestions,
       }
 
       const result = await saveBrandAdvert(payload)
@@ -296,10 +302,24 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
               name="deliverables"
               value={formValues.deliverables}
               onChange={handleChange}
-              placeholder="1 Reel, 3 Story"
+              placeholder="1 Reels, 3 Story"
               disabled={verificationStatus !== 'verified'}
               className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0F1018] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-60"
             />
+          </div>
+          <div>
+            <label className="text-sm text-gray-300">Ödeme Tipi</label>
+            <select
+              name="paymentType"
+              value={formValues.paymentType}
+              onChange={handleChange}
+              disabled={verificationStatus !== 'verified'}
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0F1018] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <option value="cash">Nakit</option>
+              <option value="barter">Barter (Ürün Karşılığı)</option>
+              <option value="other">Diğer</option>
+            </select>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
@@ -309,7 +329,7 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
                 name="budgetCurrency"
                 value={formValues.budgetCurrency}
                 onChange={handleChange}
-                disabled={verificationStatus !== 'verified'}
+                disabled={verificationStatus !== 'verified' || formValues.paymentType === 'barter' || formValues.paymentType === 'other'}
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0F1018] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
@@ -320,7 +340,7 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
                 name="budgetMin"
                 value={formValues.budgetMin}
                 onChange={handleChange}
-                disabled={verificationStatus !== 'verified'}
+                disabled={verificationStatus !== 'verified' || formValues.paymentType === 'barter' || formValues.paymentType === 'other'}
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0F1018] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
@@ -331,9 +351,99 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
                 name="budgetMax"
                 value={formValues.budgetMax}
                 onChange={handleChange}
-                disabled={verificationStatus !== 'verified'}
+                disabled={verificationStatus !== 'verified' || formValues.paymentType === 'barter' || formValues.paymentType === 'other'}
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0F1018] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-60"
               />
+            </div>
+          </div>
+
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-300">Özel Sorular (Max 5)</label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (formValues.customQuestions.length < 5) {
+                    setFormValues(prev => ({
+                      ...prev,
+                      customQuestions: [
+                        ...prev.customQuestions,
+                        { id: crypto.randomUUID(), type: 'text', question: '', options: [] }
+                      ]
+                    }))
+                  }
+                }}
+                disabled={formValues.customQuestions.length >= 5 || verificationStatus !== 'verified'}
+                className="text-xs text-soft-gold hover:underline disabled:opacity-50 disabled:no-underline"
+              >
+                + Soru Ekle
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {formValues.customQuestions.map((q, index) => (
+                <div key={q.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-2 text-xs text-gray-500">#{index + 1}</span>
+                    <div className="flex-1 space-y-3">
+                      <input
+                        type="text"
+                        value={q.question}
+                        onChange={(e) => {
+                          const newQuestions = [...formValues.customQuestions]
+                          newQuestions[index].question = e.target.value
+                          setFormValues(prev => ({ ...prev, customQuestions: newQuestions }))
+                        }}
+                        placeholder="Sorunuzu yazın..."
+                        className="w-full rounded-xl border border-white/10 bg-[#0F1018] px-3 py-2 text-sm text-white outline-none focus:border-soft-gold"
+                      />
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={q.type}
+                          onChange={(e) => {
+                            const newQuestions = [...formValues.customQuestions]
+                            newQuestions[index].type = e.target.value as any
+                            setFormValues(prev => ({ ...prev, customQuestions: newQuestions }))
+                          }}
+                          className="rounded-xl border border-white/10 bg-[#0F1018] px-3 py-2 text-sm text-gray-300 outline-none focus:border-soft-gold"
+                        >
+                          <option value="text">Metin Yanıt</option>
+                          <option value="single_select">Tek Seçmeli</option>
+                          <option value="multiple_choice">Çoktan Seçmeli</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQuestions = formValues.customQuestions.filter((_, i) => i !== index)
+                            setFormValues(prev => ({ ...prev, customQuestions: newQuestions }))
+                          }}
+                          className="ml-auto text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {(q.type === 'single_select' || q.type === 'multiple_choice') && (
+                        <div className="pl-4 border-l-2 border-white/10 space-y-2">
+                          <label className="text-xs text-gray-400">Seçenekler (Her satıra bir seçenek)</label>
+                          <textarea
+                            value={q.options?.join('\n')}
+                            onChange={(e) => {
+                              const newQuestions = [...formValues.customQuestions]
+                              newQuestions[index].options = e.target.value.split('\n')
+                              setFormValues(prev => ({ ...prev, customQuestions: newQuestions }))
+                            }}
+                            rows={3}
+                            placeholder="Seçenek 1&#10;Seçenek 2&#10;Seçenek 3"
+                            className="w-full rounded-xl border border-white/10 bg-[#0F1018] px-3 py-2 text-sm text-white outline-none focus:border-soft-gold"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <div>
@@ -511,4 +621,3 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
     </div>
   )
 }
-

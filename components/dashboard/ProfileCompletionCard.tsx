@@ -54,6 +54,22 @@ export default function ProfileCompletionCard({
   const completion = useMemo(() => calculateProfileCompletion(profile, role), [profile, role])
   const remainingTasks = completion.pendingTasks.slice(0, 3)
 
+  const getTaskLabel = (task: string) => {
+    const labels: Record<string, string> = {
+      full_name: 'Ad Soyad',
+      username: 'Kullanıcı Adı',
+      bio: 'Biyografi',
+      city: 'Şehir',
+      category: 'Kategori',
+      avatar_url: 'Profil Fotoğrafı',
+      phone: 'Telefon Numarası',
+      email: 'E-posta Adresi',
+      social_media_1: 'Sosyal medya hesabı',
+      social_media_2: 'Bir sosyal medya hesabı daha',
+    }
+    return labels[task] || task
+  }
+
   // Award profile-expert badge when completion reaches 100%
   useEffect(() => {
     if (completion.percent >= 100 && role === 'influencer') {
@@ -91,11 +107,11 @@ export default function ProfileCompletionCard({
     <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Profil Doluluk</p>
-          <h3 className="mt-2 text-xl font-semibold text-white">%{completion.percent} tamamlandı</h3>
+          <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">PROFİL DOLULUĞU</p>
+          <h3 className="mt-2 text-xl font-semibold text-white">Tamamlanan: %{completion.percent}</h3>
         </div>
         <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300">
-          {completion.total - completion.completed} görev kaldı
+          {completion.total - completion.completed} adım kaldı
         </span>
       </div>
 
@@ -111,17 +127,15 @@ export default function ProfileCompletionCard({
           {remainingTasks.map((task) => (
             <li key={task} className="flex items-center gap-3 rounded-2xl border border-white/5 px-4 py-3">
               <span className="h-2 w-2 rounded-full bg-soft-gold" />
-              {task}
+              {getTaskLabel(task)} ekleyin
             </li>
           ))}
         </ul>
       ) : (
         <div className="mt-6 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          Profilin güncel. Harika görünüyorsun!
+          Tebrikler! Profiliniz tamamen dolu.
         </div>
       )}
     </div>
   )
 }
-
-

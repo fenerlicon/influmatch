@@ -26,12 +26,12 @@ export interface ProfileCompletionResult {
 // Weighted completion fields
 // Total: 20% + 20% + 20% + 10% + 10% + 10% + 5% + 5% = 100%
 const COMPLETION_FIELDS: CompletionField[] = [
-  { key: 'avatar_url', label: 'Profil Fotoğrafı', task: 'Profil fotoğrafı yükle', weight: 20 },
-  { key: 'full_name', label: 'Ad Soyad', task: 'Ad soyadını ekle', weight: 20 },
-  { key: 'username', label: 'Kullanıcı Adı', task: 'Kullanıcı adını belirle', weight: 20 },
-  { key: 'city', label: 'Şehir', task: 'Şehrini ekle', weight: 10 },
-  { key: 'category', label: 'Kategori', task: 'Kategori seç', weight: 10 },
-  { key: 'bio', label: 'Biyografi', task: 'Biyografi alanını doldur', weight: 10 },
+  { key: 'avatar_url', label: 'avatar_url', task: 'avatar_url', weight: 20 },
+  { key: 'full_name', label: 'full_name', task: 'full_name', weight: 20 },
+  { key: 'username', label: 'username', task: 'username', weight: 20 },
+  { key: 'city', label: 'city', task: 'city', weight: 10 },
+  { key: 'category', label: 'category', task: 'category', weight: 10 },
+  { key: 'bio', label: 'bio', task: 'bio', weight: 10 },
 ]
 
 // Social media platforms (any one gives 5%, any additional gives 5% more, max 10%)
@@ -87,20 +87,20 @@ export function calculateProfileCompletion(
   // Calculate social media completion
   const hasSocialLink = hasAnySocialLink(profile.social_links)
   const socialLinksCount = getSocialLinksCount(profile.social_links)
-  
+
   // First social link: 5%, second or more: additional 5% (max 10% total)
   const socialMediaWeight = hasSocialLink ? (socialLinksCount >= 2 ? 10 : 5) : 0
 
   // Calculate total completion percentage
   let totalPercent = 0
-  
+
   // Add weights for completed base fields
   checklist.forEach((field) => {
     if (field.completed) {
       totalPercent += field.weight
     }
   })
-  
+
   // Add social media weight
   totalPercent += socialMediaWeight
 
@@ -111,7 +111,7 @@ export function calculateProfileCompletion(
 
   // Generate pending tasks
   const pendingTasks: string[] = []
-  
+
   checklist.forEach((field) => {
     if (!field.completed) {
       pendingTasks.push(field.task)
@@ -120,10 +120,10 @@ export function calculateProfileCompletion(
 
   // Add social media task if no links
   if (!hasSocialLink) {
-    pendingTasks.push('Sosyal medya hesaplarınızdan birini doldurun')
+    pendingTasks.push('social_media_1')
   } else if (socialLinksCount < 2) {
     // If only one social link, suggest adding another for full 10%
-    pendingTasks.push('Bir sosyal medya hesabı daha ekleyin')
+    pendingTasks.push('social_media_2')
   }
 
   return {

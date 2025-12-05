@@ -8,11 +8,6 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { UserRole } from '@/types/auth'
 
-const ROLE_TITLES: Record<UserRole, string> = {
-  influencer: 'Influencerım',
-  brand: 'Markayım',
-}
-
 export default function SignupPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -59,7 +54,7 @@ export default function SignupPage() {
     if (!isFormValid) return
 
     if (password !== confirmPassword) {
-      setErrorMessage('Şifreler eşleşmiyor. Lütfen kontrol edin.')
+      setErrorMessage('Şifreler eşleşmiyor.')
       return
     }
 
@@ -94,11 +89,11 @@ export default function SignupPage() {
 
           if (!publicUser) {
             // Auth user exists but public.users doesn't - account was deleted
-            setErrorMessage('Bu email adresi ile daha önce bir hesap oluşturulmuş ancak hesap silinmiş. Yeni bir hesap oluşturmak için lütfen farklı bir email adresi kullanın veya destek ekibiyle iletişime geçin.')
+            setErrorMessage('Bu e-posta adresiyle daha önce kayıt olunmuş ancak hesap silinmiş.')
             return
           } else {
             // User exists in public.users - normal "already registered" error
-            setErrorMessage('Bu email adresi zaten kayıtlı. Giriş yapmayı deneyin.')
+            setErrorMessage('Bu e-posta adresi zaten kayıtlı.')
             return
           }
         }
@@ -115,21 +110,19 @@ export default function SignupPage() {
           return
         }
 
-        // Other errors - use the error message from the hook's translation
-        setErrorMessage(error.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.')
+        // Other errors
+        setErrorMessage(error.message || 'Bir hata oluştu.')
         return
       }
 
       // Success - Always redirect to check-email page
-      // Supabase with email confirmation enabled returns user as null until email is confirmed
-      // Even if user exists in response, if email_confirmed_at is null, we need verification
       console.log('[Signup] Signup successful, redirecting to check-email page')
 
       // Use window.location for immediate redirect to prevent page refresh issues
       window.location.href = '/auth/check-email'
     } catch (error) {
       console.error('[Signup] Unexpected error:', error)
-      setErrorMessage('Kayıt sırasında beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.')
+      setErrorMessage('Bir hata oluştu.')
     }
   }
 
@@ -137,48 +130,48 @@ export default function SignupPage() {
     <main className="px-6 py-24 md:px-12 lg:px-24">
       <div className="mx-auto max-w-4xl">
         <div className="glass-panel rounded-[32px] p-10">
-          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Kayıt Ol</p>
-          <h1 className="mt-4 text-3xl font-semibold text-white">Influmatch hesabını oluştur</h1>
+          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">KAYIT OL</p>
+          <h1 className="mt-4 text-3xl font-semibold text-white">Hesap Oluştur</h1>
           <p className="mt-2 text-gray-300">
-            Rolün: <span className="text-soft-gold">{ROLE_TITLES[role]}</span>
+            Seçilen Rol: <span className="text-soft-gold">{role === 'brand' ? 'Marka' : 'Influencer'}</span>
           </p>
           <p className="mt-1 text-sm text-gray-400">
-            Rolünü değiştirmek ister misin?{' '}
+            Rolünü değiştirmek mi istiyorsun?{' '}
             <Link href="/signup-role" className="font-semibold text-soft-gold underline-offset-4 hover:underline">
-              Rol Seçimine Dön
+              Geri Dön
             </Link>
           </p>
 
           <form onSubmit={handleSubmit} className="mt-10 space-y-6">
             <div>
               <label htmlFor="fullName" className="text-sm text-gray-300">
-                Ad Soyad
+                {role === 'brand' ? 'Marka Adı' : 'Ad Soyad'}
               </label>
               <input
                 id="fullName"
                 type="text"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="Örn. Ayşe Yılmaz"
+                placeholder={role === 'brand' ? 'Markanızın Adı' : 'Adınız Soyadınız'}
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
                 required
               />
             </div>
             <div>
               <label htmlFor="email" className="text-sm text-gray-300">
-                Email
+                E-posta Adresi
               </label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="ornek@influmatch.com"
+                placeholder="ornek@mail.com"
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
                 required
               />
               <p className="mt-1 text-xs text-yellow-400">
-                Lütfen aktif kullandığınız bir e-posta adresi girin. Hesabınızı doğrulamak için onay kodu gönderilecektir.
+                Lütfen geçerli bir e-posta adresi girin.
               </p>
             </div>
             <div>
@@ -191,7 +184,7 @@ export default function SignupPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Minimum 6 karakter"
+                  placeholder="••••••••"
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 pr-12 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
                   minLength={6}
                   required
@@ -208,7 +201,7 @@ export default function SignupPage() {
             </div>
             <div>
               <label htmlFor="confirmPassword" className="text-sm text-gray-300">
-                Şifre Tekrar
+                Şifre Tekrarı
               </label>
               <div className="relative mt-2">
                 <input
@@ -216,10 +209,10 @@ export default function SignupPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Şifrenizi tekrar girin"
+                  placeholder="••••••••"
                   className={`w-full rounded-2xl border bg-white/5 px-5 py-4 pr-12 text-white placeholder:text-gray-500 focus:outline-none ${confirmPassword && !passwordMatch
-                      ? 'border-red-500/50 focus:border-red-500'
-                      : 'border-white/10 focus:border-soft-gold'
+                    ? 'border-red-500/50 focus:border-red-500'
+                    : 'border-white/10 focus:border-soft-gold'
                     }`}
                   minLength={6}
                   required
@@ -234,7 +227,7 @@ export default function SignupPage() {
                 </button>
               </div>
               {confirmPassword && !passwordMatch && (
-                <p className="mt-1 text-xs text-red-400">Şifreler eşleşmiyor</p>
+                <p className="mt-1 text-xs text-red-400">Şifreler eşleşmiyor.</p>
               )}
             </div>
 
@@ -255,18 +248,18 @@ export default function SignupPage() {
                   rel="noopener noreferrer"
                   className="font-semibold text-soft-gold underline-offset-4 hover:underline"
                 >
-                  Kullanıcı Sözleşmesi
+                  Kullanım Koşulları
                 </Link>
-                'ni ve{' '}
+                {' '}ve{' '}
                 <Link
                   href="/legal?tab=privacy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-soft-gold underline-offset-4 hover:underline"
                 >
-                  Aydınlatma Metni
+                  Gizlilik Politikası
                 </Link>
-                'ni okudum, verilerimin işlenmesine açık rıza veriyorum.
+                'nı okudum ve kabul ediyorum.
               </label>
             </div>
 
@@ -275,7 +268,7 @@ export default function SignupPage() {
               disabled={!isFormValid || isSubmitting}
               className="w-full rounded-full bg-soft-gold px-8 py-4 font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? 'Kaydediliyor...' : 'Hesabımı Oluştur'}
+              {isSubmitting ? 'Kayıt Olunuyor...' : 'Kayıt Ol'}
             </button>
           </form>
 
@@ -285,7 +278,7 @@ export default function SignupPage() {
           </div>
 
           <p className="mt-8 text-sm text-gray-400">
-            Zaten hesabın var mı?{' '}
+            Zaten hesabınız var mı?{' '}
             <Link href="/login" className="font-semibold text-soft-gold underline-offset-4 hover:underline">
               Giriş Yap
             </Link>
@@ -295,4 +288,3 @@ export default function SignupPage() {
     </main>
   )
 }
-

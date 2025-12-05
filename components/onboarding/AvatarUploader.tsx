@@ -26,7 +26,7 @@ export default function AvatarUploader({ label, imageUrl, isUploading, onFileCha
           {imageUrl ? (
             <Image src={imageUrl} alt="Avatar" fill sizes="80px" className="object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">Fotoğraf</div>
+            <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">Yükle</div>
           )}
         </div>
         <label className="cursor-pointer rounded-full border border-white/15 px-6 py-2 text-sm text-white transition hover:border-soft-gold/60 hover:text-soft-gold">
@@ -37,4 +37,3 @@ export default function AvatarUploader({ label, imageUrl, isUploading, onFileCha
     </div>
   )
 }
-

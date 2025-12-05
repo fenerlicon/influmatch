@@ -1,5 +1,4 @@
 'use client'
-// Force rebuild: 2
 
 import { Activity, TrendingUp, Users, MessageCircle, Heart, Zap } from 'lucide-react'
 
@@ -46,49 +45,49 @@ export default function InfluencerStats({ followerCount, engagementRate, statsPa
         if (mode === 'brand-view') {
             // Brand Perspective: Why work with this influencer?
             if (engagementRate > 5) {
-                analyses.push("Mükemmel etkileşim oranı! Takipçileri içeriklerine sadık, yüksek dönüşüm potansiyeli var.")
+                analyses.push("Yüksek etkileşim oranıyla dikkat çekiyor.")
             } else if (engagementRate > 3) {
-                analyses.push("İyi bir etkileşim oranına sahip. Marka bilinirliği çalışmaları için uygun.")
+                analyses.push("Ortalamanın üzerinde bir etkileşim oranına sahip.")
             } else {
-                analyses.push("Geniş kitlelere ulaşmak için kullanılabilir, ancak etkileşim odaklı kampanyalarda desteklenmeli.")
+                analyses.push("Gelişmekte olan bir etkileşim grafiği var.")
             }
 
             if (followerCount > 100000) {
-                analyses.push("Macro Influencer: Geniş kitlelere hızlı ulaşım ve yüksek marka bilinirliği sağlar.")
+                analyses.push("Geniş kitlelere ulaşan Macro Influencer.")
             } else if (followerCount > 10000) {
-                analyses.push("Micro Influencer: Niş odaklı ve sadık bir kitleye sahip. Hedefli pazarlama için ideal.")
+                analyses.push("Niş kitlelere hitap eden Micro Influencer.")
             } else {
-                analyses.push("Nano Influencer: Çok samimi ve güvenilir bir imajı var. Yerel veya çok spesifik ürünler için harika.")
+                analyses.push("Yüksek etkileşim potansiyeli olan Nano Influencer.")
             }
 
             if (safeStats.avg_comments > 0 && safeStats.avg_likes > 0) {
                 const commentToLikeRatio = (safeStats.avg_comments / safeStats.avg_likes) * 100
                 if (commentToLikeRatio > 5) {
-                    analyses.push("Yorum oranı yüksek: Topluluğu aktif olarak tartışmalara katılıyor, ürün geri bildirimi almak için mükemmel.")
+                    analyses.push("Takipçileriyle güçlü bir iletişimi var.")
                 }
             }
 
             if (safeStats.posting_frequency > 0 && safeStats.posting_frequency < 3) {
-                analyses.push("Sık paylaşım yapıyor: Hesabını güncel tutuyor ve takipçileriyle sürekli iletişim halinde.")
+                analyses.push("Düzenli içerik paylaşımı yapıyor.")
             }
         } else {
             // Influencer Perspective: How to grow?
             if (engagementRate > 5) {
-                analyses.push("Harika gidiyorsun! Takipçilerin seni seviyor. Bu tempoyu koru.")
+                analyses.push("Harika iş! Etkileşim oranlarınız çok iyi.")
             } else if (engagementRate > 3) {
-                analyses.push("Etkileşimin fena değil ama daha iyisi olabilir. Hikayelerde daha çok soru sormayı dene.")
+                analyses.push("İyi gidiyorsunuz, etkileşimleriniz stabil.")
             } else {
-                analyses.push("Etkileşim oranın biraz düşük. Takipçilerinle yorumlarda daha fazla sohbet etmeye çalış.")
+                analyses.push("Etkileşimi artırmak için takipçilerinizle daha fazla iletişime geçin.")
             }
 
             if (followerCount < 10000) {
-                analyses.push("Büyüme aşamasındasın. Reels videolarına ağırlık vererek keşfete düşme şansını artırabilirsin.")
+                analyses.push("Büyüme potansiyeliniz yüksek, düzenli paylaşıma devam edin.")
             }
 
             if (safeStats.avg_comments > 0 && safeStats.avg_likes > 0) {
                 const commentToLikeRatio = (safeStats.avg_comments / safeStats.avg_likes) * 100
                 if (commentToLikeRatio < 2) {
-                    analyses.push("Beğenilerin güzel ama yorum sayın az. Gönderi açıklamalarında takipçilerine sorular sorarak onları yorum yapmaya teşvik et.")
+                    analyses.push("Yorumları teşvik edici içerikler paylaşmayı deneyin.")
                 }
             }
         }
@@ -103,7 +102,7 @@ export default function InfluencerStats({ followerCount, engagementRate, statsPa
             {/* Identity & Basic Info Row */}
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
                 <div className="flex items-center gap-2 text-gray-300">
-                    <span className="text-xs uppercase tracking-wider text-gray-500">Instagram Kimliği:</span>
+                    <span className="text-xs uppercase tracking-wider text-gray-500">Instagram ID:</span>
                 </div>
 
                 {safeStats.is_verified && (
@@ -213,14 +212,14 @@ export default function InfluencerStats({ followerCount, engagementRate, statsPa
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-lg font-bold text-white">
-                                    {mode === 'brand-view' ? 'Yapay Zeka Marka Analizi' : 'Gelişim Tavsiyeleri'}
+                                    {mode === 'brand-view' ? 'Yapay Zeka Analizi' : 'Performans Analizi'}
                                 </h3>
                                 <span className="rounded-full bg-soft-gold/10 px-2 py-0.5 text-[10px] font-medium text-soft-gold border border-soft-gold/20">BETA</span>
                             </div>
                             <p className="mt-1 text-sm text-gray-400">
                                 {mode === 'brand-view'
-                                    ? 'Bu profilin markanız için potansiyel değeri.'
-                                    : 'Profilini büyütmek için yapay zeka destekli öneriler.'}
+                                    ? 'Bu influencer hakkında yapay zeka destekli içgörüler:'
+                                    : 'Profilinizi geliştirmek için öneriler:'}
                             </p>
 
                             <div className="mt-4 space-y-3">

@@ -5,44 +5,40 @@ interface ValueCard {
   metricValue: string
 }
 
-const valueCards: ValueCard[] = [
-  {
-    title: 'Güvenli İşbirliği',
-    description:
-      'Tüm teklif ve anlaşmalarınız kayıt altında. Ödeme ve teslimat süreçlerini güvenle yönetin.',
-    metricLabel: 'Veri güvenliği',
-    metricValue: 'Uçtan Uca Şifreli',
-  },
-  {
-    title: 'Akıllı Filtreleme',
-    description:
-      'İstediğiniz kriterlere uygun influencerları anında bulun. Kategori, şehir ve etkileşim oranına göre filtreleyin.',
-    metricLabel: 'Arama hızı',
-    metricValue: 'Milisaniyeler İçinde',
-  },
-  {
-    title: 'Öne Çıkanlar Vitrini',
-    description:
-      'Profilinizi binlerce markanın görebileceği vitrine taşıyın. Premium rozet ile fark yaratın.',
-    metricLabel: 'Görünürlük',
-    metricValue: 'Yüksek Erişim',
-  },
-  {
-    title: 'Profesyonel Yönetim Paneli',
-    description:
-      'Tüm iş süreçlerinizi tek bir ekrandan kolayca yönetin. Teklifler, mesajlar ve istatistikler elinizin altında.',
-    metricLabel: 'Kullanıcı deneyimi',
-    metricValue: 'Kullanıcı Dostu',
-  },
-]
-
-const highlightList = [
-  'Rol seçimi sonrası yönlendirme otomatik',
-  'Teklif statüleri: pending, accepted, rejected',
-  'Kabul edilen tekliflerde iletişim bilgileri açılır',
-]
-
 export default function ValueProposition() {
+  const valueCards: ValueCard[] = [
+    {
+      title: 'Güvenli Ödeme',
+      description: 'Ödemeleriniz iş tamamlanana kadar güvende tutulur.',
+      metricLabel: 'GÜVENLİK',
+      metricValue: '%100',
+    },
+    {
+      title: 'Gelişmiş Filtreleme',
+      description: 'Hedef kitlenize en uygun influencerları kolayca bulun.',
+      metricLabel: 'FİLTRE',
+      metricValue: '50+',
+    },
+    {
+      title: 'Vitrin Özelliği',
+      description: 'Başarılı kampanyalarınızı ve profilinizi öne çıkarın.',
+      metricLabel: 'GÖRÜNÜRLÜK',
+      metricValue: '10x',
+    },
+    {
+      title: 'Yönetim Paneli',
+      description: 'Tüm işbirliklerinizi tek bir yerden yönetin.',
+      metricLabel: 'KONTROL',
+      metricValue: 'Tam',
+    },
+  ]
+
+  const highlightList = [
+    'Rol bazlı özelleştirilmiş akış',
+    'Teklif durumu takibi',
+    'Doğrudan iletişim imkanı',
+  ]
+
   return (
     <section className="relative overflow-hidden px-6 py-20 md:px-12 lg:px-24 xl:px-32">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-[#0f0f16] to-[#050506] opacity-80" />
@@ -50,14 +46,13 @@ export default function ValueProposition() {
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1fr]">
           <div className="glass-panel rounded-[32px] p-8">
             <p className="text-sm uppercase tracking-[0.4em] text-soft-gold/80">
-              Mimari Farkı
+              NEDEN BİZ?
             </p>
             <h2 className="mt-4 text-3xl font-semibold text-white md:text-4xl">
               Neden <span className="text-soft-gold">Influmatch</span>?
             </h2>
             <p className="mt-4 text-base text-gray-300">
-              İki taraflı pazar yeri mimarisini MVP aşamasından itibaren Supabase
-              uyumlu şema, teklif döngüsü ve vitrin mantığı ile kuruyoruz.
+              Geleneksel ajans modellerinin aksine, Influmatch size özgürlük ve kontrol sağlar. Aracıları ortadan kaldırarak maliyetleri düşürür ve verimliliği artırırız.
             </p>
             <ul className="mt-8 space-y-4 text-gray-200">
               {highlightList.map((item) => (
@@ -72,10 +67,10 @@ export default function ValueProposition() {
             </ul>
             <div className="mt-10 rounded-2xl border border-soft-gold/40 bg-soft-gold/10 p-6">
               <p className="text-sm uppercase tracking-[0.3em] text-soft-gold">
-                Tek hedef
+                HEDEFİMİZ
               </p>
               <p className="mt-3 text-lg text-white">
-                Şeffaf, hızlı ve ölçülebilir eşleşmeler.
+                Influencer marketing dünyasını daha şeffaf, erişilebilir ve verimli hale getirmek.
               </p>
             </div>
           </div>
@@ -87,7 +82,7 @@ export default function ValueProposition() {
                 className="rounded-[28px] border border-white/5 bg-white/5 p-6 transition hover:border-soft-gold/50 hover:bg-white/10"
               >
                 <p className="text-sm uppercase tracking-[0.3em] text-soft-gold/70">
-                  Özellik
+                  ÖZELLİK
                 </p>
                 <h3 className="mt-3 text-xl font-semibold text-white">
                   {card.title}
@@ -109,4 +104,3 @@ export default function ValueProposition() {
     </section>
   )
 }
-

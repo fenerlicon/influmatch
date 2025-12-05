@@ -94,7 +94,7 @@ export default function OnboardingPage() {
           // Only show error if it's not a "not found" error (new users don't have profiles yet)
           if (error.code !== 'PGRST116' && error.message !== 'JSON object requested, multiple (or no) rows returned') {
             console.error('[OnboardingPage] Profile fetch error:', error)
-            setErrorMessage('Profil bilgileri alınamadı. Lütfen tekrar deneyin.')
+            setErrorMessage('Bir hata oluştu.')
           }
           // If profile doesn't exist, that's fine - user is new and will create it
         } else if (data) {
@@ -136,6 +136,43 @@ export default function OnboardingPage() {
     }
   }, [session, supabaseClient, isSessionLoading])
 
+  // Load saved form state from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedInfluencerForm = localStorage.getItem('onboarding_influencer_form')
+      const savedBrandForm = localStorage.getItem('onboarding_brand_form')
+
+      if (savedInfluencerForm) {
+        try {
+          setInfluencerForm(JSON.parse(savedInfluencerForm))
+        } catch (e) {
+          console.error('Failed to parse saved influencer form', e)
+        }
+      }
+
+      if (savedBrandForm) {
+        try {
+          setBrandForm(JSON.parse(savedBrandForm))
+        } catch (e) {
+          console.error('Failed to parse saved brand form', e)
+        }
+      }
+    }
+  }, [])
+
+  // Save form state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('onboarding_influencer_form', JSON.stringify(influencerForm))
+    }
+  }, [influencerForm])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('onboarding_brand_form', JSON.stringify(brandForm))
+    }
+  }, [brandForm])
+
   const handleAvatarUpload = async (file: File) => {
     if (!session) return
     setIsUploadingAvatar(true)
@@ -150,7 +187,7 @@ export default function OnboardingPage() {
     })
 
     if (uploadError) {
-      setErrorMessage('Avatar yüklenemedi. Lütfen tekrar deneyin.')
+      setErrorMessage('Bir hata oluştu.')
     } else {
       const { data } = supabaseClient.storage.from('avatars').getPublicUrl(filePath)
       setAvatarUrl(data.publicUrl)
@@ -170,12 +207,12 @@ export default function OnboardingPage() {
 
   const handleSubmit = async () => {
     if (!session) {
-      setErrorMessage('Oturum açmanız gerekiyor.')
+      setErrorMessage('Bir hata oluştu.')
       return
     }
 
     if (!role) {
-      setErrorMessage('Rol bilgisi bulunamadı. Lütfen tekrar giriş yapın.')
+      setErrorMessage('Bir hata oluştu.')
       return
     }
 
@@ -187,13 +224,13 @@ export default function OnboardingPage() {
     if (usernameToValidate && usernameToValidate.trim()) {
       const usernameValidation = validateUsername(usernameToValidate.trim().toLowerCase())
       if (!usernameValidation.isValid) {
-        setErrorMessage(usernameValidation.error || 'Kullanıcı adı geçersiz.')
+        setErrorMessage('Geçersiz kullanıcı adı.')
         setIsSaving(false)
         return
       }
     } else {
       // Username is required
-      setErrorMessage('Kullanıcı adı zorunludur.')
+      setErrorMessage('Kullanıcı adı gerekli.')
       setIsSaving(false)
       return
     }
@@ -211,24 +248,24 @@ export default function OnboardingPage() {
         (influencerForm.youtube && youtubeResult.isValid)
 
       if (!hasAtLeastOneSocial) {
-        setErrorMessage('En az 1 adet sosyal medya hesabı bilgisi girmeniz gerekmektedir.')
+        setErrorMessage('En az bir sosyal medya hesabı gerekli.')
         setIsSaving(false)
         return
       }
 
       // Validate format for filled fields
       if (influencerForm.instagram && !instagramResult.isValid) {
-        setErrorMessage('Instagram linki doğru formatta değil.')
+        setErrorMessage('Geçersiz format: Instagram')
         setIsSaving(false)
         return
       }
       if (influencerForm.tiktok && !tiktokResult.isValid) {
-        setErrorMessage('TikTok linki doğru formatta değil.')
+        setErrorMessage('Geçersiz format: TikTok')
         setIsSaving(false)
         return
       }
       if (influencerForm.youtube && !youtubeResult.isValid) {
-        setErrorMessage('YouTube linki doğru formatta değil.')
+        setErrorMessage('Geçersiz format: YouTube')
         setIsSaving(false)
         return
       }
@@ -246,29 +283,29 @@ export default function OnboardingPage() {
         (brandForm.youtube && youtubeResult.isValid)
 
       if (!hasAtLeastOneSocial) {
-        setErrorMessage('En az 1 adet sosyal medya hesabı veya website bilgisi girmeniz gerekmektedir.')
+        setErrorMessage('En az bir sosyal medya hesabı veya web sitesi gerekli.')
         setIsSaving(false)
         return
       }
 
       // Validate format for filled fields
       if (brandForm.website && !websiteResult.isValid) {
-        setErrorMessage('Website linki doğru formatta değil.')
+        setErrorMessage('Geçersiz format: Website')
         setIsSaving(false)
         return
       }
       if (brandForm.instagram && !instagramResult.isValid) {
-        setErrorMessage('Instagram linki doğru formatta değil.')
+        setErrorMessage('Geçersiz format: Instagram')
         setIsSaving(false)
         return
       }
       if (brandForm.tiktok && !tiktokResult.isValid) {
-        setErrorMessage('TikTok linki doğru formatta değil.')
+        setErrorMessage('Geçersiz format: TikTok')
         setIsSaving(false)
         return
       }
       if (brandForm.youtube && !youtubeResult.isValid) {
-        setErrorMessage('YouTube linki doğru formatta değil.')
+        setErrorMessage('Geçersiz format: YouTube')
         setIsSaving(false)
         return
       }
@@ -319,7 +356,7 @@ export default function OnboardingPage() {
     })
 
     if (!result.success) {
-      setErrorMessage(result.error || 'Profil kaydedilemedi. Lütfen tekrar deneyin.')
+      setErrorMessage(result.error || 'Bir hata oluştu.')
       setIsSaving(false)
       return
     }
@@ -330,6 +367,12 @@ export default function OnboardingPage() {
     router.refresh()
     router.replace('/dashboard')
     setIsSaving(false)
+
+    // Clear localStorage on successful submission
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('onboarding_influencer_form')
+      localStorage.removeItem('onboarding_brand_form')
+    }
   }
 
   if (!session && !isSessionLoading) {
@@ -340,12 +383,12 @@ export default function OnboardingPage() {
     <main className="px-6 py-24 md:px-12 lg:px-24">
       <div className="mx-auto max-w-5xl">
         <div className="glass-panel rounded-[32px] p-10">
-          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Onboarding</p>
-          <h1 className="mt-4 text-3xl font-semibold text-white">Profilini vitrinde hazırla</h1>
+          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">BAŞLANGIÇ</p>
+          <h1 className="mt-4 text-3xl font-semibold text-white">Profilini Tamamla</h1>
           <p className="mt-2 text-gray-300">
-            Rolün:{' '}
+            Seçilen Rol:{' '}
             <span className="text-soft-gold">
-              {role === 'brand' ? 'Marka' : role === 'influencer' ? 'Influencer' : 'Belirleniyor'}
+              {role === 'brand' ? 'Marka' : role === 'influencer' ? 'Influencer' : '...'}
             </span>
           </p>
 
@@ -374,7 +417,7 @@ export default function OnboardingPage() {
                 disabled={isSaving}
                 className="w-full rounded-full bg-soft-gold px-8 py-4 font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSaving ? 'Kaydediliyor...' : 'Kaydet ve Başla'}
+                {isSaving ? 'Kaydediliyor...' : 'Kaydet ve Devam Et'}
               </button>
             </div>
           )}

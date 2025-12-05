@@ -26,9 +26,8 @@ function BadgeItem({ badge }: BadgeItemProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`rounded-xl border ${config.borderColor} ${config.bgColor} p-3 transition-all cursor-help ${
-          isHovered ? 'scale-[1.02]' : ''
-        }`}
+        className={`rounded-xl border ${config.borderColor} ${config.bgColor} p-3 transition-all cursor-help ${isHovered ? 'scale-[1.02]' : ''
+          }`}
       >
         <div className="flex items-start gap-3">
           <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${config.bgColor}`}>
@@ -60,7 +59,7 @@ export default function BadgeCompactList({ badges, userRole }: BadgeCompactListP
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Rozetler</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">ROZETLER</p>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {badges.map((badge) => (
           <BadgeItem key={badge.id} badge={badge} />
@@ -69,4 +68,3 @@ export default function BadgeCompactList({ badges, userRole }: BadgeCompactListP
     </div>
   )
 }
-

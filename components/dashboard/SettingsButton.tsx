@@ -35,8 +35,7 @@ export default function SettingsButton({ role, size = 'default' }: SettingsButto
       href={settingsPaths[role]}
       className={`${baseClasses} ${sizeClasses} ${activeClasses}`}
     >
-      Settings
+      Ayarlar
     </Link>
   )
 }
-

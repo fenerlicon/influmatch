@@ -25,7 +25,7 @@ export const useSupabaseAuth = () => {
 
   const translateAuthError = (errorMessage: string): string => {
     const errorLower = errorMessage.toLowerCase()
-    
+
     // Login errors
     if (errorLower.includes('invalid login credentials') || errorLower.includes('invalid credentials')) {
       return 'Email veya şifre hatalı. Lütfen tekrar deneyin.'
@@ -36,7 +36,7 @@ export const useSupabaseAuth = () => {
     if (errorLower.includes('user not found')) {
       return 'Bu email adresi ile kayıtlı bir hesap bulunamadı.'
     }
-    
+
     // Signup errors
     if (errorLower.includes('user already registered')) {
       return 'Bu email adresi zaten kayıtlı. Giriş yapmayı deneyin.'
@@ -49,12 +49,19 @@ export const useSupabaseAuth = () => {
         return 'Şifre çok zayıf. Daha güçlü bir şifre seçin.'
       }
     }
-    
+
     // Network errors
     if (errorLower.includes('network') || errorLower.includes('fetch')) {
       return 'Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.'
     }
-    
+
+    // Rate limit errors
+    const rateLimitMatch = errorLower.match(/for security purposes, you can only request this after (\d+) seconds/);
+    if (rateLimitMatch) {
+      const seconds = rateLimitMatch[1];
+      return `Güvenlik nedeniyle, bu işlemi ${seconds} saniye sonra tekrar yapabilirsiniz.`;
+    }
+
     // Default: return original message if no translation found
     return errorMessage
   }

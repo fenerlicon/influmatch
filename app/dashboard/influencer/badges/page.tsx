@@ -31,7 +31,7 @@ export default function InfluencerBadgesPage() {
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-soft-gold" />
-          <p className="text-sm text-gray-400">Rozetler yükleniyor...</p>
+          <p className="text-sm text-gray-400">Yükleniyor...</p>
         </div>
       </div>
     )
@@ -43,18 +43,17 @@ export default function InfluencerBadgesPage() {
       <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#151621] to-[#0C0D10] p-6 text-white shadow-glow">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-soft-gold/30 bg-soft-gold/10 px-4 py-2">
           <Award className="h-4 w-4 text-soft-gold" />
-          <span className="text-xs uppercase tracking-[0.3em] text-soft-gold">Rozet Sistemi</span>
+          <span className="text-xs uppercase tracking-[0.3em] text-soft-gold">ROZETLER</span>
         </div>
         <h1 className="mt-2 text-3xl font-semibold text-white md:text-4xl">
-          Prestijin Yeni Tanımı:{' '}
+          Başarılarınızı{' '}
           <span className="bg-gradient-to-r from-soft-gold via-amber-300 to-soft-gold bg-clip-text text-transparent">
-            Influmatch Rozetleri
+            Sergileyin
           </span>
         </h1>
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-gray-300 md:text-base">
-          Rozetler, platformumuzda güveni ve prestiji simgeler. Kimlik doğrulamasından başarı metriklerine kadar,
-          her rozet profilinizin görünürlüğünü artırır ve markaların sizi keşfetmesini kolaylaştırır. Algoritmamız,
-          rozetli profilleri önceliklendirerek daha fazla işbirliği fırsatı sunar.
+          Platform üzerindeki başarılarınızı ve güvenilirliğinizi rozetlerle kanıtlayın.
+          Her rozet size özel ayrıcalıklar ve görünürlük kazandırır.
         </p>
       </header>
 
@@ -78,13 +77,12 @@ export default function InfluencerBadgesPage() {
             >
               <div className="mb-6 flex items-center gap-3">
                 <div
-                  className={`h-1 w-12 rounded-full bg-gradient-to-r ${
-                    phase === 'mvp'
-                      ? 'from-amber-500'
-                      : phase === 'v1.2'
-                        ? 'from-slate-500 opacity-70'
-                        : 'from-purple-500 opacity-70'
-                  } to-transparent`}
+                  className={`h-1 w-12 rounded-full bg-gradient-to-r ${phase === 'mvp'
+                    ? 'from-amber-500'
+                    : phase === 'v1.2'
+                      ? 'from-slate-500 opacity-70'
+                      : 'from-purple-500 opacity-70'
+                    } to-transparent`}
                 />
                 <h2 className={`text-xl font-semibold ${config.textColor} md:text-2xl`}>{config.label}</h2>
               </div>
@@ -106,4 +104,3 @@ export default function InfluencerBadgesPage() {
     </div>
   )
 }
-

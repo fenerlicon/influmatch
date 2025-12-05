@@ -67,7 +67,7 @@ export default function BadgeDetailList({ badgeIds, userRole }: BadgeDetailListP
 
   return (
     <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-      <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Rozetler</p>
+      <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">ROZETLER</p>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {badges.map((badge) => (
           <BadgeItem key={badge.id} badge={badge} />
@@ -76,4 +76,3 @@ export default function BadgeDetailList({ badgeIds, userRole }: BadgeDetailListP
     </section>
   )
 }
-

@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId } from '@/app/admin/actions'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -42,14 +42,8 @@ interface AdminPanelProps {
   brandCount?: number
 }
 
-const tabs = [
-  { key: 'pending', label: 'Onay Bekleyenler', count: 0 },
-  { key: 'verified', label: 'Onaylılar', count: 0 },
-  { key: 'rejected', label: 'Reddedilenler', count: 0 },
-  { key: 'notifications', label: 'Bildirim Gönder', count: 0 },
-] as const
-
-type TabKey = (typeof tabs)[number]['key']
+const TAB_KEYS = ['pending', 'verified', 'rejected', 'notifications'] as const
+type TabKey = (typeof TAB_KEYS)[number]
 
 export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0 }: AdminPanelProps) {
   const supabase = useSupabaseClient()
@@ -76,6 +70,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         return []
     }
   })
+
+  const tabs = [
+    { key: 'pending', label: 'Bekleyen', count: 0 },
+    { key: 'verified', label: 'Onaylı', count: 0 },
+    { key: 'rejected', label: 'Reddedilen', count: 0 },
+    { key: 'notifications', label: 'Bildirimler', count: 0 },
+  ] as const
 
   const tabsWithCounts = tabs.map((tab) => ({
     ...tab,
@@ -474,6 +475,28 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
+  const handleResendVerificationEmail = async (userId: string) => {
+    if (!confirm('Bu kullanıcıya doğrulama e-postasını tekrar göndermek istediğinizden emin misiniz?')) {
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await resendVerificationEmail(userId)
+        if (result.error) {
+          alert(result.error)
+          console.error('Resend verification error:', result.error)
+        } else {
+          alert(result.message || 'Doğrulama e-postası tekrar gönderildi.')
+          console.log('Verification email resent successfully for user:', userId)
+        }
+      } catch (error) {
+        console.error('Resend verification exception:', error)
+        alert('Bir hata oluştu.')
+      }
+    })
+  }
+
   const getAvailableBadges = (userRole: 'influencer' | 'brand' | null) => {
     if (userRole === 'influencer') {
       return influencerBadges
@@ -536,22 +559,22 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         <div className="glass-panel rounded-[32px] p-10">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Admin Paneli</p>
-              <h1 className="mt-4 text-3xl font-semibold text-white">Hesap Doğrulama Sistemi</h1>
-              <p className="mt-2 text-gray-300">Kullanıcı hesaplarını detaylı inceleyin ve doğrulama durumlarını yönetin.</p>
+              <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">YÖNETİCİ PANELİ</p>
+              <h1 className="mt-4 text-3xl font-semibold text-white">Kullanıcı Yönetimi</h1>
+              <p className="mt-2 text-gray-300">Platformdaki tüm kullanıcıları buradan yönetebilirsiniz.</p>
 
               {/* Statistics */}
               <div className="mt-6 grid grid-cols-3 gap-4">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Toplam Üye</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">TOPLAM KULLANICI</p>
                   <p className="mt-2 text-2xl font-semibold text-soft-gold">{totalUsers}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Influencer</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">INFLUENCER</p>
                   <p className="mt-2 text-2xl font-semibold text-blue-400">{influencerCount}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Marka</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">MARKA</p>
                   <p className="mt-2 text-2xl font-semibold text-purple-400">{brandCount}</p>
                 </div>
               </div>
@@ -607,7 +630,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="İsim, email veya kullanıcı adı ile ara..."
+                  placeholder="İsim, e-posta veya kullanıcı adı ara..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder-gray-500 focus:border-soft-gold/60 focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
@@ -656,7 +679,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                           Onaylanıyor...
                         </>
                       ) : (
-                        `Seçili ${selectedUserIds.size} Kullanıcıyı Onayla`
+                        `${selectedUserIds.size} Kullanıcıyı Onayla`
                       )}
                     </button>
                   )}
@@ -672,7 +695,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         Reddediliyor...
                       </>
                     ) : (
-                      `Seçili ${selectedUserIds.size} Kullanıcıyı Reddet`
+                      `${selectedUserIds.size} Kullanıcıyı Reddet`
                     )}
                   </button>
                 </div>
@@ -690,9 +713,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {currentUsers.length === 0 ? (
                 <div className="col-span-full rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-gray-400">
-                  {activeTab === 'pending' && 'Onay bekleyen kullanıcı bulunmuyor.'}
-                  {activeTab === 'verified' && 'Onaylı kullanıcı bulunmuyor.'}
-                  {activeTab === 'rejected' && 'Reddedilen kullanıcı bulunmuyor.'}
+                  {activeTab === 'pending' && 'Bekleyen kullanıcı bulunmamaktadır.'}
+                  {activeTab === 'verified' && 'Onaylı kullanıcı bulunmamaktadır.'}
+                  {activeTab === 'rejected' && 'Reddedilen kullanıcı bulunmamaktadır.'}
                 </div>
               ) : (
                 currentUsers.map((user) => {
@@ -735,7 +758,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                           {user.avatar_url ? (
                             <Image
                               src={user.avatar_url}
-                              alt={user.full_name ?? 'Kullanıcı'}
+                              alt={user.full_name ?? 'İsimsiz'}
                               fill
                               sizes="64px"
                               className="object-cover"
@@ -752,28 +775,27 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             <p className="text-sm text-gray-400 truncate">@{user.username}</p>
                           )}
                           <div className="mt-1 flex flex-wrap items-center gap-2">
-                            {user.email_verified_at ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
-                                <CheckCircle className="h-3 w-3" />
-                                E-posta Onaylı
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                E-posta Bekliyor
-                              </span>
+
+                            {!user.email_verified_at && (
+                              <button
+                                onClick={() => handleResendVerificationEmail(user.id)}
+                                className="inline-flex items-center gap-1 rounded-full border border-soft-gold/40 bg-soft-gold/10 px-2 py-0.5 text-[10px] font-medium text-soft-gold hover:bg-soft-gold/20"
+                              >
+                                <Mail className="h-3 w-3" />
+                                Doğrulama E-postası Gönder
+                              </button>
                             )}
 
                             {/* Data Verification Status */}
                             {user.displayed_badges?.includes('data-verified') ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
                                 <Database className="h-3 w-3" />
-                                Veri Doğrulandı
+                                Veri Onaylı
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
                                 <Database className="h-3 w-3" />
-                                Veri Doğrulanmadı
+                                Veri Onaysız
                               </span>
                             )}
                           </div>
@@ -795,7 +817,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                 }`}
                             >
                               {user.verification_status === 'pending'
-                                ? 'Beklemede'
+                                ? 'Bekliyor'
                                 : user.verification_status === 'verified'
                                   ? 'Onaylı'
                                   : 'Reddedildi'}
@@ -809,10 +831,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         <div className="mt-4 rounded-2xl border-2 border-yellow-500/50 bg-yellow-500/15 p-3 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
                           <div className="flex items-center gap-2 text-xs font-semibold text-yellow-300 mb-1">
                             <AlertCircle className="h-3.5 w-3.5" />
-                            ⚠️ Vergi Numarası Onay Bekliyor
+                            ⚠️ Vergi No Onayı Bekliyor
                           </div>
                           <p className="text-xs text-yellow-200/90">
-                            Bu markanın vergi numarası girilmiş ancak henüz onaylanmamış. Onaylamak için aşağıdaki &quot;Vergi Numarasını Onayla&quot; butonunu kullanın.
+                            Bu marka vergi numarasını girdi ancak henüz onaylanmadı.
                           </p>
                         </div>
                       )}
@@ -822,11 +844,11 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3">
                           <div className="flex items-center gap-2 text-xs font-semibold text-blue-300 mb-2">
                             <Info className="h-3.5 w-3.5" />
-                            Profil Bilgi Durumu
+                            Profil Durumu
                           </div>
                           <div className="space-y-1.5 text-xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-gray-300">Sosyal Medya Hesapları:</span>
+                              <span className="text-gray-300">Sosyal Hesaplar:</span>
                               <span className={`font-semibold ${getSocialLinksCount(user) >= 1 ? 'text-emerald-300' : 'text-red-300'}`}>
                                 {getSocialLinksCount(user)} / En az 1 gerekli
                               </span>
@@ -839,7 +861,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                     <li key={idx}>{info}</li>
                                   ))}
                                   {getMissingInfo(user).length > 3 && (
-                                    <li className="text-gray-500">+{getMissingInfo(user).length - 3} daha...</li>
+                                    <li className="text-gray-500">+{getMissingInfo(user).length - 3} daha</li>
                                   )}
                                 </ul>
                               </div>
@@ -872,20 +894,20 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
                           <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
                             <Award className="h-3.5 w-3.5" />
-                            Kurumsal Doğrulama Bilgileri
+                            Şirket Doğrulama Bilgileri
                           </div>
 
                           {/* Tax ID */}
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs text-gray-400">Vergi Numarası:</span>
+                              <span className="text-xs text-gray-400">Vergi No:</span>
                               {user.tax_id ? (
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-mono text-white">{user.tax_id}</span>
                                   {user.tax_id_verified ? (
                                     <div className="flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1">
                                       <CheckCircle className="h-3 w-3 text-emerald-300" />
-                                      <span className="text-xs font-semibold text-emerald-300">Onaylandı</span>
+                                      <span className="text-xs font-semibold text-emerald-300">Onaylı</span>
                                     </div>
                                   ) : (
                                     <button
@@ -903,7 +925,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-xs text-gray-500">Vergi bilgisi girilmedi</span>
+                                <span className="text-xs text-gray-500">Girilmedi</span>
                               )}
                             </div>
                           </div>
@@ -911,7 +933,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                           {/* Company Legal Name */}
                           {user.company_legal_name && (
                             <div className="space-y-1">
-                              <span className="text-xs text-gray-400">Resmi Şirket Unvanı:</span>
+                              <span className="text-xs text-gray-400">Yasal Şirket Adı:</span>
                               <p className="text-sm text-white">{user.company_legal_name}</p>
                             </div>
                           )}
@@ -931,10 +953,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
                                 <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
                                   <CheckCircle className="h-4 w-4" />
-                                  Bu hesap güvenilir görünüyor
+                                  Güvenilir Hesap
                                 </div>
                                 <p className="mt-1 text-xs text-gray-400">
-                                  Email domain ({emailDomain}) ve website domain ({websiteDomain}) eşleşiyor.
+                                  E-posta domaini ({emailDomain}) ile web sitesi ({websiteDomain}) eşleşiyor.
                                 </p>
                               </div>
                             ) : null
@@ -998,7 +1020,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         <div className="mt-4 border-t border-white/10 pt-4">
                           <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
                             <FileText className="h-3.5 w-3.5" />
-                            Biyografi
+                            BİYOGRAFİ
                           </div>
                           <p className={`text-sm text-gray-300 ${!isExpanded ? 'line-clamp-3' : ''}`}>
                             {user.bio}
@@ -1032,7 +1054,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         <div className="mt-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-3">
                           <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-yellow-300 mb-1">
                             <AlertCircle className="h-3.5 w-3.5" />
-                            Admin Notu
+                            YÖNETİCİ NOTU
                           </div>
                           <p className="text-xs text-yellow-200/90">{user.admin_notes}</p>
                         </div>
@@ -1062,7 +1084,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             {instagramLink && (
                               <div className="mb-2 flex items-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
                                 <AlertCircle className="h-3.5 w-3.5 text-yellow-300" />
-                                <span className="text-xs text-yellow-200">Instagram'ı kontrol et</span>
+                                <span className="text-xs text-yellow-200">Instagram'ı Kontrol Et</span>
                               </div>
                             )}
                             <button
@@ -1105,7 +1127,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-500/60 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-300 transition hover:border-blue-500 hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <Award className="h-4 w-4" />
-                              Manuel Rozet Ver
+                              Rozet Ver
                             </button>
                             <button
                               type="button"
@@ -1121,7 +1143,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               ) : (
                                 <Star className={`h-4 w-4 ${user.spotlight_active ? 'fill-purple-300 text-purple-300' : ''}`} />
                               )}
-                              {user.spotlight_active ? 'Spotlight Aktif' : 'Spotlight Deaktif'}
+                              {user.spotlight_active ? 'Spotlight Aktif' : 'Spotlight Pasif'}
                             </button>
                             <button
                               type="button"
@@ -1167,7 +1189,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Manuel Rozet Ver</h3>
+              <h3 className="text-lg font-semibold text-white">Rozet Ver</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -1182,14 +1204,14 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
             <div className="mb-4">
               <label className="mb-2 block text-sm font-medium text-gray-300">
-                Rozet Seç
+                Verilecek Rozeti Seçin
               </label>
               <select
                 value={selectedBadgeId}
                 onChange={(e) => setSelectedBadgeId(e.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
               >
-                <option value="">-- Rozet seçin --</option>
+                <option value="">Rozet seçin...</option>
                 {getAvailableBadges(
                   users.find((u) => u.id === badgeModalUserId)?.role ?? 'influencer'
                 ).map((badge) => (
@@ -1223,7 +1245,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                     Veriliyor...
                   </>
                 ) : (
-                  'Rozet Ver'
+                  'Rozeti Ver'
                 )}
               </button>
             </div>

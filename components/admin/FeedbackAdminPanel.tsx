@@ -95,11 +95,10 @@ export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdmi
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                    isActive
-                      ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
+                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   {tab.label} ({tab.count})
                 </button>

@@ -30,7 +30,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
 
     startTransition(async () => {
       const result = await deleteAccount()
-      
+
       if (result.success) {
         // Redirect to login
         if (result.redirect) {
@@ -78,19 +78,19 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
         <div className="mb-6 space-y-4">
           <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
             <p className="text-sm text-red-200">
-              Hesabınızı silmek istediğinizden emin misiniz? Bu işlem:
+              Hesabınızı silmek istediğinizden emin misiniz?
             </p>
             <ul className="mt-2 space-y-1 text-xs text-red-300/80">
-              <li>• Tüm profil bilgilerinizi kalıcı olarak silecek</li>
-              <li>• Tüm mesajlarınızı ve konuşmalarınızı silecek</li>
-              <li>• Tüm teklif ve başvurularınızı silecek</li>
-              <li>• Bu işlem geri alınamaz</li>
+              <li>• Tüm verileriniz kalıcı olarak silinecektir.</li>
+              <li>• Profiliniz artık görüntülenemeyecektir.</li>
+              <li>• Mevcut abonelikleriniz iptal edilecektir.</li>
+              <li>• Bu işlem geri alınamaz.</li>
             </ul>
           </div>
 
           <div>
             <label htmlFor="confirmText" className="mb-2 block text-sm font-medium text-gray-300">
-              Onaylamak için <span className="font-mono font-bold text-red-400">{CONFIRM_TEXT}</span> yazın
+              Onaylamak için <span className="font-mono font-bold text-red-400">SİL</span> yazın
             </label>
             <input
               id="confirmText"
@@ -99,7 +99,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
               onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
               disabled={isPending}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 transition focus:border-red-500/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 disabled:opacity-50"
-              placeholder={CONFIRM_TEXT}
+              placeholder="SİL"
               autoComplete="off"
             />
           </div>
@@ -125,11 +125,10 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
             disabled={isPending || !isConfirmed}
             className="flex-1 rounded-xl border border-red-500/60 bg-red-500/20 px-4 py-3 text-sm font-semibold text-red-200 transition hover:border-red-500 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isPending ? 'Siliniyor...' : 'Hesabı Kalıcı Olarak Sil'}
+            {isPending ? 'Siliniyor...' : 'Hesabı Sil'}
           </button>
         </form>
       </div>
     </div>
   )
 }
-

@@ -38,9 +38,7 @@ export default function SignOutButton({ size = 'default' }: SignOutButtonProps) 
       disabled={isLoading}
       className={`${baseClasses} ${sizeClasses} disabled:cursor-not-allowed disabled:opacity-60`}
     >
-      {isLoading ? 'Çıkış yapılıyor...' : 'Çıkış Yap'}
+      {isLoading ? 'Çıkış Yapılıyor...' : 'Çıkış Yap'}
     </button>
   )
 }
-
-

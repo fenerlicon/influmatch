@@ -52,4 +52,3 @@ export default function BadgeCard({ badge, phase }: BadgeCardProps) {
     </div>
   )
 }
-

@@ -21,10 +21,12 @@ interface SaveAdvertPayload {
   deadline: string | null
   status?: string
   description?: string
+  payment_type?: string
+  custom_questions?: any[]
 }
 
 export async function saveBrandAdvert(payload: SaveAdvertPayload) {
-  const { id, title, summary, category, brand_name, platforms, deliverables, budget_currency, budget_min, budget_max, location, hero_image, deadline, status, description } = payload
+  const { id, title, summary, category, brand_name, platforms, deliverables, budget_currency, budget_min, budget_max, location, hero_image, deadline, status, description, payment_type, custom_questions } = payload
 
   if (!title?.trim()) {
     return { error: 'İlan başlığı gereklidir.' }
@@ -71,6 +73,8 @@ export async function saveBrandAdvert(payload: SaveAdvertPayload) {
     brand_user_id: user.id,
     brand_id: user.id,
     description: description?.trim() || '',
+    payment_type: payment_type || 'cash',
+    custom_questions: custom_questions || [],
   }
 
   if (status) {
@@ -175,7 +179,7 @@ export async function getOrCreateAdvertApplicationRoom(applicationId: string) {
     .eq('brand_id', brandId)
     .eq('influencer_id', influencerId)
     .is('offer_id', null) // Not an offer room
-    
+
   if (roomError1 && roomError1.code !== 'PGRST116') {
     console.error('[getOrCreateAdvertApplicationRoom] room check error', roomError1.message)
   }
@@ -201,7 +205,7 @@ export async function getOrCreateAdvertApplicationRoom(applicationId: string) {
     brand_id: brandId,
     influencer_id: influencerId,
   }
-  
+
   // Try to add advert_application_id if column exists
   try {
     roomData.advert_application_id = applicationId

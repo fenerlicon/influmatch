@@ -241,11 +241,10 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                    isActive
-                      ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`flex items-center gap-2 whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
+                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   <span>{tab.label}</span>
                   <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">{count}</span>
@@ -272,27 +271,24 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                       key={ticket.id}
                       type="button"
                       onClick={() => setSelectedTicket(ticket)}
-                      className={`w-full rounded-2xl border p-4 text-left transition ${
-                        isSelected
-                          ? 'border-soft-gold/60 bg-soft-gold/10 shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                          : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
-                      }`}
+                      className={`w-full rounded-2xl border p-4 text-left transition ${isSelected
+                        ? 'border-soft-gold/60 bg-soft-gold/10 shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                        : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-xs font-semibold text-soft-gold">#{ticketNumber}</span>
                             <span
-                              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${
-                                priorityColors[ticket.priority]
-                              }`}
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${priorityColors[ticket.priority]
+                                }`}
                             >
                               {ticket.priority}
                             </span>
                             <span
-                              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${
-                                statusColors[ticket.status]
-                              }`}
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${statusColors[ticket.status]
+                                }`}
                             >
                               {statusLabels[ticket.status]}
                             </span>
@@ -323,16 +319,14 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-lg font-semibold text-soft-gold">#{getTicketNumber(selectedTicket)}</span>
                         <span
-                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${
-                            priorityColors[selectedTicket.priority]
-                          }`}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${priorityColors[selectedTicket.priority]
+                            }`}
                         >
                           {selectedTicket.priority}
                         </span>
                         <span
-                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${
-                            statusColors[selectedTicket.status]
-                          }`}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${statusColors[selectedTicket.status]
+                            }`}
                         >
                           {statusLabels[selectedTicket.status]}
                         </span>
@@ -437,11 +431,10 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                       type="button"
                       onClick={() => handleStatusChange(selectedTicket.id, 'open')}
                       disabled={isPending || selectedTicket.status === 'open'}
-                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${
-                        selectedTicket.status === 'open'
-                          ? 'border-yellow-500/60 bg-yellow-500/20 text-yellow-300'
-                          : 'border-white/10 bg-white/5 text-white hover:border-white/20'
-                      }`}
+                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${selectedTicket.status === 'open'
+                        ? 'border-yellow-500/60 bg-yellow-500/20 text-yellow-300'
+                        : 'border-white/10 bg-white/5 text-white hover:border-white/20'
+                        }`}
                     >
                       Açık
                     </button>
@@ -449,11 +442,10 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                       type="button"
                       onClick={() => handleStatusChange(selectedTicket.id, 'in_progress')}
                       disabled={isPending || selectedTicket.status === 'in_progress'}
-                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${
-                        selectedTicket.status === 'in_progress'
-                          ? 'border-blue-500/60 bg-blue-500/20 text-blue-300'
-                          : 'border-white/10 bg-white/5 text-white hover:border-white/20'
-                      }`}
+                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${selectedTicket.status === 'in_progress'
+                        ? 'border-blue-500/60 bg-blue-500/20 text-blue-300'
+                        : 'border-white/10 bg-white/5 text-white hover:border-white/20'
+                        }`}
                     >
                       İşlemde
                     </button>
@@ -461,11 +453,10 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                       type="button"
                       onClick={() => handleStatusChange(selectedTicket.id, 'closed')}
                       disabled={isPending || selectedTicket.status === 'closed'}
-                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${
-                        selectedTicket.status === 'closed'
-                          ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300'
-                          : 'border-white/10 bg-white/5 text-white hover:border-white/20'
-                      }`}
+                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${selectedTicket.status === 'closed'
+                        ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300'
+                        : 'border-white/10 bg-white/5 text-white hover:border-white/20'
+                        }`}
                     >
                       Kapat
                     </button>

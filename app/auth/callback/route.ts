@@ -4,19 +4,19 @@ import type { NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
-  
+
   // Log all parameters for debugging
   console.log('[auth/callback] Received request:', {
     url: requestUrl.toString(),
     searchParams: Object.fromEntries(requestUrl.searchParams),
     pathname: requestUrl.pathname,
   })
-  
+
   const token_hash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
   const access_token = requestUrl.searchParams.get('access_token')
   const refresh_token = requestUrl.searchParams.get('refresh_token')
-  
+
   // Check for error parameters (only from query params, hash is client-side only)
   const error = requestUrl.searchParams.get('error')
   const errorCode = requestUrl.searchParams.get('error_code')
@@ -26,15 +26,31 @@ export async function GET(request: NextRequest) {
   // Only check for actual error values, not empty strings
   if (error && error.trim() !== '') {
     console.error('[auth/callback] Error from Supabase:', { error, errorCode, errorDescription })
-    
+
     let errorMessage = 'verification_failed'
     if (errorCode === 'otp_expired') {
       errorMessage = 'email_link_expired'
     } else if (error === 'access_denied' || errorCode === 'access_denied') {
       errorMessage = 'verification_denied'
     }
-    
+
     return NextResponse.redirect(new URL(`/login?error=${errorMessage}`, requestUrl.origin))
+  }
+
+  // Handle code exchange (PKCE flow)
+  const code = requestUrl.searchParams.get('code')
+  if (code) {
+    const supabase = createSupabaseServerClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (!error) {
+      console.log('[auth/callback] Code exchange successful, clearing session and redirecting to login')
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/login?verified=true', requestUrl.origin))
+    } else {
+      console.error('[auth/callback] Code exchange error:', error)
+      return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))
+    }
   }
 
   const supabase = createSupabaseServerClient()

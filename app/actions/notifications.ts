@@ -105,3 +105,47 @@ export async function markAllNotificationsAsRead(userId: string) {
         return { success: false, error: 'Bir hata oluştu' }
     }
 }
+
+export async function deleteNotification(notificationId: string) {
+    const supabase = createSupabaseServerClient()
+
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('id', notificationId)
+
+        if (error) {
+            console.error('Error deleting notification:', error)
+            return { success: false, error: error.message }
+        }
+
+        revalidatePath('/dashboard')
+        return { success: true }
+    } catch (error) {
+        console.error('Exception deleting notification:', error)
+        return { success: false, error: 'Bir hata oluştu' }
+    }
+}
+
+export async function deleteAllNotifications(userId: string) {
+    const supabase = createSupabaseServerClient()
+
+    try {
+        const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error deleting all notifications:', error)
+            return { success: false, error: error.message }
+        }
+
+        revalidatePath('/dashboard')
+        return { success: true }
+    } catch (error) {
+        console.error('Exception deleting all notifications:', error)
+        return { success: false, error: 'Bir hata oluştu' }
+    }
+}

@@ -26,6 +26,13 @@ export interface AdvertProject {
   deadline: string | null
   status: string
   createdAt: string
+  paymentType?: 'cash' | 'barter' | 'other'
+  customQuestions?: {
+    id: string
+    type: 'text' | 'single_select' | 'multiple_choice'
+    question: string
+    options?: string[]
+  }[]
 }
 
 interface AdvertProjectsListProps {
@@ -76,9 +83,9 @@ const formatDate = (value: string | null) => {
   }).format(date)
 }
 
-export default function AdvertProjectsList({ 
-  projects, 
-  initialAppliedIds = [], 
+export default function AdvertProjectsList({
+  projects,
+  initialAppliedIds = [],
   mode = 'influencer',
   currentUserId,
   myProjectIds = []
@@ -91,7 +98,7 @@ export default function AdvertProjectsList({
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set(initialAppliedIds))
   const [submittingId, setSubmittingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  
+
   const myProjectIdsSet = useMemo(() => new Set(myProjectIds), [myProjectIds])
 
   useEffect(() => {
@@ -195,8 +202,8 @@ export default function AdvertProjectsList({
             // Check if this project belongs to the current user
             const isMyProject = isBrandMode && currentUserId && project.brandUserId === currentUserId
             return (
-              <article 
-                key={project.id} 
+              <article
+                key={project.id}
                 onClick={() => setSelectedProject(project)}
                 className="group flex h-full flex-col cursor-pointer rounded-3xl border border-white/10 bg-[#0B0C10] p-4 text-white transition duration-300 ease-out hover:-translate-y-1 hover:border-soft-gold/70 hover:shadow-glow"
               >
@@ -278,11 +285,11 @@ export default function AdvertProjectsList({
 
       {/* Project Detail Modal */}
       {selectedProject && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => setSelectedProject(null)}
         >
-          <div 
+          <div
             className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0E0F15] p-6 text-white shadow-glow"
             onClick={(e) => e.stopPropagation()}
           >
@@ -447,9 +454,8 @@ export default function AdvertProjectsList({
                     </div>
                     {feedback[selectedProject.id] && (
                       <p
-                        className={`text-sm ${
-                          feedback[selectedProject.id].type === 'success' ? 'text-emerald-300' : 'text-red-300'
-                        }`}
+                        className={`text-sm ${feedback[selectedProject.id].type === 'success' ? 'text-emerald-300' : 'text-red-300'
+                          }`}
                       >
                         {feedback[selectedProject.id].message}
                       </p>

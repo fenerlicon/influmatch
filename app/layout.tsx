@@ -1,13 +1,13 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import SupabaseProvider from '@/components/providers/SupabaseProvider'
 import './globals.css'
+import { Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
+import AuthProvider from '@/components/providers/AuthProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'Influmatch - Doğrudan İşbirliği Platformu',
-  description: 'Markalar ve Influencer\'ların ajans olmadan doğrudan bir araya geldiği platform',
+export const metadata = {
+  title: 'Influmatch',
+  description: 'Influencer ve Markaları Buluşturan Platform',
 }
 
 export default function RootLayout({
@@ -17,10 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr">
-      <body className={`${inter.className} bg-background text-white antialiased`}>
-        <SupabaseProvider>{children}</SupabaseProvider>
+      <body className={inter.className}>
+        <AuthProvider>
+          {children}
+          <Toaster position="top-center" richColors />
+        </AuthProvider>
       </body>
     </html>
   )
 }
-

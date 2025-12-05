@@ -67,69 +67,69 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
 
   const handleInput =
     (field: keyof InfluencerFormState) =>
-    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      let value = event.target.value
-      
-      // Normalize username to lowercase
-      if (field === 'username') {
-        value = value.toLowerCase()
-      }
-      
-      onChange(field, value)
-      
-      // Validate username format
-      if (field === 'username') {
-        const validation = validateUsername(value)
-        if (validation.isValid) {
+      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        let value = event.target.value
+
+        // Normalize username to lowercase
+        if (field === 'username') {
+          value = value.toLowerCase()
+        }
+
+        onChange(field, value)
+
+        // Validate username format
+        if (field === 'username') {
+          const validation = validateUsername(value)
+          if (validation.isValid) {
+            setValidationErrors((prev) => ({
+              ...prev,
+              username: undefined,
+            }))
+          } else {
+            setValidationErrors((prev) => ({
+              ...prev,
+              username: validation.error,
+            }))
+            setUsernameStatus('idle') // Don't check availability if format is invalid
+            return
+          }
+        }
+
+        // Reset username status when username changes
+        if (field === 'username') {
+          setUsernameStatus('idle')
+        }
+
+        // Validate social links in real-time
+        if (field === 'instagram') {
+          const result = validateInstagram(value)
           setValidationErrors((prev) => ({
             ...prev,
-            username: undefined,
+            instagram: result.isValid ? undefined : result.error,
           }))
-        } else {
+          if (result.isValid && result.normalizedUrl) {
+            onChange(field, result.normalizedUrl)
+          }
+        } else if (field === 'tiktok') {
+          const result = validateTikTok(value)
           setValidationErrors((prev) => ({
             ...prev,
-            username: validation.error,
+            tiktok: result.isValid ? undefined : result.error,
           }))
-          setUsernameStatus('idle') // Don't check availability if format is invalid
-          return
+          if (result.isValid && result.normalizedUrl) {
+            onChange(field, result.normalizedUrl)
+          }
+        } else if (field === 'youtube') {
+          const result = validateYouTube(value)
+          setValidationErrors((prev) => ({
+            ...prev,
+            youtube: result.isValid ? undefined : result.error,
+          }))
+          if (result.isValid && result.normalizedUrl) {
+            onChange(field, result.normalizedUrl)
+          }
         }
       }
-
-      // Reset username status when username changes
-      if (field === 'username') {
-        setUsernameStatus('idle')
-      }
-
-      // Validate social links in real-time
-      if (field === 'instagram') {
-        const result = validateInstagram(value)
-        setValidationErrors((prev) => ({
-          ...prev,
-          instagram: result.isValid ? undefined : result.error,
-        }))
-        if (result.isValid && result.normalizedUrl) {
-          onChange(field, result.normalizedUrl)
-        }
-      } else if (field === 'tiktok') {
-        const result = validateTikTok(value)
-        setValidationErrors((prev) => ({
-          ...prev,
-          tiktok: result.isValid ? undefined : result.error,
-        }))
-        if (result.isValid && result.normalizedUrl) {
-          onChange(field, result.normalizedUrl)
-        }
-      } else if (field === 'youtube') {
-        const result = validateYouTube(value)
-        setValidationErrors((prev) => ({
-          ...prev,
-          youtube: result.isValid ? undefined : result.error,
-        }))
-        if (result.isValid && result.normalizedUrl) {
-          onChange(field, result.normalizedUrl)
-        }
-      }
-    }
 
   return (
     <div className="space-y-6">
@@ -142,7 +142,7 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
             id="fullName"
             value={form.fullName}
             onChange={handleInput('fullName')}
-            placeholder="Örn. Ayşe Yılmaz"
+            placeholder="Adınız Soyadınız"
             className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
           />
         </div>
@@ -154,26 +154,25 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
             id="username"
             value={form.username}
             onChange={handleInput('username')}
-            placeholder="@kullaniciadi"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${
-              validationErrors.username || usernameStatus === 'taken'
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : usernameStatus === 'available'
-                  ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
-                  : 'border-white/10 bg-white/5 focus:border-soft-gold'
-            }`}
+            placeholder="kullaniciadi"
+            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.username || usernameStatus === 'taken'
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : usernameStatus === 'available'
+                ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
+                : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              }`}
           />
           {validationErrors.username && (
             <p className="mt-1 text-xs text-red-400">{validationErrors.username}</p>
           )}
           {!validationErrors.username && usernameStatus === 'checking' && (
-            <p className="mt-1 text-xs text-gray-400">Kullanıcı adı kontrol ediliyor...</p>
+            <p className="mt-1 text-xs text-gray-400">Kontrol ediliyor...</p>
           )}
           {!validationErrors.username && usernameStatus === 'available' && (
-            <p className="mt-1 text-xs text-emerald-400">Kullanıcı adı müsait</p>
+            <p className="mt-1 text-xs text-emerald-400">Kullanılabilir</p>
           )}
           {!validationErrors.username && usernameStatus === 'taken' && (
-            <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı kullanılmakta</p>
+            <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı alınmış</p>
           )}
         </div>
       </div>
@@ -187,7 +186,7 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
           value={form.bio}
           onChange={handleInput('bio')}
           rows={4}
-          placeholder="Kendinden ve içerik tarzından bahset."
+          placeholder="Kendinizden kısaca bahsedin..."
           className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
         />
       </div>
@@ -220,7 +219,7 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
             onChange={handleInput('city')}
             className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
           >
-            <option value="">Şehir seçin</option>
+            <option value="">Şehir Seçin</option>
             {TURKISH_CITIES.map((city) => (
               <option key={city} value={city}>
                 {city}
@@ -240,12 +239,11 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
             type="text"
             value={form.instagram}
             onChange={handleInput('instagram')}
-            placeholder="@kullaniciadi veya https://instagram.com/..."
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${
-              validationErrors.instagram
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
-            }`}
+            placeholder="Kullanıcı adı veya link"
+            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.instagram
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              }`}
           />
           {validationErrors.instagram && (
             <p className="mt-1 text-xs text-red-300">{validationErrors.instagram}</p>
@@ -260,12 +258,11 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
             type="text"
             value={form.tiktok}
             onChange={handleInput('tiktok')}
-            placeholder="@kullaniciadi veya https://tiktok.com/@..."
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${
-              validationErrors.tiktok
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
-            }`}
+            placeholder="Kullanıcı adı veya link"
+            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.tiktok
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              }`}
           />
           {validationErrors.tiktok && (
             <p className="mt-1 text-xs text-red-300">{validationErrors.tiktok}</p>
@@ -280,12 +277,11 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
             type="text"
             value={form.youtube}
             onChange={handleInput('youtube')}
-            placeholder="@kullaniciadi veya https://youtube.com/@..."
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${
-              validationErrors.youtube
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
-            }`}
+            placeholder="Kanal adı veya link"
+            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.youtube
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              }`}
           />
           {validationErrors.youtube && (
             <p className="mt-1 text-xs text-red-300">{validationErrors.youtube}</p>
@@ -295,4 +291,3 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
     </div>
   )
 }
-

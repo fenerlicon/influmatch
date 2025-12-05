@@ -90,7 +90,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
   // Handle initialUserId - open conversation with specific user
   useEffect(() => {
     if (!initialUserId) return
-    
+
     // Don't allow opening conversation with yourself
     if (initialUserId === currentUserId) return
 
@@ -117,7 +117,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         // Room exists, use it
         const room = existingRooms[0]
         setSelectedRoomId(room.id)
-        
+
         // Get user info and add to conversations
         const { data: userInfo } = await supabase
           .from('users')
@@ -222,7 +222,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
       // Filter rooms that involve the other participant
       const relevantRooms: Array<{ id: string; created_at: string }> = []
       const newRoomParticipantMap = new Map<string, string>()
-      
+
       for (const room of allRooms ?? []) {
         const roomOtherId = room.brand_id === currentUserId ? room.influencer_id : room.brand_id
         // Filter out self - don't include rooms where the other participant is yourself
@@ -233,7 +233,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
           relevantRooms.push({ id: room.id, created_at: room.created_at })
         }
       }
-      
+
       setRoomParticipantMap(newRoomParticipantMap)
 
       if (relevantRooms.length === 0) return
@@ -261,7 +261,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         primaryRoomId = mostRecentMessage.room_id
       } else {
         // If no messages, use the oldest room
-        const sortedRooms = [...relevantRooms].sort((a, b) => 
+        const sortedRooms = [...relevantRooms].sort((a, b) =>
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         )
         primaryRoomId = sortedRooms[0]?.id ?? relevantRoomIds[0]
@@ -294,7 +294,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         },
         (payload) => {
           const newMessage = payload.new as any
-          
+
           // Get participant ID for this room from map
           const messageParticipantId = roomParticipantMap.get(newMessage.room_id)
           if (!messageParticipantId) {
@@ -304,7 +304,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
           }
 
           // Find conversation with this participant
-          const conversation = conversations.find((conv) => 
+          const conversation = conversations.find((conv) =>
             conv.otherParticipant?.id === messageParticipantId
           )
 
@@ -322,8 +322,8 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                     senderId: newMessage.sender_id,
                   },
                   unreadCount:
-                    newMessage.sender_id !== currentUserId && 
-                    (!selectedRoomId || !activeRoomIds.includes(newMessage.room_id))
+                    newMessage.sender_id !== currentUserId &&
+                      (!selectedRoomId || !activeRoomIds.includes(newMessage.room_id))
                       ? (conv.unreadCount ?? 0) + 1
                       : conv.unreadCount,
                 }
@@ -363,11 +363,11 @@ export default function MessagesPage({ currentUserId, role, initialConversations
       const diffHours = Math.floor(diffMs / 3600000)
       const diffDays = Math.floor(diffMs / 86400000)
 
-      if (diffMins < 1) return 'şimdi'
-      if (diffMins < 60) return `${diffMins} dakika önce`
-      if (diffHours < 24) return `${diffHours} saat önce`
-      if (diffDays < 7) return `${diffDays} gün önce`
-      
+      if (diffMins < 1) return 'Şimdi'
+      if (diffMins < 60) return `${diffMins}dk önce`
+      if (diffHours < 24) return `${diffHours}s önce`
+      if (diffDays < 7) return `${diffDays}g önce`
+
       return date.toLocaleDateString('tr-TR', {
         day: 'numeric',
         month: 'short',
@@ -379,7 +379,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
 
   const handleSelectConversation = async (roomId: string) => {
     setSelectedRoomId(roomId)
-    
+
     // Mark all messages in this room as read
     const { data: roomMessages } = await supabase
       .from('messages')
@@ -476,7 +476,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
             <div className="flex h-full items-center justify-center p-6">
-              <p className="text-sm text-gray-400 text-center">Henüz mesajınız yok</p>
+              <p className="text-sm text-gray-400 text-center">Henüz mesajınız yok.</p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
@@ -491,9 +491,8 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                     key={conversation.roomId}
                     type="button"
                     onClick={() => handleSelectConversation(conversation.roomId)}
-                    className={`w-full p-4 text-left transition hover:bg-white/5 ${
-                      isSelected ? 'bg-white/10 border-l-2 border-soft-gold' : ''
-                    }`}
+                    className={`w-full p-4 text-left transition hover:bg-white/5 ${isSelected ? 'bg-white/10 border-l-2 border-soft-gold' : ''
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -519,9 +518,8 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                           <div className="flex items-center gap-2">
                             <div
                               onClick={(e) => handleOpenProfile(conversation.otherParticipant!.id, e)}
-                              className={`text-sm font-semibold truncate hover:text-soft-gold transition cursor-pointer ${
-                                isUnread ? 'text-white' : 'text-gray-300'
-                              }`}
+                              className={`text-sm font-semibold truncate hover:text-soft-gold transition cursor-pointer ${isUnread ? 'text-white' : 'text-gray-300'
+                                }`}
                             >
                               {conversation.otherParticipant.fullName}
                             </div>
@@ -529,7 +527,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                               <div className="group relative flex-shrink-0">
                                 <BadgeCheck className={`h-4 w-4 ${conversation.otherParticipant.role === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
                                 <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                                  {conversation.otherParticipant.role === 'brand' ? 'Onaylanmış İşletme' : 'Onaylı hesap'}
+                                  {conversation.otherParticipant.role === 'brand' ? 'Onaylı İşletme' : 'Onaylı Hesap'}
                                 </div>
                               </div>
                             )}
@@ -542,15 +540,14 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <p
-                            className={`text-xs truncate ${
-                              isUnread ? 'text-white font-medium' : 'text-gray-400'
-                            }`}
+                            className={`text-xs truncate ${isUnread ? 'text-white font-medium' : 'text-gray-400'
+                              }`}
                           >
                             {conversation.lastMessage
                               ? conversation.lastMessage.senderId === currentUserId
-                                ? `Sen: ${conversation.lastMessage.content}`
+                                ? `Siz: ${conversation.lastMessage.content}`
                                 : conversation.lastMessage.content
-                              : 'Mesaj yok'}
+                              : 'İçerik yok'}
                           </p>
                           {isUnread && (
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white flex-shrink-0">
@@ -598,7 +595,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
           <div className="flex h-full items-center justify-center p-6">
             <div className="text-center">
               <p className="text-lg font-semibold text-gray-300 mb-2">Bir konuşma seçin</p>
-              <p className="text-sm text-gray-500">Mesajlaşmak için sol taraftan bir konuşma seçin</p>
+              <p className="text-sm text-gray-500">Mesajlaşmaya başlamak için soldaki listeden birini seçin.</p>
             </div>
           </div>
         )}
@@ -625,7 +622,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
 
             {profileLoading ? (
               <div className="flex min-h-[400px] items-center justify-center p-8">
-                <p className="text-gray-400">Yükleniyor...</p>
+                <p className="text-gray-400">Profil yükleniyor...</p>
               </div>
             ) : profileData ? (
               <div className="p-8">
@@ -653,7 +650,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                           <BadgeCheck className={`h-6 w-6 transition-all hover:scale-110 cursor-pointer ${profileData.role === 'brand' ? 'text-soft-gold hover:text-soft-gold/80' : 'text-blue-500 hover:text-blue-400'}`} />
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
                             <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
-                              {profileData.role === 'brand' ? 'Onaylanmış İşletme' : 'Onaylı hesap'}
+                              {profileData.role === 'brand' ? 'Onaylı İşletme' : 'Onaylı Hesap'}
                               <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
                                 <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
                               </div>
@@ -676,17 +673,17 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                           type="button"
                           onClick={async () => {
                             if (!profileModalUserId) return
-                            
+
                             // Optimistic update - immediately update UI
                             setProfileData((prev) => prev ? { ...prev, isBlocked: false } : null)
-                            
+
                             const { unblockUser } = await import('@/app/dashboard/users/block/actions')
                             const result = await unblockUser(profileModalUserId)
-                            
+
                             if (!result.success) {
                               // Revert if failed
                               setProfileData((prev) => prev ? { ...prev, isBlocked: true } : null)
-                              alert(result.error || 'Engel kaldırılamadı.')
+                              alert(result.error || 'İşlem başarısız.')
                             }
                           }}
                           className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 transition hover:border-emerald-400 hover:bg-emerald-500/20"
@@ -761,7 +758,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               </div>
             ) : (
               <div className="flex min-h-[400px] items-center justify-center p-8">
-                <p className="text-gray-400">Profil bilgileri yüklenemedi.</p>
+                <p className="text-gray-400">Profil yüklenemedi.</p>
               </div>
             )}
           </div>
@@ -770,4 +767,3 @@ export default function MessagesPage({ currentUserId, role, initialConversations
     </div>
   )
 }
-

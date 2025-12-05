@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/app/actions/notifications'
+import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react'
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, deleteAllNotifications } from '@/app/actions/notifications'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
@@ -99,6 +99,26 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
         await markAllNotificationsAsRead(userId)
     }
 
+    const handleDelete = async (id: string, isRead: boolean) => {
+        // Optimistic update
+        setNotifications((prev) => prev.filter((n) => n.id !== id))
+        if (!isRead) {
+            setUnreadCount((prev) => Math.max(0, prev - 1))
+        }
+
+        await deleteNotification(id)
+    }
+
+    const handleDeleteAll = async () => {
+        if (!confirm('Tüm bildirimleri silmek istediğinizden emin misiniz?')) return
+
+        // Optimistic update
+        setNotifications([])
+        setUnreadCount(0)
+
+        await deleteAllNotifications(userId)
+    }
+
     const getIcon = (type: string) => {
         switch (type) {
             case 'success':
@@ -175,15 +195,24 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
                                                     <p className={`text-sm font-medium ${!notification.is_read ? 'text-white' : 'text-gray-300'}`}>
                                                         {notification.title}
                                                     </p>
-                                                    {!notification.is_read && (
+                                                    <div className="flex items-center gap-1">
+                                                        {!notification.is_read && (
+                                                            <button
+                                                                onClick={() => handleMarkAsRead(notification.id)}
+                                                                className="flex-shrink-0 rounded-full p-1 text-soft-gold hover:bg-soft-gold/10"
+                                                                title="Okundu işaretle"
+                                                            >
+                                                                <div className="h-2 w-2 rounded-full bg-soft-gold" />
+                                                            </button>
+                                                        )}
                                                         <button
-                                                            onClick={() => handleMarkAsRead(notification.id)}
-                                                            className="flex-shrink-0 rounded-full p-1 text-soft-gold hover:bg-soft-gold/10"
-                                                            title="Okundu işaretle"
+                                                            onClick={() => handleDelete(notification.id, notification.is_read)}
+                                                            className="flex-shrink-0 rounded-full p-1 text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                                                            title="Sil"
                                                         >
-                                                            <div className="h-2 w-2 rounded-full bg-soft-gold" />
+                                                            <Trash2 className="h-3.5 w-3.5" />
                                                         </button>
-                                                    )}
+                                                    </div>
                                                 </div>
                                                 <p className="mt-0.5 text-xs text-gray-400 line-clamp-2">
                                                     {notification.message}
@@ -211,6 +240,18 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
                                 </div>
                             )}
                         </div>
+
+                        {notifications.length > 0 && (
+                            <div className="border-t border-white/5 p-2">
+                                <button
+                                    onClick={handleDeleteAll}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl p-2 text-xs text-gray-400 transition hover:bg-white/5 hover:text-white"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Tümünü Temizle
+                                </button>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -12,14 +12,14 @@ export default function AccountSettings() {
     <>
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-xl font-semibold text-white">Hesap Ayarları</h2>
-        <p className="mt-1 text-sm text-gray-400">Hesap yönetimi seçenekleri</p>
-        
+        <p className="mt-1 text-sm text-gray-400">Hesap güvenliğinizi ve tercihlerinizi yönetin.</p>
+
         <div className="mt-6 space-y-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-white">Şifre Değiştir</p>
-                <p className="mt-1 text-xs text-gray-400">Hesap şifrenizi güncelleyin</p>
+                <p className="mt-1 text-xs text-gray-400">Hesabınızın şifresini güncelleyin.</p>
               </div>
               <button
                 type="button"
@@ -30,12 +30,12 @@ export default function AccountSettings() {
               </button>
             </div>
           </div>
-          
+
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-red-200">Hesabı Sil</p>
-                <p className="mt-1 text-xs text-red-300/70">Hesabınızı kalıcı olarak silin</p>
+                <p className="mt-1 text-xs text-red-300/70">Hesabınızı ve tüm verilerinizi kalıcı olarak silin.</p>
               </div>
               <button
                 type="button"
@@ -54,4 +54,3 @@ export default function AccountSettings() {
     </>
   )
 }
-

@@ -49,10 +49,10 @@ export async function verifyUser(userId: string) {
     }
   } catch (badgeError) {
     console.error('[verifyUser] Badge awarding error:', badgeError)
-    // Don't fail the verification if badge awarding fails, but log the error
-    return { 
-      success: true, 
-      warning: `Kullanıcı onaylandı ancak rozet verme hatası: ${badgeError instanceof Error ? badgeError.message : 'Bilinmeyen hata'}` 
+    // Don't fail the verification if badge awarding fails, but log it
+    return {
+      success: true,
+      warning: `Kullanıcı onaylandı ancak rozet verme hatası: ${badgeError instanceof Error ? badgeError.message : 'Bilinmeyen hata'}`
     }
   }
 
@@ -166,11 +166,11 @@ export async function manuallyAwardBadges(userId: string) {
     revalidatePath('/admin')
     revalidatePath(`/dashboard/influencer/badges`)
     revalidatePath(`/dashboard/brand/badges`)
-    
+
     if (result.error) {
       return { error: result.error }
     }
-    
+
     if (result.awarded > 0) {
       return { success: true, message: `${result.awarded} rozet verildi.` }
     } else {
@@ -225,7 +225,7 @@ export async function manuallyAwardSpecificBadge(userId: string, badgeId: string
     revalidatePath('/admin')
     revalidatePath(`/dashboard/influencer/badges`)
     revalidatePath(`/dashboard/brand/badges`)
-    
+
     return { success: true, message: `Rozet "${badgeId}" başarıyla verildi.` }
   } catch (error: any) {
     console.error('[manuallyAwardSpecificBadge] Error:', error)
@@ -270,7 +270,7 @@ export async function toggleUserSpotlight(userId: string, spotlightActive: boole
   revalidatePath('/admin')
   revalidatePath('/dashboard/influencer')
   revalidatePath('/vitrin')
-  
+
   return { success: true, message: spotlightActive ? 'Spotlight aktif edildi.' : 'Spotlight deaktif edildi.' }
 }
 
@@ -338,22 +338,82 @@ export async function verifyTaxId(userId: string) {
     if (rpcError) {
       console.error('[verifyTaxId] Badge awarding error:', rpcError)
       // Don't fail if badge awarding fails, but log it
-      return { 
-        success: true, 
-        warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${rpcError.message}` 
+      return {
+        success: true,
+        warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${rpcError.message}`
       }
     }
   } catch (badgeError) {
     console.error('[verifyTaxId] Badge awarding exception:', badgeError)
-    return { 
-      success: true, 
-      warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${badgeError instanceof Error ? badgeError.message : 'Bilinmeyen hata'}` 
+    return {
+      success: true,
+      warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${badgeError instanceof Error ? badgeError.message : 'Bilinmeyen hata'}`
     }
   }
 
   revalidatePath('/admin')
-  revalidatePath(`/dashboard/brand/badges`)
-  revalidatePath(`/dashboard/brand`)
-  
+  revalidatePath('/dashboard/brand/badges')
+  revalidatePath('/dashboard/brand')
+
   return { success: true, message: 'Vergi numarası onaylandı ve "Resmi İşletme" rozeti verildi.' }
+}
+
+// Resend verification email to a user (admin only)
+export async function resendVerificationEmail(userId: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  // Get target user email
+  const { data: targetUser, error: fetchError } = await supabase
+    .from('users')
+    .select('email')
+    .eq('id', userId)
+    .single()
+
+  if (fetchError || !targetUser?.email) {
+    return { error: 'Kullanıcı veya email adresi bulunamadı.' }
+  }
+
+  // Use admin client to resend verification email
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Bir hata oluştu.' }
+  }
+
+  // Resend signup verification email
+  const { error } = await supabaseAdmin.auth.resend({
+    type: 'signup',
+    email: targetUser.email,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+    }
+  })
+
+  if (error) {
+    console.error('[resendVerificationEmail] Error:', error)
+    return { error: 'Bir hata oluştu.' }
+  }
+
+  return { success: true, message: 'Doğrulama e-postası gönderildi.' }
 }

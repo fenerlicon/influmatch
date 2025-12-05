@@ -181,11 +181,10 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                    isActive
-                      ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
+                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   {tab.label} ({reports.filter(r => tab.key === 'all' ? true : r.status === tab.key).length})
                 </button>
@@ -213,9 +212,8 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-4">
                         <span
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                            STATUS_STYLES[report.status]
-                          }`}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[report.status]
+                            }`}
                         >
                           {report.status === 'pending'
                             ? 'Beklemede'

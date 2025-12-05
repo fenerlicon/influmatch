@@ -23,22 +23,20 @@ export default function LoginPage() {
 
     if (verified === 'true') {
       setSuccessMessage('Mail adresiniz doğrulanmıştır, lütfen tekrar giriş yapın.')
-      // Clean URL after showing message
       router.replace('/login', { scroll: false })
     } else if (error === 'account_deleted') {
-      setAccountDeletedError('Bu hesap silinmiş. Lütfen yeni bir hesap oluşturun.')
+      setAccountDeletedError('Hesabınız silinmiştir.')
       router.replace('/login', { scroll: false })
     } else if (error === 'rate_limit' && message) {
       setAccountDeletedError(decodeURIComponent(message))
       router.replace('/login', { scroll: false })
     } else if (error === 'email_link_expired') {
-      setAccountDeletedError('Email doğrulama linkinin süresi dolmuş. Lütfen yeni bir doğrulama emaili isteyin.')
+      setAccountDeletedError('E-posta bağlantısının süresi dolmuş.')
       router.replace('/login', { scroll: false })
     } else if (error === 'verification_denied') {
-      setAccountDeletedError('Email doğrulama işlemi reddedildi. Lütfen tekrar deneyin.')
+      setAccountDeletedError('Doğrulama reddedildi.')
       router.replace('/login', { scroll: false })
     } else if (error === 'verification_failed') {
-      // Remove this error message as requested
       router.replace('/login', { scroll: false })
     }
   }, [searchParams, router])
@@ -52,8 +50,7 @@ export default function LoginPage() {
     const { data, error } = await signInWithEmail({ email, password })
 
     if (!error && data.user) {
-      setSuccessMessage('Giriş başarılı, profil bilgilerinizi tamamlamak için yönlendiriliyorsunuz...')
-      // Redirect to dashboard - let the dashboard layout handle onboarding redirection if needed
+      setSuccessMessage('Giriş başarılı! Yönlendiriliyorsunuz...')
       setTimeout(() => {
         router.push('/dashboard')
       }, 1200)
@@ -64,21 +61,21 @@ export default function LoginPage() {
     <main className="px-6 py-24 md:px-12 lg:px-24">
       <div className="mx-auto max-w-3xl">
         <div className="glass-panel rounded-[32px] p-10">
-          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Giriş Yap</p>
-          <h1 className="mt-4 text-3xl font-semibold text-white">Tekrar hoş geldin</h1>
-          <p className="mt-2 text-gray-300">Email ve şifrenle giriş yaparak panelini aç.</p>
+          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">GİRİŞ YAP</p>
+          <h1 className="mt-4 text-3xl font-semibold text-white">Hesabınıza Giriş Yapın</h1>
+          <p className="mt-2 text-gray-300">Hoş geldiniz! Lütfen bilgilerinizi girin.</p>
 
           <form onSubmit={handleSubmit} className="mt-10 space-y-6">
             <div>
               <label htmlFor="email" className="text-sm text-gray-300">
-                Email
+                E-posta Adresi
               </label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="ornek@influmatch.com"
+                placeholder="ornek@mail.com"
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
                 required
               />
@@ -92,7 +89,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Şifreni gir"
+                placeholder="••••••••"
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
                 minLength={6}
                 required
@@ -103,7 +100,7 @@ export default function LoginPage() {
               disabled={!isFormValid || isSubmitting}
               className="w-full rounded-full bg-soft-gold px-8 py-4 font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+              {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
 
@@ -114,7 +111,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-8 text-sm text-gray-400">
-            Henüz hesabın yok mu?{' '}
+            Hesabınız yok mu?{' '}
             <Link href="/signup-role" className="font-semibold text-soft-gold underline-offset-4 hover:underline">
               Hemen Başla
             </Link>
@@ -124,4 +121,3 @@ export default function LoginPage() {
     </main>
   )
 }
-

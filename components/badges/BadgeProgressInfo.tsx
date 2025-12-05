@@ -76,31 +76,27 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
   const futureBadges = allBadges.filter((b) => b.phase !== 'mvp')
 
   const getBadgeRequirement = (badge: Badge): string => {
-    const badgeRequirements: Record<string, string> = {
-      // Influencer MVP
-      'verified-account': 'Hesabınızın admin tarafından onaylanması gerekiyor.',
-      'founder-member': 'İlk 1000 üye arasında olmanız gerekiyor. Bu rozet artık verilemez.',
-      'corporate': 'Vergi levhası bilgilerinizi profilinize eklemeniz gerekiyor. (Yakında)',
-      'profile-expert': 'Profilinizi %100 tamamlamanız gerekiyor.',
-      'brand-ambassador': 'Referans linkinizle yeni üyeler kazandırmanız gerekiyor. (Yakında)',
-      // Brand MVP
-      'official-business': 'Hesabınızın admin tarafından onaylanması gerekiyor.',
-      'pioneer-brand': 'İlk 100 marka arasında olmanız gerekiyor. Bu rozet artık verilemez.',
-      'showcase-brand': 'Profilinizi %100 tamamlamanız gerekiyor.',
-      // Future badges
-      'lightning-fast': 'Mesajlara 30 dakika içinde cevap vermelisiniz. (v1.2 sürümünde aktif)',
-      'five-star': '5 yıldız değerlendirme almalısınız. (v1.2 sürümünde aktif)',
-      'trendsetter': 'Yüksek etkileşim oranlarına sahip olmalısınız. (v1.2 sürümünde aktif)',
-      'million-club': '1 milyondan fazla takipçiniz olmalı. (v1.3 sürümünde aktif)',
-      'conversion-wizard': 'Yüksek satış dönüşüm oranlarına sahip olmalısınız. (v1.3 sürümünde aktif)',
-      'jet-approval': 'Teklifleri hızlıca onaylamalısınız. (v1.2 sürümünde aktif)',
-      'elite-budget': 'Yüksek bütçeli teklifler vermelisiniz. (v1.2 sürümünde aktif)',
-      'communication-expert': 'Hızlı ve kibar iletişim kurmalısınız. (v1.2 sürümünde aktif)',
-      'loyal-partner': 'Aynı kişilerle tekrar çalışmalısınız. (v1.3 sürümünde aktif)',
-      'global': 'Uluslararası kampanyalar yapmalısınız. (v1.3 sürümünde aktif)',
+    // This logic was previously relying on translation keys.
+    // Now we need to map badge IDs to their requirements in Turkish.
+    // Since we don't have the translation file content readily available here for all keys,
+    // I will use a mapping based on common badge IDs or default to a generic message if specific ones are missing.
+    // Ideally, this information should come from the badge data itself if refactored further.
+
+    const requirements: Record<string, string> = {
+      'verified-account': 'Hesabınızı doğrulayarak bu rozeti kazanabilirsiniz.',
+      'rising-star': 'Son 30 günde etkileşim oranınızı %20 artırın.',
+      'community-leader': '1000+ takipçiye ulaşın ve aktif bir topluluk oluşturun.',
+      'content-creator': 'Düzenli olarak haftada en az 3 içerik paylaşın.',
+      'trend-setter': 'İçerikleriniz keşfet sayfasında yer alsın.',
+      'brand-favorite': 'En az 5 marka ile başarılı işbirliği yapın.',
+      'reliable-partner': 'İşbirliklerini zamanında ve eksiksiz tamamlayın.',
+      'early-adopter': 'Platformun ilk üyelerinden biri olun.',
+      'premium-member': 'Premium üyelik avantajlarından yararlanın.',
+      'corporate': 'Kurumsal hesap doğrulamasını tamamlayın.',
+      'brand-ambassador': 'Marka elçisi programına katılın.'
     }
 
-    return badgeRequirements[badge.id] || 'Bu rozet için gereksinimler yakında açıklanacak.'
+    return requirements[badge.id] || 'Bu rozeti kazanmak için platformdaki aktivitelerinizi artırın.'
   }
 
   const isComingSoon = (badge: Badge): boolean => {
@@ -111,7 +107,7 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
   if (isLoading) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-gray-400">
-        Rozet bilgileri yükleniyor...
+        Yükleniyor...
       </div>
     )
   }
@@ -124,9 +120,9 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
       <div className="mb-6 flex items-start gap-3">
         <Info className="h-5 w-5 flex-shrink-0 text-soft-gold md:h-6 md:w-6" />
         <div>
-          <h2 className="text-xl font-semibold text-white md:text-2xl">MVP Rozet Durumunuz</h2>
+          <h2 className="text-xl font-semibold text-white md:text-2xl">Rozet Durumu</h2>
           <p className="mt-1 text-sm text-gray-400">
-            MVP sürümünde {mvpBadges.length} rozet bulunmaktadır. {ownedMvpBadges.length} tanesine sahipsiniz.
+            Toplam {mvpBadges.length} başlangıç rozetinden {ownedMvpBadges.length} tanesine sahipsiniz.
           </p>
         </div>
       </div>
@@ -158,7 +154,7 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
       {unownedMvpBadges.length > 0 && (
         <div className="mb-6 space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-amber-300">
-            Kazanılabilir Rozetler ({unownedMvpBadges.length})
+            Kazanabileceğiniz Rozetler ({unownedMvpBadges.length})
           </h3>
           <div className="space-y-2">
             {unownedMvpBadges.map((badge) => {
@@ -166,29 +162,25 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
               return (
                 <div
                   key={badge.id}
-                  className={`flex items-start gap-3 rounded-2xl border p-4 transition-transform hover:scale-[1.01] ${
-                    comingSoon
-                      ? 'border-amber-500/25 bg-amber-500/8 opacity-85'
-                      : 'border-amber-500/30 bg-amber-500/10'
-                  }`}
+                  className={`flex items-start gap-3 rounded-2xl border p-4 transition-transform hover:scale-[1.01] ${comingSoon
+                    ? 'border-amber-500/25 bg-amber-500/8 opacity-85'
+                    : 'border-amber-500/30 bg-amber-500/10'
+                    }`}
                 >
                   <Circle
-                    className={`h-5 w-5 flex-shrink-0 ${
-                      comingSoon ? 'text-amber-500/70' : 'text-amber-400'
-                    }`}
+                    className={`h-5 w-5 flex-shrink-0 ${comingSoon ? 'text-amber-500/70' : 'text-amber-400'
+                      }`}
                   />
                   <div className="flex-1">
                     <p
-                      className={`font-semibold ${
-                        comingSoon ? 'text-white/90' : 'text-white'
-                      }`}
+                      className={`font-semibold ${comingSoon ? 'text-white/90' : 'text-white'
+                        }`}
                     >
                       {badge.name}
                     </p>
                     <p
-                      className={`mt-1 text-sm ${
-                        comingSoon ? 'text-gray-300/90' : 'text-gray-300'
-                      }`}
+                      className={`mt-1 text-sm ${comingSoon ? 'text-gray-300/90' : 'text-gray-300'
+                        }`}
                     >
                       {badge.description}
                     </p>
@@ -205,15 +197,13 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
       {futureBadges.length > 0 && (
         <div className="mt-6 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-purple-300">
-            Gelecek Sürümlerde Gelecek Rozetler
+            Gelecek Rozetler
           </h3>
           <p className="text-sm text-gray-300">
-            v1.2 ve v1.3 sürümlerinde {futureBadges.length} yeni rozet daha eklenecek. Bu rozetler için gereksinimler
-            sürüm yayınlandığında açıklanacak.
+            {futureBadges.length} yeni rozet yakında platforma eklenecek. Takipte kalın!
           </p>
         </div>
       )}
     </div>
   )
 }
-

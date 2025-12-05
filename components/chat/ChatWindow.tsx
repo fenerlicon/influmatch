@@ -66,7 +66,7 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
     // If activeRoomIds is provided (messages page), subscribe to all those rooms
     // Otherwise, subscribe to just the single roomId
     const roomsToSubscribe = activeRoomIds && activeRoomIds.length > 0 ? activeRoomIds : [roomId]
-    
+
     const channels = roomsToSubscribe.map((rId) => {
       return supabase
         .channel(`room-${rId}`)
@@ -129,7 +129,7 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
   const handleSend = async () => {
     const content = inputValue.trim()
     if (!content) return
-    
+
     if (isBlocked) {
       alert('Bu kullanıcı sizi engellemiş. Mesaj gönderemezsiniz.')
       return
@@ -142,14 +142,14 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
 
     setIsSending(true)
     setInputValue('')
-    
+
     // Use server action to send message (includes blocking check)
     const result = await sendMessage(roomId, content)
-    
+
     if (!result.success) {
       console.error('Chat send failed', result.error)
       setInputValue(content)
-      
+
       // Check if error is due to blocking
       if (result.error?.includes('engelle') || result.error?.includes('block')) {
         setIsBlocked(true)
@@ -255,11 +255,10 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
                   </div>
                 )}
                 <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm ${
-                    isOwn
-                      ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_15px_rgba(212,175,55,0.35)]'
-                      : 'bg-white/10 text-gray-100'
-                  }`}
+                  className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm ${isOwn
+                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_15px_rgba(212,175,55,0.35)]'
+                    : 'bg-white/10 text-gray-100'
+                    }`}
                 >
                   <p>{message.content}</p>
                   <span className="mt-1 block text-xs text-gray-400">

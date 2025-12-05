@@ -151,7 +151,7 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             id="brandName"
             value={form.brandName}
             onChange={handleInput('brandName')}
-            placeholder="Örn. Luminous Beauty"
+            placeholder="Markanızın Adı"
             className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
           />
         </div>
@@ -163,25 +163,25 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             id="username"
             value={form.username}
             onChange={handleInput('username')}
-            placeholder="@marka"
+            placeholder="kullaniciadi"
             className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.username || usernameStatus === 'taken'
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : usernameStatus === 'available'
-                  ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
-                  : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : usernameStatus === 'available'
+                ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
+                : 'border-white/10 bg-white/5 focus:border-soft-gold'
               }`}
           />
           {validationErrors.username && (
             <p className="mt-1 text-xs text-red-400">{validationErrors.username}</p>
           )}
           {!validationErrors.username && usernameStatus === 'checking' && (
-            <p className="mt-1 text-xs text-gray-400">Kullanıcı adı kontrol ediliyor...</p>
+            <p className="mt-1 text-xs text-gray-400">Kontrol ediliyor...</p>
           )}
           {!validationErrors.username && usernameStatus === 'available' && (
-            <p className="mt-1 text-xs text-emerald-400">Kullanıcı adı müsait</p>
+            <p className="mt-1 text-xs text-emerald-400">Kullanılabilir</p>
           )}
           {!validationErrors.username && usernameStatus === 'taken' && (
-            <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı kullanılmakta</p>
+            <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı alınmış</p>
           )}
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             onChange={handleInput('city')}
             className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
           >
-            <option value="">Şehir seçin</option>
+            <option value="">Şehir Seçin</option>
             {TURKISH_CITIES.map((city) => (
               <option key={city} value={city}>
                 {city}
@@ -214,10 +214,10 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             type="text"
             value={form.website}
             onChange={handleInput('website')}
-            placeholder="www.ornek.com"
+            placeholder="https://www.markaniz.com"
             className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.website
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : 'border-white/10 bg-white/5 focus:border-soft-gold'
               }`}
           />
           {validationErrors.website && (
@@ -239,7 +239,7 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
           className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
         />
         <p className="mt-1 text-xs text-gray-400">
-          Vergi numaranızı girerseniz, onay sürecine alınacaksınız. Onaylandıktan sonra &quot;Resmi İşletme&quot; rozetini alacaksınız.
+          Kurumsal fatura için gereklidir.
         </p>
       </div>
 
@@ -253,10 +253,10 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             type="text"
             value={form.instagram}
             onChange={handleInput('instagram')}
-            placeholder="@kullaniciadi veya https://instagram.com/..."
+            placeholder="Kullanıcı adı veya link"
             className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.instagram
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : 'border-white/10 bg-white/5 focus:border-soft-gold'
               }`}
           />
           {validationErrors.instagram && (
@@ -272,10 +272,10 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             type="text"
             value={form.tiktok}
             onChange={handleInput('tiktok')}
-            placeholder="@kullaniciadi veya https://tiktok.com/@..."
+            placeholder="Kullanıcı adı veya link"
             className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.tiktok
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : 'border-white/10 bg-white/5 focus:border-soft-gold'
               }`}
           />
           {validationErrors.tiktok && (
@@ -291,10 +291,10 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             type="text"
             value={form.youtube}
             onChange={handleInput('youtube')}
-            placeholder="@kullaniciadi veya https://youtube.com/@..."
+            placeholder="Kanal adı veya link"
             className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.youtube
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
+              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
+              : 'border-white/10 bg-white/5 focus:border-soft-gold'
               }`}
           />
           {validationErrors.youtube && (
@@ -305,4 +305,3 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
     </div>
   )
 }
-

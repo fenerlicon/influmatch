@@ -78,13 +78,12 @@ export default function BrandBadgesPage() {
             >
               <div className="mb-6 flex items-center gap-3">
                 <div
-                  className={`h-1 w-12 rounded-full bg-gradient-to-r ${
-                    phase === 'mvp'
-                      ? 'from-amber-500'
-                      : phase === 'v1.2'
-                        ? 'from-slate-500 opacity-70'
-                        : 'from-purple-500 opacity-70'
-                  } to-transparent`}
+                  className={`h-1 w-12 rounded-full bg-gradient-to-r ${phase === 'mvp'
+                    ? 'from-amber-500'
+                    : phase === 'v1.2'
+                      ? 'from-slate-500 opacity-70'
+                      : 'from-purple-500 opacity-70'
+                    } to-transparent`}
                 />
                 <h2 className={`text-xl font-semibold ${config.textColor} md:text-2xl`}>{config.label}</h2>
               </div>

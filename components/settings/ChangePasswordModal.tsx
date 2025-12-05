@@ -48,7 +48,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
 
     startTransition(async () => {
       const result = await changePassword(currentPassword, newPassword)
-      
+
       if (result.success) {
         setSuccess(true)
         setTimeout(() => {
@@ -140,7 +140,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={isPending}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-10 text-white placeholder-gray-500 transition focus:border-soft-gold/50 focus:outline-none focus:ring-2 focus:ring-soft-gold/20 disabled:opacity-50"
-                  placeholder="Yeni şifrenizi girin (min. 6 karakter)"
+                  placeholder="Yeni şifrenizi girin"
                   autoComplete="new-password"
                 />
                 <button
@@ -199,7 +199,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 disabled={isPending}
                 className="flex-1 rounded-xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:opacity-50"
               >
-                {isPending ? 'Değiştiriliyor...' : 'Şifreyi Değiştir'}
+                {isPending ? 'Güncelleniyor...' : 'Güncelle'}
               </button>
             </div>
           </form>
@@ -208,4 +208,3 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     </div>
   )
 }
-

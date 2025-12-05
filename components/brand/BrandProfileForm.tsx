@@ -202,12 +202,12 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     const maxSize = 5 * 1024 * 1024
 
     if (!allowedTypes.includes(file.type)) {
-      setErrorMsg('Lütfen PNG, JPG veya WEBP formatında bir logo yükleyin.')
+      setErrorMsg('Sadece PNG, JPEG ve WEBP formatları desteklenmektedir.')
       return
     }
 
     if (file.size > maxSize) {
-      setErrorMsg('Logo maksimum 5MB olabilir.')
+      setErrorMsg('Dosya boyutu 5MB\'dan küçük olmalıdır.')
       return
     }
 
@@ -229,7 +229,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
       setLogoUrl(publicUrl)
     } catch (error) {
       console.error('Logo upload failed', error)
-      setErrorMsg('Logo yüklenemedi. Lütfen tekrar deneyin.')
+      setErrorMsg('Logo yüklenirken bir hata oluştu.')
     } finally {
       setIsUploading(false)
     }
@@ -246,16 +246,16 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         ...prev,
         username: usernameValidation.error,
       }))
-      setErrorMsg(usernameValidation.error || 'Kullanıcı adı geçersiz.')
+      setErrorMsg(usernameValidation.error || 'Bu kullanıcı adı alınmış.')
       return
     }
 
     if (usernameStatus === 'taken') {
-      setErrorMsg('Lütfen müsait bir kullanıcı adı seçin.')
+      setErrorMsg('Bu kullanıcı adı alınmış.')
       return
     }
     if (usernameStatus === 'checking') {
-      setErrorMsg('Kullanıcı adı kontrolü devam ediyor, lütfen bekleyin.')
+      setErrorMsg('Kullanıcı adı kontrol ediliyor...')
       return
     }
 
@@ -278,7 +278,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     setValidationErrors(errors)
 
     if (Object.keys(errors).length > 0) {
-      setErrorMsg('Lütfen sosyal medya linklerini düzeltin.')
+      setErrorMsg('Lütfen sosyal medya linklerinizi kontrol edin.')
       return
     }
 
@@ -292,7 +292,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
       (twitchResult.isValid && (twitchResult.normalizedUrl || formState.twitch?.trim()))
 
     if (!hasAtLeastOneSocial) {
-      setErrorMsg('En az 1 adet sosyal medya hesabı veya website bilgisi girmeniz gerekmektedir.')
+      setErrorMsg('En az bir sosyal medya hesabı veya web sitesi girmelisiniz.')
       return
     }
 
@@ -317,7 +317,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         })
 
         if (result?.success) {
-          setToast('Şirket bilgileri güncellendi.')
+          setToast('Profil başarıyla güncellendi!')
           setTimeout(() => setToast(null), 3000)
           setIsEditing(false) // Exit edit mode after successful save
           // Don't refresh - form state is already correct
@@ -362,7 +362,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           disabled={!isEditing}
           className="w-full bg-transparent text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <option value="">Şehir seçin</option>
+          <option value="">Şehir Seçin</option>
           {TURKISH_CITIES.map((city) => (
             <option key={city} value={city}>
               {city}
@@ -398,7 +398,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-5 rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Marka Kimliği</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Şirket Logosu</p>
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#11121A] p-6">
             <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-white/10 bg-black/30">
               {logoUrl ? (
@@ -412,7 +412,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               : 'cursor-not-allowed opacity-50'
               }`}>
               <Upload className="h-4 w-4" />
-              {isUploading ? 'Yükleniyor...' : 'Şirket Logosu (PNG/JPG)'}
+              {isUploading ? 'Yükleniyor...' : 'Logo Yükle'}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -484,7 +484,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         </div>
 
         <div className="space-y-5 rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Detaylar & İletişim</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">DETAYLAR</p>
 
           <div>
             {renderInput('Web Sitesi', 'website', formState.website, <Globe className="h-4 w-4" />, 'www.ornek.com')}
@@ -493,17 +493,17 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
             )}
           </div>
 
-          {renderCitySelect('Merkez / Şehir', 'city', formState.city, <MapPin className="h-4 w-4" />)}
+          {renderCitySelect('Şehir', 'city', formState.city, <MapPin className="h-4 w-4" />)}
 
           <label className="space-y-2 text-sm text-gray-300">
-            <span>Hakkımızda / Vizyon</span>
+            <span>Hakkında</span>
             <textarea
               name="bio"
               value={formState.bio}
               onChange={handleChange}
               disabled={!isEditing}
               rows={6}
-              placeholder="Markanı ve kampanya yaklaşımını influencerlara anlat."
+              placeholder="Markanız hakkında kısa bir bilgi..."
               className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
@@ -582,7 +582,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               )}
             </div>
             <p className="mt-2 text-sm text-gray-400">
-              Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="font-semibold text-soft-gold">&quot;Resmi İşletme&quot;</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
+              Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="text-soft-gold">"Resmi İşletme"</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
             </p>
           </div>
         </div>
@@ -601,7 +601,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           'taxId',
           formState.taxId,
           <FileText className="h-4 w-4" />,
-          'Opsiyonel - Doğrulama Rozeti için önerilir',
+          'Vergi numaranızı girin',
           !isEditingCorporate ? true : undefined
         )}
 
@@ -615,19 +615,19 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               {initialData.taxIdVerified ? (
                 <>
                   <CheckCircle className="h-4 w-4 text-emerald-400" />
-                  <span className="text-xs font-semibold text-emerald-300">Vergi Numarası Onaylandı</span>
+                  <span className="text-xs font-semibold text-emerald-300">Doğrulandı</span>
                 </>
               ) : (
                 <>
                   <Clock className="h-4 w-4 text-yellow-400" />
-                  <span className="text-xs font-semibold text-yellow-300">Onay Aşamasında</span>
+                  <span className="text-xs font-semibold text-yellow-300">Onay Bekliyor</span>
                 </>
               )}
             </div>
             <p className="mt-1 text-xs text-gray-400">
               {initialData.taxIdVerified
-                ? 'Vergi numaranız doğrulandı ve "Resmi İşletme" rozetini aldınız.'
-                : 'Vergi numaranız admin tarafından inceleniyor. Onaylandıktan sonra "Resmi İşletme" rozetini alacaksınız.'}
+                ? 'Vergi numaranız doğrulandı.'
+                : 'Vergi numaranız inceleniyor.'}
             </p>
           </div>
         )}
@@ -658,15 +658,15 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                       taxId: formState.taxId.trim() || null,
                     })
                     if (!result.success) {
-                      setErrorMsg((result as any).error || 'Güncelleme başarısız oldu.')
+                      setErrorMsg((result as any).error || 'Güncelleme başarısız.')
                     } else {
-                      setToast('Kurumsal kimlik bilgileri güncellendi.')
+                      setToast('Kurumsal bilgiler güncellendi!')
                       setIsEditingCorporate(false)
                       router.refresh()
                     }
                   } catch (error) {
                     console.error('Update failed:', error)
-                    setErrorMsg('Güncelleme başarısız oldu. Lütfen tekrar deneyin.')
+                    setErrorMsg('Güncelleme başarısız.')
                   }
                 })
               }}
@@ -698,9 +698,9 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-soft-gold flex-shrink-0 mt-0.5" />
             <div className="text-sm text-gray-300">
-              <p className="font-medium text-soft-gold mb-1">💡 Neden bu bilgileri paylaşmalıyım?</p>
+              <p className="font-medium text-soft-gold mb-1">Neden bu bilgileri paylaşmalıyım?</p>
               <p className="text-gray-400">
-                Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <strong className="text-soft-gold">&quot;Resmi İşletme&quot;</strong> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
+                Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="text-soft-gold">"Resmi İşletme"</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
               </p>
             </div>
           </div>
@@ -756,7 +756,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
             disabled={isPending}
             className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isPending ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+            {isPending ? 'Kaydediliyor...' : 'Kaydet'}
           </button>
         </div>
       )}
@@ -769,5 +769,3 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     </form>
   )
 }
-
-

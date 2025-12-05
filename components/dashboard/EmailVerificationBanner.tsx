@@ -24,18 +24,18 @@ export default function EmailVerificationBanner({ userEmail }: EmailVerification
 
         if (error) {
           const errorMsg = error.message?.toLowerCase() || ''
-          if (errorMsg.includes('rate limit') || 
-              errorMsg.includes('too many requests') ||
-              errorMsg.includes('rate limit exceeded') ||
-              errorMsg.includes('exceeded') ||
-              errorMsg.includes('40 seconds')) {
-            setResendMessage('Email gönderme limiti aşıldı. Lütfen 40 saniye bekleyip tekrar deneyin.')
+          if (errorMsg.includes('rate limit') ||
+            errorMsg.includes('too many requests') ||
+            errorMsg.includes('rate limit exceeded') ||
+            errorMsg.includes('exceeded') ||
+            errorMsg.includes('40 seconds')) {
+            setResendMessage('Çok fazla istek gönderdiniz. Lütfen biraz bekleyin.')
           } else {
-            setResendMessage('Email gönderilemedi. Lütfen tekrar deneyin.')
+            setResendMessage('E-posta gönderilemedi. Lütfen tekrar deneyin.')
           }
           setTimeout(() => setResendMessage(null), 5000)
         } else {
-          setResendMessage('Doğrulama emaili tekrar gönderildi! Lütfen email kutunuzu kontrol edin.')
+          setResendMessage('Doğrulama e-postası tekrar gönderildi.')
           setTimeout(() => setResendMessage(null), 5000)
         }
       } catch (error) {
@@ -53,7 +53,7 @@ export default function EmailVerificationBanner({ userEmail }: EmailVerification
         <div className="flex items-center gap-3">
           <Mail className="h-5 w-5 flex-shrink-0 text-orange-400" />
           <p>
-            <strong>Email adresinizi doğrulayın:</strong> Email adresinize gönderilen doğrulama linkine tıklayarak hesabınızı aktifleştirin.
+            <strong>E-posta adresinizi doğrulayın.</strong> Hesabınızın güvenliği ve tüm özelliklere erişim için lütfen e-posta adresinizi doğrulayın.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ export default function EmailVerificationBanner({ userEmail }: EmailVerification
             ) : (
               <>
                 <Mail className="h-3.5 w-3.5" />
-                Email Tekrar Gönder
+                Tekrar Gönder
               </>
             )}
           </button>
@@ -91,4 +91,3 @@ export default function EmailVerificationBanner({ userEmail }: EmailVerification
     </div>
   )
 }
-

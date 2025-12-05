@@ -10,6 +10,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import type { ProfileRecord } from '@/utils/profileCompletion'
 import { calculateProfileCompletion } from '@/utils/profileCompletion'
 import InfluencerStats from '@/components/profile/InfluencerStats'
+import VerificationWarningCard from '@/components/dashboard/VerificationWarningCard'
 
 export default async function InfluencerDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -209,16 +210,7 @@ export default async function InfluencerDashboardPage() {
           mode="influencer-view"
         />
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-10 text-center shadow-glow">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
-            {/* <BadgeCheck className="h-8 w-8 text-gray-500" /> */}
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.74Z" /><path d="m9 12 2 2 4-4" /></svg>
-          </div>
-          <h3 className="text-lg font-semibold text-white">Verileriniz Doğrulanmadı</h3>
-          <p className="mt-2 text-sm text-gray-400 max-w-xs">
-            Profil istatistiklerinizi ve yapay zeka analizlerini görmek için Instagram hesabınızı doğrulayın.
-          </p>
-        </div>
+        <VerificationWarningCard />
       )}
 
       <SpotlightToggleCard
@@ -227,7 +219,7 @@ export default async function InfluencerDashboardPage() {
       />
 
       {/* Instagram Verification Component */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
+      <div id="verification-section" className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
         <h3 className="text-lg font-semibold text-white mb-4">Hesap Doğrulama</h3>
         <InstagramConnect
           userId={user.id}
