@@ -398,21 +398,23 @@ export async function resendVerificationEmail(userId: string) {
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
-    return { error: 'Bir hata oluştu.' }
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı (Service Role Key eksik olabilir).' }
   }
 
   // Resend signup verification email
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
   const { error } = await supabaseAdmin.auth.resend({
     type: 'signup',
     email: targetUser.email,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+      emailRedirectTo: `${siteUrl}/auth/callback`
     }
   })
 
   if (error) {
     console.error('[resendVerificationEmail] Error:', error)
-    return { error: 'Bir hata oluştu.' }
+    return { error: `E-posta gönderme hatası: ${error.message}` }
   }
 
   return { success: true, message: 'Doğrulama e-postası gönderildi.' }

@@ -11,7 +11,7 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ fullName, role, userId }: DashboardHeaderProps) {
   return (
-    <header className="border-b border-white/5 bg-[#101117]/80 px-4 py-4 text-white backdrop-blur lg:px-10">
+    <header className="relative z-50 border-b border-white/5 bg-[#101117]/80 px-4 py-4 text-white backdrop-blur lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">PANEL</p>
