@@ -1,6 +1,7 @@
 'use client'
 
-import { ChangeEvent, useState, useEffect, useCallback } from 'react'
+import { ChangeEvent, useState, useEffect, useCallback, useMemo } from 'react'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
@@ -64,6 +65,12 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
 
     return () => clearTimeout(timeoutId)
   }, [form.username, checkUsername])
+
+  const isDirty = useMemo(() => {
+    return Object.values(form).some(value => value !== '')
+  }, [form])
+
+  useUnsavedChanges(isDirty)
 
   const handleInput =
     (field: keyof BrandFormState) =>

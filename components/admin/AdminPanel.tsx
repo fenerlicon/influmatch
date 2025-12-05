@@ -776,15 +776,25 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                           )}
                           <div className="mt-1 flex flex-wrap items-center gap-2">
 
-                            {!user.email_verified_at && (
-                              <button
-                                onClick={() => handleResendVerificationEmail(user.id)}
-                                className="inline-flex items-center gap-1 rounded-full border border-soft-gold/40 bg-soft-gold/10 px-2 py-0.5 text-[10px] font-medium text-soft-gold hover:bg-soft-gold/20"
-                              >
-                                <Mail className="h-3 w-3" />
-                                Doğrulama E-postası Gönder
-                              </button>
+                            {user.email_verified_at ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+                                <CheckCircle className="h-3 w-3" />
+                                E-posta Onaylı
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
+                                <XCircle className="h-3 w-3" />
+                                E-posta Onaysız
+                              </span>
                             )}
+
+                            <button
+                              onClick={() => handleResendVerificationEmail(user.id)}
+                              className="inline-flex items-center gap-1 rounded-full border border-soft-gold/40 bg-soft-gold/10 px-2 py-0.5 text-[10px] font-medium text-soft-gold hover:bg-soft-gold/20"
+                            >
+                              <Mail className="h-3 w-3" />
+                              Tekrar Gönder
+                            </button>
 
                             {/* Data Verification Status */}
                             {user.displayed_badges?.includes('data-verified') ? (

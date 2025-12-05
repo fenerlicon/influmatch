@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useMemo, useState, useTransition } from 'react'
 import { Loader2, PauseCircle, Pencil, PlayCircle, Plus, Trash2, Upload } from 'lucide-react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
 import { saveBrandAdvert, updateAdvertStatus, deleteAdvert, type AdvertStatus } from '@/app/dashboard/brand/advert/actions'
 import { useRouter } from 'next/navigation'
@@ -59,6 +60,21 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
     () => [...projects].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [projects],
   )
+
+  const isDirty = useMemo(() => {
+    // Determine if form has unsaved changes.
+    // Ideally we would compare with initial state, but for now checking if title is present is a good enough proxy for "started working"
+    // We only warn for NEW adverts or if we are in editing mode (id is present)
+    if (!formValues.id) {
+      return formValues.title !== '' || formValues.summary !== ''
+    }
+    // For editing existing, we could check deeper, but let's assume if the form is open (handled by ID presence usually) 
+    // actually here formValues always has ID if editing. 
+    // Simply: if title is not empty, assume user might be doing something important.
+    return formValues.title !== ''
+  }, [formValues])
+
+  useUnsavedChanges(isDirty)
 
   const resetForm = () => {
     setFormValues(emptyFormValues)
