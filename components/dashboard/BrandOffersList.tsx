@@ -111,7 +111,7 @@ export default function BrandOffersList({
     offers.forEach((offer) => {
       const receiverId = offer.receiver?.id
       if (!receiverId) return
-      
+
       // Filter out dismissed influencers
       if (dismissedIds.has(receiverId)) return
 
@@ -141,7 +141,7 @@ export default function BrandOffersList({
       }
     })
 
-    return Array.from(grouped.values()).sort((a, b) => 
+    return Array.from(grouped.values()).sort((a, b) =>
       new Date(b.latestOffer.created_at).getTime() - new Date(a.latestOffer.created_at).getTime()
     )
   }, [offers, unreadCounts, dismissedIds])
@@ -216,7 +216,7 @@ export default function BrandOffersList({
       const { data: room } = await supabase.from('rooms').select('id').eq('offer_id', offerId).maybeSingle()
 
       return {
-        ...(offer as BrandOfferItem),
+        ...(offer as unknown as BrandOfferItem),
         room_id: room?.id ?? null,
       }
     },
@@ -548,9 +548,8 @@ export default function BrandOffersList({
                     <span>{formatRelativeTime(latestOffer.created_at)}</span>
                   </div>
                   <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${
-                      STATUS_STYLES[latestOffer.status] ?? 'border-white/15 text-gray-400'
-                    }`}
+                    className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[latestOffer.status] ?? 'border-white/15 text-gray-400'
+                      }`}
                   >
                     {STATUS_LABELS[latestOffer.status] ?? latestOffer.status}
                   </span>
@@ -660,9 +659,8 @@ export default function BrandOffersList({
                             {offer.campaign_name ?? 'İsimsiz Kampanya'}
                           </h3>
                           <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${
-                              STATUS_STYLES[offer.status] ?? 'border-white/15 text-gray-400'
-                            }`}
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[offer.status] ?? 'border-white/15 text-gray-400'
+                              }`}
                           >
                             {STATUS_LABELS[offer.status] ?? offer.status}
                           </span>

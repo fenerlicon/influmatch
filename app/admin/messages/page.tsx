@@ -54,6 +54,6 @@ export default async function AdminMessagesPage() {
     console.error('Error fetching message reports:', error.message)
   }
 
-  return <MessageReportsPanel initialReports={reports ?? []} />
+  return <MessageReportsPanel initialReports={(reports as any) ?? []} />
 }
 

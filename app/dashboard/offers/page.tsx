@@ -33,7 +33,7 @@ export default async function DashboardOffersPage() {
     console.error('[DashboardOffersPage] load error', error.message)
   }
 
-  let offersWithRoom: OfferListItem[] = (offers as OfferListItem[]) ?? []
+  let offersWithRoom: OfferListItem[] = (offers as unknown as OfferListItem[]) ?? []
 
   if (offersWithRoom.length > 0) {
     const offerIds = offersWithRoom.map((offer) => offer.id)

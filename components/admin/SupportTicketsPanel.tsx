@@ -139,10 +139,10 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                 const existingIndex = prev.findIndex((t) => t.id === updatedTicket.id)
                 if (existingIndex >= 0) {
                   const newTickets = [...prev]
-                  newTickets[existingIndex] = updatedTicket as SupportTicket
+                  newTickets[existingIndex] = updatedTicket as unknown as SupportTicket
                   return newTickets
                 } else {
-                  return [updatedTicket as SupportTicket, ...prev]
+                  return [updatedTicket as unknown as SupportTicket, ...prev]
                 }
               })
             }

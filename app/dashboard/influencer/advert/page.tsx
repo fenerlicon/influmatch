@@ -94,28 +94,28 @@ export default async function InfluencerAdvertPage() {
   })
 
   let advertMap = new Map<string, { id: string; title: string | null; category: string | null; brand_user_id: string | null }>()
-  let brandMapForApplications = new Map<string, { id: string; full_name: string | null; username: string | null; avatar_url: string | null }>()
-  
+  let brandMapForApplications = new Map<string, { id: string; full_name: string | null; username: string | null; avatar_url: string | null; verification_status: string | null }>()
+
   if (advertIds.size > 0) {
     const { data: adverts } = await supabase
       .from('advert_projects')
       .select('id, title, category, brand_user_id')
       .in('id', Array.from(advertIds))
-    
+
     advertMap = new Map(adverts?.map((a) => [a.id, a]) ?? [])
-    
+
     // Fetch brand details for applications
     const brandIds = new Set<string>()
     adverts?.forEach((a) => {
       if (a.brand_user_id) brandIds.add(a.brand_user_id)
     })
-    
+
     if (brandIds.size > 0) {
       const { data: brands } = await supabase
         .from('users')
         .select('id, full_name, username, avatar_url, verification_status')
         .in('id', Array.from(brandIds))
-      
+
       brandMapForApplications = new Map(brands?.map((b) => [b.id, b]) ?? [])
     }
   }
@@ -131,7 +131,7 @@ export default async function InfluencerAdvertPage() {
       .eq('influencer_id', user.id)
       .in('brand_id', brandIds)
       .is('offer_id', null) // Not an offer room
-    
+
     if (rooms && rooms.length > 0) {
       const roomIds = rooms.map((r: any) => r.id)
       // Check which rooms have messages from brand
@@ -140,14 +140,14 @@ export default async function InfluencerAdvertPage() {
         .select('room_id, sender_id')
         .in('room_id', roomIds)
         .neq('sender_id', user.id) // Messages from brand (not influencer)
-      
+
       const roomsWithMessages = new Set(messages?.map((m: any) => m.room_id) ?? [])
-      
+
       // Map rooms to applications by advert_application_id or by brand_id
       applicationRows?.forEach((row: any) => {
         // First try to find by advert_application_id
         let room = rooms.find((r: any) => r.advert_application_id === row.id)
-        
+
         // If not found, find by brand_id
         if (!room) {
           const advert = row.advert_id ? advertMap.get(row.advert_id) : null
@@ -156,11 +156,11 @@ export default async function InfluencerAdvertPage() {
             room = rooms.find((r: any) => r.brand_id === brandId && !r.advert_application_id)
           }
         }
-        
+
         if (room) {
-          roomMap.set(row.id, { 
-            id: room.id, 
-            hasMessages: roomsWithMessages.has(room.id) 
+          roomMap.set(row.id, {
+            id: room.id,
+            hasMessages: roomsWithMessages.has(room.id)
           })
         }
       })
@@ -172,7 +172,7 @@ export default async function InfluencerAdvertPage() {
     const advert = row.advert_id ? advertMap.get(row.advert_id) : null
     const brand = advert?.brand_user_id ? brandMapForApplications.get(advert.brand_user_id) : null
     const roomInfo = roomMap.get(row.id)
-    
+
     return {
       id: row.id,
       advert_id: row.advert_id,
@@ -227,8 +227,8 @@ export default async function InfluencerAdvertPage() {
           {errorMessage ? <p className="mt-2 text-xs text-red-300">Hata: {errorMessage}</p> : null}
         </div>
       ) : (
-        <InfluencerAdvertTabs 
-          openProjects={projects} 
+        <InfluencerAdvertTabs
+          openProjects={projects}
           myApplications={myApplications}
           initialAppliedIds={appliedAdvertIds}
           currentUserId={user.id}

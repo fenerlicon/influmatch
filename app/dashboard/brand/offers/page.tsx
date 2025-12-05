@@ -46,7 +46,7 @@ export default async function BrandOffersPage() {
     console.error('[BrandOffersPage] load error', error.message)
   }
 
-  let offersWithRoom: BrandOfferItem[] = (offers as BrandOfferItem[]) ?? []
+  let offersWithRoom: BrandOfferItem[] = (offers as unknown as BrandOfferItem[]) ?? []
 
   // Fetch room IDs for accepted offers
   if (offersWithRoom.length > 0) {

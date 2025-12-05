@@ -69,7 +69,7 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
       }
       const { data: room } = await supabase.from('rooms').select('id').eq('offer_id', offerId).maybeSingle()
       return {
-        ...(offer as OfferListItem),
+        ...(offer as unknown as OfferListItem),
         room_id: room?.id ?? null,
       }
     },
@@ -110,15 +110,15 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
     }
   }, [currentUserId, fetchOfferById, supabase])
 
-  const handleStatusChange = useCallback((offerId: string, nextStatus: 'accepted' | 'rejected', meta?: { roomId?: string | null }) => {
+  const handleStatusChange = useCallback((offerId: string, nextStatus: 'accepted' | 'rejected' | 'hold', meta?: { roomId?: string | null }) => {
     setOffers((prev) =>
       prev.map((offer) =>
         offer.id === offerId
           ? {
-              ...offer,
-              status: nextStatus,
-              room_id: meta?.roomId ?? offer.room_id,
-            }
+            ...offer,
+            status: nextStatus,
+            room_id: meta?.roomId ?? offer.room_id,
+          }
           : offer,
       ),
     )
@@ -144,7 +144,7 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
         e.preventDefault()
         e.stopPropagation()
       }
-      
+
       // Get sender user ID
       const senderId = offer.sender?.id
       if (!senderId) {
@@ -247,9 +247,8 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
 
               {!isAccepted && (
                 <span
-                  className={`rounded-full border px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] ${
-                    STATUS_STYLES[offer.status] ?? 'border-white/20 text-white'
-                  }`}
+                  className={`rounded-full border px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] ${STATUS_STYLES[offer.status] ?? 'border-white/20 text-white'
+                    }`}
                 >
                   {offer.status}
                 </span>

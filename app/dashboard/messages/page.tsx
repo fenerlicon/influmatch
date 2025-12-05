@@ -123,6 +123,7 @@ export default async function DashboardMessagesPage({
       username: string | null
       avatarUrl: string | null
       role: 'influencer' | 'brand' | null
+      verificationStatus?: 'pending' | 'verified' | 'rejected'
     } | null
     lastMessage: {
       content: string
@@ -136,7 +137,7 @@ export default async function DashboardMessagesPage({
   rooms?.forEach((room) => {
     const otherParticipantId = room.brand_id === user.id ? room.influencer_id : room.brand_id
     if (!otherParticipantId) return
-    
+
     // Filter out self - don't show conversations with yourself
     if (otherParticipantId === user.id) return
 
@@ -146,27 +147,27 @@ export default async function DashboardMessagesPage({
     const lastMessageTime = lastMessage ? new Date(lastMessage.created_at) : new Date(room.created_at)
 
     const existing = conversationsMap.get(otherParticipantId)
-    
+
     // If this conversation has a more recent message, or doesn't exist, add/update it
     if (!existing || (lastMessageTime > existing.lastMessageTime)) {
       conversationsMap.set(otherParticipantId, {
         roomId: room.id,
         otherParticipant: otherParticipant
           ? {
-              id: otherParticipant.id,
-              fullName: otherParticipant.full_name ?? otherParticipant.username ?? 'Kullanıcı',
-              username: otherParticipant.username,
-              avatarUrl: otherParticipant.avatar_url,
-              role: otherParticipant.role,
-              verificationStatus: otherParticipant.verification_status as 'pending' | 'verified' | 'rejected' | undefined,
-            }
+            id: otherParticipant.id,
+            fullName: otherParticipant.full_name ?? otherParticipant.username ?? 'Kullanıcı',
+            username: otherParticipant.username,
+            avatarUrl: otherParticipant.avatar_url,
+            role: otherParticipant.role,
+            verificationStatus: (otherParticipant.verification_status as 'pending' | 'verified' | 'rejected' | null) ?? undefined,
+          }
           : null,
         lastMessage: lastMessage
           ? {
-              content: lastMessage.content,
-              createdAt: lastMessage.created_at,
-              senderId: lastMessage.sender_id,
-            }
+            content: lastMessage.content,
+            createdAt: lastMessage.created_at,
+            senderId: lastMessage.sender_id,
+          }
           : null,
         unreadCount: existing ? existing.unreadCount + unreadCount : unreadCount,
         lastMessageTime,
