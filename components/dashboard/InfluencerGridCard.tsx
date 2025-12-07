@@ -118,7 +118,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                 <h3 className="truncate text-lg font-bold text-white">
                                     {influencer.full_name}
                                 </h3>
-                                {influencer.verification_status === 'verified' && (
+                                {influencer.displayed_badges?.includes('verified-account') && (
                                     <BadgeCheck className="h-4 w-4 flex-shrink-0 text-blue-500" />
                                 )}
                             </div>

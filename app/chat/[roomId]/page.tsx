@@ -36,7 +36,7 @@ export default async function ChatRoomPage({ params }: ChatPageProps) {
   const participantIds = [room.brand_id, room.influencer_id].filter(Boolean)
   const { data: participants, error: participantsError } = await supabase
     .from('users')
-    .select('id, full_name, username, verification_status, role')
+    .select('id, full_name, username, verification_status, role, displayed_badges')
     .in('id', participantIds)
 
   if (participantsError) {
@@ -50,7 +50,7 @@ export default async function ChatRoomPage({ params }: ChatPageProps) {
   const isInfluencer = room.influencer_id === user.id
   const isBrand = room.brand_id === user.id
   let returnUrl: string | undefined = undefined
-  
+
   if (room.advert_application_id) {
     if (isInfluencer) {
       returnUrl = '/dashboard/influencer/advert?tab=applications'
@@ -64,6 +64,7 @@ export default async function ChatRoomPage({ params }: ChatPageProps) {
   const otherParticipant = participants?.find((p) => p.id === otherParticipantId)
   const otherParticipantVerificationStatus = otherParticipant?.verification_status as 'pending' | 'verified' | 'rejected' | null | undefined
   const otherParticipantRole = otherParticipant?.role as 'influencer' | 'brand' | null | undefined
+  const otherParticipantBadges = otherParticipant?.displayed_badges as string[] | undefined
 
   const { data: messages, error: messagesError } = await supabase
     .from('messages')
@@ -87,6 +88,7 @@ export default async function ChatRoomPage({ params }: ChatPageProps) {
           otherParticipantId={otherParticipantId}
           otherParticipantVerificationStatus={otherParticipantVerificationStatus}
           otherParticipantRole={otherParticipantRole}
+          otherParticipantBadges={otherParticipantBadges}
         />
       </div>
     </main>

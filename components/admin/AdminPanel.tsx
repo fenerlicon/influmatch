@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail } from '@/app/admin/actions'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck } from 'lucide-react'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -497,6 +497,46 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
+  const handleToggleBlueTick = async (userId: string, hasBlueTick: boolean) => {
+    const action = hasBlueTick ? 'kaldırmak' : 'vermek'
+    if (!confirm(`Bu kullanıcıya Mavi Tik (Onaylı Hesap) rozetini ${action} istediğinizden emin misiniz?`)) {
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await toggleBlueTick(userId)
+        if (result.error) {
+          alert(result.error)
+        } else {
+          // Optimistic update or wait for realtime
+          alert(result.message)
+
+          // Manually update state to reflect change immediately if needed, 
+          // though realtime subscription should handle it
+          const { data: updatedUser } = await supabase
+            .from('users')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
+            .eq('id', userId)
+            .single()
+
+          if (updatedUser) {
+            const user = updatedUser as User
+            const updateUserInState = (users: User[]) =>
+              users.map((u) => (u.id === userId ? user : u))
+
+            setPendingUsersState(updateUserInState)
+            setVerifiedUsersState(updateUserInState)
+            setRejectedUsersState(updateUserInState)
+          }
+        }
+      } catch (error) {
+        console.error('Toggle blue tick error:', error)
+        alert('İşlem başarısız.')
+      }
+    })
+  }
+
   const getAvailableBadges = (userRole: 'influencer' | 'brand' | null) => {
     if (userRole === 'influencer') {
       return influencerBadges
@@ -794,6 +834,17 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             >
                               <Mail className="h-3 w-3" />
                               Tekrar Gönder
+                            </button>
+
+                            <button
+                              onClick={() => handleToggleBlueTick(user.id, user.displayed_badges?.includes('verified-account') ?? false)}
+                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${user.displayed_badges?.includes('verified-account')
+                                ? 'border-blue-500/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                                : 'border-gray-500/40 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300'
+                                }`}
+                            >
+                              <BadgeCheck className="h-3 w-3" />
+                              {user.displayed_badges?.includes('verified-account') ? 'Mavi Tik Kaldır' : 'Mavi Tik Ekle'}
                             </button>
 
                             {/* Data Verification Status */}

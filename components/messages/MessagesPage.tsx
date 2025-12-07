@@ -20,6 +20,7 @@ interface Conversation {
     avatarUrl: string | null
     role: 'influencer' | 'brand' | null
     verificationStatus?: 'pending' | 'verified' | 'rejected'
+    displayedBadges?: string[]
   } | null
   lastMessage: {
     content: string
@@ -123,7 +124,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         // Get user info and add to conversations
         const { data: userInfo } = await supabase
           .from('users')
-          .select('id, full_name, username, avatar_url, role')
+          .select('id, full_name, username, avatar_url, role, displayed_badges')
           .eq('id', initialUserId)
           .single()
 
@@ -136,6 +137,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               username: userInfo.username,
               avatarUrl: userInfo.avatar_url,
               role: userInfo.role,
+              displayedBadges: userInfo.displayed_badges,
             },
             lastMessage: null,
             unreadCount: 0,
@@ -163,7 +165,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         // Get user info and add to conversations
         const { data: userInfo } = await supabase
           .from('users')
-          .select('id, full_name, username, avatar_url, role')
+          .select('id, full_name, username, avatar_url, role, displayed_badges')
           .eq('id', initialUserId)
           .single()
 
@@ -176,6 +178,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               username: userInfo.username,
               avatarUrl: userInfo.avatar_url,
               role: userInfo.role,
+              displayedBadges: userInfo.displayed_badges,
             },
             lastMessage: null,
             unreadCount: 0,
@@ -525,7 +528,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                             >
                               {conversation.otherParticipant.fullName}
                             </div>
-                            {conversation.otherParticipant.verificationStatus === 'verified' && (
+                            {conversation.otherParticipant.displayedBadges?.includes(conversation.otherParticipant.role === 'brand' ? 'official-business' : 'verified-account') && (
                               <div className="group relative flex-shrink-0">
                                 <BadgeCheck className={`h-4 w-4 ${conversation.otherParticipant.role === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
                                 <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
@@ -648,7 +651,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2">
                       <h2 className="text-2xl font-semibold text-white">{profileData.fullName}</h2>
-                      {profileData.verificationStatus === 'verified' && (
+                      {profileData.badgeIds?.includes(profileData.role === 'brand' ? 'official-business' : 'verified-account') && (
                         <div className="group/verify relative flex-shrink-0">
                           <BadgeCheck className={`h-6 w-6 transition-all hover:scale-110 cursor-pointer ${profileData.role === 'brand' ? 'text-soft-gold hover:text-soft-gold/80' : 'text-blue-500 hover:text-blue-400'}`} />
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">

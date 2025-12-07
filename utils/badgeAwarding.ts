@@ -36,7 +36,10 @@ export async function awardBadgesForUser(userId: string) {
 
   if (role === 'influencer') {
     // 1. Verified Account Badge
-    if (user.verification_status === 'verified' && !existingBadgeIds.includes('verified-account')) {
+    // Requirement: Must be Admin Verified AND have Data Verified badge
+    const hasDataVerifiedBadge = existingBadgeIds.includes('data-verified')
+
+    if (user.verification_status === 'verified' && hasDataVerifiedBadge && !existingBadgeIds.includes('verified-account')) {
       badgesToAward.push('verified-account')
     }
 
@@ -101,10 +104,10 @@ export async function awardBadgesForUser(userId: string) {
   // Award badges
   if (badgesToAward.length > 0) {
     console.log(`[awardBadgesForUser] Attempting to award ${badgesToAward.length} badge(s) to user ${userId}:`, badgesToAward)
-    
+
     // Try admin client first (if available), otherwise use SQL function
     const adminClient = createSupabaseAdminClient()
-    
+
     if (adminClient) {
       try {
         const badgeInserts = badgesToAward.map((badgeId) => ({
@@ -138,7 +141,7 @@ export async function awardBadgesForUser(userId: string) {
     console.log('[awardBadgesForUser] User role:', role)
     console.log('[awardBadgesForUser] User verification_status:', user.verification_status)
     console.log('[awardBadgesForUser] Existing badges:', existingBadgeIds)
-    
+
     // Debug profile completion for influencer
     if (role === 'influencer') {
       const profileData: ProfileRecord = {
@@ -155,7 +158,7 @@ export async function awardBadgesForUser(userId: string) {
       console.log('[awardBadgesForUser] Profile checklist:', completion.checklist)
     }
   }
-  
+
   return { awarded: badgesToAward.length, badgeIds: badgesToAward }
 }
 
@@ -184,7 +187,7 @@ async function awardBadgesUsingSQLFunction(
         details: functionError.details,
         hint: functionError.hint,
       })
-      
+
       // SQL function failed - this should not happen if migration is applied correctly
       errors.push({ badgeId, error: functionError })
     } else {

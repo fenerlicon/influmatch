@@ -26,10 +26,11 @@ interface ChatWindowProps {
   activeRoomIds?: string[] // For messages page: all room IDs with the same participant
   otherParticipantVerificationStatus?: 'pending' | 'verified' | 'rejected' | null
   otherParticipantRole?: 'influencer' | 'brand' | null
+  otherParticipantBadges?: string[]
   lastBlockUpdate?: number
 }
 
-export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds, otherParticipantVerificationStatus, otherParticipantRole, lastBlockUpdate }: ChatWindowProps) {
+export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds, otherParticipantVerificationStatus, otherParticipantRole, otherParticipantBadges, lastBlockUpdate }: ChatWindowProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -38,6 +39,16 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
   const [isBlocked, setIsBlocked] = useState(false)
   const [hasBlocked, setHasBlocked] = useState(false) // Track if current user blocked the other
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const isVerifiedBadge = otherParticipantRole === 'brand'
+    ? otherParticipantBadges?.includes('official-business')
+    : otherParticipantBadges?.includes('verified-account')
+
+  // ... (rest of the component until return)
+
+  // Update Render parts:
+  // Replace references to otherParticipantVerificationStatus === 'verified' with isVerifiedBadge
+
 
   // Update messages when initialMessages changes (for messages page)
   useEffect(() => {
@@ -203,7 +214,7 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
             <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Marka</p>
             <div className="mt-1 flex items-center justify-center gap-2">
               <p className="text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
-              {otherParticipantVerificationStatus === 'verified' && (
+              {otherParticipantBadges?.includes(otherParticipantRole === 'brand' ? 'official-business' : 'verified-account') && (
                 <div className="group relative flex-shrink-0">
                   <BadgeCheck className={`h-5 w-5 ${otherParticipantRole === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
                   <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
@@ -222,7 +233,7 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <p className="text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
-                {otherParticipantVerificationStatus === 'verified' && (
+                {otherParticipantBadges?.includes(otherParticipantRole === 'brand' ? 'official-business' : 'verified-account') && (
                   <div className="group relative flex-shrink-0">
                     <BadgeCheck className="h-5 w-5 text-blue-400" />
                     <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">

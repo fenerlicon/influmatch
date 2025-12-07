@@ -47,7 +47,7 @@ export default async function DashboardMessagesPage({
 
   const { data: participants, error: participantsError } = await supabase
     .from('users')
-    .select('id, full_name, username, avatar_url, role, verification_status')
+    .select('id, full_name, username, avatar_url, role, verification_status, displayed_badges')
     .in('id', Array.from(participantIds))
 
   if (participantsError) {
@@ -124,6 +124,7 @@ export default async function DashboardMessagesPage({
       avatarUrl: string | null
       role: 'influencer' | 'brand' | null
       verificationStatus?: 'pending' | 'verified' | 'rejected'
+      displayedBadges?: string[]
     } | null
     lastMessage: {
       content: string
@@ -160,6 +161,7 @@ export default async function DashboardMessagesPage({
             avatarUrl: otherParticipant.avatar_url,
             role: otherParticipant.role,
             verificationStatus: (otherParticipant.verification_status as 'pending' | 'verified' | 'rejected' | null) ?? undefined,
+            displayedBadges: otherParticipant.displayed_badges as string[] | undefined,
           }
           : null,
         lastMessage: lastMessage

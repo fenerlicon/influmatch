@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { awardBadgesForUser } from '@/utils/badgeAwarding'
 
 export async function generateVerificationCode(userId: string, username: string) {
     const supabase = createSupabaseServerClient()
@@ -204,6 +205,14 @@ export async function verifyInstagramAccount(userId: string) {
         if (badgeError) {
             console.error('Error awarding data-verified badge:', badgeError)
             // We don't fail the verification if badge awarding fails, but we log it.
+        }
+
+        // 6. Award Badges (Check for Blue Tick)
+        // This will check if user is Admin Verified + Data Verified (just now) -> Award Blue Tick
+        try {
+            await awardBadgesForUser(userId)
+        } catch (error) {
+            console.error('Error triggering badge check after data verification:', error)
         }
 
         revalidatePath('/dashboard/profile')

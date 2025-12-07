@@ -419,3 +419,78 @@ export async function resendVerificationEmail(userId: string) {
 
   return { success: true, message: 'Doğrulama e-postası gönderildi.' }
 }
+
+// Toggle "verified-account" (Blue Tick) badge for a user
+export async function toggleBlueTick(userId: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  try {
+    // Check if user has the badge
+    const { data: existingBadge } = await supabase
+      .from('user_badges')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('badge_id', 'verified-account')
+      .maybeSingle()
+
+    if (existingBadge) {
+      // Remove badge
+      const { error: deleteError } = await supabase
+        .from('user_badges')
+        .delete()
+        .eq('user_id', userId)
+        .eq('badge_id', 'verified-account')
+
+      if (deleteError) {
+        throw deleteError
+      }
+
+      revalidatePath('/admin')
+      revalidatePath(`/dashboard/influencer/badges`)
+      revalidatePath(`/dashboard/brand/badges`)
+      return { success: true, message: 'Mavi tik kaldırıldı.', action: 'removed' }
+    } else {
+      // Add badge
+      // We can use the generic award function or insert directly
+      const { error: insertError } = await supabase
+        .from('user_badges')
+        .insert({
+          user_id: userId,
+          badge_id: 'verified-account',
+          awarded_at: new Date().toISOString()
+        })
+
+      if (insertError) {
+        throw insertError
+      }
+
+      revalidatePath('/admin')
+      revalidatePath(`/dashboard/influencer/badges`)
+      revalidatePath(`/dashboard/brand/badges`)
+      return { success: true, message: 'Mavi tik verildi.', action: 'added' }
+    }
+  } catch (error: any) {
+    console.error('[toggleBlueTick] Error:', error)
+    return { error: error.message || 'İşlem sırasında bir hata oluştu.' }
+  }
+}
