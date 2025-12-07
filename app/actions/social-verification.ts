@@ -188,13 +188,13 @@ export async function verifyInstagramAccount(userId: string) {
             return { success: false, error: 'Güncelleme hatası.' }
         }
 
-        // 5. Award "Data Verified" Badge
+        // 5. Award "Verified Account" (Blue Tick) Badge
         const { error: badgeError } = await supabase
             .from('user_badges')
             .upsert(
                 {
                     user_id: userId,
-                    badge_id: 'data-verified',
+                    badge_id: 'verified-account',
                     awarded_at: new Date().toISOString()
                 },
                 {
@@ -203,17 +203,19 @@ export async function verifyInstagramAccount(userId: string) {
             )
 
         if (badgeError) {
-            console.error('Error awarding data-verified badge:', badgeError)
+            console.error('Error awarding verified-account badge:', badgeError)
             // We don't fail the verification if badge awarding fails, but we log it.
         }
 
+        /*
         // 6. Award Badges (Check for Blue Tick)
-        // This will check if user is Admin Verified + Data Verified (just now) -> Award Blue Tick
+        // No longer needed here as we award verified-account directly above.
         try {
             await awardBadgesForUser(userId)
         } catch (error) {
             console.error('Error triggering badge check after data verification:', error)
         }
+        */
 
         revalidatePath('/dashboard/profile')
         return {

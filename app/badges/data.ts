@@ -39,13 +39,6 @@ export const influencerBadges: Badge[] = [
     phase: 'mvp',
   },
   {
-    id: 'data-verified',
-    name: 'Veri Onaylı',
-    description: 'İstatistikleri ve verileri doğrulanmış hesap.',
-    icon: ShieldCheck,
-    phase: 'mvp',
-  },
-  {
     id: 'founder-member',
     name: 'Kurucu Üye',
     description: 'Platformun ilk üyelerinden.',

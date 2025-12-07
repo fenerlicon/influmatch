@@ -6,7 +6,7 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
 
     let query = supabase
         .from('users')
-        .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status')
+        .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status, user_badges(badge_id)')
         .eq('role', 'influencer')
         .eq('verification_status', 'verified')
         .eq('is_showcase_visible', true)
@@ -49,9 +49,12 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
 
     // 3. Merge
     const influencers: DiscoverInfluencer[] = data.map((user) => {
+        // Use user_badges if available (real-time), fallback to displayed_badges column
         let displayedBadges: string[] | null = null
 
-        if (user.displayed_badges) {
+        if (user.user_badges && Array.isArray(user.user_badges)) {
+            displayedBadges = user.user_badges.map((ub: any) => ub.badge_id).filter(Boolean)
+        } else if (user.displayed_badges) {
             if (Array.isArray(user.displayed_badges)) {
                 displayedBadges = user.displayed_badges
                     .filter((id): id is string => typeof id === 'string' && id.length > 0)

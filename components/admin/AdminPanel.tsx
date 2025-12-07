@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick } from '@/app/admin/actions'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -57,6 +57,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [selectedBadgeId, setSelectedBadgeId] = useState<string>('')
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [isResettingBadges, setIsResettingBadges] = useState(false)
 
   const [users, setUsers] = useState<User[]>(() => {
     switch (activeTab) {
@@ -537,6 +538,32 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
+  const handleResetVerifiedBadges = async () => {
+    if (!confirm('DİKKAT! Tüm kullanıcıların Mavi Tik (Onaylı Hesap) rozetini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+      return
+    }
+
+    setIsResettingBadges(true)
+    startTransition(async () => {
+      try {
+        const result = await resetVerifiedBadges()
+        if (result.error) {
+          alert(result.error)
+        } else {
+          alert(result.message || 'Mavi tikler sıfırlandı.')
+          window.location.reload()
+        }
+      } catch (error) {
+        console.error('Reset badges error:', error)
+        alert('Bir hata oluştu.')
+      } finally {
+        setIsResettingBadges(false)
+      }
+    })
+  }
+
+
+
   const getAvailableBadges = (userRole: 'influencer' | 'brand' | null) => {
     if (userRole === 'influencer') {
       return influencerBadges
@@ -645,23 +672,46 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           </div>
 
           {/* Tabs */}
-          <div className="mt-8 flex gap-2 rounded-2xl border border-white/10 bg-[#0c0d13] p-1">
-            {tabsWithCounts.map((tab) => {
-              const isActive = activeTab === tab.key
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
-                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                    : 'text-gray-400 hover:text-white'
-                    }`}
-                >
-                  {tab.label} ({tab.count})
-                </button>
-              )
-            })}
+          <div className="mt-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-1 gap-2 rounded-2xl border border-white/10 bg-[#0c0d13] p-1 w-full md:w-auto">
+              {tabsWithCounts.map((tab) => {
+                const isActive = activeTab === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
+                      ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
+                      : 'text-gray-400 hover:text-white'
+                      }`}
+                  >
+                    {tab.label} ({tab.count})
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleResetVerifiedBadges}
+                disabled={isResettingBadges || isPending}
+                className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/50 text-red-500 hover:bg-red-500/20 text-xs font-bold transition flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                title="Tüm mavi tikleri sil"
+              >
+                {isResettingBadges ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    SİLİNİYOR...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-4 h-4" />
+                    SİSTEM: MAVİ TİKLERİ SİL
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Search Bar - Only for verified tab */}
@@ -846,19 +896,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               <BadgeCheck className="h-3 w-3" />
                               {user.displayed_badges?.includes('verified-account') ? 'Mavi Tik Kaldır' : 'Mavi Tik Ekle'}
                             </button>
-
-                            {/* Data Verification Status */}
-                            {user.displayed_badges?.includes('data-verified') ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
-                                <Database className="h-3 w-3" />
-                                Veri Onaylı
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
-                                <Database className="h-3 w-3" />
-                                Veri Onaysız
-                              </span>
-                            )}
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span
@@ -888,48 +925,52 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                       </div>
 
                       {/* Tax ID Pending Notice - Only for brands */}
-                      {!isInfluencer && user.tax_id && !user.tax_id_verified && (
-                        <div className="mt-4 rounded-2xl border-2 border-yellow-500/50 bg-yellow-500/15 p-3 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-yellow-300 mb-1">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            ⚠️ Vergi No Onayı Bekliyor
+                      {
+                        !isInfluencer && user.tax_id && !user.tax_id_verified && (
+                          <div className="mt-4 rounded-2xl border-2 border-yellow-500/50 bg-yellow-500/15 p-3 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-yellow-300 mb-1">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              ⚠️ Vergi No Onayı Bekliyor
+                            </div>
+                            <p className="text-xs text-yellow-200/90">
+                              Bu marka vergi numarasını girdi ancak henüz onaylanmadı.
+                            </p>
                           </div>
-                          <p className="text-xs text-yellow-200/90">
-                            Bu marka vergi numarasını girdi ancak henüz onaylanmadı.
-                          </p>
-                        </div>
-                      )}
+                        )
+                      }
 
                       {/* Profile Completeness Info */}
-                      {activeTab === 'pending' && (
-                        <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-blue-300 mb-2">
-                            <Info className="h-3.5 w-3.5" />
-                            Profil Durumu
-                          </div>
-                          <div className="space-y-1.5 text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-300">Sosyal Hesaplar:</span>
-                              <span className={`font-semibold ${getSocialLinksCount(user) >= 1 ? 'text-emerald-300' : 'text-red-300'}`}>
-                                {getSocialLinksCount(user)} / En az 1 gerekli
-                              </span>
+                      {
+                        activeTab === 'pending' && (
+                          <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-blue-300 mb-2">
+                              <Info className="h-3.5 w-3.5" />
+                              Profil Durumu
                             </div>
-                            {getMissingInfo(user).length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-white/10">
-                                <p className="text-gray-400 mb-1">Eksik Bilgiler:</p>
-                                <ul className="list-disc list-inside space-y-0.5 text-gray-400">
-                                  {getMissingInfo(user).slice(0, 3).map((info, idx) => (
-                                    <li key={idx}>{info}</li>
-                                  ))}
-                                  {getMissingInfo(user).length > 3 && (
-                                    <li className="text-gray-500">+{getMissingInfo(user).length - 3} daha</li>
-                                  )}
-                                </ul>
+                            <div className="space-y-1.5 text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-300">Sosyal Hesaplar:</span>
+                                <span className={`font-semibold ${getSocialLinksCount(user) >= 1 ? 'text-emerald-300' : 'text-red-300'}`}>
+                                  {getSocialLinksCount(user)} / En az 1 gerekli
+                                </span>
                               </div>
-                            )}
+                              {getMissingInfo(user).length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-white/10">
+                                  <p className="text-gray-400 mb-1">Eksik Bilgiler:</p>
+                                  <ul className="list-disc list-inside space-y-0.5 text-gray-400">
+                                    {getMissingInfo(user).slice(0, 3).map((info, idx) => (
+                                      <li key={idx}>{info}</li>
+                                    ))}
+                                    {getMissingInfo(user).length > 3 && (
+                                      <li className="text-gray-500">+{getMissingInfo(user).length - 3} daha</li>
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )
+                      }
 
                       {/* Contact Info */}
                       <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
@@ -951,152 +992,158 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         )}
                         {/* Brand Verification Info - Only for brands */}
                       </div>
-                      {!isInfluencer && (
-                        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
-                            <Award className="h-3.5 w-3.5" />
-                            Şirket Doğrulama Bilgileri
-                          </div>
-
-                          {/* Tax ID */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs text-gray-400">Vergi No:</span>
-                              {user.tax_id ? (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-mono text-white">{user.tax_id}</span>
-                                  {user.tax_id_verified ? (
-                                    <div className="flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1">
-                                      <CheckCircle className="h-3 w-3 text-emerald-300" />
-                                      <span className="text-xs font-semibold text-emerald-300">Onaylı</span>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleVerifyTaxId(user.id)}
-                                      disabled={isPending}
-                                      className="rounded-lg border border-soft-gold/40 bg-soft-gold/10 px-3 py-1 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                      {isPending ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        'Vergi Numarasını Onayla'
-                                      )}
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-gray-500">Girilmedi</span>
-                              )}
+                      {
+                        !isInfluencer && (
+                          <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
+                              <Award className="h-3.5 w-3.5" />
+                              Şirket Doğrulama Bilgileri
                             </div>
-                          </div>
 
-                          {/* Company Legal Name */}
-                          {user.company_legal_name && (
-                            <div className="space-y-1">
-                              <span className="text-xs text-gray-400">Yasal Şirket Adı:</span>
-                              <p className="text-sm text-white">{user.company_legal_name}</p>
-                            </div>
-                          )}
-
-                          {/* Email Domain Check */}
-                          {user.email && websiteLink && (() => {
-                            const emailDomain = user.email.split('@')[1]?.toLowerCase()
-                            const websiteDomain = websiteLink
-                              .replace(/^https?:\/\//, '')
-                              .replace(/^www\./, '')
-                              .split('/')[0]
-                              .toLowerCase()
-
-                            const domainsMatch = emailDomain && websiteDomain && emailDomain === websiteDomain
-
-                            return domainsMatch ? (
-                              <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
-                                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
-                                  <CheckCircle className="h-4 w-4" />
-                                  Güvenilir Hesap
-                                </div>
-                                <p className="mt-1 text-xs text-gray-400">
-                                  E-posta domaini ({emailDomain}) ile web sitesi ({websiteDomain}) eşleşiyor.
-                                </p>
+                            {/* Tax ID */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs text-gray-400">Vergi No:</span>
+                                {user.tax_id ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-mono text-white">{user.tax_id}</span>
+                                    {user.tax_id_verified ? (
+                                      <div className="flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1">
+                                        <CheckCircle className="h-3 w-3 text-emerald-300" />
+                                        <span className="text-xs font-semibold text-emerald-300">Onaylı</span>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleVerifyTaxId(user.id)}
+                                        disabled={isPending}
+                                        className="rounded-lg border border-soft-gold/40 bg-soft-gold/10 px-3 py-1 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        {isPending ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          'Vergi Numarasını Onayla'
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-500">Girilmedi</span>
+                                )}
                               </div>
-                            ) : null
-                          })()}
-                        </div>
-                      )}
+                            </div>
+
+                            {/* Company Legal Name */}
+                            {user.company_legal_name && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-gray-400">Yasal Şirket Adı:</span>
+                                <p className="text-sm text-white">{user.company_legal_name}</p>
+                              </div>
+                            )}
+
+                            {/* Email Domain Check */}
+                            {user.email && websiteLink && (() => {
+                              const emailDomain = user.email.split('@')[1]?.toLowerCase()
+                              const websiteDomain = websiteLink
+                                .replace(/^https?:\/\//, '')
+                                .replace(/^www\./, '')
+                                .split('/')[0]
+                                .toLowerCase()
+
+                              const domainsMatch = emailDomain && websiteDomain && emailDomain === websiteDomain
+
+                              return domainsMatch ? (
+                                <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
+                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
+                                    <CheckCircle className="h-4 w-4" />
+                                    Güvenilir Hesap
+                                  </div>
+                                  <p className="mt-1 text-xs text-gray-400">
+                                    E-posta domaini ({emailDomain}) ile web sitesi ({websiteDomain}) eşleşiyor.
+                                  </p>
+                                </div>
+                              ) : null
+                            })()}
+                          </div>
+                        )
+                      }
 
                       {/* Social Media Links */}
-                      {(instagramLink || tiktokLink || youtubeLink || websiteLink) && (
-                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
-                          {instagramLink && (
-                            <a
-                              href={instagramLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-1.5 text-xs font-semibold text-pink-300 transition hover:border-pink-500 hover:bg-pink-500/20"
-                              title="Instagram'ı Kontrol Et"
-                            >
-                              <Instagram className="h-3.5 w-3.5" />
-                              Instagram
-                            </a>
-                          )}
-                          {tiktokLink && (
-                            <a
-                              href={tiktokLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-black/40 bg-black/20 px-3 py-1.5 text-xs font-semibold text-gray-300 transition hover:border-gray-500 hover:bg-black/30"
-                            >
-                              <span className="text-[10px] font-bold">TT</span>
-                              TikTok
-                            </a>
-                          )}
-                          {youtubeLink && (
-                            <a
-                              href={youtubeLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20"
-                            >
-                              <Youtube className="h-3.5 w-3.5" />
-                              YouTube
-                            </a>
-                          )}
-                          {websiteLink && (
-                            <a
-                              href={websiteLink.startsWith('http') ? websiteLink : `https://${websiteLink}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 transition hover:border-blue-500 hover:bg-blue-500/20"
-                            >
-                              <Globe className="h-3.5 w-3.5" />
-                              Siteye Git
-                            </a>
-                          )}
-                        </div>
-                      )}
+                      {
+                        (instagramLink || tiktokLink || youtubeLink || websiteLink) && (
+                          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
+                            {instagramLink && (
+                              <a
+                                href={instagramLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-1.5 text-xs font-semibold text-pink-300 transition hover:border-pink-500 hover:bg-pink-500/20"
+                                title="Instagram'ı Kontrol Et"
+                              >
+                                <Instagram className="h-3.5 w-3.5" />
+                                Instagram
+                              </a>
+                            )}
+                            {tiktokLink && (
+                              <a
+                                href={tiktokLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-black/40 bg-black/20 px-3 py-1.5 text-xs font-semibold text-gray-300 transition hover:border-gray-500 hover:bg-black/30"
+                              >
+                                <span className="text-[10px] font-bold">TT</span>
+                                TikTok
+                              </a>
+                            )}
+                            {youtubeLink && (
+                              <a
+                                href={youtubeLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20"
+                              >
+                                <Youtube className="h-3.5 w-3.5" />
+                                YouTube
+                              </a>
+                            )}
+                            {websiteLink && (
+                              <a
+                                href={websiteLink.startsWith('http') ? websiteLink : `https://${websiteLink}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 transition hover:border-blue-500 hover:bg-blue-500/20"
+                              >
+                                <Globe className="h-3.5 w-3.5" />
+                                Siteye Git
+                              </a>
+                            )}
+                          </div>
+                        )
+                      }
 
                       {/* Bio */}
-                      {user.bio && (
-                        <div className="mt-4 border-t border-white/10 pt-4">
-                          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
-                            <FileText className="h-3.5 w-3.5" />
-                            BİYOGRAFİ
+                      {
+                        user.bio && (
+                          <div className="mt-4 border-t border-white/10 pt-4">
+                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
+                              <FileText className="h-3.5 w-3.5" />
+                              BİYOGRAFİ
+                            </div>
+                            <p className={`text-sm text-gray-300 ${!isExpanded ? 'line-clamp-3' : ''}`}>
+                              {user.bio}
+                            </p>
+                            {user.bio.length > 150 && (
+                              <button
+                                type="button"
+                                onClick={() => toggleCard(user.id)}
+                                className="mt-2 text-xs text-soft-gold hover:underline"
+                              >
+                                {isExpanded ? 'Daha az göster' : 'Devamını oku'}
+                              </button>
+                            )}
                           </div>
-                          <p className={`text-sm text-gray-300 ${!isExpanded ? 'line-clamp-3' : ''}`}>
-                            {user.bio}
-                          </p>
-                          {user.bio.length > 150 && (
-                            <button
-                              type="button"
-                              onClick={() => toggleCard(user.id)}
-                              className="mt-2 text-xs text-soft-gold hover:underline"
-                            >
-                              {isExpanded ? 'Daha az göster' : 'Devamını oku'}
-                            </button>
-                          )}
-                        </div>
-                      )}
+                        )
+                      }
 
                       {/* Created Date */}
                       <div className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-gray-500">
@@ -1111,32 +1158,36 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                       </div>
 
                       {/* Admin Notes */}
-                      {user.admin_notes && (
-                        <div className="mt-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-3">
-                          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-yellow-300 mb-1">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            YÖNETİCİ NOTU
-                          </div>
-                          <p className="text-xs text-yellow-200/90">{user.admin_notes}</p>
-                        </div>
-                      )}
-
-                      {/* User Badges - Only for verified users */}
-                      {activeTab === 'verified' && user.displayed_badges && Array.isArray(user.displayed_badges) && user.displayed_badges.length > 0 && (() => {
-                        const badgeIds = user.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)
-                        const availableBadges = getAvailableBadges(user.role)
-                        const userBadges = badgeIds
-                          .map((badgeId) => availableBadges.find((b) => b.id === badgeId))
-                          .filter((badge): badge is Badge => badge !== undefined)
-
-                        if (userBadges.length === 0) return null
-
-                        return (
-                          <div className="mt-4 border-t border-white/10 pt-4">
-                            <BadgeCompactList badges={userBadges} userRole={user.role ?? 'influencer'} />
+                      {
+                        user.admin_notes && (
+                          <div className="mt-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-3">
+                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-yellow-300 mb-1">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              YÖNETİCİ NOTU
+                            </div>
+                            <p className="text-xs text-yellow-200/90">{user.admin_notes}</p>
                           </div>
                         )
-                      })()}
+                      }
+
+                      {/* User Badges - Only for verified users */}
+                      {
+                        activeTab === 'verified' && user.displayed_badges && Array.isArray(user.displayed_badges) && user.displayed_badges.length > 0 && (() => {
+                          const badgeIds = user.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)
+                          const availableBadges = getAvailableBadges(user.role)
+                          const userBadges = badgeIds
+                            .map((badgeId) => availableBadges.find((b) => b.id === badgeId))
+                            .filter((badge): badge is Badge => badge !== undefined)
+
+                          if (userBadges.length === 0) return null
+
+                          return (
+                            <div className="mt-4 border-t border-white/10 pt-4">
+                              <BadgeCompactList badges={userBadges} userRole={user.role ?? 'influencer'} />
+                            </div>
+                          )
+                        })()
+                      }
 
                       {/* Action Buttons */}
                       <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-4">
@@ -1246,73 +1297,75 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         </div>
       </div>
       {/* Badge Award Modal */}
-      {badgeModalUserId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Rozet Ver</h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setBadgeModalUserId(null)
-                  setSelectedBadgeId('')
-                }}
-                className="rounded-lg p-1 text-gray-400 transition hover:bg-white/10 hover:text-white"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
+      {
+        badgeModalUserId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+            <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Rozet Ver</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBadgeModalUserId(null)
+                    setSelectedBadgeId('')
+                  }}
+                  className="rounded-lg p-1 text-gray-400 transition hover:bg-white/10 hover:text-white"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              </div>
 
-            <div className="mb-4">
-              <label className="mb-2 block text-sm font-medium text-gray-300">
-                Verilecek Rozeti Seçin
-              </label>
-              <select
-                value={selectedBadgeId}
-                onChange={(e) => setSelectedBadgeId(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
-              >
-                <option value="">Rozet seçin...</option>
-                {getAvailableBadges(
-                  users.find((u) => u.id === badgeModalUserId)?.role ?? 'influencer'
-                ).map((badge) => (
-                  <option key={badge.id} value={badge.id}>
-                    {badge.name} - {badge.description}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="mb-4">
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Verilecek Rozeti Seçin
+                </label>
+                <select
+                  value={selectedBadgeId}
+                  onChange={(e) => setSelectedBadgeId(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
+                >
+                  <option value="">Rozet seçin...</option>
+                  {getAvailableBadges(
+                    users.find((u) => u.id === badgeModalUserId)?.role ?? 'influencer'
+                  ).map((badge) => (
+                    <option key={badge.id} value={badge.id}>
+                      {badge.name} - {badge.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setBadgeModalUserId(null)
-                  setSelectedBadgeId('')
-                }}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
-              >
-                İptal
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAwardSpecificBadge(badgeModalUserId, selectedBadgeId)}
-                disabled={!selectedBadgeId || isPending}
-                className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                    Veriliyor...
-                  </>
-                ) : (
-                  'Rozeti Ver'
-                )}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBadgeModalUserId(null)
+                    setSelectedBadgeId('')
+                  }}
+                  className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
+                >
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAwardSpecificBadge(badgeModalUserId, selectedBadgeId)}
+                  disabled={!selectedBadgeId || isPending}
+                  className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                      Veriliyor...
+                    </>
+                  ) : (
+                    'Rozeti Ver'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </main>
+        )
+      }
+    </main >
   )
 }

@@ -45,7 +45,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
         (influencer.username?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
       const hasStats = influencer.stats && influencer.stats.followers !== '0'
       const matchesVerifiedData = !verifiedOnly || hasStats
-      const matchesVerifiedAccount = !verifiedAccountsOnly || influencer.verification_status === 'verified'
+      const matchesVerifiedAccount = !verifiedAccountsOnly || (influencer.displayed_badges?.includes('verified-account') ?? false)
       return matchesCategory && matchesSearch && matchesVerifiedData && matchesVerifiedAccount
     })
     // ... sorting logic ...

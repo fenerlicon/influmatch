@@ -36,12 +36,9 @@ export async function awardBadgesForUser(userId: string) {
 
   if (role === 'influencer') {
     // 1. Verified Account Badge
-    // Requirement: Must be Admin Verified AND have Data Verified badge
-    const hasDataVerifiedBadge = existingBadgeIds.includes('data-verified')
-
-    if (user.verification_status === 'verified' && hasDataVerifiedBadge && !existingBadgeIds.includes('verified-account')) {
-      badgesToAward.push('verified-account')
-    }
+    // This is now awarded directly upon social verification in actions/social-verification.ts
+    // or manually by admin via actions.ts/toggleBlueTick
+    // No automatic logic here.
 
     // 2. Profile Expert Badge (100% completion)
     const profileData: ProfileRecord = {

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
+import { createClient } from '@supabase/supabase-js'
 
 const ADMIN_EMAIL = 'admin@influmatch.net'
 
@@ -419,6 +420,67 @@ export async function resendVerificationEmail(userId: string) {
 
   return { success: true, message: 'Doğrulama e-postası gönderildi.' }
 }
+
+// Reset all "verified-account" badges (Danger Zone)
+export async function resetVerifiedBadges() {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!serviceRoleKey) {
+    console.error('SUPABASE_SERVICE_ROLE_KEY is missing')
+    return { error: 'Sistem hatası: Service Role Key eksik.' }
+  }
+
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+
+  try {
+    const { error, count } = await adminClient
+      .from('user_badges')
+      .delete({ count: 'exact' })
+      .eq('badge_id', 'verified-account')
+
+    if (error) {
+      throw error
+    }
+
+    revalidatePath('/admin')
+    revalidatePath(`/dashboard/influencer/badges`)
+    revalidatePath(`/dashboard/brand/badges`)
+    return { success: true, message: `Toplam ${count ?? 'bilinmeyen sayıda'} kullanıcının mavi tiki silindi.` }
+  } catch (error: any) {
+    console.error('[resetVerifiedBadges] Error:', error)
+    return { error: error.message || 'Sıfırlama işlemi sırasında hata oluştu.' }
+  }
+}
+
+
 
 // Toggle "verified-account" (Blue Tick) badge for a user
 export async function toggleBlueTick(userId: string) {
