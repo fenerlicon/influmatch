@@ -56,6 +56,10 @@ export const useSupabaseAuth = () => {
     }
 
     // Rate limit errors
+    if (errorLower.includes('request rate limit reached')) {
+      return 'Çok fazla deneme yaptınız. Lütfen bir süre bekleyip tekrar deneyin.';
+    }
+
     const rateLimitMatch = errorLower.match(/for security purposes, you can only request this after (\d+) seconds/);
     if (rateLimitMatch) {
       const seconds = rateLimitMatch[1];

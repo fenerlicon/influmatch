@@ -43,6 +43,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
         { label: 'İlanlar', href: '/dashboard/brand/advert' },
         { label: 'Teklifler', href: '/dashboard/brand/offers' },
         { label: 'Mesajlar', href: '/dashboard/messages' },
+        { label: 'Spotlight', href: '/dashboard/spotlight' },
         { label: 'Rozetler', href: '/dashboard/brand/badges' },
       ],
     }

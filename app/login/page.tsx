@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, useEffect } from 'react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { toast } from 'sonner'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -45,7 +46,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!isFormValid) return
+    if (!isFormValid) {
+      toast.error('Lütfen geçerli bir email ve en az 6 karakterli şifre girin.')
+      return
+    }
 
     const { data, error } = await signInWithEmail({ email, password })
 
@@ -97,8 +101,11 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
-              disabled={!isFormValid || isSubmitting}
-              className="w-full rounded-full bg-soft-gold px-8 py-4 font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+              className={`w-full rounded-full px-8 py-4 font-semibold text-background transition ${isFormValid
+                ? 'bg-soft-gold hover:bg-champagne'
+                : 'cursor-not-allowed bg-gray-600 opacity-50'
+                }`}
             >
               {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
             </button>

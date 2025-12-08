@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { CalendarDays, CheckCircle2, Loader2, MapPin, Megaphone, Search, SendHorizontal, X, BadgeCheck } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Loader2, MapPin, Megaphone, Search, SendHorizontal, X, BadgeCheck, Zap } from 'lucide-react'
 import { applyToAdvert } from '@/app/dashboard/influencer/advert/actions'
 import BadgeDisplay from '@/components/badges/BadgeDisplay'
 
@@ -16,6 +16,7 @@ export interface AdvertProject {
   brandUserId?: string | null // ID of the brand user who owns this project
   brandDisplayedBadges?: string[] | null // Badges displayed by the brand
   brandVerificationStatus?: string | null // Verification status of the brand
+  brandIsSpotlight?: boolean // Is the brand a spotlight user?
   budgetCurrency: string
   budgetMin: number | null
   budgetMax: number | null
@@ -121,6 +122,14 @@ export default function AdvertProjectsList({
 
       return haystack.some((field) => field?.toLowerCase().includes(keyword))
     })
+      .sort((a, b) => {
+        // Primary sort: Spotlight projects come first
+        if (a.brandIsSpotlight && !b.brandIsSpotlight) return -1
+        if (!a.brandIsSpotlight && b.brandIsSpotlight) return 1
+
+        // Secondary sort: Creation date (newest first)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      })
   }, [projects, query])
 
 
@@ -205,9 +214,12 @@ export default function AdvertProjectsList({
               <article
                 key={project.id}
                 onClick={() => setSelectedProject(project)}
-                className="group flex h-full flex-col cursor-pointer rounded-3xl border border-white/10 bg-[#0B0C10] p-4 text-white transition duration-300 ease-out hover:-translate-y-1 hover:border-soft-gold/70 hover:shadow-glow"
+                className={`group flex h-full flex-col cursor-pointer rounded-3xl border p-4 text-white transition duration-300 ease-out hover:-translate-y-1 ${project.brandIsSpotlight
+                    ? 'border-amber-500/50 bg-gradient-to-br from-[#161209] to-[#0B0C10] shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:border-amber-500 hover:shadow-[0_0_25px_rgba(245,158,11,0.25)]'
+                    : 'border-white/10 bg-[#0B0C10] hover:border-soft-gold/70 hover:shadow-glow'
+                  }`}
               >
-                <div className="relative h-56 w-full flex-shrink-0 overflow-hidden rounded-2xl border border-white/5">
+                <div className={`relative h-56 w-full flex-shrink-0 overflow-hidden rounded-2xl border ${project.brandIsSpotlight ? 'border-amber-500/30' : 'border-white/5'}`}>
                   {project.heroImage ? (
                     <Image
                       src={project.heroImage}
@@ -227,6 +239,12 @@ export default function AdvertProjectsList({
                   {isMyProject && (
                     <span className="absolute right-4 top-4 rounded-full border-2 border-emerald-400 bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
                       Senin İlanın
+                    </span>
+                  )}
+                  {project.brandIsSpotlight && !isMyProject && (
+                    <span className="absolute right-4 top-4 flex items-center gap-1 rounded-full border border-amber-500/50 bg-amber-500/90 px-3 py-1 text-xs font-bold text-black shadow-[0_0_15px_rgba(245,158,11,0.4)] backdrop-blur-sm animate-pulse">
+                      <Zap className="h-3 w-3 fill-black" />
+                      ÖNE ÇIKAN
                     </span>
                   )}
                   {!isBrandMode && isApplied && (

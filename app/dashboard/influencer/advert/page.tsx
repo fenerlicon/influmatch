@@ -38,11 +38,11 @@ export default async function InfluencerAdvertPage() {
     if (row.brand_user_id) brandUserIds.add(row.brand_user_id)
   })
 
-  let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null; verification_status: string | null }>()
+  let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null; verification_status: string | null; spotlight_active: boolean }>()
   if (brandUserIds.size > 0) {
     const { data: brandUsers } = await supabase
       .from('users')
-      .select('id, full_name, avatar_url, displayed_badges, verification_status')
+      .select('id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active')
       .in('id', Array.from(brandUserIds))
 
     brandMap = new Map(
@@ -54,6 +54,7 @@ export default async function InfluencerAdvertPage() {
           avatar_url: u.avatar_url,
           displayed_badges: (u.displayed_badges as string[] | null) ?? null,
           verification_status: u.verification_status ?? null,
+          spotlight_active: u.spotlight_active ?? false,
         },
       ]) ?? [],
     )
@@ -71,6 +72,7 @@ export default async function InfluencerAdvertPage() {
         brandUserId: row.brand_user_id ?? null,
         brandDisplayedBadges: brandUser?.displayed_badges ?? null,
         brandVerificationStatus: brandUser?.verification_status ?? null,
+        brandIsSpotlight: brandUser?.spotlight_active ?? false,
         budgetCurrency: row.budget_currency ?? 'TRY',
         budgetMin: row.budget_min ?? null,
         budgetMax: row.budget_max ?? null,
