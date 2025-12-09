@@ -9,7 +9,7 @@ import { getCategoryLabel } from '@/utils/categories'
 import { toggleFavorite } from '@/app/actions/favorites'
 import { type DiscoverInfluencer } from '@/types/influencer'
 
-import { toast } from 'sonner'
+import AddToListModal from '@/components/dashboard/AddToListModal'
 
 // ... existing imports ...
 
@@ -17,11 +17,14 @@ interface InfluencerGridCardProps {
     influencer: DiscoverInfluencer
     initialIsFavorited: boolean
     userRole?: string
+    matchScore?: number
+    matchReasons?: string[]
 }
 
-export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole }: InfluencerGridCardProps) {
+export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole, matchScore, matchReasons }: InfluencerGridCardProps) {
     const [isFavorited, setIsFavorited] = useState(initialIsFavorited)
     const [isPending, setIsPending] = useState(false)
+    const [showListModal, setShowListModal] = useState(false)
 
     const handleToggleFavorite = async (e: React.MouseEvent) => {
         e.preventDefault()
@@ -87,26 +90,49 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                         </div>
                     )}
 
+                    {matchScore && matchScore > 0 && (
+                        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-1 backdrop-blur-sm">
+                            <span className="text-[10px] font-bold text-white">%{matchScore} Match</span>
+                        </div>
+                    )}
+
                     {/* Heart Icon */}
-                    <button
-                        onClick={handleToggleFavorite}
-                        className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill={isFavorited ? "#ef4444" : "none"}
-                            stroke={isFavorited ? "#ef4444" : "white"}
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="transition-colors duration-300"
+                    <div className="absolute top-3 right-3 z-10 flex gap-2">
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setShowListModal(true)
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn border border-white/10 hover:border-white/30 text-white hover:text-soft-gold"
+                            title="Listeye Ekle"
                         >
-                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                        </svg>
-                    </button>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 10v6M9 13h6M20 20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7.5" />
+                                <path d="M16 2v4" />
+                                <path d="M22 6h-6" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={handleToggleFavorite}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill={isFavorited ? "#ef4444" : "none"}
+                                stroke={isFavorited ? "#ef4444" : "white"}
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="transition-colors duration-300"
+                            >
+                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content Section */}
@@ -177,12 +203,38 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
 
                     {/* Data Source Footer */}
                     <div className="mt-3 text-center">
-                        <p className="text-[9px] text-gray-600">
-                            {hasStats ? 'Veriler son 12 gönderiye dayanmaktadır.' : 'Veri bulunamadı.'}
-                        </p>
+                        {matchReasons && matchReasons.length > 0 ? (
+                            <div className="flex flex-wrap justify-center gap-1.5">
+                                {matchReasons.slice(0, 2).map((reason, idx) => (
+                                    <span key={idx} className="inline-block rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 text-[9px] font-medium text-emerald-400">
+                                        {reason}
+                                    </span>
+                                ))}
+                                {matchReasons.length > 2 && (
+                                    <span className="inline-block rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 text-[9px] font-medium text-emerald-400">
+                                        +{matchReasons.length - 2}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-[9px] text-gray-600">
+                                {hasStats ? 'Veriler son 12 gönderiye dayanmaktadır.' : 'Veri bulunamadı.'}
+                            </p>
+                        )}
                     </div>
                 </div>
+
+
+                {showListModal && (
+                    <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                        <AddToListModal
+                            isOpen={showListModal}
+                            onClose={() => setShowListModal(false)}
+                            influencerId={influencer.id}
+                        />
+                    </div>
+                )}
             </article>
-        </Link>
+        </Link >
     )
 }

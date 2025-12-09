@@ -39,7 +39,6 @@ export default function SpotlightSelectionPage() {
                     icon={BadgeDollarSign}
                     href="/dashboard/spotlight/brand"
                     variant="brand"
-                    isComingSoon
                 />
 
                 <SpotlightSelectionCard

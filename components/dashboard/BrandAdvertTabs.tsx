@@ -13,6 +13,7 @@ interface BrandAdvertTabsProps {
   currentUserId?: string
   myProjectIds?: string[]
   verificationStatus?: 'pending' | 'verified' | 'rejected'
+  userSpotlightStatus?: boolean
 }
 
 const tabs: Array<{ key: 'community' | 'mine' | 'applications'; label: string; description: string }> = [
@@ -33,7 +34,7 @@ const tabs: Array<{ key: 'community' | 'mine' | 'applications'; label: string; d
   },
 ]
 
-export default function BrandAdvertTabs({ myProjects, communityProjects, applications, currentUserId, myProjectIds = [], verificationStatus = 'pending' }: BrandAdvertTabsProps) {
+export default function BrandAdvertTabs({ myProjects, communityProjects, applications, currentUserId, myProjectIds = [], verificationStatus = 'pending', userSpotlightStatus = false }: BrandAdvertTabsProps) {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
   const [activeTab, setActiveTab] = useState<'community' | 'mine' | 'applications'>(
@@ -66,9 +67,8 @@ export default function BrandAdvertTabs({ myProjects, communityProjects, applica
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                  isActive ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]' : 'text-gray-400 hover:text-white'
-                }`}
+                className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${isActive ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]' : 'text-gray-400 hover:text-white'
+                  }`}
               >
                 {tab.label}
               </button>
@@ -80,15 +80,15 @@ export default function BrandAdvertTabs({ myProjects, communityProjects, applica
 
       <div className="mt-6">
         {activeTab === 'community' ? (
-          <AdvertProjectsList 
-            projects={communityProjects} 
-            initialAppliedIds={[]} 
+          <AdvertProjectsList
+            projects={communityProjects}
+            initialAppliedIds={[]}
             mode="brand"
             currentUserId={currentUserId}
             myProjectIds={myProjectIds}
           />
         ) : activeTab === 'mine' ? (
-          <BrandAdvertManager projects={myProjects} verificationStatus={verificationStatus} />
+          <BrandAdvertManager projects={myProjects} verificationStatus={verificationStatus} currentUserId={currentUserId} userSpotlightStatus={userSpotlightStatus} />
         ) : (
           <AdvertApplicationsList applications={applications} currentUserId={currentUserId} />
         )}

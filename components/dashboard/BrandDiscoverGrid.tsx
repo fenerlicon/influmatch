@@ -5,6 +5,7 @@ import { Filter, ArrowUpDown, ChevronDown, BadgeCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey } from '@/utils/categories'
 import { type DiscoverInfluencer } from '@/types/influencer'
+import { calculateMatchScore } from '@/utils/matching'
 import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 
 const CATEGORY_OPTIONS = ['All', ...INFLUENCER_CATEGORY_KEYS] as const
@@ -22,14 +23,15 @@ interface BrandDiscoverGridProps {
   currentUserId?: string
   initialFavoritedIds?: string[]
   userRole?: string
+  isSpotlightMember?: boolean
 }
 
-export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole }: BrandDiscoverGridProps) {
+export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole, isSpotlightMember = false }: BrandDiscoverGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORY_OPTIONS)[number]>('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [verifiedOnly, setVerifiedOnly] = useState(false)
   const [verifiedAccountsOnly, setVerifiedAccountsOnly] = useState(false)
-  const [sortBy, setSortBy] = useState<string>('recommended')
+  const [sortBy, setSortBy] = useState<string>(isSpotlightMember ? 'recommended' : 'followers_desc')
   const [categorySearchQuery, setCategorySearchQuery] = useState('')
   const [isFiltersOpen, setIsFiltersOpen] = useState(true)
 
@@ -49,19 +51,32 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       return matchesCategory && matchesSearch && matchesVerifiedData && matchesVerifiedAccount
     })
     // ... sorting logic ...
-    if (sortBy !== 'recommended') {
-      result.sort((a, b) => {
-        const getFollowers = (inf: DiscoverInfluencer) => parseInt(inf.stats?.followers || '0')
-        const getEngagement = (inf: DiscoverInfluencer) => parseFloat(inf.stats?.engagement?.replace('%', '') || '0')
-        switch (sortBy) {
-          case 'followers_desc': return getFollowers(b) - getFollowers(a)
-          case 'followers_asc': return getFollowers(a) - getFollowers(b)
-          case 'engagement_desc': return getEngagement(b) - getEngagement(a)
-          case 'engagement_asc': return getEngagement(a) - getEngagement(b)
-          default: return 0
-        }
-      })
-    }
+    result.sort((a, b) => {
+      const parseStatsValue = (val: string | undefined): number => {
+        if (!val) return 0
+        const cleanVal = val.toString().toUpperCase().replace(/,/g, '.')
+        if (cleanVal.includes('M')) return parseFloat(cleanVal.replace('M', '')) * 1000000
+        if (cleanVal.includes('K') || cleanVal.includes('B')) return parseFloat(cleanVal.replace(/K|B/g, '')) * 1000
+        return parseFloat(cleanVal.replace(/[^0-9.]/g, '')) || 0
+      }
+
+      const getFollowers = (inf: DiscoverInfluencer) => parseStatsValue(inf.stats?.followers)
+      const getEngagement = (inf: DiscoverInfluencer) => parseStatsValue(inf.stats?.engagement)
+      switch (sortBy) {
+        case 'recommended':
+          // Only sort by recommendation if spotlight member. If not, fallback to followers desc or don't sort here (handled in rendering check).
+          // But to be safe, if selected 'recommended' and not spotlight, we should probably not show this option or fallback.
+          // The UI handles disabling, so here we assume if it's 'recommended', they are allowed or we sort by 0.
+          if (!isSpotlightMember) return 0
+          return calculateMatchScore(b, { targetCategory: selectedCategory !== 'All' ? selectedCategory : undefined }) -
+            calculateMatchScore(a, { targetCategory: selectedCategory !== 'All' ? selectedCategory : undefined })
+        case 'followers_desc': return getFollowers(b) - getFollowers(a)
+        case 'followers_asc': return getFollowers(a) - getFollowers(b)
+        case 'engagement_desc': return getEngagement(b) - getEngagement(a)
+        case 'engagement_asc': return getEngagement(a) - getEngagement(b)
+        default: return 0
+      }
+    })
     return result
   }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy])
 
@@ -206,18 +221,54 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
             Seçilen kriterler için influencer bulunamadı.
           </div>
         ) : (
-          <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${userRole === 'brand' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
-            {filteredInfluencers.map((influencer) => {
-              return (
-                <InfluencerGridCard
-                  key={influencer.id}
-                  influencer={influencer}
-                  initialIsFavorited={favoritedSet.has(influencer.id)}
-                  userRole={userRole}
-                />
-              )
-            })}
-          </div>
+          <>
+            <div className="flex justify-end mb-4">
+              <div className="relative group">
+                <button className="flex items-center gap-2 text-sm text-gray-400 hover:text-white">
+                  <ArrowUpDown className="h-4 w-4" />
+                  <span>{SORT_OPTIONS.find(o => o.value === sortBy)?.label || 'Sırala'}</span>
+                </button>
+                {/* Dropdown with padding bridge for stable hover */}
+                <div className="absolute right-0 top-full pt-2 w-48 z-20 hidden group-hover:block">
+                  <div className="rounded-xl border border-white/10 bg-[#0F1014] py-1 shadow-xl">
+                    {SORT_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          if (option.value === 'recommended' && !isSpotlightMember) return
+                          setSortBy(option.value)
+                        }}
+                        disabled={option.value === 'recommended' && !isSpotlightMember}
+                        className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition-colors ${sortBy === option.value ? 'bg-white/5 text-soft-gold' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                          } ${option.value === 'recommended' && !isSpotlightMember ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {option.label}
+                        {option.value === 'recommended' && !isSpotlightMember && <div className="text-[10px] uppercase border border-soft-gold text-soft-gold px-1 rounded ml-2">PRO</div>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${userRole === 'brand' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
+              {filteredInfluencers.map((influencer) => {
+                const matchScore = (sortBy === 'recommended' && isSpotlightMember)
+                  ? calculateMatchScore(influencer, { targetCategory: selectedCategory !== 'All' ? selectedCategory : undefined })
+                  : undefined
+
+                return (
+                  <InfluencerGridCard
+                    key={influencer.id}
+                    influencer={influencer}
+                    initialIsFavorited={favoritedSet.has(influencer.id)}
+                    userRole={userRole}
+                    matchScore={matchScore}
+                  />
+                )
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>

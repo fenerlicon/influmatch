@@ -22,6 +22,13 @@ export default async function BrandDiscoverPage() {
 
   const userRole = user.user_metadata?.role || 'brand' // fallback or fetch from DB if metadata is unreliable
 
+  // Get user profile for spotlight status
+  const { data: userData } = await supabase
+    .from('users')
+    .select('spotlight_active')
+    .eq('id', user.id)
+    .single()
+
   return (
     <div className="space-y-6">
       <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
@@ -33,7 +40,12 @@ export default async function BrandDiscoverPage() {
         </p>
       </header>
 
-      <BrandDiscoverGrid influencers={influencers} initialFavoritedIds={Array.from(favoritedIds) as string[]} userRole={userRole} />
+      <BrandDiscoverGrid
+        influencers={influencers}
+        initialFavoritedIds={Array.from(favoritedIds) as string[]}
+        userRole={userRole}
+        isSpotlightMember={userData?.spotlight_active ?? false}
+      />
     </div>
   )
 }

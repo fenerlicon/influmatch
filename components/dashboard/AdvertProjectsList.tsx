@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { CalendarDays, CheckCircle2, Loader2, MapPin, Megaphone, Search, SendHorizontal, X, BadgeCheck, Zap } from 'lucide-react'
 import { applyToAdvert } from '@/app/dashboard/influencer/advert/actions'
+import { trackEvent } from '@/app/actions/analytics'
 import BadgeDisplay from '@/components/badges/BadgeDisplay'
 
 export interface AdvertProject {
@@ -105,6 +106,15 @@ export default function AdvertProjectsList({
   useEffect(() => {
     setAppliedIds(new Set(initialAppliedIds))
   }, [initialAppliedIds])
+
+  // Track analytics when a project is selected
+  useEffect(() => {
+    if (selectedProject && !isBrandMode && selectedProject.brandUserId) {
+      // Fire and forget tracking
+      trackEvent('view_advert', selectedProject.id, selectedProject.brandUserId)
+        .catch(err => console.error('Tracking error:', err))
+    }
+  }, [selectedProject, isBrandMode])
 
   const filteredProjects = useMemo(() => {
     const keyword = query.trim().toLowerCase()
@@ -215,8 +225,8 @@ export default function AdvertProjectsList({
                 key={project.id}
                 onClick={() => setSelectedProject(project)}
                 className={`group flex h-full flex-col cursor-pointer rounded-3xl border p-4 text-white transition duration-300 ease-out hover:-translate-y-1 ${project.brandIsSpotlight
-                    ? 'border-amber-500/50 bg-gradient-to-br from-[#161209] to-[#0B0C10] shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:border-amber-500 hover:shadow-[0_0_25px_rgba(245,158,11,0.25)]'
-                    : 'border-white/10 bg-[#0B0C10] hover:border-soft-gold/70 hover:shadow-glow'
+                  ? 'border-amber-500/50 bg-gradient-to-br from-[#161209] to-[#0B0C10] shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:border-amber-500 hover:shadow-[0_0_25px_rgba(245,158,11,0.25)]'
+                  : 'border-white/10 bg-[#0B0C10] hover:border-soft-gold/70 hover:shadow-glow'
                   }`}
               >
                 <div className={`relative h-56 w-full flex-shrink-0 overflow-hidden rounded-2xl border ${project.brandIsSpotlight ? 'border-amber-500/30' : 'border-white/5'}`}>

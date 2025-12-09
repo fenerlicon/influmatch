@@ -2,11 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import Link from 'next/link'
+import { Sparkles, ArrowRight } from 'lucide-react'
 
 interface BrandPipelineCardProps {
   userId: string
   initialPendingCount?: number
   initialAcceptedCount?: number
+}
+
+interface PipelineItem {
+  label: string
+  count?: number | string
+  description: string
+  isComingSoon: boolean
+  customContent?: React.ReactNode
+  badge?: React.ReactNode
 }
 
 export default function BrandPipelineCard({
@@ -18,6 +29,7 @@ export default function BrandPipelineCard({
   const [pendingCount, setPendingCount] = useState(initialPendingCount)
   const [acceptedCount, setAcceptedCount] = useState(initialAcceptedCount)
 
+  // ... (keep useEffects same) ...
   // Fetch initial counts
   useEffect(() => {
     const fetchCounts = async () => {
@@ -71,14 +83,36 @@ export default function BrandPipelineCard({
     }
   }, [userId, supabase])
 
-  const pipeline = [
-    { label: 'Keşif', count: 'yakında', description: 'Filtrelenmiş uygun profiller', isComingSoon: true },
+  const pipeline: PipelineItem[] = [
+    {
+      label: 'Keşif',
+      description: '',
+      isComingSoon: false,
+      badge: (
+        <div className="flex items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 backdrop-blur-sm">
+          <span className="text-[9px] font-bold tracking-widest text-blue-400 leading-none">WITH AI</span>
+        </div>
+      ),
+      customContent: (
+        <div className="flex w-full h-full flex-col items-center justify-center pt-5">
+          <Link
+            href="/dashboard/spotlight/brand"
+            className="relative flex w-full max-w-[220px] items-center justify-center rounded-xl border border-soft-gold/20 bg-soft-gold/5 px-4 py-3 text-sm font-bold text-soft-gold shadow-[0_0_15px_rgba(212,175,55,0.15)] transition-all hover:bg-soft-gold/10 hover:shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:scale-[1.02]"
+          >
+            Spotlight'a Yükseltin
+          </Link>
+          <p className="mt-3 text-sm">
+            AI eşleşmesi için
+          </p>
+        </div>
+      )
+    },
     { label: 'Teklif Gönderildi', count: pendingCount, description: 'Onay bekleyen iş birlikleri', isComingSoon: false },
     { label: 'Üretim', count: acceptedCount, description: 'İçerik üretimi devam ediyor', isComingSoon: false },
   ]
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 lg:col-span-2 shadow-glow">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Pipeline</p>
@@ -92,27 +126,38 @@ export default function BrandPipelineCard({
         {pipeline.map((item) => (
           <div
             key={item.label}
-            className={`rounded-2xl border p-4 ${
-              item.isComingSoon
-                ? 'border-white/5 bg-[#0A0B0F] text-gray-400 opacity-60'
-                : 'border-white/5 bg-[#11121A] text-gray-300'
-            }`}
+            className={`relative flex flex-col justify-between rounded-2xl border p-4 ${item.isComingSoon
+              ? 'border-white/5 bg-[#0A0B0F] text-gray-400 opacity-60'
+              : 'border-white/5 bg-[#11121A] text-gray-300'
+              }`}
           >
-            <p
-              className={`text-xs uppercase tracking-[0.3em] ${
-                item.isComingSoon ? 'text-gray-500' : 'text-soft-gold'
-              }`}
-            >
-              {item.label}
-            </p>
-            <p
-              className={`mt-3 text-3xl font-semibold ${
-                item.isComingSoon ? 'text-gray-500' : 'text-white'
-              }`}
-            >
-              {item.count}
-            </p>
-            <p className={`mt-2 text-sm ${item.isComingSoon ? 'text-gray-500' : ''}`}>
+            {item.badge && (
+              <div className="absolute top-3 right-3">
+                {item.badge}
+              </div>
+            )}
+
+            <div>
+              <p
+                className={`text-xs uppercase tracking-[0.3em] ${item.isComingSoon ? 'text-gray-500' : 'text-soft-gold'
+                  }`}
+              >
+                {item.label}
+              </p>
+
+              {item.customContent ? (
+                item.customContent
+              ) : (
+                <p
+                  className={`mt-3 text-3xl font-semibold ${item.isComingSoon ? 'text-gray-500' : 'text-white'
+                    }`}
+                >
+                  {item.count}
+                </p>
+              )}
+            </div>
+
+            <p className={`mt-3 text-sm ${item.isComingSoon ? 'text-gray-500' : ''}`}>
               {item.description}
             </p>
           </div>
@@ -121,4 +166,3 @@ export default function BrandPipelineCard({
     </div>
   )
 }
-

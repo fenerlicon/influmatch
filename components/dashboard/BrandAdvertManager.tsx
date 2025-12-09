@@ -9,9 +9,14 @@ import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
 import { saveBrandAdvert, updateAdvertStatus, deleteAdvert, type AdvertStatus } from '@/app/dashboard/brand/advert/actions'
 import { useRouter } from 'next/navigation'
 
+import AdvertPerformanceChart from '@/components/dashboard/AdvertPerformanceChart'
+import { BarChart3, Lock } from 'lucide-react'
+
 interface BrandAdvertManagerProps {
   projects: AdvertProject[]
   verificationStatus?: 'pending' | 'verified' | 'rejected'
+  currentUserId?: string
+  userSpotlightStatus?: boolean
 }
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
@@ -46,9 +51,10 @@ const parseList = (value: string) =>
 
 const HERO_IMAGE_BUCKET = 'advert-hero-images'
 
-export default function BrandAdvertManager({ projects, verificationStatus = 'pending' }: BrandAdvertManagerProps) {
+export default function BrandAdvertManager({ projects, verificationStatus = 'pending', currentUserId, userSpotlightStatus = false }: BrandAdvertManagerProps) {
   const router = useRouter()
   const supabase = useSupabaseClient()
+  const [showAnalytics, setShowAnalytics] = useState(false)
   const [formValues, setFormValues] = useState(emptyFormValues)
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null)
   const [isUploadingHero, setIsUploadingHero] = useState(false)
@@ -550,8 +556,39 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
       </section>
 
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
-        <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">İlanların</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">Aktif Briefler</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">İlanların</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Aktif Briefler</h2>
+          </div>
+          {currentUserId && (
+            <button
+              onClick={() => {
+                if (!userSpotlightStatus) {
+                  setToast('Bu özellik sadece Spotlight üyelerine özeldir. Detaylı analizler için üyeliğinizi yükseltin.')
+                  return
+                }
+                setShowAnalytics(!showAnalytics)
+              }}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition ${!userSpotlightStatus
+                  ? 'border-white/5 text-gray-500 hover:text-gray-400 cursor-not-allowed opacity-70'
+                  : showAnalytics
+                    ? 'border-soft-gold/50 bg-soft-gold/10 text-soft-gold'
+                    : 'border-white/10 text-gray-400 hover:text-white'
+                }`}
+            >
+              {!userSpotlightStatus ? <Lock className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+              {showAnalytics ? 'Analizleri Gizle' : 'Analizleri Gör'}
+              {!userSpotlightStatus && <span className="ml-1 text-[10px] uppercase border border-white/20 px-1 rounded">Pro</span>}
+            </button>
+          )}
+        </div>
+
+        {showAnalytics && currentUserId && userSpotlightStatus && (
+          <div className="mt-6 mb-6">
+            <AdvertPerformanceChart brandId={currentUserId} />
+          </div>
+        )}
 
         {sortedProjects.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-white/10 bg-[#0F1018] p-6 text-center text-gray-400">

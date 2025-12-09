@@ -100,10 +100,17 @@ export default function BrandSpotlightPage() {
                     </div>
                 </div>
 
-                <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
+                <div className="grid gap-8 md:grid-cols-2 lg:gap-12 relative">
+                    {/* Coming Soon Overlay */}
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-3xl border border-white/10">
+                        <div className="rotate-[-12deg] rounded-xl border-4 border-dashed border-soft-gold bg-black/80 px-12 py-6 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
+                            <span className="text-4xl font-black tracking-widest text-soft-gold">YAKINDA</span>
+                        </div>
+                    </div>
+
                     <PricingCard
                         title="Business Aylık"
-                        price="999 ₺"
+                        price="1.249 ₺"
                         interval="mo"
                         features={[
                             { text: "Sınırsız AI Eşleşme", highlight: true },
@@ -117,12 +124,12 @@ export default function BrandSpotlightPage() {
 
                     <PricingCard
                         title="Business Yıllık"
-                        price={billingInterval === 'mo' ? "799 ₺" : "9999 ₺"}
+                        price={billingInterval === 'mo' ? "833 ₺" : "9.999 ₺"}
                         interval={billingInterval === 'mo' ? 'mo' : 'yr'}
                         features={[
                             { text: "Tüm Business Özellikleri", highlight: true },
-                            { text: "Cast & Favori Havuzu Yönetimi", highlight: true },
-                            { text: "Ekip Erişimi (3 Kişi)" },
+                            { text: "Favori Listeleri ve Klasörleme", highlight: true },
+                            { text: "Detaylı Profil Analizi" },
                             { text: "Brief Önceliklendirme" },
                         ]}
                         recommended

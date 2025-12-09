@@ -19,7 +19,7 @@ export default async function BrandAdvertPage() {
   // Get user verification status
   const { data: userProfile } = await supabase
     .from('users')
-    .select('verification_status')
+    .select('verification_status, spotlight_active')
     .eq('id', user.id)
     .single()
 
@@ -189,6 +189,7 @@ export default async function BrandAdvertPage() {
         currentUserId={user.id}
         myProjectIds={myProjectIds}
         verificationStatus={verificationStatus}
+        userSpotlightStatus={userProfile?.spotlight_active ?? false}
       />
     </div>
   )
