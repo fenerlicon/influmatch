@@ -9,6 +9,7 @@ interface BrandPipelineCardProps {
   userId: string
   initialPendingCount?: number
   initialAcceptedCount?: number
+  isSpotlightActive?: boolean
 }
 
 interface PipelineItem {
@@ -24,6 +25,7 @@ export default function BrandPipelineCard({
   userId,
   initialPendingCount = 0,
   initialAcceptedCount = 0,
+  isSpotlightActive = false,
 }: BrandPipelineCardProps) {
   const supabase = useSupabaseClient()
   const [pendingCount, setPendingCount] = useState(initialPendingCount)
@@ -95,15 +97,30 @@ export default function BrandPipelineCard({
       ),
       customContent: (
         <div className="flex w-full h-full flex-col items-center justify-center pt-5">
-          <Link
-            href="/dashboard/spotlight/brand"
-            className="relative flex w-full max-w-[220px] items-center justify-center rounded-xl border border-soft-gold/20 bg-soft-gold/5 px-4 py-3 text-sm font-bold text-soft-gold shadow-[0_0_15px_rgba(212,175,55,0.15)] transition-all hover:bg-soft-gold/10 hover:shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:scale-[1.02]"
-          >
-            Spotlight'a Yükseltin
-          </Link>
-          <p className="mt-3 text-sm">
-            AI eşleşmesi için
-          </p>
+          {isSpotlightActive ? (
+            <>
+              <div className="relative flex w-full max-w-[220px] items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm font-bold text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] cursor-default">
+                Spotlight Aktif
+              </div>
+              <p className="mt-3 text-sm text-center">
+                <Link href="/dashboard/brand/discover" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+                  Keşfetmek için tıklayın →
+                </Link>
+              </p>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/dashboard/spotlight/brand"
+                className="relative flex w-full max-w-[220px] items-center justify-center rounded-xl border border-soft-gold/20 bg-soft-gold/5 px-4 py-3 text-sm font-bold text-soft-gold shadow-[0_0_15px_rgba(212,175,55,0.15)] transition-all hover:bg-soft-gold/10 hover:shadow-[0_0_20px_rgba(212,175,55,0.25)] hover:scale-[1.02]"
+              >
+                Spotlight'a Yükseltin
+              </Link>
+              <p className="mt-3 text-sm">
+                AI eşleşmesi için
+              </p>
+            </>
+          )}
         </div>
       )
     },

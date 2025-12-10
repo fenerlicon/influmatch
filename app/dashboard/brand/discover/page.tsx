@@ -25,7 +25,7 @@ export default async function BrandDiscoverPage() {
   // Get user profile for spotlight status
   const { data: userData } = await supabase
     .from('users')
-    .select('spotlight_active')
+    .select('spotlight_active, spotlight_plan, category')
     .eq('id', user.id)
     .single()
 
@@ -45,6 +45,8 @@ export default async function BrandDiscoverPage() {
         initialFavoritedIds={Array.from(favoritedIds) as string[]}
         userRole={userRole}
         isSpotlightMember={userData?.spotlight_active ?? false}
+        spotlightPlan={userData?.spotlight_plan as 'basic' | 'pro' | null}
+        defaultCategory={userData?.category}
       />
     </div>
   )

@@ -101,3 +101,80 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
 
     return influencers
 }
+
+export async function getAIRecommendations(
+    userId: string,
+    filterCategory?: string | null,
+    limit?: number
+): Promise<DiscoverInfluencer[]> {
+    const { calculateMatchScore, getMatchReason } = await import('@/utils/matching')
+
+    // 1. Get Base Influencers (Strict Category Match)
+    // If no category is provided, fallback to fetching all (or handle empty case)
+    // ideally the caller should provide the category.
+
+    const criteria: any = { limit: 50 } // fetch a pool to sort from
+    // We can't easily filter by category in getEnrichedInfluencers raw query without modifying it heavily,
+    // so we'll fetch enriched influencers and filter in memory OR modify getEnrichedInfluencers.
+    // Let's modify getEnrichedInfluencers to accept partial filters or just filter here efficiently.
+    // Actually, let's just fetch a larger pool and filter JS side for now to reuse logic, 
+    // OR add a simple category filter param to getEnrichedInfluencers. 
+    // For "Strict" matching, SQL filtering is better.
+
+    // Let's rely on getEnrichedInfluencers but filter by IDs if we want strict SQL, 
+    // or just fetch all 'verified' + 'visible' and filter.
+    // Given the "Strict Relevance" requirement, let's do a direct ID fetch first.
+
+    const supabase = createSupabaseServerClient()
+    let query = supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'influencer')
+        .eq('is_showcase_visible', true)
+        .neq('id', userId)
+
+    if (filterCategory) {
+        // approximate strict match
+        query = query.ilike('category', `%${filterCategory}%`)
+    }
+
+    let { data: potentialMatches } = await query
+
+    // FALLBACK: If strict match returns nothing, fetch top diverse influencers
+    // This ensures the homepage section is never empty
+    if (!potentialMatches || potentialMatches.length === 0) {
+        const { data: fallbackMatches } = await supabase
+            .from('users')
+            .select('id')
+            .eq('role', 'influencer')
+            .eq('is_showcase_visible', true)
+            .neq('id', userId)
+            .order('spotlight_active', { ascending: false }) // Prioritize paid members
+            .limit(limit ? limit * 2 : 20) // Fetch a standardized pool
+
+        potentialMatches = fallbackMatches
+    }
+
+    if (!potentialMatches || potentialMatches.length === 0) return []
+
+    const ids = potentialMatches.map(u => u.id)
+
+    // Now get enriched data for these IDs
+    const influencers = await getEnrichedInfluencers({ ids })
+
+    // Calculate Scores & Sort
+    const scored = influencers.map(inf => {
+        const score = calculateMatchScore(inf, { targetCategory: filterCategory || undefined })
+        const reasons = getMatchReason(inf, { targetCategory: filterCategory || undefined })
+        return { ...inf, matchScore: score, matchReasons: reasons }
+    })
+
+    // Sort by Score DESC
+    scored.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+
+    if (limit) {
+        return scored.slice(0, limit)
+    }
+
+    return scored
+}

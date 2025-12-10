@@ -18,15 +18,18 @@ const SORT_OPTIONS = [
 ] as const
 
 
+
 interface BrandDiscoverGridProps {
   influencers: DiscoverInfluencer[]
   currentUserId?: string
   initialFavoritedIds?: string[]
   userRole?: string
   isSpotlightMember?: boolean
+  spotlightPlan?: 'basic' | 'pro' | null
+  defaultCategory?: string | null
 }
 
-export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole, isSpotlightMember = false }: BrandDiscoverGridProps) {
+export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole, isSpotlightMember = false, spotlightPlan, defaultCategory }: BrandDiscoverGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORY_OPTIONS)[number]>('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [verifiedOnly, setVerifiedOnly] = useState(false)
@@ -35,11 +38,11 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
   const [categorySearchQuery, setCategorySearchQuery] = useState('')
   const [isFiltersOpen, setIsFiltersOpen] = useState(true)
 
+  const isPro = spotlightPlan === 'pro'
+
   const favoritedSet = useMemo(() => new Set(initialFavoritedIds), [initialFavoritedIds])
-  // ...
 
   const filteredInfluencers = useMemo(() => {
-    // ... existing filtering logic (omitted for brevity, keep same)
     let result = influencers.filter((influencer) => {
       const matchesCategory = selectedCategory === 'All' || influencer.category?.toLowerCase() === selectedCategory.toLowerCase()
       const matchesSearch = searchQuery === '' ||
@@ -50,7 +53,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       const matchesVerifiedAccount = !verifiedAccountsOnly || (influencer.displayed_badges?.includes('verified-account') ?? false)
       return matchesCategory && matchesSearch && matchesVerifiedData && matchesVerifiedAccount
     })
-    // ... sorting logic ...
+
     result.sort((a, b) => {
       const parseStatsValue = (val: string | undefined): number => {
         if (!val) return 0
@@ -64,12 +67,9 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       const getEngagement = (inf: DiscoverInfluencer) => parseStatsValue(inf.stats?.engagement)
       switch (sortBy) {
         case 'recommended':
-          // Only sort by recommendation if spotlight member. If not, fallback to followers desc or don't sort here (handled in rendering check).
-          // But to be safe, if selected 'recommended' and not spotlight, we should probably not show this option or fallback.
-          // The UI handles disabling, so here we assume if it's 'recommended', they are allowed or we sort by 0.
           if (!isSpotlightMember) return 0
-          return calculateMatchScore(b, { targetCategory: selectedCategory !== 'All' ? selectedCategory : undefined }) -
-            calculateMatchScore(a, { targetCategory: selectedCategory !== 'All' ? selectedCategory : undefined })
+          return calculateMatchScore(b, { targetCategory: (selectedCategory !== 'All' ? selectedCategory : defaultCategory) || undefined }) -
+            calculateMatchScore(a, { targetCategory: (selectedCategory !== 'All' ? selectedCategory : defaultCategory) || undefined })
         case 'followers_desc': return getFollowers(b) - getFollowers(a)
         case 'followers_asc': return getFollowers(a) - getFollowers(b)
         case 'engagement_desc': return getEngagement(b) - getEngagement(a)
@@ -78,9 +78,8 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       }
     })
     return result
-  }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy])
+  }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, isSpotlightMember])
 
-  // ... filteredCategories ...
   const filteredCategories = useMemo(() => {
     return CATEGORY_OPTIONS.filter(cat =>
       cat === 'All' ||
@@ -88,20 +87,8 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
     )
   }, [categorySearchQuery])
 
-
   return (
     <div className="flex flex-col lg:flex-row gap-6">
-      {/* ... Sidebar ... */}
-      {/* I am relying on the tool to replace correctly, but since I am replacing a huge chunk to be safe or just the props? 
-            Actually, the instruction says replace EndLine 230 depending on context. 
-            Wait, I should only replace the start and the specific card rendering part to minimize risk.
-            But the tool replaces a block. 
-            Let's do two edits or one big one.
-            The user only cares about the restriction.
-            Since I need to update Props interface AND the JSX usage, I'll do two chunks if possible or one if close.
-            They are far apart (Line 23 and Line 228).
-            MultiReplaceFileContent is better.
-        */}
       {userRole === 'brand' && (
         <aside className="w-full lg:w-72 flex-shrink-0 space-y-6">
           <div className="rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow transition-all duration-300">
@@ -142,11 +129,15 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
 
                     {/* Toggles */}
                     <div className="space-y-3">
-                      {/* Verified Data Only Toggle */}
-                      <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3">
-                        <span className="text-sm text-gray-300">Sadece Verisi Olanlar</span>
+                      {/* Verified Data Only Toggle - PRO FEATURE */}
+                      <div className={`flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3 ${!isPro ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-300">Sadece Verisi Olanlar</span>
+                          {!isPro && <span className="text-[10px] text-soft-gold uppercase tracking-wider">PRO ÖZELLİK</span>}
+                        </div>
                         <button
-                          onClick={() => setVerifiedOnly(!verifiedOnly)}
+                          onClick={() => isPro && setVerifiedOnly(!verifiedOnly)}
+                          disabled={!isPro}
                           className={`relative h-6 w-11 rounded-full transition-colors ${verifiedOnly ? 'bg-soft-gold' : 'bg-gray-700'}`}
                         >
                           <span
@@ -155,14 +146,18 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                         </button>
                       </div>
 
-                      {/* Verified Accounts Only Toggle */}
-                      <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3">
-                        <div className="flex items-center gap-2">
-                          <BadgeCheck className="h-4 w-4 text-blue-500" />
-                          <span className="text-sm text-gray-300">Onaylı Hesaplar</span>
+                      {/* Verified Accounts Only Toggle - PRO FEATURE */}
+                      <div className={`flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3 ${!isPro ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <BadgeCheck className="h-4 w-4 text-blue-500" />
+                            <span className="text-sm text-gray-300">Onaylı Hesaplar</span>
+                          </div>
+                          {!isPro && <span className="text-[10px] text-soft-gold uppercase tracking-wider">PRO ÖZELLİK</span>}
                         </div>
                         <button
-                          onClick={() => setVerifiedAccountsOnly(!verifiedAccountsOnly)}
+                          onClick={() => isPro && setVerifiedAccountsOnly(!verifiedAccountsOnly)}
+                          disabled={!isPro}
                           className={`relative h-6 w-11 rounded-full transition-colors ${verifiedAccountsOnly ? 'bg-blue-500' : 'bg-gray-700'}`}
                         >
                           <span
@@ -204,12 +199,13 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                         )}
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </aside>
+                  </div >
+                </motion.div >
+              )
+              }
+            </AnimatePresence >
+          </div >
+        </aside >
       )}
 
       {/* Main Content */}
@@ -254,7 +250,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
             <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${userRole === 'brand' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
               {filteredInfluencers.map((influencer) => {
                 const matchScore = (sortBy === 'recommended' && isSpotlightMember)
-                  ? calculateMatchScore(influencer, { targetCategory: selectedCategory !== 'All' ? selectedCategory : undefined })
+                  ? calculateMatchScore(influencer, { targetCategory: (selectedCategory !== 'All' ? selectedCategory : defaultCategory) || undefined })
                   : undefined
 
                 return (
@@ -271,6 +267,6 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
           </>
         )}
       </div>
-    </div>
+    </div >
   )
 }

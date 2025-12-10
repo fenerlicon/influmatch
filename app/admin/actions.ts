@@ -235,7 +235,7 @@ export async function manuallyAwardSpecificBadge(userId: string, badgeId: string
 }
 
 // Toggle spotlight for a user (admin only)
-export async function toggleUserSpotlight(userId: string, spotlightActive: boolean) {
+export async function toggleUserSpotlight(userId: string, spotlightActive: boolean, plan: 'basic' | 'pro' = 'pro') {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -258,9 +258,16 @@ export async function toggleUserSpotlight(userId: string, spotlightActive: boole
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
+  const updateData: any = { spotlight_active: spotlightActive }
+  if (spotlightActive) {
+    updateData.spotlight_plan = plan
+  } else {
+    updateData.spotlight_plan = null
+  }
+
   const { error } = await supabase
     .from('users')
-    .update({ spotlight_active: spotlightActive })
+    .update(updateData)
     .eq('id', userId)
 
   if (error) {
@@ -272,7 +279,7 @@ export async function toggleUserSpotlight(userId: string, spotlightActive: boole
   revalidatePath('/dashboard/influencer')
   revalidatePath('/vitrin')
 
-  return { success: true, message: spotlightActive ? 'Spotlight aktif edildi.' : 'Spotlight deaktif edildi.' }
+  return { success: true, message: spotlightActive ? `Spotlight (${plan}) aktif edildi.` : 'Spotlight deaktif edildi.' }
 }
 
 // Verify tax ID for a brand (admin only)

@@ -7,7 +7,7 @@ import ProfileCompletionCard from '@/components/dashboard/ProfileCompletionCard'
 import BrandOffersList from '@/components/dashboard/BrandOffersList'
 import type { ProfileRecord } from '@/utils/profileCompletion'
 import type { BrandOfferItem } from '@/app/dashboard/brand/offers/page'
-import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
+import { getEnrichedInfluencers, getAIRecommendations } from '@/utils/fetchInfluencers'
 import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import { calculateMatchScore, getMatchReason } from '@/utils/matching'
@@ -137,16 +137,8 @@ export default async function BrandDashboardPage() {
     favoriteInfluencers.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id))
   }
 
-  // Fetch AI Recommendations
-  const allInfluencers = await getEnrichedInfluencers({ limit: 50 })
-  const recommendations = allInfluencers
-    .map(influencer => {
-      const score = calculateMatchScore(influencer, { targetCategory: profileData.category || undefined })
-      const reasons = getMatchReason(influencer, { targetCategory: profileData.category || undefined })
-      return { ...influencer, matchScore: score, matchReasons: reasons }
-    })
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, 4)
+  // Fetch AI Recommendations (Shared Logic)
+  const recommendations = await getAIRecommendations(user.id, profileData.category, 4)
 
   const userRole = user.user_metadata?.role || 'brand'
   const isSpotlight = profile?.spotlight_active || false
@@ -181,6 +173,7 @@ export default async function BrandDashboardPage() {
           userId={user.id}
           initialPendingCount={pendingOffersCount}
           initialAcceptedCount={acceptedOffersCount}
+          isSpotlightActive={isSpotlight}
         />
 
         <ProfileCompletionCard userId={user.id} initialProfile={profileData} role="brand" />
@@ -269,7 +262,7 @@ export default async function BrandDashboardPage() {
             </div>
             {isSpotlight && (
               <Link
-                href="/dashboard/brand/discover?sort=recommended"
+                href="/dashboard/brand/ai"
                 className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20 hover:text-white"
               >
                 Tümünü Gör

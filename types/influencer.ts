@@ -17,4 +17,6 @@ export interface DiscoverInfluencer {
         avg_views?: string
         avg_comments?: string
     }
+    matchScore?: number
+    matchReasons?: string[]
 }

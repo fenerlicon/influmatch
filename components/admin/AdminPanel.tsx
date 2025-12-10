@@ -470,16 +470,27 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
       return
     }
 
+    let plan: 'basic' | 'pro' = 'pro'
+    if (newValue) {
+      const choice = window.prompt('Hangi paket tanımlansın? (basic / pro)', 'pro')
+      if (choice !== 'basic' && choice !== 'pro') {
+        if (choice === null) return // Cancel
+        alert('Geçersiz paket seçimi. Varsayılan olarak "pro" seçilecek.')
+      } else {
+        plan = choice
+      }
+    }
+
     startTransition(async () => {
       try {
-        const result = await toggleUserSpotlight(userId, newValue)
+        const result = await toggleUserSpotlight(userId, newValue, plan)
         if (result.error) {
           alert(result.error)
           console.error('Spotlight toggle error:', result.error)
         } else {
           // Update local state immediately
           const updateUserInState = (users: User[]) =>
-            users.map((u) => (u.id === userId ? { ...u, spotlight_active: newValue } : u))
+            users.map((u) => (u.id === userId ? { ...u, spotlight_active: newValue, spotlight_plan: newValue ? plan : null } : u))
 
           setPendingUsersState(updateUserInState)
           setVerifiedUsersState(updateUserInState)
