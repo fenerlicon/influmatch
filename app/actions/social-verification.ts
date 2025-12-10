@@ -195,7 +195,7 @@ export async function verifyInstagramAccount(userId: string) {
                 {
                     user_id: userId,
                     badge_id: 'verified-account',
-                    awarded_at: new Date().toISOString()
+                    earned_at: new Date().toISOString()
                 },
                 {
                     onConflict: 'user_id, badge_id'

@@ -16,6 +16,8 @@ export default async function DashboardPage() {
 
     if (role === 'brand') {
         redirect('/dashboard/brand')
+    } else if (role === 'admin') {
+        redirect('/admin')
     } else {
         // Redirect influencers and any other roles to influencer dashboard for now
         redirect('/dashboard/influencer')

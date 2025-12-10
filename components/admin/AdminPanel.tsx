@@ -2,14 +2,15 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges } from '@/app/admin/actions'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2 } from 'lucide-react'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
 import { getCategoryLabel } from '@/utils/categories'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
 import NotificationsPanel from '@/components/admin/NotificationsPanel'
+import { toast } from 'sonner'
 
 interface User {
   id: string
@@ -248,7 +249,75 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     setSelectedUserIds(new Set())
   }
 
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('DİKKAT: Bu kullanıcıyı ve tüm verilerini (profil, mesajlar, vb.) kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return
+
+    // Show loading state implicitly via transition or toast
+    const loadingToast = toast.loading('Kullanıcı siliniyor...')
+
+    try {
+      const result = await deleteUser(userId)
+      toast.dismiss(loadingToast)
+
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(result.message)
+        // Update local state to remove the deleted user immediately
+        setPendingUsersState(prev => prev.filter(u => u.id !== userId))
+        setVerifiedUsersState(prev => prev.filter(u => u.id !== userId))
+        setRejectedUsersState(prev => prev.filter(u => u.id !== userId))
+      }
+    } catch (error: any) {
+      console.error('Delete User Error:', error)
+      toast.dismiss(loadingToast)
+      toast.error(`Beklenmedik bir hata oluştu: ${error.message || error}`)
+    }
+  }
+
   // Bulk actions
+  const handleBulkDelete = async () => {
+    if (selectedUserIds.size === 0) return
+    if (!confirm(`DİKKAT: Seçili ${selectedUserIds.size} kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) return
+
+    const loadingToast = toast.loading('Toplu silme işlemi başladı...')
+    const userIds = Array.from(selectedUserIds)
+    let successCount = 0
+    let errorCount = 0
+    let lastErrorMessage = ''
+
+    // Process in batches or sequential to avoid overwhelming the server
+    for (const userId of userIds) {
+      try {
+        const result = await deleteUser(userId)
+        if (result.error) {
+          console.error(`Bulk delete error for ${userId}:`, result.error)
+          lastErrorMessage = result.error
+          errorCount++
+        } else {
+          successCount++
+          // Optimistic update
+          setPendingUsersState(prev => prev.filter(u => u.id !== userId))
+          setVerifiedUsersState(prev => prev.filter(u => u.id !== userId))
+          setRejectedUsersState(prev => prev.filter(u => u.id !== userId))
+        }
+      } catch (err: any) {
+        console.error(`Bulk delete exception for ${userId}:`, err)
+        lastErrorMessage = err.message || 'Bilinmeyen hata'
+        errorCount++
+      }
+    }
+
+    toast.dismiss(loadingToast)
+    if (errorCount > 0) {
+      toast.error(`${successCount} silindi, ${errorCount} hata. Son hata: ${lastErrorMessage}`, { duration: 5000 })
+    } else {
+      toast.success(`${successCount} kullanıcı başarıyla silindi.`)
+    }
+    setSelectedUserIds(new Set())
+  }
+
   const handleBulkVerify = async () => {
     if (selectedUserIds.size === 0) return
     if (!confirm(`${selectedUserIds.size} kullanıcıyı onaylamak istediğinizden emin misiniz?`)) return
@@ -756,6 +825,15 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
               </div>
               {selectedUserIds.size > 0 && (
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleBulkDelete}
+                    disabled={isPending}
+                    className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isPending ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 inline h-4 w-4" />}
+                    Seçilenleri Sil
+                  </button>
                   {activeTab === 'pending' && (
                     <button
                       type="button"
@@ -877,6 +955,17 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                 E-posta Onaysız
                               </span>
                             )}
+                            {user.displayed_badges?.includes('verified-account') ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                                <BadgeCheck className="h-3 w-3" />
+                                Mavi Tik: Var
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
+                                <XCircle className="h-3 w-3" />
+                                Mavi Tik: Yok
+                              </span>
+                            )}
 
                             <button
                               onClick={() => handleResendVerificationEmail(user.id)}
@@ -895,6 +984,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             >
                               <BadgeCheck className="h-3 w-3" />
                               {user.displayed_badges?.includes('verified-account') ? 'Mavi Tik Kaldır' : 'Mavi Tik Ekle'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400 hover:bg-red-500/20"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Sil
                             </button>
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-2">

@@ -480,8 +480,6 @@ export async function resetVerifiedBadges() {
   }
 }
 
-
-
 // Toggle "verified-account" (Blue Tick) badge for a user
 export async function toggleBlueTick(userId: string) {
   const supabase = createSupabaseServerClient()
@@ -530,7 +528,7 @@ export async function toggleBlueTick(userId: string) {
       revalidatePath('/admin')
       revalidatePath(`/dashboard/influencer/badges`)
       revalidatePath(`/dashboard/brand/badges`)
-      return { success: true, message: 'Mavi tik kaldırıldı.', action: 'removed' }
+      return { success: true, message: 'Mavi tik verildi.', action: 'removed' }
     } else {
       // Add badge
       // We can use the generic award function or insert directly
@@ -539,7 +537,7 @@ export async function toggleBlueTick(userId: string) {
         .insert({
           user_id: userId,
           badge_id: 'verified-account',
-          awarded_at: new Date().toISOString()
+          earned_at: new Date().toISOString()
         })
 
       if (insertError) {
@@ -554,5 +552,85 @@ export async function toggleBlueTick(userId: string) {
   } catch (error: any) {
     console.error('[toggleBlueTick] Error:', error)
     return { error: error.message || 'İşlem sırasında bir hata oluştu.' }
+  }
+}
+
+// Delete a user completely (Admin only)
+export async function deleteUser(userId: string) {
+  console.log('[deleteUser] Starting deletion for userId:', userId)
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    console.warn('[deleteUser] No authenticated user')
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    console.warn('[deleteUser] Unauthorized attempt by:', user.email)
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  // Use admin client to delete user from Auth (which should cascade to public.users)
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    console.error('[deleteUser] Service Role Key missing or invalid')
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
+  }
+
+  try {
+    // 1. Explicitly delete from public.users first (to prevent "zombie" users if cascade fails)
+    console.log('[deleteUser] Deleting from public.users...')
+    const { error: publicDeleteError } = await supabaseAdmin
+      .from('users')
+      .delete()
+      .eq('id', userId)
+
+    if (publicDeleteError) {
+      console.error('[deleteUser] Public table delete error:', publicDeleteError)
+    } else {
+      console.log('[deleteUser] Deleted from public.users')
+    }
+
+    // 2. Delete from Auth (source of truth)
+    console.log('[deleteUser] Deleting from auth.users...')
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+    if (authDeleteError) {
+      console.error('[deleteUser] Supabase Auth Delete Error:', authDeleteError)
+
+      // If error is "User not found", it means they are already gone from Auth (Zombie user).
+      // Since we just ran the public delete above, treat it as success or just proceed.
+      // But we must return success if they are now gone.
+      if (authDeleteError.message?.includes('User not found')) {
+        console.log('[deleteUser] User already missing from Auth (Zombie), continuing...')
+      } else {
+        return { error: `Auth silme hatası: ${authDeleteError.message}` }
+      }
+    }
+
+    console.log('[deleteUser] User deleted successfully from Auth')
+
+    revalidatePath('/admin')
+    revalidatePath('/dashboard/influencer')
+    revalidatePath('/dashboard/brand')
+
+    return { success: true, message: 'Kullanıcı ve tüm verileri silindi.' }
+  } catch (error: any) {
+    console.error('[deleteUser] Exception:', error)
+    return { error: error.message || 'Silme işlemi sırasında bir hata oluştu.' }
   }
 }

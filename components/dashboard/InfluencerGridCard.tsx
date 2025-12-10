@@ -8,6 +8,7 @@ import BadgeDisplay from '@/components/badges/BadgeDisplay'
 import { getCategoryLabel } from '@/utils/categories'
 import { toggleFavorite } from '@/app/actions/favorites'
 import { type DiscoverInfluencer } from '@/types/influencer'
+import { toast } from 'sonner'
 
 import AddToListModal from '@/components/dashboard/AddToListModal'
 
@@ -102,6 +103,10 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                             onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
+                                if (userRole !== 'brand') {
+                                    toast.error('Sadece markalar favorilere ekleyebilir')
+                                    return
+                                }
                                 setShowListModal(true)
                             }}
                             className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn border border-white/10 hover:border-white/30 text-white hover:text-soft-gold"

@@ -98,7 +98,13 @@ export default function InfluencerSpotlightPage() {
                     </div>
                 </div>
 
-                <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
+                <div className="grid gap-8 md:grid-cols-2 lg:gap-12 relative">
+                    {/* Coming Soon Overlay */}
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-3xl border border-white/10">
+                        <div className="rotate-[-12deg] rounded-xl border-4 border-dashed border-soft-gold bg-black/80 px-12 py-6 shadow-[0_0_50px_rgba(234,179,8,0.3)]">
+                            <span className="text-4xl font-black tracking-widest text-soft-gold">YAKINDA</span>
+                        </div>
+                    </div>
                     <PricingCard
                         title="Aylık Paket"
                         price="299 ₺"

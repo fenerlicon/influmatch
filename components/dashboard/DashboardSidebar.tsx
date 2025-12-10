@@ -7,9 +7,10 @@ import type { UserRole } from '@/types/auth'
 import SignOutButton from './SignOutButton'
 import SettingsButton from './SettingsButton'
 
-const roleHomePath: Record<UserRole, string> = {
+const roleHomePath: Record<UserRole | 'admin', string> = {
   influencer: '/dashboard/influencer',
   brand: '/dashboard/brand',
+  admin: '/admin',
 }
 
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ')
@@ -25,7 +26,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
   const pathname = usePathname()
 
   const navItems = useMemo(() => {
-    const map: Record<UserRole, Array<{ label: string; href: string }>> = {
+    const map: Record<UserRole | 'admin', Array<{ label: string; href: string }>> = {
       influencer: [
         { label: 'Ana Sayfa', href: roleHomePath.influencer },
         { label: 'Profilim', href: '/dashboard/influencer/profile' },
@@ -46,8 +47,12 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
         { label: 'Spotlight', href: '/dashboard/spotlight' },
         { label: 'Rozetler', href: '/dashboard/brand/badges' },
       ],
+      admin: [
+        { label: 'Admin Paneli', href: '/admin' },
+        { label: 'Dashboard', href: '/dashboard/brand' }, // Temporary fallback
+      ],
     }
-    return map[role]
+    return map[role as keyof typeof map] || map['influencer']
   }, [role])
 
   const isActive = (href: string) => {
