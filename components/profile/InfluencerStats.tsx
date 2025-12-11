@@ -212,7 +212,7 @@ export default function InfluencerStats({ followerCount, engagementRate, statsPa
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-lg font-bold text-white">
-                                    {mode === 'brand-view' ? 'Yapay Zeka Analizi' : 'Performans Analizi'}
+                                    {mode === 'brand-view' ? 'Yapay Zeka Analizi' : 'Detaylı Profil Analizi'}
                                 </h3>
                                 <span className="rounded-full bg-soft-gold/10 px-2 py-0.5 text-[10px] font-medium text-soft-gold border border-soft-gold/20">BETA</span>
                             </div>

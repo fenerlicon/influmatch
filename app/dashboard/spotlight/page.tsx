@@ -30,7 +30,6 @@ export default function SpotlightSelectionPage() {
                     icon={Crown}
                     href="/dashboard/spotlight/influencer"
                     variant="influencer"
-                    isComingSoon
                 />
 
                 <SpotlightSelectionCard

@@ -5,6 +5,7 @@ interface Feature {
     icon: LucideIcon
     title: string
     description: string
+    comingSoon?: boolean
 }
 
 interface SpotlightFeatureListProps {
@@ -27,7 +28,10 @@ export default function SpotlightFeatureList({ features, variant = 'influencer' 
             {features.map((feature, i) => (
                 <div
                     key={i}
-                    className="group flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-6 transition-colors hover:border-white/10 hover:bg-white/[0.07]"
+                    className={cn(
+                        "group flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-6 transition-colors hover:border-white/10 hover:bg-white/[0.07]",
+                        feature.comingSoon && "opacity-50 grayscale"
+                    )}
                 >
                     <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform group-hover:scale-110", iconContainerClass)}>
                         <feature.icon className="h-6 w-6" />

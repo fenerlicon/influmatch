@@ -10,6 +10,8 @@ import { calculateProfileCompletion } from '@/utils/profileCompletion'
 import InfluencerStats from '@/components/profile/InfluencerStats'
 import VerificationWarningCard from '@/components/dashboard/VerificationWarningCard'
 import { getFavoriteCount } from '@/app/actions/favorites'
+import TrustScoreCard from '@/components/dashboard/TrustScoreCard'
+import { calculateTrustScore } from '@/utils/matching'
 
 export const revalidate = 0
 
@@ -214,7 +216,8 @@ export default async function InfluencerDashboardPage() {
       </section>
 
       {/* Stats & Analysis Section - Influencer View */}
-      {socialAccount && socialAccount.has_stats ? (
+      {/* Stats & Analysis Section - Influencer View */}
+      {!(socialAccount && socialAccount.has_stats && !showProfileCompletionCard) && socialAccount && socialAccount.has_stats ? (
         <InfluencerStats
           followerCount={socialAccount.follower_count || 0}
           engagementRate={Number(socialAccount.engagement_rate) || 0}
@@ -222,9 +225,9 @@ export default async function InfluencerDashboardPage() {
           lastUpdated={socialAccount.updated_at}
           mode="influencer-view"
         />
-      ) : (
+      ) : !socialAccount?.has_stats ? (
         <VerificationWarningCard />
-      )}
+      ) : null}
 
       <SpotlightToggleCard
         initialActive={isShowcaseVisible}
@@ -263,15 +266,64 @@ export default async function InfluencerDashboardPage() {
       <section className={`grid gap-6 ${showProfileCompletionCard ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
         {showProfileCompletionCard ? (
           <>
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <ProfileCompletionCard userId={user.id} initialProfile={profileData} />
+              {/* Trust Score Card for Profile Incomplete Users */}
+              <TrustScoreCard
+                score={calculateTrustScore({
+                  id: user.id,
+                  full_name: profile?.full_name ?? null,
+                  username: profile?.username ?? null,
+                  avatar_url: profile?.avatar_url ?? null,
+                  verification_status: verificationStatus as any,
+                  category: profile?.category ?? null,
+                  spotlight_active: rawSpotlightActive,
+                  stats: socialAccount ? {
+                    followers: socialAccount.follower_count?.toString() || '0',
+                    engagement: (Number(socialAccount.engagement_rate) || 0) + '%',
+                    avg_comments: (socialAccount.stats_payload as any)?.avg_comments?.toString()
+                  } : undefined
+                })}
+              />
             </div>
             <OfferActivityCard userId={user.id} initialOffers={filteredOffers} dismissedOfferIds={dismissedOfferIds} />
           </>
         ) : (
-          <div className="lg:col-span-2">
-            <OfferActivityCard userId={user.id} initialOffers={filteredOffers} dismissedOfferIds={dismissedOfferIds} />
-          </div>
+          <>
+            <div className="space-y-6">
+              {/* Trust Score Card for Complete Users */}
+              <TrustScoreCard
+                score={calculateTrustScore({
+                  id: user.id,
+                  full_name: profile?.full_name ?? null,
+                  username: profile?.username ?? null,
+                  avatar_url: profile?.avatar_url ?? null,
+                  verification_status: verificationStatus as any,
+                  category: profile?.category ?? null,
+                  spotlight_active: rawSpotlightActive,
+                  stats: socialAccount ? {
+                    followers: socialAccount.follower_count?.toString() || '0',
+                    engagement: (Number(socialAccount.engagement_rate) || 0) + '%',
+                    avg_comments: (socialAccount.stats_payload as any)?.avg_comments?.toString()
+                  } : undefined
+                })}
+              />
+              {socialAccount && socialAccount.has_stats ? (
+                <InfluencerStats
+                  followerCount={socialAccount.follower_count || 0}
+                  engagementRate={Number(socialAccount.engagement_rate) || 0}
+                  statsPayload={socialAccount.stats_payload as any}
+                  lastUpdated={socialAccount.updated_at}
+                  mode="influencer-view"
+                />
+              ) : (
+                <VerificationWarningCard />
+              )}
+            </div>
+            <div className="lg:col-span-1">
+              <OfferActivityCard userId={user.id} initialOffers={filteredOffers} dismissedOfferIds={dismissedOfferIds} />
+            </div>
+          </>
         )}
       </section>
     </div>

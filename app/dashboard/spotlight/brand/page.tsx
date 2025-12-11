@@ -41,7 +41,7 @@ const features = [
 
 
 export default function BrandSpotlightPage() {
-    const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('yr')
+    const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('mo')
 
     return (
         <div className="space-y-12 pb-20">

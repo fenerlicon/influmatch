@@ -2,7 +2,6 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { awardBadgesForUser } from '@/utils/badgeAwarding'
 
 export async function generateVerificationCode(userId: string, username: string) {
     const supabase = createSupabaseServerClient()
@@ -10,6 +9,21 @@ export async function generateVerificationCode(userId: string, username: string)
     try {
         // Generate a random 6-digit code with prefix
         const code = `IM-${Math.floor(100000 + Math.random() * 900000)}`
+
+        // Check for duplicate account usage by OTHER users
+        const { data: existingAccount } = await supabase
+            .from('social_accounts')
+            .select('user_id')
+            .eq('platform', 'instagram')
+            .ilike('username', username)
+            .maybeSingle()
+
+        if (existingAccount && existingAccount.user_id !== userId) {
+            return {
+                success: false,
+                error: 'Bu Instagram hesabı sistemde başka bir kullanıcıya bağlı. Güvenlik nedeniyle aynı hesap birden fazla profile bağlanamaz.'
+            }
+        }
 
         // Upsert into social_accounts
         const { error } = await supabase
@@ -206,16 +220,6 @@ export async function verifyInstagramAccount(userId: string) {
             console.error('Error awarding verified-account badge:', badgeError)
             // We don't fail the verification if badge awarding fails, but we log it.
         }
-
-        /*
-        // 6. Award Badges (Check for Blue Tick)
-        // No longer needed here as we award verified-account directly above.
-        try {
-            await awardBadgesForUser(userId)
-        } catch (error) {
-            console.error('Error triggering badge check after data verification:', error)
-        }
-        */
 
         revalidatePath('/dashboard/profile')
         return {
