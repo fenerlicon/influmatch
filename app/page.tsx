@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import Hero from '@/components/landing/Hero'
+import FeaturesSection from '@/components/landing/FeaturesSection'
+import DetailedStatsSection from '@/components/landing/DetailedStatsSection'
 import VerificationCTA from '@/components/landing/VerificationCTA'
 import ValueProposition from '@/components/landing/ValueProposition'
 import BadgesSection from '@/components/landing/BadgesSection'
@@ -38,6 +40,8 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <div className="relative">
         <Hero />
+        <FeaturesSection />
+        <DetailedStatsSection />
         <VerificationCTA />
         <ValueProposition />
         <BadgesSection />

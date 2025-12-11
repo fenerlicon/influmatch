@@ -167,7 +167,7 @@ export default function BrandSpotlightPage() {
                             { text: "Temel Filtreleme" },
                         ]}
                         variant="brand"
-                        buttonText="Basic Başla (%50 İndirimli)"
+                        buttonText="Çok Yakında"
                     />
 
                     <PricingCard
@@ -184,7 +184,7 @@ export default function BrandSpotlightPage() {
                         ]}
                         recommended
                         variant="brand"
-                        buttonText="Pro'ya Yükselt (%50 İndirimli)"
+                        buttonText="Çok Yakında"
                     />
                 </div>
             </section>

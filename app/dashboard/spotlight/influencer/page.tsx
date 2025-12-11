@@ -166,7 +166,7 @@ export default function InfluencerSpotlightPage() {
                             { text: "Temel Profil Analizi" },
                         ]}
                         variant="influencer"
-                        buttonText="Basic Başla (%50 İndirimli)"
+                        buttonText="Çok Yakında"
                     />
 
                     <PricingCard
@@ -183,7 +183,7 @@ export default function InfluencerSpotlightPage() {
                         ]}
                         recommended
                         variant="influencer"
-                        buttonText="Pro'ya Yükselt (%50 İndirimli)"
+                        buttonText="Çok Yakında"
                     />
                 </div>
             </section>

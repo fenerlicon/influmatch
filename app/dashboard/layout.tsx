@@ -4,6 +4,7 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader'
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar'
 import IncompleteProfileBanner from '@/components/dashboard/IncompleteProfileBanner'
 import EmailVerificationBanner from '@/components/dashboard/EmailVerificationBanner'
+import MVPBanner from '@/components/dashboard/MVPBanner'
 import PageTransition from '@/components/layout/PageTransition'
 import type { UserRole } from '@/types/auth'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
@@ -93,6 +94,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {!isEmailConfirmed && (
             <EmailVerificationBanner userEmail={user.email || ''} />
           )}
+          <MVPBanner />
           {showVerificationBanner && (
             <div className="border-b border-yellow-500/30 bg-yellow-500/10 px-4 py-3 sm:px-6 lg:px-10">
               <div className="mx-auto flex items-center gap-3 text-sm text-yellow-200">

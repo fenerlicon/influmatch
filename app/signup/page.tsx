@@ -119,6 +119,22 @@ export default function SignupPage() {
       console.log('[Signup] Signup successful, redirecting to check-email page')
 
       // Use window.location for immediate redirect to prevent page refresh issues
+      // Trigger Welcome Message (Fire and Forget)
+      // We don't wait for it to complete to avoid blocking the redirect
+      if (response.data?.user?.id) {
+        // Import dynamically to avoid server-action-in-client issues if any, 
+        // but since it's a server action imported in client component, it should work fine if defined with 'use server'
+        // We'll trust the Next.js compiler here. 
+        // Actually, let's call it via a separate ensuring function in useEffect or here?
+        // Direct call here is fine.
+        import('@/app/actions/automated-messages').then(({ sendWelcomeMessage }) => {
+          if (response.data?.user?.id) {
+            sendWelcomeMessage(response.data.user.id, role)
+              .catch(err => console.error('[Signup] Welcome message failed:', err))
+          }
+        })
+      }
+
       window.location.href = '/auth/check-email'
     } catch (error) {
       console.error('[Signup] Unexpected error:', error)

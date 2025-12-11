@@ -6,6 +6,7 @@ import { Fragment, useMemo } from 'react'
 import type { UserRole } from '@/types/auth'
 import SignOutButton from './SignOutButton'
 import SettingsButton from './SettingsButton'
+import SidebarLink from './SidebarLink'
 
 const roleHomePath: Record<UserRole | 'admin', string> = {
   influencer: '/dashboard/influencer',
@@ -67,24 +68,17 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
   const renderNavLinks = (variant: 'vertical' | 'horizontal') =>
     navItems.map((item) => {
       return (
-        <Link
+        <SidebarLink
           key={item.label}
           href={item.href}
-          prefetch={true}
-          scroll={true}
-          className={cx(
-            variant === 'vertical'
-              ? 'w-full rounded-2xl border px-4 py-3 text-sm font-medium transition text-left'
-              : 'rounded-full border px-4 py-2 text-xs font-semibold transition',
-            isActive(item.href)
-              ? 'border-soft-gold/80 bg-white/5 text-soft-gold shadow-[0_0_22px_rgba(212,175,55,0.45)]'
-              : 'border-white/5 text-gray-300 hover:border-white/20 hover:text-white',
-          )}
-        >
-          {item.label}
-        </Link>
+          label={item.label}
+          isActive={isActive(item.href)}
+          variant={variant}
+          currentUserId={currentUserId}
+        />
       )
     })
+
 
   return (
     <Fragment>

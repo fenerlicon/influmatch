@@ -60,6 +60,12 @@ export async function toggleShowcaseVisibility(nextValue: boolean) {
     }
   }
 
+  // Send notification if enabled
+  if (nextValue) {
+    const { sendSpotlightNotification } = await import('@/app/actions/automated-messages')
+    await sendSpotlightNotification(user.id, true).catch(e => console.error('Spotlight notification error:', e))
+  }
+
   revalidatePath('/dashboard/influencer')
   revalidatePath('/dashboard/brand/discover')
   return { success: true }

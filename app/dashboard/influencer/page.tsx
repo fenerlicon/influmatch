@@ -245,23 +245,7 @@ export default async function InfluencerDashboardPage() {
         />
       </div>
 
-      {/* Feedback CTA */}
-      <section className="rounded-3xl border border-orange-500/30 bg-orange-500/10 p-6 shadow-glow">
-        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white">Bu bir MVP sürümüdür</h3>
-            <p className="mt-1 text-sm text-gray-300">
-              Hata ve geribildirimlerinizi bizimle paylaşın. Görüşleriniz bizim için çok değerli!
-            </p>
-          </div>
-          <Link
-            href="/feedback"
-            className="rounded-2xl border border-orange-400/60 bg-orange-500/20 px-6 py-3 text-sm font-semibold text-orange-200 transition hover:border-orange-400 hover:bg-orange-500/30 whitespace-nowrap"
-          >
-            Geri Bildirim Gönder
-          </Link>
-        </div>
-      </section>
+
 
       <section className={`grid gap-6 ${showProfileCompletionCard ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
         {showProfileCompletionCard ? (
