@@ -45,102 +45,116 @@ export async function generateAIAnalysis(
         }
     }
 
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey)
-        // gemini-1.5-flash-001 is the specific stable version for v1beta
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-001' })
+    const candidateModels = ['gemini-1.5-flash', 'gemini-1.5-flash-001', 'gemini-1.5-pro', 'gemini-pro']
 
-        // 3. Construct Prompt based on Type
-        let prompt = ''
-        const statsStr = JSON.stringify(stats, null, 2)
+    let lastError: any = null
 
-        if (requestedType === 'match_score') {
-            prompt = `
-        Sen uzman bir Influencer Marketing stratejistisin.
-        Aşağıdaki influencer istatistiklerini bir marka gözüyle incele.
-        Marka için bu influencer ile çalışmanın ne kadar uygun olduğunu 0-100 arası bir "Match Score" (Uyum Skoru) ile değerlendir.
-        
-        Veriler: ${statsStr}
-        
-        Yanıt formatı (Sadece bu formatta dön):
-        MATCH_SCORE: [Puan]
-        NEDENLER:
-        - [Kısa ve net bir neden]
-        - [Kısa ve net bir neden]
-        - [Kısa ve net bir neden]
-      `
-        } else if (requestedType === 'profile_coach') {
-            prompt = `
-        Sen ödüllü bir Sosyal Medya Koçusun.
-        Bu influencer'ın kendisini geliştirmesi için verilerine dayanarak 3 adet çok özel, uygulanabilir ve taktiksel tavsiye ver.
-        Genel geçer konuşma (örneğin "düzenli paylaş" deme), verilere atıfta bulunarak konuş.
-        
-        Veriler: ${statsStr}
-        
-        Yanıt formatı:
-        Her madde başında bir emoji olsun. Samimi ve motive edici bir dille yaz.
-      `
-        } else if (requestedType === 'campaign_analysis') {
-            prompt = `
-        Sen bir Dijital Pazarlama ROI Analistisin.
-        Bu influencer ile yapılacak bir reklam kampanyasının potansiyelini analiz et.
-        Tahmini erişim, etkileşim kalitesi ve potansiyel dönüşüm hakkında profesyonel öngörülerde bulun.
-        
-        Veriler: ${statsStr}
-        
-        Yanıt formatı:
-        Profesyonel, kurumsal ve veri odaklı 3 kritik içgörü maddesi.
-      `
-        } else {
-            // Basic / Default
-            prompt = `
-        Aşağıdaki sosyal medya influencer istatistiklerini analiz et.
-        Mod: ${mode === 'brand-view' ? 'Marka Gözüyle (Bu kişiyle çalışmalı mıyım?)' : 'Influencer Gözüyle (Nasıl daha iyi olabilirim?)'}
-        
-        Veriler:
-        ${statsStr}
+    for (const modelName of candidateModels) {
+        try {
+            const genAI = new GoogleGenerativeAI(apiKey)
+            const model = genAI.getGenerativeModel({ model: modelName })
 
-        Lütfen şu kurallara uy:
-        1. Yanıtın Türkçe olsun.
-        2. ${mode === 'brand-view' ? 'Profesyonel, objektif ve iş odaklı' : 'Motive edici, koç gibi ve yapıcı'} bir ton kullan.
-        3. En önemli 3 çıkarımı madde madde yaz.
-        4. Her madde en fazla 1 cümle olsun.
-        5. Markdown formatında liste olarak ver.
-      `
+            // 3. Construct Prompt based on Type
+            let prompt = ''
+            const statsStr = JSON.stringify(stats, null, 2)
+
+            if (requestedType === 'match_score') {
+                prompt = `
+            Sen uzman bir Influencer Marketing stratejistisin.
+            Aşağıdaki influencer istatistiklerini bir marka gözüyle incele.
+            Marka için bu influencer ile çalışmanın ne kadar uygun olduğunu 0-100 arası bir "Match Score" (Uyum Skoru) ile değerlendir.
+            
+            Veriler: ${statsStr}
+            
+            Yanıt formatı (Sadece bu formatta dön):
+            MATCH_SCORE: [Puan]
+            NEDENLER:
+            - [Kısa ve net bir neden]
+            - [Kısa ve net bir neden]
+            - [Kısa ve net bir neden]
+          `
+            } else if (requestedType === 'profile_coach') {
+                prompt = `
+            Sen ödüllü bir Sosyal Medya Koçusun.
+            Bu influencer'ın kendisini geliştirmesi için verilerine dayanarak 3 adet çok özel, uygulanabilir ve taktiksel tavsiye ver.
+            Genel geçer konuşma (örneğin "düzenli paylaş" deme), verilere atıfta bulunarak konuş.
+            
+            Veriler: ${statsStr}
+            
+            Yanıt formatı:
+            Her madde başında bir emoji olsun. Samimi ve motive edici bir dille yaz.
+          `
+            } else if (requestedType === 'campaign_analysis') {
+                prompt = `
+            Sen bir Dijital Pazarlama ROI Analistisin.
+            Bu influencer ile yapılacak bir reklam kampanyasının potansiyelini analiz et.
+            Tahmini erişim, etkileşim kalitesi ve potansiyel dönüşüm hakkında profesyonel öngörülerde bulun.
+            
+            Veriler: ${statsStr}
+            
+            Yanıt formatı:
+            Profesyonel, kurumsal ve veri odaklı 3 kritik içgörü maddesi.
+          `
+            } else {
+                // Basic / Default
+                prompt = `
+            Aşağıdaki sosyal medya influencer istatistiklerini analiz et.
+            Mod: ${mode === 'brand-view' ? 'Marka Gözüyle (Bu kişiyle çalışmalı mıyım?)' : 'Influencer Gözüyle (Nasıl daha iyi olabilirim?)'}
+            
+            Veriler:
+            ${statsStr}
+    
+            Lütfen şu kurallara uy:
+            1. Yanıtın Türkçe olsun.
+            2. ${mode === 'brand-view' ? 'Profesyonel, objektif ve iş odaklı' : 'Motive edici, koç gibi ve yapıcı'} bir ton kullan.
+            3. En önemli 3 çıkarımı madde madde yaz.
+            4. Her madde en fazla 1 cümle olsun.
+            5. Markdown formatında liste olarak ver.
+            6. Yanıtı markdown olarak ver.
+          `
+            }
+
+            // 4. Call API
+            const result = await model.generateContent(prompt)
+            const response = await result.response
+            const text = response.text()
+
+            // 5. Parse Response (Simple splitting for now)
+            const analysisPoints = text
+                .split('\n')
+                .filter(line => line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().match(/^\d+\./))
+                .map(line => line.replace(/^[-*]\s*|^\d+\.\s*/, '').trim())
+                .filter(line => line.length > 0)
+                .slice(0, 3) // Take top 3 points
+
+            // Fallback if parsing fails (Gemini might return paragraph)
+            if (analysisPoints.length === 0 && text.trim().length > 0) {
+                return { analysis: [text.trim()] }
+            }
+
+            // Success! Return immediately
+            return { analysis: analysisPoints }
+
+        } catch (err: any) {
+            console.warn(`Model ${modelName} failed:`, err.message)
+            lastError = err
+            // If it's a 404 or specific error, continue to next model. 
+            // If it's auth error, maybe stop? For now safely try all.
+            continue
         }
+    }
 
-        // 4. Call API
-        const result = await model.generateContent(prompt)
-        const response = await result.response
-        const text = response.text()
+    // If we get here, all models failed
+    console.error('All Gemini models failed. Last error:', {
+        message: lastError?.message,
+        stack: lastError?.stack,
+        apiKeyPresent: !!apiKey,
+        response: lastError?.response
+    })
 
-        // 5. Parse Response (Simple splitting for now)
-        const analysisPoints = text
-            .split('\n')
-            .filter(line => line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().match(/^\d+\./))
-            .map(line => line.replace(/^[-*]\s*|^\d+\.\s*/, '').trim())
-            .filter(line => line.length > 0)
-            .slice(0, 3) // Take top 3 points
-
-        // Fallback if parsing fails (Gemini might return paragraph)
-        if (analysisPoints.length === 0 && text.trim().length > 0) {
-            return { analysis: [text.trim()] }
-        }
-
-        return { analysis: analysisPoints }
-
-    } catch (err: any) {
-        console.error('Gemini AI Error Check:', {
-            message: err.message,
-            stack: err.stack,
-            apiKeyPresent: !!apiKey,
-            response: err.response
-        })
-
-        return {
-            analysis: [],
-            error: `Hata Detayı: ${err.message || 'Bilinmeyen hata'}`
-        }
+    return {
+        analysis: [],
+        error: `AI Analiz Hatası: Hiçbir model yanıt vermedi. (Son hata: ${lastError?.message || 'Bilinmeyen hata'})`
     }
 }
 
