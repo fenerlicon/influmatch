@@ -156,7 +156,7 @@ export default function InfluencerSpotlightPage() {
 
                 <div className="grid gap-8 md:grid-cols-2 lg:gap-16 pt-8">
                     <PricingCard
-                        title="Basic Paket"
+                        title="Spotlight Plus"
                         price={billingInterval === 'mo' ? "99 ₺" : "990 ₺"}
                         originalPrice={billingInterval === 'mo' ? "198 ₺" : "1.980 ₺"}
                         interval={billingInterval}
@@ -170,7 +170,7 @@ export default function InfluencerSpotlightPage() {
                     />
 
                     <PricingCard
-                        title="Pro Paket"
+                        title="Spotlight Elite"
                         price={billingInterval === 'mo' ? "199 ₺" : "1.990 ₺"}
                         originalPrice={billingInterval === 'mo' ? "398 ₺" : "3.980 ₺"}
                         interval={billingInterval}

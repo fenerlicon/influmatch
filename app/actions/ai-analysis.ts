@@ -146,8 +146,8 @@ export async function generateAIAnalysis(
 
 function getRequiredTierName(type: AnalysisType): string {
     switch (type) {
-        case 'match_score': return 'Spotlight'
-        case 'profile_coach': return 'Spotlight+'
+        case 'match_score': return 'Spotlight Plus'
+        case 'profile_coach': return 'Spotlight Elite'
         case 'campaign_analysis': return 'Brand Pro'
         default: return 'Free'
     }
