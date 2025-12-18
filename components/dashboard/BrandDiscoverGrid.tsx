@@ -260,6 +260,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                     initialIsFavorited={favoritedSet.has(influencer.id)}
                     userRole={userRole}
                     matchScore={matchScore}
+                    isSpotlightMember={isSpotlightMember}
                   />
                 )
               })}

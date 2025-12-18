@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
-import { BadgeCheck, Lock } from 'lucide-react'
+import { BadgeCheck, Lock, Sparkles } from 'lucide-react'
 import BadgeDisplay from '@/components/badges/BadgeDisplay'
 import { getCategoryLabel } from '@/utils/categories'
 import { toggleFavorite } from '@/app/actions/favorites'
@@ -21,9 +21,10 @@ interface InfluencerGridCardProps {
     userRole?: string
     matchScore?: number
     matchReasons?: string[]
+    isSpotlightMember?: boolean
 }
 
-export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole, matchScore, matchReasons }: InfluencerGridCardProps) {
+export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole, matchScore, matchReasons, isSpotlightMember = false }: InfluencerGridCardProps) {
     const [isFavorited, setIsFavorited] = useState(initialIsFavorited)
     const [isPending, setIsPending] = useState(false)
     const [showListModal, setShowListModal] = useState(false)
@@ -70,6 +71,27 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
     const isSpotlight = influencer.spotlight_active === true
     const hasStats = influencer.stats && influencer.stats.followers !== '0'
     const showMatchDetails = (matchReasons && matchReasons.length > 0) && ((matchScore || 0) > 25)
+
+
+    const isSpotlightUser = isSpotlightMember
+
+    // Handle Similar Profiles Click
+    const handleSimilarProfilesClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (!isSpotlightUser) {
+            // Redirect to appropriate spotlight page based on role
+            if (userRole === 'influencer') {
+                window.location.href = '/dashboard/influencer/spotlight'
+            } else {
+                window.location.href = '/dashboard/spotlight/brand'
+            }
+            return
+        }
+
+        setShowSimilarModal(true)
+    }
 
     return (
         <div
@@ -122,44 +144,44 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
 
                                 {/* Heart Icon */}
                                 <div className="absolute top-3 right-3 z-10 flex gap-2">
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-                                            if (userRole !== 'brand') {
-                                                toast.error('Sadece markalar favorilere ekleyebilir')
-                                                return
-                                            }
-                                            setShowListModal(true)
-                                        }}
-                                        className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn border border-white/10 hover:border-white/30 text-white hover:text-soft-gold"
-                                        title="Listeye Ekle"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M12 10v6M9 13h6M20 20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7.5" />
-                                            <path d="M16 2v4" />
-                                            <path d="M22 6h-6" />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        onClick={handleToggleFavorite}
-                                        className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="18"
-                                            height="18"
-                                            viewBox="0 0 24 24"
-                                            fill={isFavorited ? "#ef4444" : "none"}
-                                            stroke={isFavorited ? "#ef4444" : "white"}
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="transition-colors duration-300"
+                                    {userRole === 'brand' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                setShowListModal(true)
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn border border-white/10 hover:border-white/30 text-white hover:text-soft-gold"
+                                            title="Listeye Ekle"
                                         >
-                                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                                        </svg>
-                                    </button>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M12 10v6M9 13h6M20 20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7.5" />
+                                                <path d="M16 2v4" />
+                                                <path d="M22 6h-6" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                    {userRole === 'brand' && (
+                                        <button
+                                            onClick={handleToggleFavorite}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="18"
+                                                height="18"
+                                                viewBox="0 0 24 24"
+                                                fill={isFavorited ? "#ef4444" : "none"}
+                                                stroke={isFavorited ? "#ef4444" : "white"}
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                className="transition-colors duration-300"
+                                            >
+                                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                                            </svg>
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* "Neden O?" Button (Only if we have reasons and match score > 25) */}
@@ -262,18 +284,14 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                 </div>
 
                                 {/* Look-alike / Similar Profiles Button */}
-                                {userRole === 'brand' && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-                                            setShowSimilarModal(true)
-                                        }}
-                                        className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-semibold text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
-                                    >
-                                        ⚡ Benzer Profilleri Gör
-                                    </button>
-                                )}
+                                <button
+                                    onClick={handleSimilarProfilesClick}
+                                    className="group/similar mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-semibold text-gray-300 transition-all hover:bg-white/10 hover:text-white"
+                                >
+                                    <Sparkles className={cn("h-3.5 w-3.5", isSpotlightUser ? "text-cyan-400" : "text-gray-500")} />
+                                    <span>Benzer Profilleri Gör</span>
+                                    {!isSpotlightUser && <Lock className="ml-auto h-3 w-3 text-gray-500" />}
+                                </button>
                             </div>
                         </article>
                     </Link>

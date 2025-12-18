@@ -198,7 +198,7 @@ export default async function BrandDashboardPage() {
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
             {favoriteInfluencers.map(influencer => (
               <div key={influencer.id} className="h-full">
-                <InfluencerGridCard influencer={influencer} initialIsFavorited={true} userRole={userRole} />
+                <InfluencerGridCard influencer={influencer} initialIsFavorited={true} userRole={userRole} isSpotlightMember={isSpotlight} />
               </div>
             ))}
           </div>

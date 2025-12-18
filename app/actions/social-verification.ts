@@ -59,6 +59,12 @@ export async function verifyInstagramAccount(userId: string) {
     const supabase = createSupabaseServerClient()
 
     try {
+        // 0. Security Check: Ensure the requester is the user they claim to be
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser || authUser.id !== userId) {
+            return { success: false, error: 'Yetkisiz işlem.' }
+        }
+
         // 1. Get the user's social account record
         const { data: account, error: fetchError } = await supabase
             .from('social_accounts')
@@ -101,7 +107,6 @@ export async function verifyInstagramAccount(userId: string) {
         const data = await response.json()
 
         // Parse Web Profile Info Structure
-        // Structure: root -> response -> body -> data -> user
         const user = data?.response?.body?.data?.user
 
         if (!user) {
@@ -119,9 +124,13 @@ export async function verifyInstagramAccount(userId: string) {
         const isBusinessAccount = user.is_business_account || false
         const externalUrl = user.external_url || null
 
-        // Check verification code
-        if (!biography.includes(verificationCode)) {
-            return { success: false, error: 'Doğrulama kodu biyografide bulunamadı.' }
+        // Check verification code ONLY if not already verified
+        // If the user is already verified and just updating, we trust the link (unless we want to force re-verification periodically)
+        // For now, let's relax the check for updates to allow easy refresh
+        if (!account.is_verified) {
+            if (!biography.includes(verificationCode)) {
+                return { success: false, error: 'Doğrulama kodu biyografide bulunamadı.' }
+            }
         }
 
         // Calculate Stats from Timeline Media
@@ -154,18 +163,11 @@ export async function verifyInstagramAccount(userId: string) {
 
             // Calculate Posting Frequency (Average days between posts)
             if (recentPosts.length > 1) {
-                // Sort by date descending (just in case, though usually API returns sorted)
                 const sortedPosts = [...recentPosts].sort((a: any, b: any) => b.taken_at_timestamp - a.taken_at_timestamp)
-
                 const newestDate = sortedPosts[0].taken_at_timestamp
                 const oldestDate = sortedPosts[sortedPosts.length - 1].taken_at_timestamp
-
-                // Difference in seconds
                 const diffSeconds = newestDate - oldestDate
-                // Difference in days
                 const diffDays = diffSeconds / (60 * 60 * 24)
-
-                // Average interval
                 averageIntervalDays = Math.round(diffDays / (sortedPosts.length - 1))
             }
         }
@@ -184,6 +186,8 @@ export async function verifyInstagramAccount(userId: string) {
             posting_frequency: averageIntervalDays
         }
 
+        const now = new Date().toISOString()
+
         const { error: updateError } = await supabase
             .from('social_accounts')
             .update({
@@ -193,7 +197,8 @@ export async function verifyInstagramAccount(userId: string) {
                 engagement_rate: engagementRate,
                 has_stats: true,
                 stats_payload: statsPayload,
-                last_scraped_at: new Date().toISOString(),
+                last_scraped_at: now,
+                updated_at: now // Explicitly update updated_at
             })
             .eq('id', account.id)
 
@@ -209,7 +214,7 @@ export async function verifyInstagramAccount(userId: string) {
                 {
                     user_id: userId,
                     badge_id: 'verified-account',
-                    earned_at: new Date().toISOString()
+                    earned_at: now
                 },
                 {
                     onConflict: 'user_id, badge_id'
@@ -218,13 +223,16 @@ export async function verifyInstagramAccount(userId: string) {
 
         if (badgeError) {
             console.error('Error awarding verified-account badge:', badgeError)
-            // We don't fail the verification if badge awarding fails, but we log it.
         }
 
-        revalidatePath('/dashboard/profile')
+        // Revalidate relevant paths
+        revalidatePath('/dashboard/influencer')
+        revalidatePath(`/profile/${account.username}`) // In case they view their own public profile
+        revalidatePath('/') // To be safe
+
         return {
             success: true,
-            message: 'Hesap başarıyla doğrulandı.',
+            message: 'Hesap başarıyla güncellendi.',
             data: {
                 platform_user_id: platformUserId,
                 follower_count: followerCount,

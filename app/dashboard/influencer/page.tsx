@@ -50,6 +50,14 @@ export default async function InfluencerDashboardPage() {
   // Spotlight is active if user is verified AND spotlight_active is true
   const spotlightActive = rawSpotlightActive && verificationStatus === 'verified'
 
+  // Determine User Tier
+  let userTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'
+  if (spotlightActive) {
+    userTier = 'SPOTLIGHT'
+  }
+  // TODO: Add logic for SPOTLIGHT_PLUS when available
+
+
   const profileData: ProfileRecord = {
     full_name: profile?.full_name ?? null,
     username: profile?.username ?? null,
@@ -224,6 +232,7 @@ export default async function InfluencerDashboardPage() {
           statsPayload={socialAccount.stats_payload as any}
           lastUpdated={socialAccount.updated_at}
           mode="influencer-view"
+          subscriptionTier={userTier}
         />
       ) : !socialAccount?.has_stats ? (
         <VerificationWarningCard />
@@ -299,6 +308,7 @@ export default async function InfluencerDashboardPage() {
                   statsPayload={socialAccount.stats_payload as any}
                   lastUpdated={socialAccount.updated_at}
                   mode="influencer-view"
+                  subscriptionTier={userTier}
                 />
               ) : (
                 <VerificationWarningCard />

@@ -96,6 +96,13 @@ export default async function InfluencerDiscoverPage() {
     }
   })
 
+  // Fetch Current User Spotlight Status
+  const { data: currentUserData } = await supabase
+    .from('users')
+    .select('spotlight_active, spotlight_plan')
+    .eq('id', user.id)
+    .single()
+
   return (
     <div className="space-y-6">
       <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
@@ -112,7 +119,13 @@ export default async function InfluencerDiscoverPage() {
           Influencer listesi yüklenemedi. Lütfen sayfayı yenileyin.
         </div>
       ) : (
-        <BrandDiscoverGrid influencers={influencers} currentUserId={user.id} userRole="influencer" />
+        <BrandDiscoverGrid
+          influencers={influencers}
+          currentUserId={user.id}
+          userRole="influencer"
+          isSpotlightMember={currentUserData?.spotlight_active ?? false}
+          spotlightPlan={currentUserData?.spotlight_plan as any}
+        />
       )}
     </div>
   )

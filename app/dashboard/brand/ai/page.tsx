@@ -107,7 +107,7 @@ export default async function AIRecommendationsPage() {
                                     initialIsFavorited={false} // Would need to fetch favs to be accurate, can add later if critical
                                     userRole={userRole}
                                     matchScore={influencer.matchScore}
-                                    matchReasons={influencer.matchReasons}
+                                    isSpotlightMember={profile?.spotlight_active ?? false}
                                 />
                             </div>
                         ))}

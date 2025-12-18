@@ -58,6 +58,25 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
     ([, value]) => Boolean(value),
   )
 
+  // Determine Viewer's Tier
+  let viewerTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'
+  if (viewer) {
+    if (viewerRole === 'brand') {
+      viewerTier = 'BRAND_PRO' // Brands get Pro features for analysis
+    } else {
+      // Check if viewer has spotlight
+      const { data: viewerProfile } = await supabase
+        .from('users')
+        .select('spotlight_active, verification_status')
+        .eq('id', viewer.id)
+        .single()
+
+      if (viewerProfile?.spotlight_active && viewerProfile?.verification_status === 'verified') {
+        viewerTier = 'SPOTLIGHT'
+      }
+    }
+  }
+
   // Get all badge IDs for this user (only pass IDs, not badge objects)
   const badgeIds = userBadges?.map((ub) => ub.badge_id).filter((id): id is string => typeof id === 'string') ?? []
 
@@ -151,7 +170,8 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                 statsPayload={socialAccount.stats_payload as any}
                 lastUpdated={socialAccount.updated_at || new Date().toISOString()}
                 mode="brand-view"
-                hideAnalysisText={true}
+                hideAnalysisText={false} // Enable AI analysis here
+                subscriptionTier={viewerTier}
               />
             ) : (
               <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-10 text-center shadow-glow">
