@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BadgeCheck, BarChart3, Bot, BrainCircuit, Crown, HeartHandshake, Search, Sparkles, Target, Zap } from 'lucide-react'
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
+import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 
 const features = [
     {
@@ -41,6 +42,30 @@ const features = [
 
 export default function InfluencerSpotlightPage() {
     const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('mo')
+    const [loading, setLoading] = useState(true)
+    const [spotlightActive, setSpotlightActive] = useState(false)
+    const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
+
+    // Example fetch logic - customize with your actual auth/db hooks
+    // For now assuming we just check if spotlight is active
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            const supabase = createSupabaseBrowserClient()
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+                const { data } = await supabase.from('users').select('spotlight_active').eq('id', session.user.id).single()
+                if (data) {
+                    setSpotlightActive(!!data.spotlight_active)
+                    // If active, we currently assume 'Plus' as base, but could be 'Elite' if we had a column.
+                    // For MVP: if active -> Plus is current.
+                    if (data.spotlight_active) setSubscriptionTier('plus')
+                }
+            }
+            setLoading(false)
+        }
+        checkStatus()
+    }, [])
 
     return (
         <div className="space-y-12 pb-20">
@@ -166,7 +191,8 @@ export default function InfluencerSpotlightPage() {
                             { text: "Temel Profil Analizi" },
                         ]}
                         variant="influencer"
-                        buttonText="Çok Yakında"
+                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
+                        isCurrentPlan={spotlightActive} // Assuming Plus is base plan if active
                     />
 
                     <PricingCard
@@ -183,7 +209,8 @@ export default function InfluencerSpotlightPage() {
                         ]}
                         recommended
                         variant="influencer"
-                        buttonText="Çok Yakında"
+                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
+                        isUpgrade={spotlightActive} // If active (Plus), then Elite is an upgrade
                     />
                 </div>
             </section>

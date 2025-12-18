@@ -16,6 +16,8 @@ interface PricingCardProps {
     buttonText?: string
     onSelect?: () => void
     variant?: 'influencer' | 'brand' | 'agency'
+    isCurrentPlan?: boolean
+    isUpgrade?: boolean
 }
 
 export default function PricingCard({
@@ -27,32 +29,50 @@ export default function PricingCard({
     recommended,
     buttonText = 'Paketi Seç',
     onSelect,
-    variant = 'influencer'
+    variant = 'influencer',
+    isCurrentPlan,
+    isUpgrade
 }: PricingCardProps) {
     const isInfluencer = variant === 'influencer'
     const isBrand = variant === 'brand'
 
-    const containerStyles = recommended
-        ? isInfluencer ? 'border-soft-gold bg-gradient-to-b from-[#151621] to-soft-gold/10 shadow-[0_0_50px_-10px_rgba(212,175,55,0.5)]' :
-            isBrand ? 'border-blue-500 bg-gradient-to-b from-[#151621] to-blue-500/10 shadow-[0_0_50px_-10px_rgba(255,215,0,0.3)]' :
-                'border-purple-500 bg-gradient-to-b from-[#151621] to-purple-500/10 shadow-[0_0_50px_-10px_rgba(168,85,247,0.5)]'
-        : 'border-white/10 bg-white/5 hover:border-soft-gold/30 hover:shadow-[0_0_30px_-10px_rgba(212,175,55,0.2)]'
+    const containerStyles = isCurrentPlan
+        ? 'border-green-500/50 bg-green-500/5 shadow-[0_0_30px_-10px_rgba(34,197,94,0.3)]'
+        : recommended
+            ? isInfluencer ? 'border-soft-gold bg-gradient-to-b from-[#151621] to-soft-gold/10 shadow-[0_0_50px_-10px_rgba(212,175,55,0.5)]' :
+                isBrand ? 'border-blue-500 bg-gradient-to-b from-[#151621] to-blue-500/10 shadow-[0_0_50px_-10px_rgba(255,215,0,0.3)]' :
+                    'border-purple-500 bg-gradient-to-b from-[#151621] to-purple-500/10 shadow-[0_0_50px_-10px_rgba(168,85,247,0.5)]'
+            : 'border-white/10 bg-white/5 hover:border-soft-gold/30 hover:shadow-[0_0_30px_-10px_rgba(212,175,55,0.2)]'
 
     const accentColor = isInfluencer ? 'text-soft-gold border-soft-gold/20 bg-soft-gold/10' :
         isBrand ? 'text-blue-400 border-blue-400/20 bg-blue-400/10' :
             'text-purple-400 border-purple-400/20 bg-purple-400/10'
 
-    const buttonColor = isInfluencer ? 'bg-soft-gold text-black hover:bg-soft-gold/90 shadow-[0_0_20px_-5px_rgba(212,175,55,0.5)]' :
-        isBrand ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' :
-            'bg-purple-500 text-white hover:bg-purple-600 shadow-[0_0_20px_-5px_rgba(168,85,247,0.5)]'
+    let finalButtonText = buttonText
+    if (isCurrentPlan) finalButtonText = 'Mevcut Paket'
+    else if (isUpgrade) finalButtonText = 'Paketi Yükselt'
+
+    const buttonColor = isCurrentPlan
+        ? 'bg-green-600/20 text-green-400 cursor-default border border-green-600/50'
+        : isInfluencer ? 'bg-soft-gold text-black hover:bg-soft-gold/90 shadow-[0_0_20px_-5px_rgba(212,175,55,0.5)]' :
+            isBrand ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' :
+                'bg-purple-500 text-white hover:bg-purple-600 shadow-[0_0_20px_-5px_rgba(168,85,247,0.5)]'
 
     return (
         <div className={cn(
             "relative flex h-full flex-col rounded-[24px] border p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1",
             containerStyles,
-            recommended && "scale-[1.02]"
+            recommended && !isCurrentPlan && "scale-[1.02]"
         )}>
-            {recommended && (
+            {isCurrentPlan && (
+                <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                    <div className="rounded-full bg-green-500 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-green-500/40 border border-white/10 backdrop-blur-md">
+                        Aktif Plan
+                    </div>
+                </div>
+            )}
+
+            {recommended && !isCurrentPlan && (
                 <div className="absolute -top-4 left-0 right-0 flex justify-center">
                     <div className={cn(
                         "rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg border border-white/10 backdrop-blur-md",
@@ -100,13 +120,15 @@ export default function PricingCard({
             </ul>
 
             <button
-                onClick={onSelect}
+                onClick={isCurrentPlan ? undefined : onSelect}
+                disabled={isCurrentPlan}
                 className={cn(
-                    "mt-6 w-full rounded-xl py-3 text-xs font-bold tracking-widest uppercase transition-all active:scale-95",
+                    "mt-6 w-full rounded-xl py-3 text-xs font-bold tracking-widest uppercase transition-all",
+                    !isCurrentPlan && "active:scale-95",
                     buttonColor
                 )}
             >
-                {buttonText}
+                {finalButtonText}
             </button>
         </div>
     )

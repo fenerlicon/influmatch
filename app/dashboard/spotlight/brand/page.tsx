@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BadgeCheck, BarChart3, Bot, BrainCircuit, HeartHandshake, Search, Target, Users } from 'lucide-react'
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
+import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 
 const features = [
     {
@@ -42,6 +43,25 @@ const features = [
 
 export default function BrandSpotlightPage() {
     const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('mo')
+    const [loading, setLoading] = useState(true)
+    const [spotlightActive, setSpotlightActive] = useState(false)
+    const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            const supabase = createSupabaseBrowserClient()
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+                const { data } = await supabase.from('users').select('spotlight_active').eq('id', session.user.id).single()
+                if (data) {
+                    setSpotlightActive(!!data.spotlight_active)
+                    if (data.spotlight_active) setSubscriptionTier('plus')
+                }
+            }
+            setLoading(false)
+        }
+        checkStatus()
+    }, [])
 
     return (
         <div className="space-y-12 pb-20">
@@ -167,7 +187,8 @@ export default function BrandSpotlightPage() {
                             { text: "Temel Filtreleme" },
                         ]}
                         variant="brand"
-                        buttonText="Çok Yakında"
+                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
+                        isCurrentPlan={spotlightActive}
                     />
 
                     <PricingCard
@@ -184,7 +205,8 @@ export default function BrandSpotlightPage() {
                         ]}
                         recommended
                         variant="brand"
-                        buttonText="Çok Yakında"
+                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
+                        isUpgrade={spotlightActive}
                     />
                 </div>
             </section>
