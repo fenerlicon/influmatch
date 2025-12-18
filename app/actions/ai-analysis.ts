@@ -47,8 +47,8 @@ export async function generateAIAnalysis(
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey)
-        // gemini-pro is deprecated/unavailable in some contexts. using gemini-1.5-flash which is widely available and fast.
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+        // gemini-1.5-flash-001 is the specific stable version for v1beta
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-001' })
 
         // 3. Construct Prompt based on Type
         let prompt = ''
