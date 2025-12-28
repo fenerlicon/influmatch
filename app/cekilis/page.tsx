@@ -26,16 +26,30 @@ export default function GiveawayPage() {
         }
     }, [])
 
+    // Sound Effects
+    const playSound = (type: 'success' | 'error' | 'checking') => {
+        const sounds = {
+            success: 'https://assets.mixkit.co/sfx/preview/mixkit-magic-marimba-chime-287.mp3',
+            error: 'https://assets.mixkit.co/sfx/preview/mixkit-negative-answer-lose-2032.mp3',
+            checking: 'https://assets.mixkit.co/sfx/preview/mixkit-revolver-chamber-spin-3135.mp3'
+        }
+        const audio = new Audio(sounds[type])
+        audio.volume = 0.5
+        audio.play().catch(() => { }) // Ignore autoplay errors
+    }
+
     const handleDraw = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!name.trim() || !pin.trim()) return
 
         if (lockedName && name.toLowerCase().trim() !== lockedName.toLowerCase().trim()) {
+            playSound('error')
             toast.error('Erişim engellendi', { description: `Bu tarayıcı ${lockedName} adına kilitlenmiştir.` })
             return
         }
 
         setAnimState('checking')
+        playSound('checking')
         setErrorMsg('')
 
         // Tension build-up
@@ -46,6 +60,7 @@ export default function GiveawayPage() {
 
             if (!response.success) {
                 setAnimState('breaking')
+                playSound('error')
                 setTimeout(() => {
                     setErrorMsg(response.error || 'Kod hatalı! Erişim reddedildi.')
                     toast.error('Giriş Başarısız', { description: response.error || 'Hatalı kod veya isim.' })
@@ -57,7 +72,11 @@ export default function GiveawayPage() {
                     localStorage.setItem('influmatch_giveaway_user_v1', response.user)
                 }
                 setResult({ match: response.match, user: response.user })
-                setAnimState('unlocking')
+
+                setTimeout(() => {
+                    setAnimState('unlocking')
+                    playSound('success')
+                }, 100)
 
                 setTimeout(() => {
                     setAnimState('success')
@@ -65,6 +84,7 @@ export default function GiveawayPage() {
             }
         } catch (err) {
             setAnimState('idle')
+            playSound('error')
             toast.error('Sistem hatası.')
         }
     }
@@ -126,8 +146,8 @@ export default function GiveawayPage() {
                                 >
                                     {/* Halo Effect */}
                                     <div className={`absolute inset-0 blur-3xl rounded-full opacity-40 transition-colors duration-500 scale-150 ${animState === 'breaking' ? 'bg-red-600' :
-                                            animState === 'unlocking' ? 'bg-green-500' :
-                                                'bg-yellow-500'
+                                        animState === 'unlocking' ? 'bg-green-500' :
+                                            'bg-yellow-500'
                                         }`} />
 
                                     {/* Main Icon */}
@@ -242,8 +262,8 @@ export default function GiveawayPage() {
                                             readOnly={!!lockedName}
                                             placeholder="İsim Girin"
                                             className={`w-full bg-white/5 border backdrop-blur-sm rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all ${lockedName
-                                                    ? 'border-yellow-500/30 cursor-not-allowed text-yellow-500/90'
-                                                    : 'border-white/10 focus:border-white/20 focus:ring-white/10 hover:bg-white/10'
+                                                ? 'border-yellow-500/30 cursor-not-allowed text-yellow-500/90'
+                                                : 'border-white/10 focus:border-white/20 focus:ring-white/10 hover:bg-white/10'
                                                 }`}
                                         />
                                     </div>
