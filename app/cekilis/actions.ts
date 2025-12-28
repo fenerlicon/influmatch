@@ -4,6 +4,11 @@ import fs from 'fs'
 import path from 'path'
 
 const PARTICIPANTS = ['Furkan', 'Anıl', 'Efe', 'Erdem', 'Gökdeniz', 'Kübra']
+// Determine data file path. In production (Vercel), writing to filesystem is not persistent/allowed often.
+// If this is a temporary local tool, it's fine. 
+// If deployed, this might fail or reset.
+// Using /tmp might be better for serverless but still not persistent.
+// For now, keeping as is per user request.
 const DATA_FILE = path.join(process.cwd(), 'app', 'cekilis', 'data.json')
 
 interface DrawData {
@@ -12,7 +17,6 @@ interface DrawData {
 }
 
 function normalizeName(name: string): string {
-    // Turkish character normalization
     return name.toLocaleLowerCase('tr-TR').trim()
 }
 
@@ -31,7 +35,6 @@ function generateMatches(): Record<string, string> {
     let isValid = false
 
     while (!isValid) {
-        // Fisher-Yates shuffle
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -55,9 +58,16 @@ function generateMatches(): Record<string, string> {
     return matches
 }
 
-export async function getDrawResult(name: string) {
+export type DrawResult = {
+    success: boolean
+    error?: string
+    match?: string
+    user?: string
+}
+
+export async function getDrawResult(name: string): Promise<DrawResult> {
     if (!isValidParticipant(name)) {
-        return { error: 'Bu isim listede bulunmuyor. Lütfen isminizi doğru yazdığınızdan emin olun.' }
+        return { success: false, error: 'Bu isim listede bulunmuyor. Lütfen isminizi doğru yazdığınızdan emin olun.' }
     }
 
     const correctName = getCorrectName(name)!
@@ -70,28 +80,26 @@ export async function getDrawResult(name: string) {
             try {
                 data = JSON.parse(fileContent)
             } catch (e) {
-                // Corrupt file, recreate
+                // Corrupt file
             }
         }
 
-        // Check if matches exist, if not (or partial/empty), generate new ones
         if (Object.keys(data.matches).length !== PARTICIPANTS.length) {
             data.matches = generateMatches()
             data.revealed = []
-            fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2))
+            try {
+                fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2))
+            } catch (e) {
+                console.error("Could not write matches to file", e)
+                // In read-only envs, this will fail. We continue in-memory but it won't persist.
+            }
         }
 
-        // Get match for this user
         const match = data.matches[correctName]
-
-        // Note: We could track who has already 'revealed' their match if we want to prevent re-checks, 
-        // but typically it's fine to let them check again if they forgot.
-        // Ensure we don't expose everyone's matches
-
-        return { match, user: correctName }
+        return { success: true, match, user: correctName }
 
     } catch (error) {
         console.error('Draw error:', error)
-        return { error: 'Bir hata oluştu.' }
+        return { success: false, error: 'Bir hata oluştu.' }
     }
 }

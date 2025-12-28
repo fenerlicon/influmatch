@@ -22,10 +22,10 @@ export default function GiveawayPage() {
         try {
             const response = await getDrawResult(name)
 
-            if (response.error) {
+            if (!response.success && response.error) {
                 setError(response.error)
                 toast.error(response.error)
-            } else if (response.match && response.user) {
+            } else if (response.success && response.match && response.user) {
                 setResult({ match: response.match, user: response.user })
                 toast.success(`Hoş geldin ${response.user}!`, {
                     description: 'Eşleşmen başarıyla getirildi.'
@@ -187,9 +187,9 @@ export default function GiveawayPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
-                        className="absolute bottom-8 left-0 right-0 text-center"
+                        className="mt-8 text-center"
                     >
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-white">
                             * Sonuçlar otomatik olarak belirlenmiştir ve değiştirilemez.
                         </p>
                     </motion.div>
