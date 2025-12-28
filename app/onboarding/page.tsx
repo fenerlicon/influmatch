@@ -111,6 +111,7 @@ export default function OnboardingPage() {
         // Default states (what we have if DB returns nothing)
         let newInfluencerForm = defaultInfluencerForm
         let newBrandForm = defaultBrandForm
+        let newAvatarUrl: string | null = null
 
         if (error) {
           // Only show error if it's not a "not found" error (new users don't have profiles yet)
@@ -122,7 +123,7 @@ export default function OnboardingPage() {
         } else if (data) {
           const socialLinks: SocialLinks = data.social_links ?? {}
           setProfile(data as UserProfile)
-          setAvatarUrl(data.avatar_url ?? null)
+          newAvatarUrl = data.avatar_url ?? null
 
           newInfluencerForm = {
             fullName: data.full_name ?? '',
@@ -151,11 +152,20 @@ export default function OnboardingPage() {
         setInfluencerForm(getMergedState(newInfluencerForm, 'onboarding_influencer_form'))
         setBrandForm(getMergedState(newBrandForm, 'onboarding_brand_form'))
 
+        // Handle avatar URL from localStorage
+        const savedAvatarUrl = typeof window !== 'undefined' ? localStorage.getItem('onboarding_avatar_url') : null
+        setAvatarUrl(savedAvatarUrl || newAvatarUrl)
+
       } catch (err) {
         console.error('[OnboardingPage] Unexpected error:', err)
         // Even on error, we try to restore from localStorage so user doesn't lose work
         setInfluencerForm(prev => getMergedState(prev, 'onboarding_influencer_form'))
         setBrandForm(prev => getMergedState(prev, 'onboarding_brand_form'))
+
+        const savedAvatarUrl = typeof window !== 'undefined' ? localStorage.getItem('onboarding_avatar_url') : null
+        if (savedAvatarUrl) {
+          setAvatarUrl(savedAvatarUrl)
+        }
       } finally {
         setIsLoadingProfile(false)
       }
@@ -179,6 +189,13 @@ export default function OnboardingPage() {
       localStorage.setItem('onboarding_brand_form', JSON.stringify(brandForm))
     }
   }, [brandForm])
+
+  // Save avatar URL to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && avatarUrl) {
+      localStorage.setItem('onboarding_avatar_url', avatarUrl)
+    }
+  }, [avatarUrl])
 
   const handleAvatarUpload = async (file: File) => {
     if (!session) return
@@ -379,6 +396,7 @@ export default function OnboardingPage() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('onboarding_influencer_form')
       localStorage.removeItem('onboarding_brand_form')
+      localStorage.removeItem('onboarding_avatar_url')
     }
   }
 
