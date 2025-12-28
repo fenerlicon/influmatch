@@ -1,34 +1,61 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Gift, Sparkles, PartyPopper, Search, User } from 'lucide-react'
+import { Gift, Sparkles, PartyPopper, Search, User, Lock, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { getDrawResult } from './actions'
 
 export default function GiveawayPage() {
     const [name, setName] = useState('')
+    const [pin, setPin] = useState('')
     const [result, setResult] = useState<{ match: string; user: string } | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [lockedName, setLockedName] = useState<string | null>(null)
+
+    // Check for existing session
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('influmatch_giveaway_user_v1')
+            if (saved) {
+                setLockedName(saved)
+                setName(saved)
+            }
+        }
+    }, [])
 
     const handleDraw = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!name.trim()) return
+        if (!name.trim() || !pin.trim()) return
+
+        // If locked, prevent querying a different name
+        if (lockedName && name.toLowerCase().trim() !== lockedName.toLowerCase().trim()) {
+            setError(`Bu tarayıcı ${lockedName} adına kilitlenmiştir.`)
+            toast.error('Erişim engellendi')
+            return
+        }
 
         setLoading(true)
         setError('')
 
         try {
-            const response = await getDrawResult(name)
+            // Pass PIN to server action
+            const response = await getDrawResult(name, pin)
 
             if (!response.success && response.error) {
                 setError(response.error)
                 toast.error(response.error)
             } else if (response.success && response.match && response.user) {
+                // Lock this browser to this user upon first successful fetch
+                if (!lockedName) {
+                    setLockedName(response.user)
+                    localStorage.setItem('influmatch_giveaway_user_v1', response.user)
+                }
+
                 setResult({ match: response.match, user: response.user })
-                toast.success(`Hoş geldin ${response.user}!`, {
-                    description: 'Eşleşmen başarıyla getirildi.'
+                toast.success(`Doğrulama Başarılı: ${response.user}`, {
+                    description: 'Eşleşmeniz aşağıda görüntüleniyor.'
                 })
             }
         } catch (err) {
@@ -40,7 +67,10 @@ export default function GiveawayPage() {
 
     const resetSearch = () => {
         setResult(null)
-        setName('')
+        setPin('')
+        if (!lockedName) {
+            setName('')
+        }
         setError('')
     }
 
@@ -86,40 +116,72 @@ export default function GiveawayPage() {
                                 </h1>
 
                                 <p className="mx-auto mb-8 max-w-lg text-lg text-gray-400">
-                                    İsmini aşağıdaki kutuya yaz ve bu yıl kime hediye alacağını hemen öğren!
+                                    {lockedName
+                                        ? `Hoş geldin ${lockedName}. Güvenlik kodunu girerek sonucunu tekrar görebilirsin.`
+                                        : "İsmini ve sana özel verilen kodu gir, sonucunu gör!"
+                                    }
                                 </p>
 
                                 <div className="mx-auto max-w-md">
                                     <form onSubmit={handleDraw} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20">
                                         <div className="flex flex-col gap-4">
+                                            {/* Name Input */}
                                             <div>
-                                                <label htmlFor="name" className="sr-only">İsminiz</label>
+                                                <label htmlFor="name" className="text-xs font-medium text-gray-400 ml-1 mb-1 block text-left">İsim</label>
                                                 <div className="relative">
-                                                    <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                                                    {lockedName ? (
+                                                        <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-yellow-500" />
+                                                    ) : (
+                                                        <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                                                    )}
+
                                                     <input
                                                         id="name"
                                                         type="text"
                                                         value={name}
-                                                        onChange={(e) => setName(e.target.value)}
-                                                        placeholder="İsminizi girin..."
-                                                        className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:border-yellow-500/50 focus:outline-none focus:ring-1 focus:ring-yellow-500/50"
+                                                        onChange={(e) => !lockedName && setName(e.target.value)}
+                                                        readOnly={!!lockedName}
+                                                        placeholder="Adın..."
+                                                        className={`w-full rounded-xl border bg-black/40 py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-1 ${lockedName
+                                                                ? 'border-yellow-500/30 text-yellow-500/90 cursor-not-allowed'
+                                                                : 'border-white/10 focus:border-yellow-500/50 focus:ring-yellow-500/50'
+                                                            }`}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* PIN Input */}
+                                            <div>
+                                                <label htmlFor="pin" className="text-xs font-medium text-gray-400 ml-1 mb-1 block text-left">Güvenlik Kodu</label>
+                                                <div className="relative">
+                                                    <div className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 flex items-center justify-center">
+                                                        <KeyRound className="h-5 w-5 text-gray-400" />
+                                                    </div>
+                                                    <input
+                                                        id="pin"
+                                                        type="text"
+                                                        value={pin}
+                                                        onChange={(e) => setPin(e.target.value)}
+                                                        placeholder="Sana verilen kodu gir..."
+                                                        maxLength={6}
+                                                        className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:border-yellow-500/50 focus:outline-none focus:ring-1 focus:ring-yellow-500/50 font-mono tracking-widest text-center"
                                                     />
                                                 </div>
                                             </div>
 
                                             {error && (
-                                                <p className="text-sm text-red-500 text-left px-1 font-medium">
+                                                <p className="text-sm text-red-500 text-left px-1 font-medium bg-red-500/10 p-2 rounded-lg border border-red-500/20">
                                                     {error}
                                                 </p>
                                             )}
 
                                             <button
                                                 type="submit"
-                                                disabled={loading || !name.trim()}
-                                                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 px-8 py-3.5 font-semibold text-black transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-yellow-500/25 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                                                disabled={loading || !name.trim() || !pin.trim()}
+                                                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 px-8 py-3.5 font-semibold text-black transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-yellow-500/25 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
                                             >
                                                 <span className="relative z-10 flex items-center justify-center gap-2">
-                                                    {loading ? 'Aranıyor...' : 'Eşleşmeyi Gör'}
+                                                    {loading ? 'Kontrol Ediliyor...' : 'Sonucumu Göster'}
                                                     {!loading && <Search className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
                                                 </span>
                                                 <div className="absolute inset-0 bg-white/20 transition-transform duration-300 group-hover:translate-x-full" />
@@ -134,7 +196,7 @@ export default function GiveawayPage() {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ type: "spring", duration: 0.6 }}
-                                className="mx-auto max-w-lg"
+                                className="mx-auto max-w-lg" // Reusing same layout as before
                             >
                                 <div className="relative overflow-hidden rounded-3xl border border-yellow-500/30 bg-gradient-to-b from-yellow-500/10 to-transparent p-1">
                                     <div className="absolute inset-0 bg-yellow-500/5 blur-xl" />
@@ -174,7 +236,7 @@ export default function GiveawayPage() {
                                             onClick={resetSearch}
                                             className="text-sm text-gray-500 hover:text-white transition-colors underline decoration-dotted"
                                         >
-                                            Başka biri için sorgula
+                                            Çıkış Yap
                                         </button>
                                     </div>
                                 </div>
