@@ -2,7 +2,7 @@
 
 const PARTICIPANTS = ['Furkan', 'Anıl', 'Efe', 'Erdem', 'Gökdeniz', 'Kübra']
 // Determined seed for consistent randomization. 
-const SEED_SALT = 3456789
+const SEED_SALT = 8246135
 
 // 6-digit random secure PINs
 const PINS: Record<string, string> = {
