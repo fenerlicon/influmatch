@@ -77,6 +77,24 @@ export default function OnboardingPage() {
   }, [session, isSessionLoading, router])
 
   useEffect(() => {
+    // Helper to merge DB data with LocalStorage data
+    const getMergedState = <T,>(dbState: T, storageKey: string): T => {
+      if (typeof window === 'undefined') return dbState
+
+      const savedState = localStorage.getItem(storageKey)
+      if (!savedState) return dbState
+
+      try {
+        const parsedState = JSON.parse(savedState)
+        // Merge database state with local storage, giving priority to local storage 
+        // (assuming local storage has the latest 'draft' edits)
+        return { ...dbState, ...parsedState }
+      } catch (e) {
+        console.error(`Failed to parse saved state for ${storageKey}`, e)
+        return dbState
+      }
+    }
+
     const fetchProfile = async () => {
       if (!session) return
 
@@ -90,18 +108,23 @@ export default function OnboardingPage() {
           .eq('id', session.user.id)
           .maybeSingle() // Use maybeSingle instead of single to handle missing profiles gracefully
 
+        // Default states (what we have if DB returns nothing)
+        let newInfluencerForm = defaultInfluencerForm
+        let newBrandForm = defaultBrandForm
+
         if (error) {
           // Only show error if it's not a "not found" error (new users don't have profiles yet)
           if (error.code !== 'PGRST116' && error.message !== 'JSON object requested, multiple (or no) rows returned') {
             console.error('[OnboardingPage] Profile fetch error:', error)
             setErrorMessage('Bir hata oluştu.')
           }
-          // If profile doesn't exist, that's fine - user is new and will create it
+          // If profile doesn't exist, we stick with defaults, but we will check localStorage below
         } else if (data) {
           const socialLinks: SocialLinks = data.social_links ?? {}
           setProfile(data as UserProfile)
           setAvatarUrl(data.avatar_url ?? null)
-          setInfluencerForm({
+
+          newInfluencerForm = {
             fullName: data.full_name ?? '',
             username: data.username ?? '',
             bio: data.bio ?? '',
@@ -110,8 +133,9 @@ export default function OnboardingPage() {
             instagram: socialLinks.instagram ?? '',
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
-          })
-          setBrandForm({
+          }
+
+          newBrandForm = {
             brandName: data.full_name ?? '',
             username: data.username ?? '',
             city: data.city ?? '',
@@ -120,11 +144,18 @@ export default function OnboardingPage() {
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
             taxId: data.tax_id ?? '',
-          })
+          }
         }
+
+        // Merge with LocalStorage (this ensures draft is preserved over DB data)
+        setInfluencerForm(getMergedState(newInfluencerForm, 'onboarding_influencer_form'))
+        setBrandForm(getMergedState(newBrandForm, 'onboarding_brand_form'))
+
       } catch (err) {
         console.error('[OnboardingPage] Unexpected error:', err)
-        // Don't show error for network issues or session refresh - user can retry
+        // Even on error, we try to restore from localStorage so user doesn't lose work
+        setInfluencerForm(prev => getMergedState(prev, 'onboarding_influencer_form'))
+        setBrandForm(prev => getMergedState(prev, 'onboarding_brand_form'))
       } finally {
         setIsLoadingProfile(false)
       }
@@ -135,30 +166,6 @@ export default function OnboardingPage() {
       fetchProfile()
     }
   }, [session, supabaseClient, isSessionLoading])
-
-  // Load saved form state from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedInfluencerForm = localStorage.getItem('onboarding_influencer_form')
-      const savedBrandForm = localStorage.getItem('onboarding_brand_form')
-
-      if (savedInfluencerForm) {
-        try {
-          setInfluencerForm(JSON.parse(savedInfluencerForm))
-        } catch (e) {
-          console.error('Failed to parse saved influencer form', e)
-        }
-      }
-
-      if (savedBrandForm) {
-        try {
-          setBrandForm(JSON.parse(savedBrandForm))
-        } catch (e) {
-          console.error('Failed to parse saved brand form', e)
-        }
-      }
-    }
-  }, [])
 
   // Save form state to localStorage whenever it changes
   useEffect(() => {
