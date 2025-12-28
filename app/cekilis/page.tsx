@@ -16,7 +16,6 @@ export default function GiveawayPage() {
     const [errorMsg, setErrorMsg] = useState('')
     const [lockedName, setLockedName] = useState<string | null>(null)
 
-    // Check for existing session
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('influmatch_giveaway_user_v1')
@@ -39,36 +38,34 @@ export default function GiveawayPage() {
         setAnimState('checking')
         setErrorMsg('')
 
-        // Artificial delay for tension
-        await new Promise(r => setTimeout(r, 800))
+        // Tension build-up
+        await new Promise(r => setTimeout(r, 1500))
 
         try {
             const response = await getDrawResult(name, pin)
 
             if (!response.success) {
-                // Wrong code or name
                 setAnimState('breaking')
                 setTimeout(() => {
-                    setErrorMsg(response.error || 'Kod hatalı! Başkalarının bilgilerine erişmeye çalışma.')
-                    toast.error('Giriş Başarısız', { description: response.error || 'Kod hatalı veya isim yanlış.' })
-                    setAnimState('idle') // Return to input after animation
-                }, 2500) // Wait for breaking animation
+                    setErrorMsg(response.error || 'Kod hatalı! Erişim reddedildi.')
+                    toast.error('Giriş Başarısız', { description: response.error || 'Hatalı kod veya isim.' })
+                    setAnimState('idle')
+                }, 3000)
             } else if (response.match && response.user) {
-                // Success
                 if (!lockedName) {
                     setLockedName(response.user)
                     localStorage.setItem('influmatch_giveaway_user_v1', response.user)
                 }
                 setResult({ match: response.match, user: response.user })
                 setAnimState('unlocking')
-                // Transition to specific success view after unlock animation
+
                 setTimeout(() => {
                     setAnimState('success')
-                }, 2000)
+                }, 2500)
             }
         } catch (err) {
             setAnimState('idle')
-            toast.error('Beklenmedik bir hata oluştu.')
+            toast.error('Sistem hatası.')
         }
     }
 
@@ -79,312 +76,290 @@ export default function GiveawayPage() {
         if (!lockedName) setName('')
     }
 
-    // Animation Variants
-    const keyVariants = {
-        idle: { x: 0, rotate: 0, opacity: 1 },
-        checking: { x: 60, rotate: 0, transition: { duration: 0.5, ease: "easeInOut" } as any },
-        unlocking: {
-            x: 60,
-            rotate: 90,
-            transition: { duration: 0.4, delay: 0.1 }
-        },
-        breaking: {
-            x: 60,
-            rotate: [0, -10, 10, -10, 10, 0],
-            transition: { duration: 0.5 }
-        }
-    }
-
-    const lockVariants = {
-        idle: { scale: 1, rotate: 0, color: "#9CA3AF" }, // gray-400
-        checking: { scale: 1.1, color: "#FBBF24" }, // yellow-400
-        unlocking: {
-            scale: 1.2,
-            color: "#34D399", // green-400
-            transition: { duration: 0.3 }
-        },
-        breaking: {
-            scale: [1, 1.2, 1.2, 1.1],
-            rotate: [0, -5, 5, -5, 5, 0],
-            color: "#EF4444", // red-500
-            transition: { duration: 0.5 }
-        }
-    }
-
     return (
-        <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#050506]">
-            {/* Background Effects */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-yellow-500/10 blur-[120px]" />
-                <div className="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[120px]" />
-                <div className="grid-overlay opacity-30" />
-
-                {animState === 'success' && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 0.03, scale: 1 }}
-                        transition={{ duration: 2 }}
-                        className="absolute inset-0 flex items-center justify-center z-0"
-                    >
-                        <h1 className="text-[10vw] font-black leading-none text-white text-center select-none whitespace-pre-line tracking-tighter">
-                            BU BİZİM{'\n'}ARAMIZDA{'\n'}BİR SIR
-                        </h1>
-                    </motion.div>
-                )}
+        <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#050506] font-sans selection:bg-yellow-500/30">
+            {/* Ambient Background */}
+            <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900/50 via-[#050506] to-[#050506]" />
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-yellow-600/10 rounded-full blur-[128px] animate-pulse" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[128px] animate-pulse delay-1000" />
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay" />
             </div>
 
-            <div className="container relative z-10 px-4 md:px-6">
+            {/* Secret Message Overlay */}
+            {animState === 'success' && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.1 }}
+                    transition={{ duration: 3 }}
+                    className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none overflow-hidden"
+                >
+                    <h1 className="text-[12vw] font-black leading-none text-white text-center tracking-tighter opacity-50 blur-sm scale-150">
+                        MUTLU{'\n'}YILLAR
+                    </h1>
+                </motion.div>
+            )}
 
-                {/* Animation Overlay for Unlock/Break */}
+            <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center">
+
+                {/* 3D Animation Overlay */}
                 <AnimatePresence>
                     {(animState === 'checking' || animState === 'unlocking' || animState === 'breaking') && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl"
+                            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl perspective-1000"
                         >
-                            <div className="relative flex items-center justify-center gap-8 mb-8 scale-150">
-                                {/* Key Graphic */}
+                            <div className="relative w-64 h-64 flex items-center justify-center">
+                                {/* The Lock Device */}
                                 <motion.div
-                                    variants={keyVariants}
-                                    initial="idle"
-                                    animate={animState}
-                                    className="relative z-10"
+                                    initial={{ scale: 0.8, rotateY: -180, opacity: 0 }}
+                                    animate={{
+                                        scale: 1,
+                                        rotateY: 0,
+                                        opacity: 1,
+                                        shaking: animState === 'breaking' ? [0, 10, -10, 10, -10, 0] : 0
+                                    }}
+                                    transition={{ duration: 0.8, type: "spring" }}
+                                    className={`relative z-20 ${animState === 'breaking' ? 'animate-shake' : ''}`}
                                 >
-                                    {animState === 'breaking' ? (
-                                        // Broken Key Representation
-                                        <div className="relative">
-                                            <motion.div
-                                                initial={{ x: 0, y: 0, rotate: 0 }}
-                                                animate={{ x: -20, y: 20, rotate: -45, opacity: 0 }}
-                                                transition={{ delay: 0.4, duration: 0.5 }}
-                                            >
-                                                <KeyRound className="h-12 w-12 text-red-500" />
-                                            </motion.div>
-                                            <motion.div
-                                                className="absolute top-0 left-0"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1, scale: [1, 2, 0] }}
-                                                transition={{ delay: 0.4, duration: 0.3 }}
-                                            >
-                                                <div className="h-12 w-12 rounded-full border-2 border-red-500" />
-                                            </motion.div>
-                                        </div>
+                                    {/* Halo Effect */}
+                                    <div className={`absolute inset-0 blur-3xl rounded-full opacity-40 transition-colors duration-500 scale-150 ${animState === 'breaking' ? 'bg-red-600' :
+                                            animState === 'unlocking' ? 'bg-green-500' :
+                                                'bg-yellow-500'
+                                        }`} />
+
+                                    {/* Main Icon */}
+                                    {animState === 'unlocking' ? (
+                                        <Unlock className="w-48 h-48 text-green-400 drop-shadow-[0_0_30px_rgba(74,222,128,0.5)]" strokeWidth={1} />
+                                    ) : animState === 'breaking' ? (
+                                        <Lock className="w-48 h-48 text-red-500 drop-shadow-[0_0_50px_rgba(239,68,68,0.6)]" strokeWidth={1} />
                                     ) : (
-                                        <KeyRound className="h-12 w-12 text-yellow-500" />
+                                        <LockKeyhole className="w-48 h-48 text-yellow-500 drop-shadow-[0_0_30px_rgba(234,179,8,0.3)] animate-pulse" strokeWidth={1} />
                                     )}
                                 </motion.div>
 
-                                {/* Lock Graphic */}
-                                <motion.div
-                                    variants={lockVariants}
-                                    initial="idle"
-                                    animate={animState}
-                                >
-                                    {animState === 'unlocking' ? (
-                                        <Unlock className="h-16 w-16" />
-                                    ) : (
-                                        <LockKeyhole className="h-16 w-16" />
-                                    )}
-                                </motion.div>
+                                {/* The Key (Inserts into lock) */}
+                                {animState !== 'breaking' && animState !== 'unlocking' && (
+                                    <motion.div
+                                        initial={{ x: 200, opacity: 0, rotate: 45 }}
+                                        animate={{ x: 0, opacity: 1, rotate: 0 }}
+                                        transition={{ delay: 0.5, duration: 0.6, type: "spring" }}
+                                        className="absolute z-30 drop-shadow-2xl"
+                                    >
+                                        <KeyRound className="w-24 h-24 text-white fill-white/10" strokeWidth={1.5} />
+                                    </motion.div>
+                                )}
                             </div>
 
-                            {animState === 'breaking' && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-center"
-                                >
-                                    <p className="text-2xl font-bold text-red-500 mb-2">HATA</p>
-                                    <p className="text-white/70">Kilit açılamadı.</p>
-                                </motion.div>
-                            )}
-                            {animState === 'unlocking' && (
-                                <motion.p
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-xl font-bold text-green-400"
-                                >
-                                    KİLİT AÇILIYOR...
-                                </motion.p>
-                            )}
+                            {/* Status Text with Glitch Effect for Error */}
+                            <div className="mt-12 h-20 text-center">
+                                {animState === 'breaking' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.5 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="space-y-2"
+                                    >
+                                        <h2 className="text-4xl font-bold text-red-500 tracking-widest uppercase drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
+                                            ⚠️ ERİŞİM REDDEDİLDİ
+                                        </h2>
+                                        <p className="text-white/60 font-mono text-sm tracking-wider">
+                                            GÜVENLİK PROTOKOLÜ İHLALİ
+                                        </p>
+                                    </motion.div>
+                                )}
+
+                                {animState === 'unlocking' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="space-y-2"
+                                    >
+                                        <h2 className="text-3xl font-bold text-green-400 tracking-widest uppercase">
+                                            KİLİT AÇILIYOR
+                                        </h2>
+                                        <div className="h-1 w-32 bg-gray-800 rounded-full mx-auto overflow-hidden">
+                                            <motion.div
+                                                className="h-full bg-green-400"
+                                                initial={{ width: 0 }}
+                                                animate={{ width: "100%" }}
+                                                transition={{ duration: 1.5 }}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {animState === 'checking' && (
+                                    <p className="text-yellow-500/80 font-mono animate-pulse tracking-widest">
+                                        DOĞRULANIYOR...
+                                    </p>
+                                )}
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                <div className="mx-auto max-w-2xl text-center">
-
-                    {/* Header Badge */}
-                    {animState !== 'success' && (
+                {/* Main Interface */}
+                <AnimatePresence mode="wait">
+                    {animState !== 'success' ? (
                         <motion.div
-                            initial={{ opacity: 0, y: -20 }}
+                            key="input-form"
+                            initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mb-8 flex justify-center"
+                            exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)", transition: { duration: 0.5 } }}
+                            className="w-full max-w-md"
                         >
-                            <span className="inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-1.5 text-sm font-medium text-yellow-500 backdrop-blur-md">
-                                <Sparkles className="h-4 w-4" />
-                                2025 Özel Çekilişi
-                            </span>
-                        </motion.div>
-                    )}
-
-                    <AnimatePresence mode="wait">
-                        {animState !== 'success' ? (
-                            <motion.div
-                                key="input-form"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                            >
-                                <h1 className="mb-6 text-4xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
-                                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600">
-                                        Kim Çıktı?
-                                    </span>
+                            <div className="text-center mb-10">
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-purple-500/20 ring-1 ring-white/10 shadow-2xl"
+                                >
+                                    <Sparkles className="w-6 h-6 text-yellow-400" />
+                                </motion.div>
+                                <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white via-white/80 to-white/40 mb-4 tracking-tight">
+                                    Gizli Çekiliş
                                 </h1>
-
-                                <p className="mx-auto mb-8 max-w-lg text-lg text-gray-400">
+                                <p className="text-gray-400 leading-relaxed">
                                     {lockedName
-                                        ? `Hoş geldin ${lockedName}.`
-                                        : "İsmini ve sana özel verilen kodu gir, aramızdaki sırrı öğren."
+                                        ? <span>Hoş geldin <span className="text-white font-semibold">{lockedName}</span>. Şifreni gir.</span>
+                                        : "Kimliğinizi doğrulamak için bilgilerinizi girin."
                                     }
                                 </p>
+                            </div>
 
-                                <div className="mx-auto max-w-md">
-                                    <form onSubmit={handleDraw} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20">
-                                        <div className="flex flex-col gap-4">
-                                            <div>
-                                                <label className="text-xs font-medium text-gray-400 ml-1 mb-1 block text-left">İsim</label>
-                                                <div className="relative">
-                                                    {lockedName ? (
-                                                        <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-yellow-500" />
-                                                    ) : (
-                                                        <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                                                    )}
-                                                    <input
-                                                        type="text"
-                                                        value={name}
-                                                        onChange={(e) => !lockedName && setName(e.target.value)}
-                                                        readOnly={!!lockedName}
-                                                        placeholder="Adın..."
-                                                        className={`w-full rounded-xl border bg-black/40 py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-1 ${lockedName
-                                                                ? 'border-yellow-500/30 text-yellow-500/90 cursor-not-allowed'
-                                                                : 'border-white/10 focus:border-yellow-500/50 focus:ring-yellow-500/50'
-                                                            }`}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="text-xs font-medium text-gray-400 ml-1 mb-1 block text-left">Güvenlik Kodu</label>
-                                                <div className="relative">
-                                                    <div className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 flex items-center justify-center">
-                                                        <KeyRound className="h-5 w-5 text-gray-400" />
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        value={pin}
-                                                        onChange={(e) => setPin(e.target.value)}
-                                                        placeholder="******"
-                                                        maxLength={6}
-                                                        className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:border-yellow-500/50 focus:outline-none focus:ring-1 focus:ring-yellow-500/50 font-mono tracking-widest text-center"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {errorMsg && (
-                                                <motion.p
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    className="text-sm text-red-500 text-left px-1 font-medium"
-                                                >
-                                                    {errorMsg}
-                                                </motion.p>
-                                            )}
-
-                                            <button
-                                                type="submit"
-                                                disabled={animState !== 'idle' || !name.trim() || !pin.trim()}
-                                                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-600 px-8 py-3.5 font-semibold text-black transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-yellow-500/25 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-                                            >
-                                                <span className="relative z-10 flex items-center justify-center gap-2">
-                                                    {animState === 'idle' ? 'Kilidi Aç' : 'Kontrol Ediliyor...'}
-                                                    {animState === 'idle' && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
-                                                </span>
-                                            </button>
+                            <form onSubmit={handleDraw} className="space-y-4">
+                                <div className="space-y-2">
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            {lockedName ? <Lock className="h-5 w-5 text-yellow-500" /> : <User className="h-5 w-5 text-gray-500 group-focus-within:text-white transition-colors" />}
                                         </div>
-                                    </form>
-                                </div>
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="result-view"
-                                initial={{ opacity: 0, scale: 0.5, filter: 'blur(20px)' }}
-                                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                                transition={{ duration: 1, ease: 'easeOut' }}
-                                className="mx-auto max-w-xl relative"
-                            >
-                                {/* Magical Glow Background */}
-                                <div className="absolute -inset-20 bg-gradient-to-r from-yellow-500/20 via-purple-500/20 to-pink-500/20 blur-3xl opacity-50 animate-pulse" />
+                                        <input
+                                            type="text"
+                                            value={name}
+                                            onChange={(e) => !lockedName && setName(e.target.value)}
+                                            readOnly={!!lockedName}
+                                            placeholder="İsim Girin"
+                                            className={`w-full bg-white/5 border backdrop-blur-sm rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all ${lockedName
+                                                    ? 'border-yellow-500/30 cursor-not-allowed text-yellow-500/90'
+                                                    : 'border-white/10 focus:border-white/20 focus:ring-white/10 hover:bg-white/10'
+                                                }`}
+                                        />
+                                    </div>
 
-                                <div className="relative rounded-3xl bg-black/60 border border-white/10 backdrop-blur-2xl p-12 shadow-2xl overflow-hidden">
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <KeyRound className="h-5 w-5 text-gray-500 group-focus-within:text-white transition-colors" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={pin}
+                                            onChange={(e) => setPin(e.target.value)}
+                                            placeholder="Güvenlik Kodu"
+                                            maxLength={6}
+                                            className="w-full bg-white/5 border border-white/10 backdrop-blur-sm rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-white/20 focus:ring-white/10 hover:bg-white/10 transition-all font-mono tracking-[0.2em] text-center"
+                                        />
+                                    </div>
+                                </div>
+
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    disabled={animState !== 'idle' || !name.trim() || !pin.trim()}
+                                    type="submit"
+                                    className="w-full relative overflow-hidden bg-white text-black font-semibold rounded-xl py-4 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                                >
+                                    <span className="relative z-10 flex items-center justify-center gap-2">
+                                        Sonucu Göster
+                                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                    </span>
+                                </motion.button>
+                            </form>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="result-view"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 1 }}
+                            className="relative z-50 w-full max-w-2xl"
+                        >
+                            {/* Cinematic Reveal Card */}
+                            <div className="relative group perspective-1000">
+                                <motion.div
+                                    initial={{ rotateX: 90, opacity: 0 }}
+                                    animate={{ rotateX: 0, opacity: 1 }}
+                                    transition={{ type: "spring", stiffness: 50, damping: 20, delay: 0.2 }}
+                                    className="relative bg-black/40 border border-white/10 backdrop-blur-3xl rounded-[2rem] p-12 md:p-16 text-center overflow-hidden shadow-2xl"
+                                >
+                                    {/* Shining Border Effect */}
+                                    <div className="absolute inset-0 border border-white/20 rounded-[2rem]" />
+                                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
                                     <motion.div
                                         initial={{ y: 20, opacity: 0 }}
                                         animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 0.5 }}
+                                        transition={{ delay: 0.8 }}
                                     >
-                                        <h2 className="text-sm font-medium text-yellow-500 uppercase tracking-[0.3em] mb-6">
-                                            Eşleşmen
-                                        </h2>
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-bold tracking-widest uppercase mb-8">
+                                            <Sparkles className="w-3 h-3" />
+                                            2025 Eşleşmesi
+                                        </div>
                                     </motion.div>
 
-                                    <motion.div
-                                        initial={{ scale: 2, opacity: 0, rotate: -5 }}
-                                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                                        transition={{ delay: 0.8, type: "spring", stiffness: 100 }}
-                                        className="mb-8"
-                                    >
-                                        <h3 className="text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-100 via-yellow-300 to-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+                                    <div className="relative mb-12">
+                                        <div className="absolute inset-0 bg-yellow-400/20 blur-[100px] animate-pulse rounded-full" />
+                                        <motion.h3
+                                            initial={{ scale: 0.8, opacity: 0, filter: "blur(20px)" }}
+                                            animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+                                            transition={{ delay: 1, duration: 1.5, ease: "easeOut" }}
+                                            className="relative text-6xl md:text-8xl font-black text-white tracking-tight drop-shadow-2xl"
+                                        >
                                             {result?.match}
-                                        </h3>
-                                    </motion.div>
+                                        </motion.h3>
+                                    </div>
 
                                     <motion.div
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{ delay: 1.5 }}
+                                        transition={{ delay: 2.5 }}
+                                        className="space-y-6"
                                     >
-                                        <p className="text-gray-400 font-light italic">
-                                            "Bu hediye kalpten gelmeli..."
+                                        <p className="text-gray-400 font-light italic text-lg max-w-md mx-auto">
+                                            "Bir hediye, bin mutluluk demektir..."
                                         </p>
+
+                                        <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent mx-auto" />
+
+                                        <button
+                                            onClick={resetSearch}
+                                            className="text-white/40 hover:text-white text-xs tracking-widest uppercase transition-colors py-2"
+                                        >
+                                            Ekranı Kapat
+                                        </button>
                                     </motion.div>
-
-                                    <motion.button
-                                        onClick={resetSearch}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ delay: 3 }}
-                                        className="mt-8 text-xs text-white/30 hover:text-white transition-colors"
-                                    >
-                                        Çıkış Yap (Ekranı Kapat)
-                                    </motion.button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Footer Warning */}
-                    <motion.div
-                        className="fixed bottom-4 left-0 right-0 text-center pointer-events-none"
-                        animate={{ opacity: animState === 'success' ? 0 : 0.5 }}
-                    >
-                        <p className="text-[10px] text-white">
-                            * İzinsiz giriş denemeleri kayıt altına alınmaktadır.
-                        </p>
-                    </motion.div>
-
-                </div>
+                                </motion.div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
+
+            {/* Global Styles for Keyframes */}
+            <style jsx global>{`
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px) rotate(-5deg); }
+                    75% { transform: translateX(5px) rotate(5deg); }
+                }
+                .animate-shake {
+                    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+                }
+                .perspective-1000 {
+                    perspective: 1000px;
+                }
+            `}</style>
         </main>
     )
 }
