@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, KeyRound, Lock, LockKeyhole, LockOpen, ArrowRight, User } from 'lucide-react'
+import { Sparkles, KeyRound, Lock, LockKeyhole, Unlock, ArrowRight, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { getDrawResult } from './actions'
 
@@ -49,8 +49,8 @@ export default function GiveawayPage() {
                 // Wrong code or name
                 setAnimState('breaking')
                 setTimeout(() => {
-                    setErrorMsg('Kod hatalı! Başkalarının bilgilerine erişmeye çalışma.')
-                    toast.error('Giriş Başarısız', { description: 'Kod hatalı veya isim yanlış.' })
+                    setErrorMsg(response.error || 'Kod hatalı! Başkalarının bilgilerine erişmeye çalışma.')
+                    toast.error('Giriş Başarısız', { description: response.error || 'Kod hatalı veya isim yanlış.' })
                     setAnimState('idle') // Return to input after animation
                 }, 2500) // Wait for breaking animation
             } else if (response.match && response.user) {
@@ -82,7 +82,7 @@ export default function GiveawayPage() {
     // Animation Variants
     const keyVariants = {
         idle: { x: 0, rotate: 0, opacity: 1 },
-        checking: { x: 60, rotate: 0, transition: { duration: 0.5, ease: "easeInOut" } },
+        checking: { x: 60, rotate: 0, transition: { duration: 0.5, ease: "easeInOut" } as any },
         unlocking: {
             x: 60,
             rotate: 90,
@@ -142,7 +142,7 @@ export default function GiveawayPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm"
+                            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl"
                         >
                             <div className="relative flex items-center justify-center gap-8 mb-8 scale-150">
                                 {/* Key Graphic */}
@@ -182,8 +182,8 @@ export default function GiveawayPage() {
                                     initial="idle"
                                     animate={animState}
                                 >
-                                    {animState === 'unlocking' || animState === 'success' ? (
-                                        <LockOpen className="h-16 w-16" />
+                                    {animState === 'unlocking' ? (
+                                        <Unlock className="h-16 w-16" />
                                     ) : (
                                         <LockKeyhole className="h-16 w-16" />
                                     )}
@@ -191,13 +191,14 @@ export default function GiveawayPage() {
                             </div>
 
                             {animState === 'breaking' && (
-                                <motion.p
+                                <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="text-xl font-bold text-red-500"
+                                    className="text-center"
                                 >
-                                    KİLİT KIRILDI!
-                                </motion.p>
+                                    <p className="text-2xl font-bold text-red-500 mb-2">HATA</p>
+                                    <p className="text-white/70">Kilit açılamadı.</p>
+                                </motion.div>
                             )}
                             {animState === 'unlocking' && (
                                 <motion.p
@@ -214,7 +215,7 @@ export default function GiveawayPage() {
 
                 <div className="mx-auto max-w-2xl text-center">
 
-                    {/* Header Badge (Only show if not success for cleaner look) */}
+                    {/* Header Badge */}
                     {animState !== 'success' && (
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
@@ -327,9 +328,6 @@ export default function GiveawayPage() {
                                 <div className="absolute -inset-20 bg-gradient-to-r from-yellow-500/20 via-purple-500/20 to-pink-500/20 blur-3xl opacity-50 animate-pulse" />
 
                                 <div className="relative rounded-3xl bg-black/60 border border-white/10 backdrop-blur-2xl p-12 shadow-2xl overflow-hidden">
-                                    {/* Particle Effects (Simulated) */}
-                                    {/* We could use real particles but simple CSS/divs suffice for now */}
-
                                     <motion.div
                                         initial={{ y: 20, opacity: 0 }}
                                         animate={{ y: 0, opacity: 1 }}
