@@ -5,13 +5,15 @@ import { Send, Paperclip, Smile } from 'lucide-react'
 
 interface ModernChatInputProps {
     onSend: (message: string) => void
+    onFileSelect?: (file: File) => void
     disabled?: boolean
     placeholder?: string
 }
 
-export default function ModernChatInput({ onSend, disabled, placeholder = 'Bir mesaj yaz...' }: ModernChatInputProps) {
+export default function ModernChatInput({ onSend, onFileSelect, disabled, placeholder = 'Bir mesaj yaz...' }: ModernChatInputProps) {
     const [message, setMessage] = useState('')
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Auto-resize textarea
     useEffect(() => {
@@ -39,13 +41,37 @@ export default function ModernChatInput({ onSend, disabled, placeholder = 'Bir m
         }
     }
 
+    const handleFileClick = () => {
+        fileInputRef.current?.click()
+    }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file && onFileSelect) {
+            onFileSelect(file)
+        }
+        // Reset input value to allow selecting same file again
+        if (e.target) {
+            e.target.value = ''
+        }
+    }
+
     return (
         <div className="relative flex items-end gap-2 rounded-3xl border border-white/10 bg-[#151621] p-2 transition-all focus-within:border-soft-gold/50 focus-within:bg-[#1A1B26] focus-within:shadow-[0_0_20px_-5px_rgba(212,175,55,0.1)]">
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileChange}
+                accept="image/png, image/jpeg, image/jpg, image/webp"
+                disabled={disabled}
+            />
             <button
                 type="button"
                 disabled={disabled}
+                onClick={handleFileClick}
                 className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
-                title="Dosya Ekle (Yakında)"
+                title="Görsel Ekle"
             >
                 <Paperclip className="h-5 w-5" />
             </button>

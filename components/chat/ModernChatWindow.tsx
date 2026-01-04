@@ -173,6 +173,35 @@ export default function ModernChatWindow({
         setIsSending(false)
     }
 
+    const handleFileUpload = async (file: File) => {
+        if (isBlocked || hasBlocked) return
+
+        setIsSending(true)
+        try {
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`
+            const filePath = `${roomId}/${currentUserId}/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('chat-attachments')
+                .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('chat-attachments')
+                .getPublicUrl(filePath)
+
+            const content = `![image](${publicUrl})`
+            await handleSendMessage(content)
+        } catch (error: any) {
+            console.error('File upload error:', error)
+            alert('Dosya yüklenemedi. Lütfen tekrar deneyin.')
+        } finally {
+            setIsSending(false)
+        }
+    }
+
     // --- LOGIC END ---
 
     return (
@@ -203,12 +232,7 @@ export default function ModernChatWindow({
                 </div>
 
                 <div className="flex items-center gap-1">
-                    <button className="hidden h-9 w-9 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/5 hover:text-white sm:flex" title="Sesli Arama (Yakında)">
-                        <Phone className="h-4 w-4" />
-                    </button>
-                    <button className="hidden h-9 w-9 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/5 hover:text-white sm:flex" title="Görüntülü Arama (Yakında)">
-                        <Video className="h-4 w-4" />
-                    </button>
+
                     <button className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/5 hover:text-white" title="Detaylar">
                         <MoreVertical className="h-4 w-4" />
                     </button>
@@ -229,6 +253,8 @@ export default function ModernChatWindow({
                         {messages.map((message, index) => {
                             const isOwn = message.sender_id === currentUserId
                             const showAvatar = !isOwn && (index === 0 || messages[index - 1].sender_id !== message.sender_id)
+                            const isImage = message.content.startsWith('![image](') && message.content.endsWith(')')
+                            const imageUrl = isImage ? message.content.slice(9, -1) : null
 
                             return (
                                 <div key={message.id} className={`group flex items-end gap-3 ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -254,11 +280,23 @@ export default function ModernChatWindow({
                                             {/* Message Bubble */}
                                             <div
                                                 className={`relative rounded-[20px] px-5 py-3 text-sm leading-relaxed shadow-sm transition-all ${isOwn
-                                                        ? 'rounded-tr-sm bg-gradient-to-br from-soft-gold via-soft-gold/90 to-yellow-600 text-[#0B0C10] shadow-[0_4px_15px_-5px_rgba(212,175,55,0.3)]'
-                                                        : 'rounded-tl-sm border border-white/10 bg-[#1A1B23] text-gray-100'
-                                                    }`}
+                                                    ? 'rounded-tr-sm bg-gradient-to-br from-soft-gold via-soft-gold/90 to-yellow-600 text-[#0B0C10] shadow-[0_4px_15px_-5px_rgba(212,175,55,0.3)]'
+                                                    : 'rounded-tl-sm border border-white/10 bg-[#1A1B23] text-gray-100'
+                                                    } ${isImage ? 'p-1' : ''}`}
                                             >
-                                                {message.content}
+                                                {isImage && imageUrl ? (
+                                                    <div className="relative aspect-[4/3] w-full min-w-[200px] overflow-hidden rounded-xl bg-black/20">
+                                                        <Image
+                                                            src={imageUrl}
+                                                            alt="Fotoğraf"
+                                                            className="object-cover"
+                                                            fill
+                                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    message.content
+                                                )}
                                             </div>
 
                                             {/* Actions Menu Trigger (Hidden by default, shown on hover) */}
@@ -300,6 +338,7 @@ export default function ModernChatWindow({
                 )}
                 <ModernChatInput
                     onSend={handleSendMessage}
+                    onFileSelect={handleFileUpload}
                     disabled={isSending || isBlocked || hasBlocked}
                     placeholder={isBlocked || hasBlocked ? 'Mesajlaşma devre dışı' : `${brandName?.split(' ')[0] || 'Kullanıcı'} ile sohbet et...`}
                 />
