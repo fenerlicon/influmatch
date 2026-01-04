@@ -42,6 +42,7 @@ export default function ModernChatWindow({
     username,
     otherParticipantId,
     activeRoomIds,
+    otherParticipantVerificationStatus,
     otherParticipantRole,
     otherParticipantBadges,
     lastBlockUpdate,
@@ -197,7 +198,7 @@ export default function ModernChatWindow({
                     <div>
                         <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-white">{brandName ?? 'Sohbet'}</h3>
-                            {otherParticipantBadges?.includes(otherParticipantRole === 'brand' ? 'official-business' : 'verified-account') && (
+                            {((otherParticipantBadges && otherParticipantBadges.length > 0) || otherParticipantVerificationStatus === 'verified') && (
                                 <BadgeCheck className={`h-4 w-4 ${otherParticipantRole === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
                             )}
                         </div>
