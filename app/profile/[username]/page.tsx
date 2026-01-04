@@ -172,6 +172,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                 mode="brand-view"
                 hideAnalysisText={false} // Enable AI analysis here
                 subscriptionTier={viewerTier}
+                viewerRole={viewerRole ?? undefined}
               />
             ) : (
               <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-10 text-center shadow-glow">

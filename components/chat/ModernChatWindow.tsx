@@ -27,7 +27,7 @@ interface ModernChatWindowProps {
     otherParticipantId?: string
     activeRoomIds?: string[]
     otherParticipantVerificationStatus?: 'pending' | 'verified' | 'rejected' | null
-    otherParticipantRole?: 'influencer' | 'brand' | null
+    otherParticipantRole?: 'influencer' | 'brand' | 'admin' | null
     otherParticipantBadges?: string[]
     lastBlockUpdate?: number
     onOpenProfile?: () => void
@@ -198,9 +198,22 @@ export default function ModernChatWindow({
                     <div>
                         <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-white">{brandName ?? 'Sohbet'}</h3>
-                            {otherParticipantBadges?.includes(otherParticipantRole === 'brand' ? 'official-business' : 'verified-account') && (
-                                <BadgeCheck className={`h-4 w-4 ${otherParticipantRole === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
-                            )}
+                            {(() => {
+                                const badges = otherParticipantBadges ?? []
+                                const role = otherParticipantRole
+                                const isAdmin = role === 'admin'
+                                const hasOfficial = badges.includes('official-business')
+                                const hasVerified = badges.includes('verified-account')
+
+                                if (isAdmin || hasOfficial || hasVerified) {
+                                    return (
+                                        <BadgeCheck className={`h-4 w-4 ${isAdmin ? 'text-purple-500' :
+                                                hasOfficial ? 'text-soft-gold' : 'text-blue-400'
+                                            }`} />
+                                    )
+                                }
+                                return null
+                            })()}
                         </div>
                         <p className="text-xs text-gray-400">
                             {username ? `@${username}` : isBlocked ? 'Engellendi' : hasBlocked ? 'Engellediniz' : 'Çevrimdışı'}

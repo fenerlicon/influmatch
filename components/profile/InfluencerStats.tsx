@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Activity, TrendingUp, Users, MessageCircle, Heart, Zap, Lock, Sparkles, AlertCircle } from 'lucide-react'
 import { generateAIAnalysis, type AnalysisType, type SubscriptionTier } from '@/app/actions/ai-analysis'
 import { toast } from 'sonner'
@@ -26,6 +27,7 @@ interface InfluencerStatsProps {
     mode: 'brand-view' | 'influencer-view'
     hideAnalysisText?: boolean
     subscriptionTier?: SubscriptionTier
+    viewerRole?: 'brand' | 'influencer' | 'admin'
 }
 
 export default function InfluencerStats({
@@ -35,8 +37,10 @@ export default function InfluencerStats({
     lastUpdated,
     mode,
     hideAnalysisText,
-    subscriptionTier = 'FREE'
+    subscriptionTier = 'FREE',
+    viewerRole
 }: InfluencerStatsProps) {
+    const router = useRouter()
     const [isPending, startTransition] = useTransition()
     const [aiAnalysis, setAiAnalysis] = useState<string[]>([])
     const [lastAnalysisType, setLastAnalysisType] = useState<AnalysisType>('basic')
@@ -140,6 +144,13 @@ export default function InfluencerStats({
                 {isPending && lastAnalysisType === type && <Sparkles className="h-3 w-3 animate-pulse text-soft-gold" />}
             </button>
         )
+    }
+
+    const handleUpgrade = () => {
+        // Determine target path based on viewer role or mode
+        const isBrand = viewerRole === 'brand' || mode === 'brand-view'
+        const targetPath = isBrand ? '/dashboard/spotlight/brand' : '/dashboard/spotlight/influencer'
+        router.push(targetPath)
     }
 
     return (
@@ -253,7 +264,8 @@ export default function InfluencerStats({
                             <AnalysisButton type="profile_coach" label="AI Koç" icon={Zap} requiredTier="SPOTLIGHT_PLUS" />
                         )}
 
-                        {mode === 'brand-view' && (
+                        {/* Only show Campaign ROI if explicitly viewing as BRAND */}
+                        {mode === 'brand-view' && viewerRole === 'brand' && (
                             <AnalysisButton type="campaign_analysis" label="Kampanya ROI" icon={TrendingUp} requiredTier="BRAND_PRO" />
                         )}
                     </div>
@@ -314,7 +326,10 @@ export default function InfluencerStats({
                                 >
                                     Vazgeç
                                 </button>
-                                <button className="rounded-xl bg-soft-gold px-6 py-2 text-sm font-bold text-black hover:bg-yellow-500">
+                                <button
+                                    onClick={handleUpgrade}
+                                    className="rounded-xl bg-soft-gold px-6 py-2 text-sm font-bold text-black hover:bg-yellow-500"
+                                >
                                     Paket Yükselt
                                 </button>
                             </div>

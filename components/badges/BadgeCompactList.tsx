@@ -7,7 +7,7 @@ import type { LucideIcon } from 'lucide-react'
 
 interface BadgeCompactListProps {
   badges: Badge[]
-  userRole: 'influencer' | 'brand'
+  userRole: 'influencer' | 'brand' | 'admin'
 }
 
 interface BadgeItemProps {

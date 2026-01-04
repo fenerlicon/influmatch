@@ -38,6 +38,8 @@ export interface OfferListItem {
     email: string | null
     social_links: Record<string, string | null> | null
     verification_status?: string | null
+    role?: string | null
+    displayed_badges?: string[] | null
   } | null
 }
 
@@ -60,7 +62,7 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
         .from('offers')
         .select(
           `id, campaign_name, campaign_type, budget, message, status, created_at,
-          sender:sender_user_id(id, full_name, avatar_url, email, social_links)`,
+          sender:sender_user_id(id, full_name, avatar_url, email, social_links, role, displayed_badges)`,
         )
         .eq('id', offerId)
         .single()
@@ -219,14 +221,40 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
                 <h3 className="text-lg font-semibold">{offer.campaign_name ?? 'İsimsiz kampanya'}</h3>
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-gray-400">{sender?.full_name ?? 'Marka'}</p>
-                  {sender?.verification_status === 'verified' && (
-                    <div className="group relative">
-                      <BadgeCheck className="h-4 w-4 text-soft-gold" />
-                      <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                        Onaylanmış İşletme
-                      </div>
-                    </div>
-                  )}
+                  {(() => {
+                    const role = sender?.role
+                    const badges = sender?.displayed_badges ?? []
+                    const isAdmin = role === 'admin'
+                    const hasOfficial = badges.includes('official-business') || sender?.verification_status === 'verified'
+                    // Note: In old logic, verification_status === 'verified' meant Gold. Now we check specific badges but keep fallback if needed.
+                    // Actually, let's trust displayed_badges more, but verification_status is still a good fallback for old data.
+                    // If isAdmin -> Purple
+                    // If Official -> Gold
+
+                    if (isAdmin) {
+                      return (
+                        <div className="group relative">
+                          <BadgeCheck className="h-4 w-4 text-purple-500" />
+                          <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                            Yönetici
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    if (hasOfficial) {
+                      return (
+                        <div className="group relative">
+                          <BadgeCheck className="h-4 w-4 text-soft-gold" />
+                          <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                            Onaylanmış İşletme
+                          </div>
+                        </div>
+                      )
+                    }
+
+                    return null
+                  })()}
                 </div>
               </div>
             </div>

@@ -20,12 +20,18 @@ export async function blockUser(blockedUserId: string) {
   // Check if user exists
   const { data: blockedUser, error: userError } = await supabase
     .from('users')
-    .select('id')
+    .select('id, role')
     .eq('id', blockedUserId)
     .maybeSingle()
 
   if (userError || !blockedUser) {
     return { success: false, error: 'User not found' }
+  }
+
+  // Check if user is admin
+  // @ts-ignore
+  if (blockedUser.role === 'admin') {
+    return { success: false, error: 'Yöneticiler engellenemez.' }
   }
 
   // Insert block (upsert to handle duplicates)
@@ -99,7 +105,7 @@ export async function isUserBlocked(userId: string) {
     .eq('blocked_user_id', userId)
     .maybeSingle()
 
-  return { 
+  return {
     blocked: isBlockedByOther,
     hasBlocked: !!hasBlocked
   }

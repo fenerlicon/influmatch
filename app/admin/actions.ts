@@ -501,7 +501,7 @@ export async function resetVerifiedBadges() {
   }
 }
 
-// Toggle "verified-account" (Blue Tick) badge for a user
+// Toggle "verified-account" (Blue Tick) or "official-business" (Gold Tick) badge based on role
 export async function toggleBlueTick(userId: string) {
   const supabase = createSupabaseServerClient()
   const {
@@ -526,13 +526,30 @@ export async function toggleBlueTick(userId: string) {
   }
 
   try {
+    // Get target user role to determine which badge to toggle
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single()
+
+    if (!targetUser) {
+      return { error: 'Kullanıcı bulunamadı.' }
+    }
+
+    const badgeId = targetUser.role === 'brand' ? 'official-business' : 'verified-account'
+    const badgeName = targetUser.role === 'brand' ? 'Resmi İşletme (Sarı Tik)' : 'Onaylı Hesap (Mavi Tik)'
+
     // Check if user has the badge
     const { data: existingBadge } = await supabase
       .from('user_badges')
       .select('id')
       .eq('user_id', userId)
-      .eq('badge_id', 'verified-account')
+      .eq('badge_id', badgeId)
       .maybeSingle()
+
+    let action = ''
+    let message = ''
 
     if (existingBadge) {
       // Remove badge
@@ -540,36 +557,72 @@ export async function toggleBlueTick(userId: string) {
         .from('user_badges')
         .delete()
         .eq('user_id', userId)
-        .eq('badge_id', 'verified-account')
+        .eq('badge_id', badgeId)
 
       if (deleteError) {
         throw deleteError
       }
-
-      revalidatePath('/admin')
-      revalidatePath(`/dashboard/influencer/badges`)
-      revalidatePath(`/dashboard/brand/badges`)
-      return { success: true, message: 'Mavi tik verildi.', action: 'removed' }
+      action = 'removed'
+      message = `${badgeName} kaldırıldı.`
     } else {
       // Add badge
-      // We can use the generic award function or insert directly
       const { error: insertError } = await supabase
         .from('user_badges')
         .insert({
           user_id: userId,
-          badge_id: 'verified-account',
+          badge_id: badgeId,
           earned_at: new Date().toISOString()
         })
 
       if (insertError) {
         throw insertError
       }
-
-      revalidatePath('/admin')
-      revalidatePath(`/dashboard/influencer/badges`)
-      revalidatePath(`/dashboard/brand/badges`)
-      return { success: true, message: 'Mavi tik verildi.', action: 'added' }
+      action = 'added'
+      message = `${badgeName} verildi.`
     }
+
+    // IMPORTANT: Sync displayed_badges in users table
+    // Fetch all current badges for the user
+    const { data: allBadges } = await supabase
+      .from('user_badges')
+      .select('badge_id')
+      .eq('user_id', userId)
+
+    const badgeArray = allBadges?.map((b) => b.badge_id).filter(Boolean) || []
+
+    // Update users table using Admin Client to bypass RLS
+    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+    const supabaseAdmin = createSupabaseAdminClient()
+
+    if (supabaseAdmin) {
+      const { error: updateError } = await supabaseAdmin
+        .from('users')
+        .update({ displayed_badges: badgeArray })
+        .eq('id', userId)
+
+      if (updateError) {
+        console.error('[toggleBlueTick] Admin update error:', updateError)
+        // Fallback to normal client just in case
+        await supabase
+          .from('users')
+          .update({ displayed_badges: badgeArray })
+          .eq('id', userId)
+      }
+    } else {
+      // Fallback if admin client init fails
+      console.warn('[toggleBlueTick] Admin client init failed, using standard client')
+      await supabase
+        .from('users')
+        .update({ displayed_badges: badgeArray })
+        .eq('id', userId)
+    }
+
+    revalidatePath('/admin')
+    revalidatePath(`/dashboard/influencer/badges`)
+    revalidatePath(`/dashboard/brand/badges`)
+    revalidatePath('/dashboard/messages') // Revalidate messages as well
+
+    return { success: true, message, action }
   } catch (error: any) {
     console.error('[toggleBlueTick] Error:', error)
     return { error: error.message || 'İşlem sırasında bir hata oluştu.' }

@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2 } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle } from 'lucide-react'
 import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -770,6 +770,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                 <Mail className="h-4 w-4" />
                 Destek Talepleri
               </Link>
+              <Link
+                href="/dashboard/messages"
+                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Mesajlarım
+              </Link>
             </div>
           </div>
 
@@ -988,16 +995,30 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                 E-posta Onaysız
                               </span>
                             )}
-                            {user.displayed_badges?.includes('verified-account') ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
-                                <BadgeCheck className="h-3 w-3" />
-                                Mavi Tik: Var
-                              </span>
+                            {isInfluencer ? (
+                              user.displayed_badges?.includes('verified-account') ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                                  <BadgeCheck className="h-3 w-3" />
+                                  Mavi Tik: Var
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
+                                  <XCircle className="h-3 w-3" />
+                                  Mavi Tik: Yok
+                                </span>
+                              )
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
-                                <XCircle className="h-3 w-3" />
-                                Mavi Tik: Yok
-                              </span>
+                              user.displayed_badges?.includes('official-business') ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-soft-gold bg-soft-gold/10 px-1.5 py-0.5 rounded">
+                                  <BadgeCheck className="h-3 w-3" />
+                                  Sarı Tik: Var
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
+                                  <XCircle className="h-3 w-3" />
+                                  Sarı Tik: Yok
+                                </span>
+                              )
                             )}
 
                             <button
@@ -1009,14 +1030,21 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             </button>
 
                             <button
-                              onClick={() => handleToggleBlueTick(user.id, user.displayed_badges?.includes('verified-account') ?? false)}
-                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${user.displayed_badges?.includes('verified-account')
-                                ? 'border-blue-500/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                                : 'border-gray-500/40 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300'
+                              onClick={() => handleToggleBlueTick(user.id, isInfluencer ? (user.displayed_badges?.includes('verified-account') ?? false) : (user.displayed_badges?.includes('official-business') ?? false))}
+                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${isInfluencer
+                                ? (user.displayed_badges?.includes('verified-account')
+                                  ? 'border-blue-500/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                                  : 'border-gray-500/40 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300')
+                                : (user.displayed_badges?.includes('official-business')
+                                  ? 'border-soft-gold/40 bg-soft-gold/10 text-soft-gold hover:bg-soft-gold/20'
+                                  : 'border-gray-500/40 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300')
                                 }`}
                             >
                               <BadgeCheck className="h-3 w-3" />
-                              {user.displayed_badges?.includes('verified-account') ? 'Mavi Tik Kaldır' : 'Mavi Tik Ekle'}
+                              {isInfluencer
+                                ? (user.displayed_badges?.includes('verified-account') ? 'Mavi Tik Kaldır' : 'Mavi Tik Ekle')
+                                : (user.displayed_badges?.includes('official-business') ? 'Sarı Tik Kaldır' : 'Sarı Tik Ekle')
+                              }
                             </button>
                             <button
                               onClick={() => handleDeleteUser(user.id)}

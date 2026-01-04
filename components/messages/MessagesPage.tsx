@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { X, BadgeCheck } from 'lucide-react'
+import { X, BadgeCheck, ShieldCheck, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import ChatWindow from '@/components/chat/ChatWindow'
 import ModernChatWindow from '@/components/chat/ModernChatWindow'
@@ -19,7 +19,7 @@ interface Conversation {
     fullName: string
     username: string | null
     avatarUrl: string | null
-    role: 'influencer' | 'brand' | null
+    role: 'influencer' | 'brand' | 'admin' | null
     verificationStatus?: 'pending' | 'verified' | 'rejected'
     displayedBadges?: string[]
   } | null
@@ -58,7 +58,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
     bio: string | null
     city: string | null
     category: string | null
-    role: 'influencer' | 'brand' | null
+    role: 'influencer' | 'brand' | 'admin' | null
     socialLinks: Record<string, string | null>
     badgeIds?: string[]
     verificationStatus?: 'pending' | 'verified' | 'rejected'
@@ -524,14 +524,27 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                             >
                               {conversation.otherParticipant.fullName}
                             </div>
-                            {conversation.otherParticipant.displayedBadges?.includes(conversation.otherParticipant.role === 'brand' ? 'official-business' : 'verified-account') && (
-                              <div className="group relative flex-shrink-0">
-                                <BadgeCheck className={`h-4 w-4 ${conversation.otherParticipant.role === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
-                                <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                                  {conversation.otherParticipant.role === 'brand' ? 'Onaylı İşletme' : 'Onaylı Hesap'}
-                                </div>
-                              </div>
-                            )}
+                            {(() => {
+                              const role = conversation.otherParticipant.role
+                              const badges = conversation.otherParticipant.displayedBadges ?? []
+                              const isAdmin = role === 'admin'
+                              const hasOfficial = badges.includes('official-business')
+                              const hasVerified = badges.includes('verified-account')
+
+                              if (isAdmin || hasOfficial || hasVerified) {
+                                return (
+                                  <div className="group relative flex-shrink-0">
+                                    <BadgeCheck className={`h-4 w-4 ${isAdmin ? 'text-purple-500' :
+                                      hasOfficial ? 'text-soft-gold' : 'text-blue-400'
+                                      }`} />
+                                    <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
+                                      {isAdmin ? 'Yönetici' : (hasOfficial ? 'Onaylı İşletme' : 'Onaylı Hesap')}
+                                    </div>
+                                  </div>
+                                )
+                              }
+                              return null
+                            })()}
                           </div>
                           {conversation.lastMessage && (
                             <span className="text-xs text-gray-500 flex-shrink-0">
@@ -607,201 +620,227 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               <p className="text-sm text-gray-400 max-w-xs mx-auto">
                 Mesajlaşmaya başlamak için sol taraftaki listeden bir kişi seçin.
               </p>
+
+              <div className="mt-8 mx-auto inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-2 text-[10px] text-gray-500">
+                <Lock className="h-3 w-3" />
+                <span>Güvenliğiniz için tüm konuşmalar kayıt altına alınmaktadır.</span>
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* Profile Modal */}
-      {profileModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-          onClick={handleCloseProfile}
-        >
+      {
+        profileModalOpen && (
           <div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0F1014] shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            onClick={handleCloseProfile}
           >
-            <button
-              type="button"
-              onClick={handleCloseProfile}
-              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur-sm text-gray-400 transition hover:border-white/50 hover:bg-black/80 hover:text-white"
-              aria-label="Kapat"
+            <div
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0F1014] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="h-5 w-5" />
-            </button>
+              <button
+                type="button"
+                onClick={handleCloseProfile}
+                className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur-sm text-gray-400 transition hover:border-white/50 hover:bg-black/80 hover:text-white"
+                aria-label="Kapat"
+              >
+                <X className="h-5 w-5" />
+              </button>
 
-            {profileLoading ? (
-              <div className="flex min-h-[400px] items-center justify-center p-8">
-                <p className="text-gray-400">Profil yükleniyor...</p>
-              </div>
-            ) : profileData ? (
-              <div className="p-8">
-                <div className="flex flex-col items-center gap-4 mb-8">
-                  <div className="relative h-24 w-24 overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-                    {profileData.avatarUrl ? (
-                      <Image
-                        src={profileData.avatarUrl}
-                        alt={profileData.fullName}
-                        fill
-                        sizes="96px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-soft-gold">
-                        {profileData.fullName[0]?.toUpperCase() ?? 'U'}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <h2 className="text-2xl font-semibold text-white">{profileData.fullName}</h2>
-                      {profileData.badgeIds?.includes(profileData.role === 'brand' ? 'official-business' : 'verified-account') && (
-                        <div className="group/verify relative flex-shrink-0">
-                          <BadgeCheck className={`h-6 w-6 transition-all hover:scale-110 cursor-pointer ${profileData.role === 'brand' ? 'text-soft-gold hover:text-soft-gold/80' : 'text-blue-500 hover:text-blue-400'}`} />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
-                            <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
-                              {profileData.role === 'brand' ? 'Onaylı İşletme' : 'Onaylı Hesap'}
-                              <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
-                                <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
-                              </div>
-                            </div>
-                          </div>
+              {profileLoading ? (
+                <div className="flex min-h-[400px] items-center justify-center p-8">
+                  <p className="text-gray-400">Profil yükleniyor...</p>
+                </div>
+              ) : profileData ? (
+                <div className="p-8">
+                  <div className="flex flex-col items-center gap-4 mb-8">
+                    <div className="relative h-24 w-24 overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+                      {profileData.avatarUrl ? (
+                        <Image
+                          src={profileData.avatarUrl}
+                          alt={profileData.fullName}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-soft-gold">
+                          {profileData.fullName[0]?.toUpperCase() ?? 'U'}
                         </div>
                       )}
                     </div>
-                    {profileData.username && (
-                      <p className="mt-1 text-sm text-gray-400">@{profileData.username}</p>
-                    )}
-                    <div className="mt-2 flex items-center justify-center gap-2">
-                      {profileData.role && (
-                        <span className="inline-block rounded-full border border-soft-gold/60 bg-soft-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-soft-gold">
-                          {profileData.role === 'influencer' ? 'Influencer' : 'Marka'}
-                        </span>
-                      )}
-                      {profileData.isBlocked ? (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!profileModalUserId) return
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <h2 className="text-2xl font-semibold text-white">{profileData.fullName}</h2>
+                        {(() => {
+                          const role = profileData.role
+                          const badgeIds = profileData.badgeIds ?? []
+                          const isAdmin = role === 'admin'
+                          const hasOfficial = badgeIds.includes('official-business')
+                          const hasVerified = badgeIds.includes('verified-account')
 
-                            // Optimistic update
-                            setProfileData((prev) => prev ? { ...prev, isBlocked: false } : null)
-
-                            const { unblockUser } = await import('@/app/dashboard/users/block/actions')
-                            const result = await unblockUser(profileModalUserId)
-
-                            if (!result.success) {
-                              setProfileData((prev) => prev ? { ...prev, isBlocked: true } : null)
-                              toast.error(result.error || 'İşlem başarısız.')
-                            } else {
-                              toast.success('Engel kaldırıldı.')
-                              setLastBlockUpdate(Date.now())
-                            }
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 transition hover:border-emerald-400 hover:bg-emerald-500/20"
-                        >
-                          Engeli Kaldır
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!profileModalUserId) return
-                            if (!confirm('Bu kullanıcıyı engellemek istediğinizden emin misiniz?')) return
-
-                            // Optimistic update
-                            setProfileData((prev) => prev ? { ...prev, isBlocked: true } : null)
-
-                            const { blockUser } = await import('@/app/dashboard/users/block/actions')
-                            const result = await blockUser(profileModalUserId)
-
-                            if (!result.success) {
-                              setProfileData((prev) => prev ? { ...prev, isBlocked: false } : null)
-                              toast.error(result.error || 'İşlem başarısız.')
-                            } else {
-                              toast.success('Kullanıcı engellendi.')
-                              setLastBlockUpdate(Date.now())
-                            }
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 transition hover:border-red-400 hover:bg-red-500/20"
-                        >
-                          Engelle
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  {(profileData.city || profileData.category) && (
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        {profileData.city && (
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Şehir</p>
-                            <p className="mt-2 text-base text-white">{profileData.city}</p>
-                          </div>
-                        )}
-                        {profileData.category && (
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Kategori</p>
-                            <p className="mt-2 text-base text-white">{getCategoryLabel(profileData.category)}</p>
-                          </div>
-                        )}
+                          if (isAdmin || hasOfficial || hasVerified) {
+                            return (
+                              <div className="group/verify relative flex-shrink-0">
+                                <BadgeCheck className={`h-6 w-6 transition-all hover:scale-110 cursor-pointer ${isAdmin ? 'text-purple-500 hover:text-purple-400' :
+                                  hasOfficial ? 'text-soft-gold hover:text-soft-gold/80' : 'text-blue-500 hover:text-blue-400'
+                                  }`} />
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
+                                  <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
+                                    {isAdmin ? 'Yönetici' : (hasOfficial ? 'Onaylı İşletme' : 'Onaylı Hesap')}
+                                    <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
+                                      <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          }
+                          return null
+                        })()}
                       </div>
-                    </div>
-                  )}
+                      {profileData.username && (
+                        <p className="mt-1 text-sm text-gray-400">@{profileData.username}</p>
+                      )}
+                      <div className="mt-2 flex items-center justify-center gap-2">
+                        {profileData.role && (
+                          <span className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${profileData.role === 'admin'
+                            ? 'border-red-500/60 bg-red-500/10 text-red-500'
+                            : profileData.role === 'brand'
+                              ? 'border-soft-gold/60 bg-soft-gold/10 text-soft-gold'
+                              : 'border-purple-500/60 bg-purple-500/10 text-purple-400'
+                            }`}>
+                            {profileData.role === 'admin' ? 'Yönetici' : (profileData.role === 'brand' ? 'Marka' : 'Influencer')}
+                          </span>
+                        )}
+                        {profileData.isBlocked ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!profileModalUserId) return
 
-                  {profileData.bio && (
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                      <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Hakkında</p>
-                      <p className="mt-3 text-base text-gray-200 whitespace-pre-line">{profileData.bio}</p>
-                    </div>
-                  )}
+                              // Optimistic update
+                              setProfileData((prev) => prev ? { ...prev, isBlocked: false } : null)
 
-                  {Object.entries(profileData.socialLinks).some(([, value]) => Boolean(value)) && (
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                      <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Sosyal Medya</p>
-                      <div className="mt-3 space-y-2">
-                        {Object.entries(profileData.socialLinks)
-                          .filter(([, value]) => Boolean(value))
-                          .map(([key, url]) => (
-                            <a
-                              key={key}
-                              href={url!}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-sm text-gray-200 transition hover:border-soft-gold/50 hover:text-soft-gold"
+                              const { unblockUser } = await import('@/app/dashboard/users/block/actions')
+                              const result = await unblockUser(profileModalUserId)
+
+                              if (!result.success) {
+                                setProfileData((prev) => prev ? { ...prev, isBlocked: true } : null)
+                                toast.error(result.error || 'İşlem başarısız.')
+                              } else {
+                                toast.success('Engel kaldırıldı.')
+                                setLastBlockUpdate(Date.now())
+                              }
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 transition hover:border-emerald-400 hover:bg-emerald-500/20"
+                          >
+                            Engeli Kaldır
+                          </button>
+                        ) : (
+                          profileData.role === 'admin' ? null : (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!profileModalUserId) return
+                                if (!confirm('Bu kullanıcıyı engellemek istediğinizden emin misiniz?')) return
+
+                                // Optimistic update
+                                setProfileData((prev) => prev ? { ...prev, isBlocked: true } : null)
+
+                                const { blockUser } = await import('@/app/dashboard/users/block/actions')
+                                const result = await blockUser(profileModalUserId)
+
+                                if (!result.success) {
+                                  setProfileData((prev) => prev ? { ...prev, isBlocked: false } : null)
+                                  toast.error(result.error || 'İşlem başarısız.')
+                                } else {
+                                  toast.success('Kullanıcı engellendi.')
+                                  setLastBlockUpdate(Date.now())
+                                }
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 transition hover:border-red-400 hover:bg-red-500/20"
                             >
-                              <span className="font-semibold capitalize">{key}</span>
-                              <span className="text-xs uppercase tracking-[0.2em] text-gray-400">Ziyaret Et</span>
-                            </a>
+                              Engelle
+                            </button>
                           ))}
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {profileData.badgeIds && profileData.badgeIds.length > 0 && profileData.role && (
-                    <BadgeCompactList
-                      badges={
-                        (profileData.role === 'influencer' ? influencerBadges : brandBadges).filter((badge) =>
-                          profileData.badgeIds!.includes(badge.id),
-                        )
-                      }
-                      userRole={profileData.role}
-                    />
-                  )}
+                  <div className="space-y-6">
+                    {(profileData.city || profileData.category) && (
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {profileData.city && (
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Şehir</p>
+                              <p className="mt-2 text-base text-white">{profileData.city}</p>
+                            </div>
+                          )}
+                          {profileData.category && (
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Kategori</p>
+                              <p className="mt-2 text-base text-white">{getCategoryLabel(profileData.category)}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {profileData.bio && (
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                        <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Hakkında</p>
+                        <p className="mt-3 text-base text-gray-200 whitespace-pre-line">{profileData.bio}</p>
+                      </div>
+                    )}
+
+                    {Object.entries(profileData.socialLinks).some(([, value]) => Boolean(value)) && (
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                        <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Sosyal Medya</p>
+                        <div className="mt-3 space-y-2">
+                          {Object.entries(profileData.socialLinks)
+                            .filter(([, value]) => Boolean(value))
+                            .map(([key, url]) => (
+                              <a
+                                key={key}
+                                href={url!}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-sm text-gray-200 transition hover:border-soft-gold/50 hover:text-soft-gold"
+                              >
+                                <span className="font-semibold capitalize">{key}</span>
+                                <span className="text-xs uppercase tracking-[0.2em] text-gray-400">Ziyaret Et</span>
+                              </a>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {profileData.badgeIds && profileData.badgeIds.length > 0 && profileData.role && (
+                      <BadgeCompactList
+                        badges={
+                          (profileData.role === 'influencer' ? influencerBadges : brandBadges).filter((badge) =>
+                            profileData.badgeIds!.includes(badge.id),
+                          )
+                        }
+                        userRole={profileData.role}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex min-h-[400px] items-center justify-center p-8">
-                <p className="text-gray-400">Profil yüklenemedi.</p>
-              </div>
-            )}
+              ) : (
+                <div className="flex min-h-[400px] items-center justify-center p-8">
+                  <p className="text-gray-400">Profil yüklenemedi.</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   )
 }
