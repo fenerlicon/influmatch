@@ -546,8 +546,8 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                           >
                             {conversation.lastMessage
                               ? conversation.lastMessage.senderId === currentUserId
-                                ? `Siz: ${conversation.lastMessage.content}`
-                                : conversation.lastMessage.content
+                                ? `Siz: ${conversation.lastMessage.content.startsWith('![image](') ? '📷 Fotoğraf' : conversation.lastMessage.content}`
+                                : conversation.lastMessage.content.startsWith('![image](') ? '📷 Fotoğraf' : conversation.lastMessage.content
                               : 'İçerik yok'}
                           </p>
                           {isUnread && (
