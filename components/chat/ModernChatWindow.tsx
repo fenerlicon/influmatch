@@ -264,7 +264,12 @@ export default function ModernChatWindow({
                                                     } ${isImage ? 'p-1' : ''}`}
                                             >
                                                 {isImage && imageUrl ? (
-                                                    <div className="relative aspect-[4/3] w-full min-w-[200px] overflow-hidden rounded-xl bg-black/20">
+                                                    <a
+                                                        href={imageUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="relative aspect-[4/3] w-full min-w-[200px] block cursor-pointer overflow-hidden rounded-xl bg-black/20 transition hover:opacity-90"
+                                                    >
                                                         <Image
                                                             src={imageUrl}
                                                             alt="Fotoğraf"
@@ -272,7 +277,7 @@ export default function ModernChatWindow({
                                                             fill
                                                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                                         />
-                                                    </div>
+                                                    </a>
                                                 ) : (
                                                     message.content
                                                 )}
