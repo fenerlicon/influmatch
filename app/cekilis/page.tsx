@@ -139,10 +139,10 @@ export default function GiveawayPage() {
                                         scale: 1,
                                         rotateY: 0,
                                         opacity: 1,
-                                        shaking: animState === 'breaking' ? [0, 10, -10, 10, -10, 0] : 0
+                                        x: animState === 'breaking' ? [0, 10, -10, 10, -10, 0] : 0
                                     }}
                                     transition={{ duration: 0.8, type: "spring" }}
-                                    className={`relative z-20 ${animState === 'breaking' ? 'animate-shake' : ''}`}
+                                    className="relative z-20"
                                 >
                                     {/* Halo Effect */}
                                     <div className={`absolute inset-0 blur-3xl rounded-full opacity-40 transition-colors duration-500 scale-150 ${animState === 'breaking' ? 'bg-red-600' :
