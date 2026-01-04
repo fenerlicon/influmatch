@@ -11,7 +11,7 @@ interface ModernChatInputProps {
     placeholder?: string
 }
 
-export default function ModernChatInput({ onSend, onFileSelect, disabled, placeholder = 'Bir mesaj yaz...' }: ModernChatInputProps) {
+export default function ModernChatInput({ onSend, onFileSelect, disabled, placeholder = 'Bir mesaj yazın...' }: ModernChatInputProps) {
     const [message, setMessage] = useState('')
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
