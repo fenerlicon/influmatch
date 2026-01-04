@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BadgeCheck, BarChart3, Bot, BrainCircuit, Crown, HeartHandshake, Search, Sparkles, Target, Zap } from 'lucide-react'
+import { BadgeCheck, BarChart3, Bot, BrainCircuit, Crown, HeartHandshake, Search, Sparkles, Target, Users, Zap } from 'lucide-react'
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
-import { activateSpotlightPlan, checkSpotlightStatus } from '@/app/actions/spotlight'
+import { activateSpotlightPlan, checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -92,8 +92,6 @@ export default function InfluencerSpotlightPage() {
 
         setProcessing(true)
         try {
-            // In a real app, this would redirect to Stripe/Payment Gateway
-            // For now, we simulate success and activate immediately
             const result = await activateSpotlightPlan(userId, tier, billingInterval)
 
             if (result.success) {
@@ -106,6 +104,28 @@ export default function InfluencerSpotlightPage() {
             }
         } catch (error) {
             toast.error('İşlem başarısız oldu.')
+        } finally {
+            setProcessing(false)
+        }
+    }
+
+    const handleCancel = async () => {
+        if (!userId) return
+        if (!confirm('Spotlight üyeliğinizi iptal etmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return
+
+        setProcessing(true)
+        try {
+            const result = await cancelSpotlightPlan(userId)
+            if (result.success) {
+                toast.success('Üyeliğiniz iptal edildi.')
+                setSpotlightActive(false)
+                setSubscriptionTier(null)
+                router.refresh()
+            } else {
+                toast.error(result.error || 'İptal işlemi başarısız.')
+            }
+        } catch (error) {
+            toast.error('İşlem sırasında hata oluştu.')
         } finally {
             setProcessing(false)
         }
@@ -238,6 +258,7 @@ export default function InfluencerSpotlightPage() {
                         buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'ibasic'}
                         onSelect={() => handleSubscribe('ibasic')}
+                        onCancel={handleCancel}
                     />
 
                     <PricingCard
@@ -258,7 +279,60 @@ export default function InfluencerSpotlightPage() {
                         isUpgrade={spotlightActive && subscriptionTier === 'ibasic'}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'ipro'}
                         onSelect={() => handleSubscribe('ipro')}
+                        onCancel={handleCancel}
                     />
+
+                    {/* Agency Edition Card */}
+                    <div className="md:col-span-2 lg:col-span-2">
+                        <div className="relative overflow-hidden rounded-3xl border border-purple-500/30 bg-[#1A1B26] p-8 shadow-[0_0_40px_-10px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500/50 hover:shadow-[0_0_60px_-15px_rgba(168,85,247,0.3)]">
+                            <div className="absolute top-0 right-0 rounded-bl-3xl bg-purple-600 px-6 py-2 text-sm font-bold text-white shadow-lg">
+                                KURUMSAL
+                            </div>
+
+                            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-xl bg-purple-500/20 p-3 text-purple-400">
+                                            <Users className="h-8 w-8" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-white">Agency Edition</h3>
+                                            <p className="text-purple-300">Talent management ajansları için</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
+                                            <span>Sınırsız Talent Yönetimi</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
+                                            <span>Toplu Başvuru & Portfolyo Sunumu</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
+                                            <span>Markalara Özel Talent Vitrini</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-start gap-4 lg:items-end">
+                                    <div className="text-left lg:text-right">
+                                        <p className="text-sm text-gray-400">Ajanslar için özel çözümler</p>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-3xl font-bold text-white">Teklif Alın</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => window.location.href = 'mailto:info@influmatch.net'}
+                                        className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95"
+                                    >
+                                        Ajans Başvurusu
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>

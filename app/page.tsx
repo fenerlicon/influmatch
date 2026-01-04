@@ -5,6 +5,7 @@ import DetailedStatsSection from '@/components/landing/DetailedStatsSection'
 import VerificationCTA from '@/components/landing/VerificationCTA'
 import ValueProposition from '@/components/landing/ValueProposition'
 import BadgesSection from '@/components/landing/BadgesSection'
+import FAQSection from '@/components/landing/FAQSection'
 
 interface HomeProps {
   searchParams: { [key: string]: string | string[] | undefined }
@@ -44,6 +45,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <DetailedStatsSection />
         <VerificationCTA />
         <ValueProposition />
+        <FAQSection />
         <BadgesSection />
       </div>
     </main>

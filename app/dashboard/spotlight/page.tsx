@@ -1,13 +1,33 @@
 import { BadgeDollarSign, Building2, Crown, Sparkles, Users } from 'lucide-react'
 import SpotlightSelectionCard from '@/components/spotlight/SpotlightSelectionCard'
 import SpotlightShowcase from '@/components/spotlight/SpotlightShowcase'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 
 export const metadata = {
     title: 'Spotlight | Influmatch',
     description: 'Markalar ve Influencerlar için premium özellikler.',
 }
 
-export default function SpotlightSelectionPage() {
+export default async function SpotlightSelectionPage() {
+    const supabase = createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        redirect('/login')
+    }
+
+    // Get user role with a fallback in case metadata is missing, or fetch from DB if needed
+    // However, usually checking metadata or fetching profile is safer.
+    // Let's fetch the role from the 'users' table to be 100% sure as metadata might be stale.
+    const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    const role = userData?.role || 'influencer' // Fallback to influencer
+
     return (
         <div className="min-h-[80vh] space-y-12 py-10">
             <header className="mx-auto max-w-3xl text-center">
@@ -30,6 +50,8 @@ export default function SpotlightSelectionPage() {
                     icon={Crown}
                     href="/dashboard/spotlight/influencer"
                     variant="influencer"
+                    disabled={role !== 'influencer' && role !== 'admin'}
+                    disabledReason="Influencer Hesabı Gerekli"
                 />
 
                 <SpotlightSelectionCard
@@ -38,6 +60,8 @@ export default function SpotlightSelectionPage() {
                     icon={BadgeDollarSign}
                     href="/dashboard/spotlight/brand"
                     variant="brand"
+                    disabled={role !== 'brand' && role !== 'admin'}
+                    disabledReason="Marka Hesabı Gerekli"
                 />
 
                 <SpotlightSelectionCard

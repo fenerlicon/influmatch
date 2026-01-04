@@ -8,9 +8,9 @@ interface ValueCard {
 export default function ValueProposition() {
   const valueCards: ValueCard[] = [
     {
-      title: 'Güvenli Ödeme',
-      description: 'Ödemeleriniz iş tamamlanana kadar güvende tutulur.',
-      metricLabel: 'GÜVENLİK',
+      title: 'Komisyonsuz Çalışma',
+      description: 'Aracı ve komisyon yok. Ödemeler doğrudan markadan influencera yapılır.',
+      metricLabel: 'KAZANÇ',
       metricValue: '%100',
     },
     {
@@ -40,7 +40,7 @@ export default function ValueProposition() {
   ]
 
   return (
-    <section className="relative overflow-hidden px-6 py-20 md:px-12 lg:px-24 xl:px-32">
+    <section id="hakkimizda" className="relative overflow-hidden px-6 py-20 md:px-12 lg:px-24 xl:px-32">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-[#0f0f16] to-[#050506] opacity-80" />
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1fr]">

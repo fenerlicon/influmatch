@@ -108,7 +108,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
             <SignOutButton size="sm" />
           </div>
         </div>
-        <div className="mt-4 flex gap-2 overflow-x-auto">{renderNavLinks('horizontal')}</div>
+        <div className="mt-4 flex gap-2 overflow-x-auto p-2">{renderNavLinks('horizontal')}</div>
       </div>
     </Fragment>
   )

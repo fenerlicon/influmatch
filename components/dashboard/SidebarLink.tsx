@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { getTotalUnreadCount } from '@/app/dashboard/messages/actions'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 
 interface SidebarLinkProps {
@@ -14,47 +15,43 @@ interface SidebarLinkProps {
 
 export default function SidebarLink({ href, label, isActive, variant = 'vertical', currentUserId }: SidebarLinkProps) {
     const [unreadCount, setUnreadCount] = useState(0)
-    const supabase = createSupabaseBrowserClient()
     const isMessages = href === '/dashboard/messages'
+    const supabase = createSupabaseBrowserClient()
 
     useEffect(() => {
-        if (!isMessages || !currentUserId) return
+        if (!isMessages) return
 
-        // 1. Fetch Initial Count
-        const fetchCount = async () => {
-            const { count } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('receiver_id', currentUserId)
-                .eq('is_read', false)
-
-            setUnreadCount(count || 0)
+        const fetchCount = () => {
+            getTotalUnreadCount().then(setUnreadCount)
         }
 
         fetchCount()
 
-        // 2. Subscribe to Changes
+        // Realtime Subscription for instant updates
         const channel = supabase
-            .channel(`unread-messages-${currentUserId}`)
+            .channel('global-messages-count')
             .on(
                 'postgres_changes',
                 {
-                    event: '*',
+                    event: 'INSERT',
                     schema: 'public',
                     table: 'messages',
-                    filter: `receiver_id=eq.${currentUserId}`,
                 },
                 () => {
-                    // Refresh count on any change to user's received messages
+                    // Refresh count immediately when a new message arrives
                     fetchCount()
                 }
             )
             .subscribe()
 
+        // Backup Polling (every 60 seconds)
+        const interval = setInterval(fetchCount, 60000)
+
         return () => {
             supabase.removeChannel(channel)
+            clearInterval(interval)
         }
-    }, [isMessages, currentUserId, supabase])
+    }, [isMessages, supabase])
 
     const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ')
 

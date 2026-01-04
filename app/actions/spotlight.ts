@@ -163,4 +163,22 @@ export async function checkSpotlightStatus(userId: string): Promise<void> {
     }
 }
 
+export async function cancelSpotlightPlan(userId: string): Promise<{ success: boolean; error: string | null }> {
+    const supabase = createSupabaseServerClient()
 
+    const { error } = await supabase
+        .from('users')
+        .update({
+            spotlight_active: false,
+            spotlight_plan: null,
+            spotlight_expires_at: null
+        })
+        .eq('id', userId)
+
+    if (error) {
+        console.error('Error cancelling spotlight:', error)
+        return { success: false, error: 'Üyelik iptal edilemedi.' }
+    }
+
+    return { success: true, error: null }
+}

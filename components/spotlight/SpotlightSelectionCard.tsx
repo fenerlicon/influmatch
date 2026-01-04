@@ -9,6 +9,8 @@ interface SpotlightSelectionCardProps {
     href: string
     variant: 'influencer' | 'brand' | 'agency'
     isComingSoon?: boolean
+    disabled?: boolean
+    disabledReason?: string
 }
 
 export default function SpotlightSelectionCard({
@@ -17,7 +19,9 @@ export default function SpotlightSelectionCard({
     icon: Icon,
     href,
     variant,
-    isComingSoon
+    isComingSoon,
+    disabled,
+    disabledReason
 }: SpotlightSelectionCardProps) {
     const isInfluencer = variant === 'influencer'
     const isBrand = variant === 'brand'
@@ -35,15 +39,8 @@ export default function SpotlightSelectionCard({
         isBrand ? 'from-blue-400/10' :
             'from-purple-400/10'
 
-    return (
-        <Link
-            href={isComingSoon ? '#' : href}
-            className={cn(
-                "group relative flex flex-col overflow-hidden rounded-[32px] border border-white/10 bg-[#0F1014] p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
-                borderColor,
-                isComingSoon && "cursor-default opacity-80 hover:translate-y-0"
-            )}
-        >
+    const CardContent = (
+        <>
             <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100", bgGradient)} />
 
             <div className="relative z-10 flex h-full flex-col">
@@ -58,12 +55,40 @@ export default function SpotlightSelectionCard({
                     <div className="mt-auto flex items-center justify-center rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">
                         Yakında
                     </div>
+                ) : disabled ? (
+                    <div className="mt-auto flex items-center justify-center rounded-xl border border-white/5 bg-white/5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">
+                        {disabledReason || "Erişilemez"}
+                    </div>
                 ) : (
                     <div className={cn("mt-auto flex items-center gap-2 font-semibold transition-gap duration-300 group-hover:gap-3", iconColor)}>
                         İncele <ArrowRight className="h-4 w-4" />
                     </div>
                 )}
             </div>
+        </>
+    )
+
+    if (disabled || isComingSoon) {
+        return (
+            <div className={cn(
+                "group relative flex flex-col overflow-hidden rounded-[32px] border border-white/10 bg-[#0F1014] p-8",
+                disabled && "opacity-60 grayscale cursor-not-allowed",
+                isComingSoon && "cursor-default opacity-80"
+            )}>
+                {CardContent}
+            </div>
+        )
+    }
+
+    return (
+        <Link
+            href={href}
+            className={cn(
+                "group relative flex flex-col overflow-hidden rounded-[32px] border border-white/10 bg-[#0F1014] p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+                borderColor
+            )}
+        >
+            {CardContent}
         </Link>
     )
 }

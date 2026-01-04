@@ -5,7 +5,7 @@ import { BadgeCheck, BarChart3, Bot, BrainCircuit, HeartHandshake, Search, Targe
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
-import { activateSpotlightPlan, checkSpotlightStatus } from '@/app/actions/spotlight'
+import { activateSpotlightPlan, checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -104,6 +104,28 @@ export default function BrandSpotlightPage() {
             }
         } catch (error) {
             toast.error('İşlem başarısız oldu.')
+        } finally {
+            setProcessing(false)
+        }
+    }
+
+    const handleCancel = async () => {
+        if (!userId) return
+        if (!confirm('Spotlight üyeliğinizi iptal etmek istediğinize emin misiniz?')) return
+
+        setProcessing(true)
+        try {
+            const result = await cancelSpotlightPlan(userId)
+            if (result.success) {
+                toast.success('Üyeliğiniz iptal edildi.')
+                setSpotlightActive(false)
+                setSubscriptionTier(null)
+                router.refresh()
+            } else {
+                toast.error(result.error || 'İptal işlemi başarısız.')
+            }
+        } catch (error) {
+            toast.error('İşlem sırasında hata oluştu.')
         } finally {
             setProcessing(false)
         }
@@ -236,6 +258,7 @@ export default function BrandSpotlightPage() {
                         buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'mbasic'}
                         onSelect={() => handleSubscribe('mbasic')}
+                        onCancel={handleCancel}
                     />
 
                     <PricingCard
@@ -256,7 +279,60 @@ export default function BrandSpotlightPage() {
                         isUpgrade={spotlightActive && subscriptionTier === 'mbasic'}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'mpro'}
                         onSelect={() => handleSubscribe('mpro')}
+                        onCancel={handleCancel}
                     />
+
+                    {/* Agency Edition Card - Full Width on Mobile, Spans 2 cols on large if needed, but here just listed */}
+                    <div className="md:col-span-2 lg:col-span-2">
+                        <div className="relative overflow-hidden rounded-3xl border border-purple-500/30 bg-[#1A1B26] p-8 shadow-[0_0_40px_-10px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500/50 hover:shadow-[0_0_60px_-15px_rgba(168,85,247,0.3)]">
+                            <div className="absolute top-0 right-0 rounded-bl-3xl bg-purple-600 px-6 py-2 text-sm font-bold text-white shadow-lg">
+                                KURUMSAL
+                            </div>
+
+                            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-xl bg-purple-500/20 p-3 text-purple-400">
+                                            <Users className="h-8 w-8" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-white">Agency Edition</h3>
+                                            <p className="text-purple-300">Büyük ölçekli ekipler ve ajanslar için</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
+                                            <span>Çoklu Kullanıcı Yönetimi & Yetkilendirme</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
+                                            <span>White-Label Raporlama</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
+                                            <span>Özel API Erişimi & Entegrasyonlar</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-start gap-4 lg:items-end">
+                                    <div className="text-left lg:text-right">
+                                        <p className="text-sm text-gray-400">Size özel çözümler için</p>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-3xl font-bold text-white">Teklif Alın</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => window.location.href = 'mailto:info@influmatch.net'}
+                                        className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95"
+                                    >
+                                        Bizimle İletişime Geçin
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>

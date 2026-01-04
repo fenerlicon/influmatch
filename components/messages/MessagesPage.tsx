@@ -7,6 +7,7 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { X, BadgeCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import ChatWindow from '@/components/chat/ChatWindow'
+import ModernChatWindow from '@/components/chat/ModernChatWindow'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
 import { getCategoryLabel } from '@/utils/categories'
@@ -385,29 +386,24 @@ export default function MessagesPage({ currentUserId, role, initialConversations
   const handleSelectConversation = async (roomId: string) => {
     setSelectedRoomId(roomId)
 
-    // Mark all messages in this room as read
-    const { data: roomMessages } = await supabase
-      .from('messages')
-      .select('id')
-      .eq('room_id', roomId)
-      .neq('sender_id', currentUserId)
+    // Mark all messages in this room as read by updating user metadata
+    const now = new Date().toISOString()
 
-    if (roomMessages && roomMessages.length > 0) {
-      const messageIds = roomMessages.map((m) => m.id)
-      const readRecords = messageIds.map((msgId) => ({
-        message_id: msgId,
-        user_id: currentUserId,
-      }))
-
-      await supabase.from('message_reads').upsert(readRecords, {
-        onConflict: 'message_id,user_id',
-      })
-    }
-
-    // Update conversation list - mark as read
+    // Update local conversation list immediately
     setConversations((prev) =>
       prev.map((conv) => (conv.roomId === roomId ? { ...conv, unreadCount: 0 } : conv)),
     )
+
+    // Persist to database (User Metadata)
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        [`last_read_${roomId}`]: now
+      }
+    })
+
+    if (updateError) {
+      console.error('Failed to update read status:', updateError)
+    }
   }
 
   const handleOpenProfile = useCallback(
@@ -584,24 +580,32 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                 ← Geri
               </button>
             </div>
-            <ChatWindow
+            <ModernChatWindow
               roomId={primaryRoomId || selectedRoomId}
               currentUserId={currentUserId}
               initialMessages={selectedRoomMessages}
               brandName={otherParticipant.fullName}
+              avatarUrl={otherParticipant.avatarUrl}
+              username={otherParticipant.username}
               returnUrl="/dashboard/messages"
               otherParticipantId={otherParticipantId ?? undefined}
               activeRoomIds={activeRoomIds}
               otherParticipantVerificationStatus={otherParticipant.verificationStatus}
               otherParticipantRole={otherParticipant.role}
+              otherParticipantBadges={otherParticipant.displayedBadges}
               lastBlockUpdate={lastBlockUpdate}
             />
           </>
         ) : (
-          <div className="flex h-full items-center justify-center p-6">
-            <div className="text-center">
-              <p className="text-lg font-semibold text-gray-300 mb-2">Bir konuşma seçin</p>
-              <p className="text-sm text-gray-500">Mesajlaşmaya başlamak için soldaki listeden birini seçin.</p>
+          <div className="flex h-full items-center justify-center p-6 bg-[#0B0C10]">
+            <div className="text-center space-y-3">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 border border-soft-gold/20 shadow-[0_0_30px_-10px_rgba(212,175,55,0.2)]">
+                <BadgeCheck className="h-8 w-8 text-soft-gold" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Sohbet Başlatın</h3>
+              <p className="text-sm text-gray-400 max-w-xs mx-auto">
+                Mesajlaşmaya başlamak için sol taraftaki listeden bir kişi seçin.
+              </p>
             </div>
           </div>
         )}

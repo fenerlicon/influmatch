@@ -53,7 +53,30 @@ export default function Hero() {
     >
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white/5 via-transparent to-transparent opacity-40 blur-3xl" />
 
-      <div className="max-w-6xl mx-auto grid gap-16 lg:grid-cols-[1.1fr_0.9fr] items-center">
+      {/* Top Navbar */}
+      <nav className="absolute left-0 right-0 top-0 z-50 flex items-center justify-between px-6 py-6 md:px-12 lg:px-24 xl:px-32">
+        <Link href="/" className="text-2xl font-bold tracking-tighter text-white">
+          INFLU<span className="text-soft-gold">MATCH</span>
+        </Link>
+        <div className="hidden md:flex items-center gap-8">
+          <Link href="/spotlight" className="text-sm font-medium text-gray-300 hover:text-soft-gold transition-colors flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-soft-gold opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-soft-gold"></span>
+            </span>
+            Spotlight
+          </Link>
+          <Link href="#features" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Özellikler</Link>
+          <Link href="#hakkimizda" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Nasıl Çalışır?</Link>
+          <Link href="#sss" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">S.S.S.</Link>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white">Giriş Yap</Link>
+          <Link href="/signup-role" className="hidden sm:block rounded-full bg-soft-gold px-5 py-2 text-sm font-bold text-[#0B0C10] transition hover:bg-white hover:text-black">Kayıt Ol</Link>
+        </div>
+      </nav>
+
+      <div className="max-w-6xl mx-auto grid gap-16 lg:grid-cols-[1.1fr_0.9fr] items-center mt-8">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] text-soft-gold/80">
             YENİ NESİL İŞBİRLİĞİ

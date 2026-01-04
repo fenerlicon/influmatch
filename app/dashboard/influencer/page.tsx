@@ -27,7 +27,7 @@ export default async function InfluencerDashboardPage() {
 
   const { data: profile, error } = await supabase
     .from('users')
-    .select('spotlight_active, is_showcase_visible, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
+    .select('spotlight_active, spotlight_plan, is_showcase_visible, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -53,9 +53,12 @@ export default async function InfluencerDashboardPage() {
   // Determine User Tier
   let userTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'
   if (spotlightActive) {
-    userTier = 'SPOTLIGHT'
+    if (profile?.spotlight_plan === 'ipro' || profile?.spotlight_plan === 'mpro') {
+      userTier = 'SPOTLIGHT_PLUS'
+    } else {
+      userTier = 'SPOTLIGHT'
+    }
   }
-  // TODO: Add logic for SPOTLIGHT_PLUS when available
 
 
   const profileData: ProfileRecord = {

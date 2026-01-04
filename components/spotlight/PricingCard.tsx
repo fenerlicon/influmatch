@@ -15,6 +15,7 @@ interface PricingCardProps {
     recommended?: boolean
     buttonText?: string
     onSelect?: () => void
+    onCancel?: () => void
     variant?: 'influencer' | 'brand' | 'agency'
     isCurrentPlan?: boolean
     isUpgrade?: boolean
@@ -29,6 +30,7 @@ export default function PricingCard({
     recommended,
     buttonText = 'Paketi Seç',
     onSelect,
+    onCancel,
     variant = 'influencer',
     isCurrentPlan,
     isUpgrade
@@ -130,6 +132,15 @@ export default function PricingCard({
             >
                 {finalButtonText}
             </button>
+
+            {isCurrentPlan && onCancel && (
+                <button
+                    onClick={onCancel}
+                    className="mt-3 w-full text-[10px] text-gray-500 hover:text-red-400 hover:underline transition-colors"
+                >
+                    Paketi İptal Et
+                </button>
+            )}
         </div>
     )
 }

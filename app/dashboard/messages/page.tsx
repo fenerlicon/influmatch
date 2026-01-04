@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import MessagesPage from '@/components/messages/MessagesPage'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
+export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function DashboardMessagesPage({
@@ -79,24 +80,12 @@ export default async function DashboardMessagesPage({
     }
   })
 
-  // Get unread message counts
-  const { data: messageReads, error: readsError } = await supabase
-    .from('message_reads')
-    .select('message_id')
-    .eq('user_id', user.id)
-
-  if (readsError) {
-    console.error('[DashboardMessagesPage] messageReads error', readsError.message)
-  }
-
-  const readMessageIds = new Set(messageReads?.map((mr) => mr.message_id) ?? [])
-
   // Calculate unread counts per room
   let allMessages: any[] = []
   if (roomIds.length > 0) {
     const { data, error: allMessagesError } = await supabase
       .from('messages')
-      .select('id, room_id, sender_id')
+      .select('id, room_id, sender_id, created_at')
       .in('room_id', roomIds)
 
     if (allMessagesError) {
@@ -106,11 +95,18 @@ export default async function DashboardMessagesPage({
     }
   }
 
+  const userMetadata = user.user_metadata || {}
   const unreadCounts = new Map<string, number>()
+
   allMessages?.forEach((msg) => {
-    if (msg.sender_id !== user.id && !readMessageIds.has(msg.id)) {
-      const current = unreadCounts.get(msg.room_id) ?? 0
-      unreadCounts.set(msg.room_id, current + 1)
+    if (msg.sender_id !== user.id) {
+      const lastReadTime = userMetadata[`last_read_${msg.room_id}`]
+
+      // Mesajın tarihi, o odadaki son okuma tarihinden büyükse (veya hiç okuma yoksa) okunmamış say
+      if (!lastReadTime || new Date(msg.created_at) > new Date(lastReadTime)) {
+        const current = unreadCounts.get(msg.room_id) ?? 0
+        unreadCounts.set(msg.room_id, current + 1)
+      }
     }
   })
 

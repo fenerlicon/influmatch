@@ -25,7 +25,7 @@ interface BrandDiscoverGridProps {
   initialFavoritedIds?: string[]
   userRole?: string
   isSpotlightMember?: boolean
-  spotlightPlan?: 'basic' | 'pro' | null
+  spotlightPlan?: string | null
   defaultCategory?: string | null
 }
 
@@ -38,7 +38,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
   const [categorySearchQuery, setCategorySearchQuery] = useState('')
   const [isFiltersOpen, setIsFiltersOpen] = useState(true)
 
-  const isPro = spotlightPlan === 'pro'
+  const isPro = spotlightPlan === 'pro' || spotlightPlan === 'mpro' || spotlightPlan === 'ipro' || spotlightPlan === 'elite'
 
   const favoritedSet = useMemo(() => new Set(initialFavoritedIds), [initialFavoritedIds])
 
