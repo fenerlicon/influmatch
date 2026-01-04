@@ -5,6 +5,9 @@ import { BadgeCheck, BarChart3, Bot, BrainCircuit, HeartHandshake, Search, Targe
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
+import { activateSpotlightPlan, checkSpotlightStatus } from '@/app/actions/spotlight'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 const features = [
     {
@@ -39,29 +42,72 @@ const features = [
     },
 ]
 
-
-
 export default function BrandSpotlightPage() {
+    const router = useRouter()
     const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('mo')
     const [loading, setLoading] = useState(true)
+    const [processing, setProcessing] = useState(false)
     const [spotlightActive, setSpotlightActive] = useState(false)
     const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
+    const [userId, setUserId] = useState<string | null>(null)
 
     useEffect(() => {
         const checkStatus = async () => {
             const supabase = createSupabaseBrowserClient()
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
-                const { data } = await supabase.from('users').select('spotlight_active').eq('id', session.user.id).single()
+                setUserId(session.user.id)
+
+                // Check server status first to handle expirations
+                try {
+                    await checkSpotlightStatus(session.user.id)
+                } catch (e) {
+                    console.error('Spotlight check failed', e)
+                }
+
+                const { data } = await supabase
+                    .from('users')
+                    .select('spotlight_active, spotlight_plan, spotlight_expires_at')
+                    .eq('id', session.user.id)
+                    .single()
+
                 if (data) {
                     setSpotlightActive(!!data.spotlight_active)
-                    if (data.spotlight_active) setSubscriptionTier('plus')
+                    if (data.spotlight_active) {
+                        setSubscriptionTier(data.spotlight_plan || 'mbasic')
+                    }
                 }
             }
             setLoading(false)
         }
         checkStatus()
     }, [])
+
+    const handleSubscribe = async (tier: 'mbasic' | 'mpro') => {
+        if (!userId) {
+            toast.error('Oturum açmanız gerekiyor.')
+            return
+        }
+
+        setProcessing(true)
+        try {
+            // In a real app, this would redirect to Stripe/Payment Gateway
+            const result = await activateSpotlightPlan(userId, tier, billingInterval)
+
+            if (result.success) {
+                toast.success(`Brand ${tier === 'mbasic' ? 'Basic' : 'Pro'} paketine başarıyla geçiş yapıldı!`)
+                setSpotlightActive(true)
+                setSubscriptionTier(tier)
+                router.refresh()
+            } else {
+                toast.error(result.error || 'Bir hata oluştu.')
+            }
+        } catch (error) {
+            toast.error('İşlem başarısız oldu.')
+        } finally {
+            setProcessing(false)
+        }
+    }
 
     return (
         <div className="space-y-12 pb-20">
@@ -177,7 +223,7 @@ export default function BrandSpotlightPage() {
 
                 <div className="grid gap-8 md:grid-cols-2 lg:gap-16 pt-8">
                     <PricingCard
-                        title="Brand Plus"
+                        title="Brand Basic"
                         price={billingInterval === 'mo' ? "750 ₺" : "7.500 ₺"}
                         originalPrice={billingInterval === 'mo' ? "1.500 ₺" : "15.000 ₺"}
                         interval={billingInterval}
@@ -187,8 +233,9 @@ export default function BrandSpotlightPage() {
                             { text: "Temel Filtreleme" },
                         ]}
                         variant="brand"
-                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
-                        isCurrentPlan={spotlightActive}
+                        buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
+                        isCurrentPlan={spotlightActive && subscriptionTier === 'mbasic'}
+                        onSelect={() => handleSubscribe('mbasic')}
                     />
 
                     <PricingCard
@@ -205,8 +252,10 @@ export default function BrandSpotlightPage() {
                         ]}
                         recommended
                         variant="brand"
-                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
-                        isUpgrade={spotlightActive}
+                        buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
+                        isUpgrade={spotlightActive && subscriptionTier === 'mbasic'}
+                        isCurrentPlan={spotlightActive && subscriptionTier === 'mpro'}
+                        onSelect={() => handleSubscribe('mpro')}
                     />
                 </div>
             </section>

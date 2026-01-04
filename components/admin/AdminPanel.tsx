@@ -59,6 +59,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isResettingBadges, setIsResettingBadges] = useState(false)
+  const [spotlightModalData, setSpotlightModalData] = useState<{ userId: string, role: string } | null>(null)
+  const [spotlightForm, setSpotlightForm] = useState<{ plan: string, duration: number }>({ plan: 'ibasic', duration: 1 })
 
   const [users, setUsers] = useState<User[]>(() => {
     switch (activeTab) {
@@ -462,46 +464,66 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
-  const handleToggleSpotlight = async (userId: string, currentSpotlight: boolean | null) => {
-    const newValue = !currentSpotlight
-    const action = newValue ? 'aktif etmek' : 'deaktif etmek'
-
-    if (!confirm(`Bu kullanıcının spotlight'ını ${action} istediğinizden emin misiniz?`)) {
-      return
-    }
-
-    let plan: 'basic' | 'pro' = 'pro'
-    if (newValue) {
-      const choice = window.prompt('Hangi paket tanımlansın? (basic / pro)', 'pro')
-      if (choice !== 'basic' && choice !== 'pro') {
-        if (choice === null) return // Cancel
-        alert('Geçersiz paket seçimi. Varsayılan olarak "pro" seçilecek.')
-      } else {
-        plan = choice
+  const handleToggleSpotlight = async (userId: string, currentSpotlight: boolean | null, userRole: string | null) => {
+    if (currentSpotlight) {
+      // Deactivate
+      if (!confirm(`Bu kullanıcının spotlight'ını kapatmak istediğinizden emin misiniz?`)) {
+        return
       }
+
+      startTransition(async () => {
+        try {
+          const result = await toggleUserSpotlight(userId, false, null, 0)
+          if (result.error) {
+            alert(result.error)
+            console.error('Spotlight toggle error:', result.error)
+          } else {
+            // Update local state immediately
+            const updateUserInState = (users: User[]) =>
+              users.map((u) => (u.id === userId ? { ...u, spotlight_active: false, spotlight_plan: null } : u))
+
+            setPendingUsersState(updateUserInState)
+            setVerifiedUsersState(updateUserInState)
+            setRejectedUsersState(updateUserInState)
+            alert(result.message)
+          }
+        } catch (error) {
+          console.error('Spotlight toggle exception:', error)
+          alert('Bir hata oluştu.')
+        }
+      })
+    } else {
+      // Activate - Open Modal
+      const role = userRole || 'influencer'
+      const defaultPlan = role === 'brand' ? 'mbasic' : 'ibasic'
+      setSpotlightForm({ plan: defaultPlan, duration: 1 }) // Default 1 month
+      setSpotlightModalData({ userId, role })
     }
+  }
+
+  const handleSpotlightSubmit = () => {
+    if (!spotlightModalData) return
 
     startTransition(async () => {
       try {
-        const result = await toggleUserSpotlight(userId, newValue, plan)
+        const result = await toggleUserSpotlight(spotlightModalData.userId, true, spotlightForm.plan as any, spotlightForm.duration)
         if (result.error) {
           alert(result.error)
-          console.error('Spotlight toggle error:', result.error)
         } else {
-          // Update local state immediately
+          // Update local state
           const updateUserInState = (users: User[]) =>
-            users.map((u) => (u.id === userId ? { ...u, spotlight_active: newValue, spotlight_plan: newValue ? plan : null } : u))
+            users.map((u) => (u.id === spotlightModalData.userId ? { ...u, spotlight_active: true, spotlight_plan: spotlightForm.plan as any } : u))
 
           setPendingUsersState(updateUserInState)
           setVerifiedUsersState(updateUserInState)
           setRejectedUsersState(updateUserInState)
 
-          alert(result.message || `Spotlight ${newValue ? 'aktif' : 'deaktif'} edildi.`)
-          console.log('Spotlight toggled successfully for user:', userId)
+          alert(result.message)
+          setSpotlightModalData(null)
         }
       } catch (error) {
-        console.error('Spotlight toggle exception:', error)
-        alert('Bir hata oluştu. Lütfen tekrar deneyin.')
+        console.error('Spotlight submit error:', error)
+        alert('Bir hata oluştu.')
       }
     })
   }
@@ -1350,7 +1372,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleToggleSpotlight(user.id, user.spotlight_active ?? false)}
+                              onClick={() => handleToggleSpotlight(user.id, user.spotlight_active ?? false, user.role)}
                               disabled={isPending}
                               className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${user.spotlight_active
                                 ? 'border-purple-500/60 bg-purple-500/10 text-purple-300 hover:border-purple-500 hover:bg-purple-500/20'

@@ -5,6 +5,9 @@ import { BadgeCheck, BarChart3, Bot, BrainCircuit, Crown, HeartHandshake, Search
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
+import { activateSpotlightPlan, checkSpotlightStatus } from '@/app/actions/spotlight'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 const features = [
     {
@@ -41,31 +44,72 @@ const features = [
 ]
 
 export default function InfluencerSpotlightPage() {
+    const router = useRouter()
     const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('mo')
     const [loading, setLoading] = useState(true)
+    const [processing, setProcessing] = useState(false)
     const [spotlightActive, setSpotlightActive] = useState(false)
     const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
-
-    // Example fetch logic - customize with your actual auth/db hooks
-    // For now assuming we just check if spotlight is active
+    const [userId, setUserId] = useState<string | null>(null)
 
     useEffect(() => {
         const checkStatus = async () => {
             const supabase = createSupabaseBrowserClient()
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
-                const { data } = await supabase.from('users').select('spotlight_active').eq('id', session.user.id).single()
+                setUserId(session.user.id)
+
+                // Check server status first to handle expirations
+                try {
+                    await checkSpotlightStatus(session.user.id)
+                } catch (e) {
+                    console.error('Spotlight check failed', e)
+                }
+
+                const { data } = await supabase
+                    .from('users')
+                    .select('spotlight_active, spotlight_plan, spotlight_expires_at')
+                    .eq('id', session.user.id)
+                    .single()
+
                 if (data) {
                     setSpotlightActive(!!data.spotlight_active)
-                    // If active, we currently assume 'Plus' as base, but could be 'Elite' if we had a column.
-                    // For MVP: if active -> Plus is current.
-                    if (data.spotlight_active) setSubscriptionTier('plus')
+                    if (data.spotlight_active) {
+                        setSubscriptionTier(data.spotlight_plan || 'ibasic')
+                    }
                 }
             }
             setLoading(false)
         }
         checkStatus()
     }, [])
+
+    const handleSubscribe = async (tier: 'ibasic' | 'ipro') => {
+        if (!userId) {
+            toast.error('Oturum açmanız gerekiyor.')
+            return
+        }
+
+        setProcessing(true)
+        try {
+            // In a real app, this would redirect to Stripe/Payment Gateway
+            // For now, we simulate success and activate immediately
+            const result = await activateSpotlightPlan(userId, tier, billingInterval)
+
+            if (result.success) {
+                toast.success(`Spotlight ${tier === 'ibasic' ? 'Basic' : 'Pro'} paketine başarıyla geçiş yapıldı!`)
+                setSpotlightActive(true)
+                setSubscriptionTier(tier)
+                router.refresh()
+            } else {
+                toast.error(result.error || 'Bir hata oluştu.')
+            }
+        } catch (error) {
+            toast.error('İşlem başarısız oldu.')
+        } finally {
+            setProcessing(false)
+        }
+    }
 
     return (
         <div className="space-y-12 pb-20">
@@ -181,7 +225,7 @@ export default function InfluencerSpotlightPage() {
 
                 <div className="grid gap-8 md:grid-cols-2 lg:gap-16 pt-8">
                     <PricingCard
-                        title="Spotlight Plus"
+                        title="Spotlight Basic"
                         price={billingInterval === 'mo' ? "99 ₺" : "990 ₺"}
                         originalPrice={billingInterval === 'mo' ? "198 ₺" : "1.980 ₺"}
                         interval={billingInterval}
@@ -191,12 +235,13 @@ export default function InfluencerSpotlightPage() {
                             { text: "Temel Profil Analizi" },
                         ]}
                         variant="influencer"
-                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
-                        isCurrentPlan={spotlightActive} // Assuming Plus is base plan if active
+                        buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
+                        isCurrentPlan={spotlightActive && subscriptionTier === 'ibasic'}
+                        onSelect={() => handleSubscribe('ibasic')}
                     />
 
                     <PricingCard
-                        title="Spotlight Elite"
+                        title="Spotlight Pro"
                         price={billingInterval === 'mo' ? "199 ₺" : "1.990 ₺"}
                         originalPrice={billingInterval === 'mo' ? "398 ₺" : "3.980 ₺"}
                         interval={billingInterval}
@@ -209,8 +254,10 @@ export default function InfluencerSpotlightPage() {
                         ]}
                         recommended
                         variant="influencer"
-                        buttonText={loading ? "Yükleniyor..." : "Çok Yakında"}
-                        isUpgrade={spotlightActive} // If active (Plus), then Elite is an upgrade
+                        buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
+                        isUpgrade={spotlightActive && subscriptionTier === 'ibasic'}
+                        isCurrentPlan={spotlightActive && subscriptionTier === 'ipro'}
+                        onSelect={() => handleSubscribe('ipro')}
                     />
                 </div>
             </section>

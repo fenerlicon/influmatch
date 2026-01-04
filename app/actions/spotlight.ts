@@ -107,3 +107,60 @@ export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{
 
     return { data: enriched, error: null }
 }
+
+export async function activateSpotlightPlan(
+    userId: string,
+    planTier: 'ibasic' | 'ipro' | 'mbasic' | 'mpro',
+    interval: 'mo' | 'yr'
+): Promise<{ success: boolean; error: string | null }> {
+    const supabase = createSupabaseServerClient()
+
+    // calculate expiration
+    const now = new Date()
+    let expiresAt = new Date(now)
+
+    if (interval === 'mo') {
+        expiresAt.setDate(expiresAt.getDate() + 30) // 30 days for monthly
+    } else {
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1) // 1 year for yearly
+    }
+
+    // Update user
+    const { error } = await supabase
+        .from('users')
+        .update({
+            spotlight_active: true,
+            spotlight_plan: planTier,
+            spotlight_expires_at: expiresAt.toISOString()
+        })
+        .eq('id', userId)
+
+    if (error) {
+        console.error('Error activating spotlight:', error)
+        return { success: false, error: 'Üyelik aktifleştirilemedi.' }
+    }
+
+    return { success: true, error: null }
+}
+
+export async function checkSpotlightStatus(userId: string): Promise<void> {
+    const supabase = createSupabaseServerClient()
+
+    const { data } = await supabase
+        .from('users')
+        .select('spotlight_active, spotlight_expires_at')
+        .eq('id', userId)
+        .single()
+
+    if (data && data.spotlight_active && data.spotlight_expires_at) {
+        const expires = new Date(data.spotlight_expires_at)
+        if (expires < new Date()) {
+            await supabase
+                .from('users')
+                .update({ spotlight_active: false })
+                .eq('id', userId)
+        }
+    }
+}
+
+
