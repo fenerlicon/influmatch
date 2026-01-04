@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Send, Paperclip, Smile } from 'lucide-react'
+import EmojiPicker, { EmojiStyle, Theme } from 'emoji-picker-react'
 
 interface ModernChatInputProps {
     onSend: (message: string) => void
@@ -14,8 +15,10 @@ export default function ModernChatInput({ onSend, onFileSelect, disabled, placeh
     const [message, setMessage] = useState('')
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const emojiContainerRef = useRef<HTMLDivElement>(null)
 
     // Auto-resize textarea
     useEffect(() => {
@@ -25,12 +28,29 @@ export default function ModernChatInput({ onSend, onFileSelect, disabled, placeh
         }
     }, [message])
 
-    // Cleanup preview URL on unmount or change
+    // Cleanup preview URL
     useEffect(() => {
         return () => {
             if (previewUrl) URL.revokeObjectURL(previewUrl)
         }
     }, [previewUrl])
+
+    // Close emoji picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (emojiContainerRef.current && !emojiContainerRef.current.contains(event.target as Node)) {
+                setShowEmojiPicker(false)
+            }
+        }
+
+        if (showEmojiPicker) {
+            document.addEventListener('mousedown', handleClickOutside)
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showEmojiPicker])
 
     const handleSend = () => {
         if (disabled) return
@@ -46,6 +66,7 @@ export default function ModernChatInput({ onSend, onFileSelect, disabled, placeh
             onSend(message.trim())
             setMessage('')
         }
+        setShowEmojiPicker(false)
 
         // Reset height
         if (textareaRef.current) {
@@ -82,8 +103,31 @@ export default function ModernChatInput({ onSend, onFileSelect, disabled, placeh
         setPreviewUrl(null)
     }
 
+    const onEmojiClick = (emojiData: any) => {
+        setMessage((prev) => prev + emojiData.emoji)
+    }
+
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 relative">
+            {/* Emoji Picker Popover */}
+            {showEmojiPicker && (
+                <div
+                    ref={emojiContainerRef}
+                    className="absolute bottom-full right-0 mb-4 z-50 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                >
+                    <EmojiPicker
+                        onEmojiClick={onEmojiClick}
+                        autoFocusSearch={false}
+                        theme={Theme.DARK}
+                        emojiStyle={EmojiStyle.NATIVE}
+                        searchDisabled={false}
+                        skinTonesDisabled
+                        width={300}
+                        height={400}
+                    />
+                </div>
+            )}
+
             {/* File Preview Area */}
             {selectedFile && previewUrl && (
                 <div className="relative inline-block w-fit rounded-xl border border-white/10 bg-[#151621] p-2">
@@ -101,7 +145,7 @@ export default function ModernChatInput({ onSend, onFileSelect, disabled, placeh
                 </div>
             )}
 
-            <div className="relative flex items-end gap-2 rounded-3xl border border-white/10 bg-[#151621] p-2 transition-all focus-within:border-soft-gold/50 focus-within:bg-[#1A1B26] focus-within:shadow-[0_0_20px_-5px_rgba(212,175,55,0.1)]">
+            <div className={`relative flex items-end gap-2 rounded-3xl border border-white/10 bg-[#151621] p-2 transition-all focus-within:border-soft-gold/50 focus-within:bg-[#1A1B26] focus-within:shadow-[0_0_20px_-5px_rgba(212,175,55,0.1)] ${showEmojiPicker ? 'border-soft-gold/30' : ''}`}>
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -138,8 +182,8 @@ export default function ModernChatInput({ onSend, onFileSelect, disabled, placeh
                     <button
                         type="button"
                         disabled={disabled}
-                        onClick={() => alert('Emoji paketi çok yakında eklenecek! Şimdilik Windows (.) veya Mac (Cmd+Ctrl+Space) emoji klavyesini kullanabilirsiniz.')}
-                        className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/10 hover:text-white sm:flex disabled:opacity-50"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className={`hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition sm:flex disabled:opacity-50 ${showEmojiPicker ? 'text-yellow-400 bg-white/10' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
                         title="Emoji"
                     >
                         <Smile className="h-5 w-5" />
