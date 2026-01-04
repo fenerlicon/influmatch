@@ -94,8 +94,9 @@ export default function ModernChatInput({ onSend, onFileSelect, disabled, placeh
                 <button
                     type="button"
                     disabled={disabled}
+                    onClick={() => alert('Emoji paketi çok yakında eklenecek! Şimdilik Windows (.) veya Mac (Cmd+Ctrl+Space) emoji klavyesini kullanabilirsiniz.')}
                     className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/10 hover:text-white sm:flex disabled:opacity-50"
-                    title="Emoji (Yakında)"
+                    title="Emoji"
                 >
                     <Smile className="h-5 w-5" />
                 </button>

@@ -30,6 +30,7 @@ interface ModernChatWindowProps {
     otherParticipantRole?: 'influencer' | 'brand' | null
     otherParticipantBadges?: string[]
     lastBlockUpdate?: number
+    onOpenProfile?: () => void
 }
 
 export default function ModernChatWindow({
@@ -43,7 +44,8 @@ export default function ModernChatWindow({
     activeRoomIds,
     otherParticipantRole,
     otherParticipantBadges,
-    lastBlockUpdate
+    lastBlockUpdate,
+    onOpenProfile
 }: ModernChatWindowProps) {
     const supabase = useSupabaseClient()
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -111,7 +113,6 @@ export default function ModernChatWindow({
     }, [messages])
 
 
-
     const handleSendMessage = async (content: string) => {
         if (isBlocked) {
             alert('Bu kullanıcı sizi engellemiş. Mesaj gönderemezsiniz.')
@@ -168,7 +169,7 @@ export default function ModernChatWindow({
             await handleSendMessage(content)
         } catch (error: any) {
             console.error('File upload error:', error)
-            alert('Dosya yüklenemedi. Lütfen tekrar deneyin.')
+            alert(`Dosya yüklenemedi: ${error.message || 'Bilinmeyen hata'}. Lütfen 'chat-attachments' adında bir bucket olduğundan ve public erişim izni olduğundan emin olun.`)
         } finally {
             setIsSending(false)
         }
@@ -180,7 +181,10 @@ export default function ModernChatWindow({
         <div className="flex h-full flex-col bg-[#0B0C10] relative">
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-10 flex h-16 items-center justify-between border-b border-white/5 bg-[#0F1014]/80 px-6 backdrop-blur-md transition-all">
-                <div className="flex items-center gap-4">
+                <div
+                    className="flex items-center gap-4 cursor-pointer transition opacity-100 hover:opacity-80"
+                    onClick={onOpenProfile}
+                >
                     <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5 shadow-inner">
                         {avatarUrl ? (
                             <Image src={avatarUrl} alt={brandName || 'User'} fill className="object-cover" />
@@ -204,8 +208,11 @@ export default function ModernChatWindow({
                 </div>
 
                 <div className="flex items-center gap-1">
-
-                    <button className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/5 hover:text-white" title="Detaylar">
+                    <button
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/5 hover:text-white"
+                        title="Profil Detayları"
+                        onClick={onOpenProfile}
+                    >
                         <MoreVertical className="h-4 w-4" />
                     </button>
                 </div>
