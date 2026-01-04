@@ -594,6 +594,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               otherParticipantRole={otherParticipant.role}
               otherParticipantBadges={otherParticipant.displayedBadges}
               lastBlockUpdate={lastBlockUpdate}
+              onOpenProfile={() => otherParticipant && handleOpenProfile(otherParticipant.id, { stopPropagation: () => { } } as any)}
             />
           </>
         ) : (
