@@ -110,35 +110,7 @@ export default function ModernChatWindow({
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
 
-    // Mark as read
-    useEffect(() => {
-        if (!roomId || !currentUserId || messages.length === 0) return
 
-        const timeoutId = setTimeout(async () => {
-            const otherPartyMessages = messages.filter((m) => m.sender_id !== currentUserId)
-            if (otherPartyMessages.length === 0) return
-
-            const messageIds = otherPartyMessages.map((m) => m.id)
-            const { data: existingReads } = await supabase
-                .from('message_reads')
-                .select('message_id')
-                .in('message_id', messageIds)
-                .eq('user_id', currentUserId)
-
-            const readMessageIds = new Set(existingReads?.map((r) => r.message_id) ?? [])
-            const unreadMessageIds = messageIds.filter((id) => !readMessageIds.has(id))
-
-            if (unreadMessageIds.length > 0) {
-                const readReceipts = unreadMessageIds.map((messageId) => ({
-                    message_id: messageId,
-                    user_id: currentUserId,
-                }))
-                await supabase.from('message_reads').upsert(readReceipts, { onConflict: 'message_id,user_id' })
-            }
-        }, 500)
-
-        return () => clearTimeout(timeoutId)
-    }, [roomId, currentUserId, messages, supabase])
 
     const handleSendMessage = async (content: string) => {
         if (isBlocked) {
