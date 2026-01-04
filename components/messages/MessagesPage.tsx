@@ -524,7 +524,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                             >
                               {conversation.otherParticipant.fullName}
                             </div>
-                            {(conversation.otherParticipant.displayedBadges && conversation.otherParticipant.displayedBadges.length > 0) && (
+                            {conversation.otherParticipant.displayedBadges?.includes(conversation.otherParticipant.role === 'brand' ? 'official-business' : 'verified-account') && (
                               <div className="group relative flex-shrink-0">
                                 <BadgeCheck className={`h-4 w-4 ${conversation.otherParticipant.role === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
                                 <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
