@@ -78,6 +78,7 @@ const STATUS_ICONS: Record<string, typeof Clock> = {
 
 const formatBudget = (value: number | null) => {
   if (value === null || value === undefined) return 'Belirtilmedi'
+  if (value === 0) return 'Barter (Ürün Karşılığı)'
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: 'TRY',
@@ -309,7 +310,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
         // If brand view: navigate to influencer's profile
         // If influencer view: navigate to brand's profile
         const targetUserId = isInfluencerView ? application.brand?.id : application.influencer.id
-        
+
         if (!targetUserId) {
           console.error('Target user ID not found for application')
           return
@@ -328,8 +329,8 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
       <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
         <p>{isInfluencerView ? 'Henüz hiç başvuru yapmadın.' : 'Henüz hiç başvuru yok.'}</p>
         <p className="mt-2 text-sm text-gray-400">
-          {isInfluencerView 
-            ? 'Açık ilanlar sekmesinden ilanlara başvurabilirsin.' 
+          {isInfluencerView
+            ? 'Açık ilanlar sekmesinden ilanlara başvurabilirsin.'
             : 'İlanlarınız açık olduğunda influencerlar burada görünecek.'}
         </p>
       </div>
@@ -380,7 +381,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold text-white">
-                      {isInfluencerView 
+                      {isInfluencerView
                         ? (application.brand?.full_name ?? 'Marka')
                         : (application.influencer.full_name ?? 'Influencer')}
                     </h3>

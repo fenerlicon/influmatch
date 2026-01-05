@@ -49,6 +49,7 @@ const emptyFormState = {
   coverLetter: '',
   deliverableIdea: '',
   budgetExpectation: '',
+  paymentType: 'cash' as 'cash' | 'barter',
 }
 
 const formatBudgetRange = (min: number | null, max: number | null, currency = 'TRY') => {
@@ -154,9 +155,11 @@ export default function AdvertProjectsList({
       advertId: projectId,
       coverLetter: formState.coverLetter,
       deliverableIdea: formState.deliverableIdea,
-      budgetExpectation: formState.budgetExpectation
-        ? Number.parseFloat(formState.budgetExpectation.replace(',', '.'))
-        : null,
+      budgetExpectation: formState.paymentType === 'barter'
+        ? 0
+        : formState.budgetExpectation
+          ? Number.parseFloat(formState.budgetExpectation.replace(',', '.'))
+          : null,
     }
 
     setSubmittingId(projectId)
@@ -469,7 +472,36 @@ export default function AdvertProjectsList({
                           placeholder="Örn: 1 Reels + 3 Story"
                         />
                       </label>
-                      <label className="text-xs uppercase tracking-wide text-gray-400">
+
+                      <div className="flex flex-col justify-end">
+                        <span className="text-xs uppercase tracking-wide text-gray-400 mb-2">Ödeme Tercihi</span>
+                        <div className="flex items-center gap-4 h-[46px]">
+                          <label className="flex items-center gap-2 cursor-pointer bg-black/20 px-3 py-2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors flex-1 justify-center">
+                            <input
+                              type="radio"
+                              name="paymentType"
+                              checked={formState.paymentType === 'cash'}
+                              onChange={() => setFormState(prev => ({ ...prev, paymentType: 'cash' }))}
+                              className="text-soft-gold focus:ring-soft-gold"
+                            />
+                            <span className="text-sm text-gray-300">Nakit</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer bg-black/20 px-3 py-2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors flex-1 justify-center">
+                            <input
+                              type="radio"
+                              name="paymentType"
+                              checked={formState.paymentType === 'barter'}
+                              onChange={() => setFormState(prev => ({ ...prev, paymentType: 'barter', budgetExpectation: '' }))}
+                              className="text-soft-gold focus:ring-soft-gold"
+                            />
+                            <span className="text-sm text-gray-300">Barter</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {formState.paymentType === 'cash' && (
+                      <label className="block text-xs uppercase tracking-wide text-gray-400 mt-4">
                         Bütçe beklentin
                         <input
                           type="text"
@@ -479,7 +511,7 @@ export default function AdvertProjectsList({
                           placeholder="Örn: 25.000"
                         />
                       </label>
-                    </div>
+                    )}
                     {feedback[selectedProject.id] && (
                       <p
                         className={`text-sm ${feedback[selectedProject.id].type === 'success' ? 'text-emerald-300' : 'text-red-300'
@@ -515,8 +547,9 @@ export default function AdvertProjectsList({
             )}
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   )
 }
 
