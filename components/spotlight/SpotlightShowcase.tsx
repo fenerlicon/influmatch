@@ -257,7 +257,7 @@ function BrandAnalyticsShowcase() {
                     </div>
                     <h3 className="text-2xl font-bold text-white">Veri Odaklı Karar</h3>
                     <p className="text-sm text-gray-400">
-                        Kampanyalarınızın performansını detaylı grafikler ve canlı verilerle saniyesi saniyesine takip edin.
+                        İlanlarınızın görüntülenme ve etkileşim performansını grafiklerle takip edin.
                     </p>
                 </div>
                 <div className="relative h-48 rounded-2xl bg-black/50 border border-white/5 p-4 flex flex-col justify-center gap-3 mt-auto">
