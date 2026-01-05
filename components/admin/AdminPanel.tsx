@@ -1453,6 +1453,88 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           )}
         </div>
       </div>
+      {/* Spotlight Modal */}
+      {spotlightModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Spotlight'ı Aktifleştir</h3>
+              <button
+                type="button"
+                onClick={() => setSpotlightModalData(null)}
+                className="rounded-lg p-1 text-gray-400 transition hover:bg-white/10 hover:text-white"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Paket Seçimi ({spotlightModalData.role === 'brand' ? 'Marka' : 'Influencer'})
+                </label>
+                <select
+                  value={spotlightForm.plan}
+                  onChange={(e) => setSpotlightForm(prev => ({ ...prev, plan: e.target.value }))}
+                  className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
+                >
+                  {spotlightModalData.role === 'brand' ? (
+                    <>
+                      <option value="mbasic">Brand Basic</option>
+                      <option value="mpro">Brand Pro</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="ibasic">Influencer Basic</option>
+                      <option value="ipro">Influencer Pro</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Süre (Ay)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="24"
+                  value={spotlightForm.duration}
+                  onChange={(e) => setSpotlightForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))}
+                  className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setSpotlightModalData(null)}
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={handleSpotlightSubmit}
+                disabled={isPending}
+                className="flex-1 rounded-2xl border border-purple-500/60 bg-purple-500/10 px-4 py-3 text-sm font-semibold text-purple-300 transition hover:border-purple-500 hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                    İşleniyor...
+                  </>
+                ) : (
+                  'Aktifleştir'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Badge Award Modal */}
       {
         badgeModalUserId && (
