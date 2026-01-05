@@ -451,32 +451,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
                     )}
                   </button>
                 )}
-                {/* Influencer: Mesajla button */}
-                {isInfluencerView && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenChat(application)}
-                    disabled={chatLoadingId === application.id || isPending}
-                    className="relative rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-70 flex items-center gap-2"
-                  >
-                    {chatLoadingId === application.id ? (
-                      <>
-                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-soft-gold border-t-transparent" />
-                        Açılıyor...
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        Mesajla
-                        {application.room_id && unreadCounts.get(application.id) && unreadCounts.get(application.id)! > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
-                            {unreadCounts.get(application.id)! > 9 ? '9+' : unreadCounts.get(application.id)}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </button>
-                )}
+
               </div>
             </div>
 
