@@ -86,6 +86,11 @@ export default function InfluencerStats({
     const [currentAnalysis, setCurrentAnalysis] = useState<string[]>(generateStaticAnalysis())
 
     const handleRunAnalysis = (type: AnalysisType) => {
+        if (type === 'match_score' || type === 'profile_coach') {
+            toast('Çok yakın zamanda!')
+            return
+        }
+
         // Tier Check (Simple client-side pre-check)
         const requiredTier = {
             'basic': 'FREE',

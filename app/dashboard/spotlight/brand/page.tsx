@@ -89,6 +89,11 @@ export default function BrandSpotlightPage() {
             return
         }
 
+        if (spotlightActive) {
+            toast.error('Paket değişikliği yapmadan önce lütfen mevcut paketinizi iptal edin.')
+            return
+        }
+
         setProcessing(true)
         try {
             // In a real app, this would redirect to Stripe/Payment Gateway

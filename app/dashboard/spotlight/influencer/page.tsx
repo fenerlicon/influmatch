@@ -90,6 +90,11 @@ export default function InfluencerSpotlightPage() {
             return
         }
 
+        if (spotlightActive) {
+            toast.error('Paket değişikliği yapmadan önce lütfen mevcut paketinizi iptal edin.')
+            return
+        }
+
         setProcessing(true)
         try {
             const result = await activateSpotlightPlan(userId, tier, billingInterval)
