@@ -46,66 +46,85 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
                     <h3 className="text-lg font-semibold text-white">Marka Güven Skoru</h3>
                     <p className="text-sm text-gray-400">Markaların sizi nasıl gördüğünü yansıtır.</p>
                 </div>
-                <button
-                    onClick={() => setShowInfo(!showInfo)}
-                    className="rounded-full bg-white/5 p-2 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                    <Info className="h-5 w-5" />
-                </button>
+                {details?.spotlightActive && (
+                    <button
+                        onClick={() => setShowInfo(!showInfo)}
+                        className="rounded-full bg-white/5 p-2 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                    >
+                        <Info className="h-5 w-5" />
+                    </button>
+                )}
             </div>
 
-            <div className="mt-6 flex items-center gap-8">
-                {/* Circular Progress */}
-                <div className="relative h-24 w-24 flex-shrink-0">
-                    <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 100 100">
-                        {/* Background Circle */}
-                        <circle
-                            className="text-white/5"
-                            strokeWidth="8"
-                            stroke="currentColor"
-                            fill="transparent"
-                            r="38"
-                            cx="50"
-                            cy="50"
-                        />
-                        {/* Progress Circle */}
-                        <circle
-                            className={cn("transition-all duration-1000 ease-out", getScoreColor(score))}
-                            strokeWidth="8"
-                            strokeDasharray={circumference}
-                            strokeDashoffset={offset}
-                            strokeLinecap="round"
-                            stroke="currentColor"
-                            fill="transparent"
-                            r="38"
-                            cx="50"
-                            cy="50"
-                        />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className={cn("text-2xl font-bold", getScoreColor(score))}>
-                            {score}
-                        </span>
+            <div className="relative mt-6">
+                {!details?.spotlightActive && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/5 backdrop-blur-md">
+                        <div className="flex items-center gap-2 rounded-full border border-soft-gold/30 bg-soft-gold/10 px-3 py-1.5 text-xs font-semibold text-soft-gold">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            Premium Özellik
+                        </div>
+                        <p className="mt-2 text-center text-xs text-gray-400 px-4">
+                            Skorunuzu görmek için Spotlight Basic veya Pro pakete geçin.
+                        </p>
+                        <a href="/dashboard/spotlight" className="mt-3 text-xs font-bold text-white underline hover:text-soft-gold">
+                            Paketleri İncele
+                        </a>
                     </div>
-                </div>
+                )}
 
-                <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                        <div className={cn("h-2.5 w-2.5 rounded-full", getScoreBg(score))} />
-                        <span className="font-medium text-white">{getLabel(score)} Seviye</span>
+                <div className={cn("flex items-center gap-8", !details?.spotlightActive && "blur-sm opacity-50 select-none pointer-events-none")}>
+                    {/* Circular Progress */}
+                    <div className="relative h-24 w-24 flex-shrink-0">
+                        <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 100 100">
+                            {/* Background Circle */}
+                            <circle
+                                className="text-white/5"
+                                strokeWidth="8"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="38"
+                                cx="50"
+                                cy="50"
+                            />
+                            {/* Progress Circle */}
+                            <circle
+                                className={cn("transition-all duration-1000 ease-out", getScoreColor(score))}
+                                strokeWidth="8"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={offset}
+                                strokeLinecap="round"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="38"
+                                cx="50"
+                                cy="50"
+                            />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className={cn("text-2xl font-bold", getScoreColor(score))}>
+                                {score}
+                            </span>
+                        </div>
                     </div>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                        {score >= 80
-                            ? "Harika! Profiliniz markalar için oldukça güvenilir görünüyor."
-                            : score >= 50
-                                ? "İyi, ancak profilinizi geliştirerek daha fazla iş alabilirsiniz."
-                                : "Dikkat! Düşük skor marka işbirliklerini olumsuz etkileyebilir."}
-                    </p>
+
+                    <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <div className={cn("h-2.5 w-2.5 rounded-full", getScoreBg(score))} />
+                            <span className="font-medium text-white">{getLabel(score)} Seviye</span>
+                        </div>
+                        <p className="text-xs text-gray-400 leading-relaxed">
+                            {score >= 80
+                                ? "Harika! Profiliniz markalar için oldukça güvenilir görünüyor."
+                                : score >= 50
+                                    ? "İyi, ancak profilinizi geliştirerek daha fazla iş alabilirsiniz."
+                                    : "Dikkat! Düşük skor marka işbirliklerini olumsuz etkileyebilir."}
+                        </p>
+                    </div>
                 </div>
             </div>
 
             {/* Educational Info Modal/Panel */}
-            {showInfo && (
+            {showInfo && details?.spotlightActive && (
                 <div className="absolute inset-0 z-20 flex flex-col bg-[#151621] p-6 animate-in fade-in slide-in-from-bottom-4">
                     <div className="mb-4 flex items-center justify-between">
                         <h4 className="font-bold text-white flex items-center gap-2">
