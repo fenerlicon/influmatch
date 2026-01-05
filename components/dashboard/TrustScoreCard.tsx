@@ -19,20 +19,20 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
 
     // Analyze score for color and status
     const getScoreColor = (s: number) => {
-        if (s >= 70) return 'text-emerald-500' // High
-        if (s >= 40) return 'text-yellow-500' // Medium
+        if (s >= 80) return 'text-emerald-500' // High
+        if (s >= 50) return 'text-yellow-500' // Medium
         return 'text-red-500' // Low
     }
 
     const getScoreBg = (s: number) => {
-        if (s >= 70) return 'bg-emerald-500'
-        if (s >= 40) return 'bg-yellow-500'
+        if (s >= 80) return 'bg-emerald-500'
+        if (s >= 50) return 'bg-yellow-500'
         return 'bg-red-500'
     }
 
     const getLabel = (s: number) => {
-        if (s >= 70) return 'Mükemmel'
-        if (s >= 40) return 'Ortalama'
+        if (s >= 80) return 'Mükemmel'
+        if (s >= 50) return 'Ortalama'
         return 'Riskli'
     }
 
@@ -95,9 +95,9 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
                         <span className="font-medium text-white">{getLabel(score)} Seviye</span>
                     </div>
                     <p className="text-xs text-gray-400 leading-relaxed">
-                        {score >= 70
+                        {score >= 80
                             ? "Harika! Profiliniz markalar için oldukça güvenilir görünüyor."
-                            : score >= 40
+                            : score >= 50
                                 ? "İyi, ancak profilinizi geliştirerek daha fazla iş alabilirsiniz."
                                 : "Dikkat! Düşük skor marka işbirliklerini olumsuz etkileyebilir."}
                     </p>
@@ -124,7 +124,7 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
                         <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3">
                             <CheckCircle2 className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
                             <div>
-                                <p className="text-xs font-bold text-gray-200">Hesap Doğrulama (+20 Puan)</p>
+                                <p className="text-xs font-bold text-gray-200">Hesap Doğrulama (+30 Puan)</p>
                                 <p className="text-[10px] text-gray-400">Instagram hesabınızı bağlayın ve doğrulayın.</p>
                             </div>
                         </div>
@@ -140,7 +140,7 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
                         <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3">
                             <CheckCircle2 className="h-4 w-4 text-soft-gold mt-0.5 shrink-0" />
                             <div>
-                                <p className="text-xs font-bold text-gray-200">Spotlight Üyeliği (+15 Puan)</p>
+                                <p className="text-xs font-bold text-gray-200">Spotlight Üyeliği (+10 Puan)</p>
                                 <p className="text-[10px] text-gray-400">Premium üyelik güvenilirliğinizi artırır.</p>
                             </div>
                         </div>

@@ -40,19 +40,20 @@ export interface MatchingCriteria {
  * This analyzes account metadata to estimate credibility.
  */
 export function calculateTrustScore(influencer: DiscoverInfluencer): number {
-    let score = 50 // Base score
+    let score = 20 // Base score (Lowered from 50 to make it harder)
 
-    // 1. Verification (+20)
-    if (influencer.verification_status === 'verified') score += 20
+    // 1. Verification (+30) - Critical factor
+    if (influencer.verification_status === 'verified') score += 30
 
-    // 2. Spotlight Status (+15) - paying/verified members are more trustworthy
-    if (influencer.spotlight_active) score += 15
+    // 2. Spotlight Status (+10) - paying/verified members are more trustworthy
+    if (influencer.spotlight_active) score += 10
 
     // 3. Completeness (+10)
     if (influencer.avatar_url) score += 5
     if (influencer.full_name) score += 5
 
     // 4. Engagement Health (+20) - The "Anti-Bot" check
+    // Only award points if stats exist
     if (influencer.stats) {
         const eng = parsePercentage(influencer.stats.engagement)
         // Healthy engagement is typically between 1% and 10%
@@ -60,16 +61,16 @@ export function calculateTrustScore(influencer: DiscoverInfluencer): number {
             score += 20
         } else if (eng > 0.30) {
             // Suspiciously high engagement (bot rings?)
-            score -= 20
+            score -= 10
         } else if (eng < 0.005) {
             // Dead account
-            score -= 10
+            score -= 5
         }
 
-        // 5. Interaction Quality (+15)
+        // 5. Interaction Quality (+10)
         // If they have average comments data, it implies real activity
         const avgComments = parseMultiplier(influencer.stats.avg_comments || '0')
-        if (avgComments > 5) score += 15
+        if (avgComments > 5) score += 10
     }
 
     return Math.min(Math.max(Math.round(score), 0), 100)
