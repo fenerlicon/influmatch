@@ -243,6 +243,13 @@ export default function OnboardingPage() {
     setIsSaving(true)
     setErrorMessage(null)
 
+    // Check if avatar is uploaded
+    if (!avatarUrl) {
+      setErrorMessage(role === 'brand' ? 'Lütfen marka logosu yükleyin.' : 'Lütfen profil fotoğrafı yükleyin.')
+      setIsSaving(false)
+      return
+    }
+
     // Validate username format
     const usernameToValidate = role === 'influencer' ? influencerForm.username : brandForm.username
     if (usernameToValidate && usernameToValidate.trim()) {
