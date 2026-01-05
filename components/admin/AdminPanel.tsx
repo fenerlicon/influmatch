@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser } from '@/app/admin/actions'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -640,6 +640,36 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
+  const handleForceVerifyEmail = async (userId: string) => {
+    if (!confirm('DİKKAT: E-posta gönderilmeden kullanıcının e-postası sistemde manuel olarak onaylanacaktır. Devam edilsin mi?')) {
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await forceVerifyEmail(userId)
+        if (result.error) {
+          alert(result.error)
+          console.error('Force verify error:', result.error)
+        } else {
+          alert(result.message || 'E-posta başarıyla onaylandı.')
+          console.log('Email verified manually for user:', userId)
+
+          // Update local state
+          const updateUserInState = (users: User[]) =>
+            users.map((u) => (u.id === userId ? { ...u, email_verified_at: new Date().toISOString() } : u))
+
+          setPendingUsersState(updateUserInState)
+          setVerifiedUsersState(updateUserInState)
+          setRejectedUsersState(updateUserInState)
+        }
+      } catch (error) {
+        console.error('Force verify exception:', error)
+        alert('Bir hata oluştu.')
+      }
+    })
+  }
+
   const handleResetVerifiedBadges = async () => {
     if (!confirm('DİKKAT! Tüm kullanıcıların Mavi Tik (Onaylı Hesap) rozetini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
       return
@@ -1028,6 +1058,17 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               <Mail className="h-3 w-3" />
                               Tekrar Gönder
                             </button>
+
+                            {!user.email_verified_at && (
+                              <button
+                                onClick={() => handleForceVerifyEmail(user.id)}
+                                className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500/20"
+                                title="E-posta gönderilmeden sistemde doğrudan onaylanır"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                Manuel Onayla
+                              </button>
+                            )}
 
                             <button
                               onClick={() => handleToggleBlueTick(user.id, isInfluencer ? (user.displayed_badges?.includes('verified-account') ?? false) : (user.displayed_badges?.includes('official-business') ?? false))}

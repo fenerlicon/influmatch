@@ -436,10 +436,69 @@ export async function resendVerificationEmail(userId: string) {
 
   if (error) {
     console.error('[resendVerificationEmail] Error:', error)
+    if (error.message.includes('Error sending confirmation email')) {
+      return { error: 'E-posta gönderim limiti aşıldı (Rate Limit). Lütfen 1 saat bekleyip tekrar deneyin.' }
+    }
     return { error: `E-posta gönderme hatası: ${error.message}` }
   }
 
   return { success: true, message: 'Doğrulama e-postası gönderildi.' }
+}
+
+// Manually verify user's email (Bypass email sending)
+export async function forceVerifyEmail(userId: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  // Use admin client
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
+  }
+
+  try {
+    // Determine the email confirm update based on Supabase API version
+    // Usually updateUserById with email_confirm: true works for confirming email
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+      user_metadata: { email_verified: true } // Helper metadata
+    })
+
+    if (error) {
+      console.error('[forceVerifyEmail] Auth update error:', error)
+      return { error: `Auth güncelleme hatası: ${error.message}` }
+    }
+
+    // Also update public.users if needed (though triggers usually handle it)
+    await supabase.from('users').update({ email_verified_at: new Date().toISOString() }).eq('id', userId)
+
+    revalidatePath('/admin')
+    return { success: true, message: 'Kullanıcı e-postası manuel olarak onaylandı.' }
+  } catch (error: any) {
+    console.error('[forceVerifyEmail] Error:', error)
+    return { error: error.message || 'Bir hata oluştu.' }
+  }
 }
 
 // Reset all "verified-account" badges (Danger Zone)
