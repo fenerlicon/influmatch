@@ -50,17 +50,14 @@ export default function BrandSpotlightPage() {
     const [spotlightActive, setSpotlightActive] = useState(false)
     const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
     const [userId, setUserId] = useState<string | null>(null)
+    const [userRole, setUserRole] = useState<string | null>(null)
 
     useEffect(() => {
         const checkStatus = async () => {
             const supabase = createSupabaseBrowserClient()
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
-                // Güvenlik kontrolü: Sadece Markalar girebilir
-                if (session.user.user_metadata?.role === 'influencer') {
-                    router.push('/dashboard/spotlight/influencer')
-                    return
-                }
+                setUserRole(session.user.user_metadata?.role)
                 setUserId(session.user.id)
 
                 // Check server status first to handle expirations
@@ -265,8 +262,9 @@ export default function BrandSpotlightPage() {
                             { text: "Temel Filtreleme" },
                         ]}
                         variant="brand"
-                        buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
+                        buttonText={userRole === 'influencer' ? "Marka Hesabı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç")}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'mbasic'}
+                        disabled={userRole === 'influencer'}
                         onSelect={() => handleSubscribe('mbasic')}
                         onCancel={handleCancel}
                     />
@@ -285,9 +283,10 @@ export default function BrandSpotlightPage() {
                         ]}
                         recommended
                         variant="brand"
-                        buttonText={loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"}
+                        buttonText={userRole === 'influencer' ? "Marka Hesabı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç")}
                         isUpgrade={spotlightActive && subscriptionTier === 'mbasic'}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'mpro'}
+                        disabled={userRole === 'influencer'}
                         onSelect={() => handleSubscribe('mpro')}
                         onCancel={handleCancel}
                     />

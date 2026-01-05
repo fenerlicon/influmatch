@@ -19,6 +19,7 @@ interface PricingCardProps {
     variant?: 'influencer' | 'brand' | 'agency'
     isCurrentPlan?: boolean
     isUpgrade?: boolean
+    disabled?: boolean
 }
 
 export default function PricingCard({
@@ -33,7 +34,8 @@ export default function PricingCard({
     onCancel,
     variant = 'influencer',
     isCurrentPlan,
-    isUpgrade
+    isUpgrade,
+    disabled
 }: PricingCardProps) {
     const isInfluencer = variant === 'influencer'
     const isBrand = variant === 'brand'
@@ -122,12 +124,13 @@ export default function PricingCard({
             </ul>
 
             <button
-                onClick={isCurrentPlan ? undefined : onSelect}
-                disabled={isCurrentPlan}
+                onClick={isCurrentPlan || disabled ? undefined : onSelect}
+                disabled={isCurrentPlan || disabled}
                 className={cn(
                     "mt-6 w-full rounded-xl py-3 text-xs font-bold tracking-widest uppercase transition-all",
-                    !isCurrentPlan && "active:scale-95",
-                    buttonColor
+                    !isCurrentPlan && !disabled && "active:scale-95",
+                    buttonColor,
+                    disabled && "opacity-50 cursor-not-allowed"
                 )}
             >
                 {finalButtonText}
