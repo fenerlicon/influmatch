@@ -9,6 +9,8 @@ import PageTransition from '@/components/layout/PageTransition'
 import type { UserRole } from '@/types/auth'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
+import InstagramVerificationBanner from '@/components/dashboard/InstagramVerificationBanner'
+
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = createSupabaseServerClient()
   const {
@@ -82,8 +84,27 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   const verificationStatus = finalUserProfile.verification_status ?? 'pending'
-  const showVerificationBanner = verificationStatus === 'pending'
+  // Only show generic verification banner if NOT showing Instagram banner (to avoid clutter)
+  // We'll calculate showInstagramBanner below
   const socialLinks = (finalUserProfile.social_links as Record<string, string | null> | null) ?? {}
+
+  // Check Instagram connection for influencers
+  let showInstagramBanner = false
+  if (role === 'influencer') {
+    const { data: stats } = await supabase
+      .from('social_account_stats')
+      .select('has_stats')
+      .eq('influencer_id', user.id)
+      .maybeSingle()
+
+    if (!stats?.has_stats) {
+      showInstagramBanner = true
+    }
+  }
+
+  // Only show generic pending banner if we are not showing the specific Instagram banner
+  // This prevents double banners for new users
+  const showGenericVerificationBanner = verificationStatus === 'pending' && !showInstagramBanner
 
   return (
     <div className="min-h-screen bg-background text-white">
@@ -95,7 +116,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <EmailVerificationBanner userEmail={user.email || ''} />
           )}
           <MVPBanner />
-          {showVerificationBanner && (
+
+          {showInstagramBanner && (
+            <InstagramVerificationBanner />
+          )}
+
+          {showGenericVerificationBanner && (
             <div className="border-b border-yellow-500/30 bg-yellow-500/10 px-4 py-3 sm:px-6 lg:px-10">
               <div className="mx-auto flex items-center gap-3 text-sm text-yellow-200">
                 <svg
