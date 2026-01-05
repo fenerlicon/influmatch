@@ -8,6 +8,7 @@ interface CreateOfferPayload {
   campaignType: string
   budget: string
   message: string
+  paymentType: 'cash' | 'barter'
 }
 
 export async function createOffer(payload: CreateOfferPayload) {
@@ -47,6 +48,7 @@ export async function createOffer(payload: CreateOfferPayload) {
     budget: budgetValue,
     message: payload.message,
     status: 'pending',
+    payment_type: payload.paymentType,
   })
 
   if (error) {

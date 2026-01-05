@@ -16,6 +16,7 @@ const initialFormState = {
   campaignType: CAMPAIGN_TYPES[0],
   budget: '',
   message: '',
+  paymentType: 'cash' as 'cash' | 'barter',
 }
 
 export default function OfferModal({ receiverId, receiverName }: OfferModalProps) {
@@ -55,6 +56,7 @@ export default function OfferModal({ receiverId, receiverName }: OfferModalProps
           campaignType: formState.campaignType,
           budget: formState.budget,
           message: formState.message,
+          paymentType: formState.paymentType,
         })
         setFormState(initialFormState)
         setIsOpen(false)
@@ -125,20 +127,33 @@ export default function OfferModal({ receiverId, receiverName }: OfferModalProps
                 </label>
 
                 <label className="block text-sm text-gray-400">
-                  Bütçe (₺)
-                  <input
-                    required
-                    name="budget"
-                    type="number"
-                    min={0}
-                    step="100"
-                    value={formState.budget}
+                  Ödeme Yöntemi
+                  <select
+                    name="paymentType"
+                    value={formState.paymentType}
                     onChange={handleChange}
                     className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
-                    placeholder="25000"
-                  />
+                  >
+                    <option value="cash" className="bg-[#0C0D10] text-white">Nakit (Para)</option>
+                    <option value="barter" className="bg-[#0C0D10] text-white">Barter (Ürün)</option>
+                  </select>
                 </label>
               </div>
+
+              <label className="block text-sm text-gray-400">
+                {formState.paymentType === 'barter' ? 'Ürün Piyasa Değeri (₺)' : 'Bütçe (₺)'}
+                <input
+                  required
+                  name="budget"
+                  type="number"
+                  min={0}
+                  step="100"
+                  value={formState.budget}
+                  onChange={handleChange}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
+                  placeholder={formState.paymentType === 'barter' ? 'Örn. 5000' : '25000'}
+                />
+              </label>
 
               <label className="block text-sm text-gray-400">
                 Mesaj / Not
@@ -166,11 +181,10 @@ export default function OfferModal({ receiverId, receiverName }: OfferModalProps
 
       {toast ? (
         <div
-          className={`fixed right-6 top-6 z-50 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-glow ${
-            toast.type === 'success'
+          className={`fixed right-6 top-6 z-50 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-glow ${toast.type === 'success'
               ? 'border-soft-gold/70 bg-soft-gold/15 text-soft-gold'
               : 'border-red-400/70 bg-red-500/10 text-red-200'
-          }`}
+            }`}
         >
           {toast.message}
         </div>
