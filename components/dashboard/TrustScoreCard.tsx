@@ -140,34 +140,62 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
-                        <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3">
-                            <CheckCircle2 className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
+                        {/* 1. Hesap Doğrulama */}
+                        <div className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors",
+                            details?.verificationStatus === 'verified' ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/5 opacity-50"
+                        )}>
+                            <CheckCircle2 className={cn("h-4 w-4 mt-0.5 shrink-0",
+                                details?.verificationStatus === 'verified' ? "text-emerald-400" : "text-gray-500"
+                            )} />
                             <div>
-                                <p className="text-xs font-bold text-gray-200">Hesap Doğrulama (+30 Puan)</p>
+                                <p className={cn("text-xs font-bold", details?.verificationStatus === 'verified' ? "text-emerald-200" : "text-gray-200")}>
+                                    Hesap Doğrulama (+30 Puan)
+                                </p>
                                 <p className="text-[10px] text-gray-400">Instagram hesabınızı bağlayın ve doğrulayın.</p>
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3">
-                            <TrendingUp className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                        {/* 2. Sağlıklı Etkileşim */}
+                        <div className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors",
+                            (details?.engagementRate >= 0.01 && details?.engagementRate <= 0.10) ? "bg-blue-500/10 border border-blue-500/20" : "bg-white/5 opacity-50"
+                        )}>
+                            <TrendingUp className={cn("h-4 w-4 mt-0.5 shrink-0",
+                                (details?.engagementRate >= 0.01 && details?.engagementRate <= 0.10) ? "text-blue-400" : "text-gray-500"
+                            )} />
                             <div>
-                                <p className="text-xs font-bold text-gray-200">Sağlıklı Etkileşim (+20 Puan)</p>
+                                <p className={cn("text-xs font-bold", (details?.engagementRate >= 0.01 && details?.engagementRate <= 0.10) ? "text-blue-200" : "text-gray-200")}>
+                                    Sağlıklı Etkileşim (+20 Puan)
+                                </p>
                                 <p className="text-[10px] text-gray-400">%1 - %10 arası etkileşim oranı en idealdir.</p>
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3">
-                            <CheckCircle2 className="h-4 w-4 text-soft-gold mt-0.5 shrink-0" />
+                        {/* 3. Spotlight Üyeliği */}
+                        <div className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors",
+                            details?.spotlightActive ? "bg-soft-gold/10 border border-soft-gold/20" : "bg-white/5 opacity-50"
+                        )}>
+                            <ShieldCheck className={cn("h-4 w-4 mt-0.5 shrink-0",
+                                details?.spotlightActive ? "text-soft-gold" : "text-gray-500"
+                            )} />
                             <div>
-                                <p className="text-xs font-bold text-gray-200">Spotlight Üyeliği (+10 Puan)</p>
+                                <p className={cn("text-xs font-bold", details?.spotlightActive ? "text-soft-gold" : "text-gray-200")}>
+                                    Spotlight Üyeliği (+10 Puan)
+                                </p>
                                 <p className="text-[10px] text-gray-400">Premium üyelik güvenilirliğinizi artırır.</p>
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-xl bg-white/5 p-3">
-                            <Info className="h-4 w-4 text-purple-400 mt-0.5 shrink-0" />
+                        {/* 4. Profil Doluluğu */}
+                        <div className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors",
+                            details?.profileComplete ? "bg-purple-500/10 border border-purple-500/20" : "bg-white/5 opacity-50"
+                        )}>
+                            <Info className={cn("h-4 w-4 mt-0.5 shrink-0",
+                                details?.profileComplete ? "text-purple-400" : "text-gray-500"
+                            )} />
                             <div>
-                                <p className="text-xs font-bold text-gray-200">Profil Doluluğu (+10 Puan)</p>
+                                <p className={cn("text-xs font-bold", details?.profileComplete ? "text-purple-200" : "text-gray-200")}>
+                                    Profil Doluluğu (+10 Puan)
+                                </p>
                                 <p className="text-[10px] text-gray-400">Biyografi, kategori ve iletişim bilgilerinizi tamamlayın.</p>
                             </div>
                         </div>
