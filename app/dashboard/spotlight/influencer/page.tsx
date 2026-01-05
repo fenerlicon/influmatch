@@ -57,6 +57,11 @@ export default function InfluencerSpotlightPage() {
             const supabase = createSupabaseBrowserClient()
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
+                // Güvenlik kontrolü: Sadece Influencer'lar girebilir
+                if (session.user.user_metadata?.role === 'brand') {
+                    router.push('/dashboard/spotlight/brand')
+                    return
+                }
                 setUserId(session.user.id)
 
                 // Check server status first to handle expirations

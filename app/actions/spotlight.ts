@@ -37,7 +37,7 @@ export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{
         .neq('id', baseInfluencerId) // Exclude self
         .eq('role', 'influencer')
         .eq('is_showcase_visible', true) // Only visible profiles
-        .order('spotlight_active', { ascending: false }) // Prioritize Spotlight members
+        .eq('spotlight_active', true) // Only show Spotlight members
         .limit(5) // Fetch a few more to filter down
 
     // Category Filter
