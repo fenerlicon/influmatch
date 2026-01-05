@@ -248,7 +248,7 @@ export default async function InfluencerDashboardPage() {
 
       {/* Instagram Verification Component */}
       <div id="verification-section" className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
-        <h3 className="text-lg font-semibold text-white mb-4">Hesap Doğrulama</h3>
+
         <InstagramConnect
           userId={user.id}
           isVerified={!!socialAccount?.has_stats}

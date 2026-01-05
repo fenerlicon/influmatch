@@ -171,8 +171,8 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
             {/* Header - Only show if not success to save space, or make it minimal */}
             {step !== 'success' && (
                 <div className="mb-6">
-                    <p className="text-xs uppercase tracking-wider text-soft-gold">Hesap Doğrulama</p>
-                    <h2 className="mt-1 text-lg font-semibold text-white">Instagram Hesabını Bağla</h2>
+                    <h3 className="text-lg font-semibold text-soft-gold uppercase tracking-wide">Hesap Doğrulama</h3>
+                    <h2 className="mt-1 text-base font-medium text-white">Instagram Hesabını Bağla</h2>
                     <p className="mt-1 text-sm text-gray-400">
                         Analizli profiller vitrininde görünmek için hesabını doğrula.
                     </p>
