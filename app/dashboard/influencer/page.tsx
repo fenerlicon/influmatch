@@ -280,6 +280,12 @@ export default async function InfluencerDashboardPage() {
                     avg_comments: (socialAccount.stats_payload as any)?.avg_comments?.toString()
                   } : undefined
                 })}
+                details={{
+                  spotlightActive: rawSpotlightActive,
+                  verificationStatus: verificationStatus,
+                  profileComplete: isProfileComplete,
+                  engagementRate: Number(socialAccount?.engagement_rate) || 0
+                }}
               />
             </div>
             <OfferActivityCard userId={user.id} initialOffers={filteredOffers} dismissedOfferIds={dismissedOfferIds} />
@@ -303,6 +309,12 @@ export default async function InfluencerDashboardPage() {
                     avg_comments: (socialAccount.stats_payload as any)?.avg_comments?.toString()
                   } : undefined
                 })}
+                details={{
+                  spotlightActive: rawSpotlightActive,
+                  verificationStatus: verificationStatus,
+                  profileComplete: isProfileComplete,
+                  engagementRate: Number(socialAccount?.engagement_rate) || 0
+                }}
               />
               {socialAccount && socialAccount.has_stats ? (
                 <InfluencerStats
