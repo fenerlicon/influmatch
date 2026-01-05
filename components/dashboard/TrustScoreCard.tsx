@@ -7,7 +7,7 @@ import { cn } from '@/utils/cn'
 interface TrustScoreCardProps {
     score: number
     details?: {
-        verificationStatus: string
+        hasConnectedAccount: boolean
         spotlightActive: boolean
         profileComplete: boolean
         engagementRate: number
@@ -142,13 +142,13 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
                     <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
                         {/* 1. Hesap Doğrulama */}
                         <div className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors",
-                            details?.verificationStatus === 'verified' ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/5 opacity-50"
+                            details?.hasConnectedAccount ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/5 opacity-50"
                         )}>
                             <CheckCircle2 className={cn("h-4 w-4 mt-0.5 shrink-0",
-                                details?.verificationStatus === 'verified' ? "text-emerald-400" : "text-gray-500"
+                                details?.hasConnectedAccount ? "text-emerald-400" : "text-gray-500"
                             )} />
                             <div>
-                                <p className={cn("text-xs font-bold", details?.verificationStatus === 'verified' ? "text-emerald-200" : "text-gray-200")}>
+                                <p className={cn("text-xs font-bold", details?.hasConnectedAccount ? "text-emerald-200" : "text-gray-200")}>
                                     Hesap Doğrulama (+30 Puan)
                                 </p>
                                 <p className="text-[10px] text-gray-400">Instagram hesabınızı bağlayın ve doğrulayın.</p>

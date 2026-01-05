@@ -282,7 +282,7 @@ export default async function InfluencerDashboardPage() {
                 })}
                 details={{
                   spotlightActive: rawSpotlightActive,
-                  verificationStatus: verificationStatus,
+                  hasConnectedAccount: !!(socialAccount && socialAccount.has_stats),
                   profileComplete: isProfileComplete,
                   engagementRate: Number(socialAccount?.engagement_rate) || 0
                 }}
@@ -311,7 +311,7 @@ export default async function InfluencerDashboardPage() {
                 })}
                 details={{
                   spotlightActive: rawSpotlightActive,
-                  verificationStatus: verificationStatus,
+                  hasConnectedAccount: !!(socialAccount && socialAccount.has_stats),
                   profileComplete: isProfileComplete,
                   engagementRate: Number(socialAccount?.engagement_rate) || 0
                 }}

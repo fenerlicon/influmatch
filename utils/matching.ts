@@ -42,8 +42,9 @@ export interface MatchingCriteria {
 export function calculateTrustScore(influencer: DiscoverInfluencer): number {
     let score = 20 // Base score (Lowered from 50 to make it harder)
 
-    // 1. Verification (+30) - Critical factor
-    if (influencer.verification_status === 'verified') score += 30
+    // 1. Social Account Connection (+30) - Critical factor
+    // Award points if they have successfully connected account and we have stats
+    if (influencer.stats) score += 30
 
     // 2. Spotlight Status (+10) - paying/verified members are more trustworthy
     if (influencer.spotlight_active) score += 10
