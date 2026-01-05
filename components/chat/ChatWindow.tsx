@@ -196,7 +196,7 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
   return (
     <div className="flex h-full flex-col bg-transparent text-white">
       {!isMessagesPage && (
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => {
@@ -206,17 +206,18 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
                 router.back()
               }
             }}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2 text-sm text-gray-200 transition hover:border-soft-gold hover:text-soft-gold"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-sm text-gray-200 transition hover:border-soft-gold hover:text-soft-gold sm:px-4"
           >
-            ← Geri
+            ← <span className="hidden sm:inline">Geri</span>
           </button>
-          <div className="flex-1 text-center">
-            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Marka</p>
-            <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
+
+          <div className="flex flex-1 flex-col items-center justify-center">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-soft-gold sm:tracking-[0.4em]">Marka</p>
+            <div className="mt-0.5 flex items-center justify-center gap-2">
+              <p className="max-w-[150px] truncate text-base font-semibold text-white sm:max-w-none sm:text-lg">{brandName ?? 'Sohbet'}</p>
               {otherParticipantBadges?.includes(otherParticipantRole === 'brand' ? 'official-business' : 'verified-account') && (
                 <div className="group relative flex-shrink-0">
-                  <BadgeCheck className={`h-5 w-5 ${otherParticipantRole === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
+                  <BadgeCheck className={`h-4 w-4 sm:h-5 sm:w-5 ${otherParticipantRole === 'brand' ? 'text-soft-gold' : 'text-blue-400'}`} />
                   <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
                     {otherParticipantRole === 'brand' ? 'Onaylanmış İşletme' : 'Onaylı hesap'}
                   </div>
@@ -224,15 +225,24 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
               )}
             </div>
           </div>
-          <div className="hidden w-[96px] sm:block" />
+
+          {/* Spacer for alignment */}
+          <div className="w-[50px] sm:w-[96px]" />
         </div>
       )}
       {isMessagesPage && (
         <div className="mb-4 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex-1">
+            <button
+              type="button"
+              onClick={() => router.back()} // Basic back functionality if needed, though usually handled by parent
+              className="sm:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-400 hover:bg-white/5 hover:text-white"
+            >
+              ←
+            </button>
+            <div className="flex-1 min-w-0"> {/* Added min-w-0 for truncation */}
               <div className="flex items-center gap-2">
-                <p className="text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
+                <p className="truncate text-lg font-semibold text-white">{brandName ?? 'Sohbet'}</p>
                 {otherParticipantBadges?.includes(otherParticipantRole === 'brand' ? 'official-business' : 'verified-account') && (
                   <div className="group relative flex-shrink-0">
                     <BadgeCheck className="h-5 w-5 text-blue-400" />
@@ -243,7 +253,7 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
                 )}
               </div>
               {otherParticipantId && (
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="mt-0.5 truncate text-xs text-gray-400">
                   {otherParticipantId === currentUserId ? 'Sen' : 'Diğer kullanıcı'}
                 </p>
               )}
