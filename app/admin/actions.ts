@@ -823,7 +823,11 @@ export async function adminUpdateInstagramData(userId: string) {
         }
       }
 
-      return { success: false, error: `Veri çekme hatası: ${apiError.message}` }
+      // DEBUG: Check if RocketAPI key is present to help user diagnose
+      const hasRocketKey = !!process.env.ROCKETAPI_KEY;
+      const debugInfo = hasRocketKey ? 'RocketAPI Key: VAR' : 'RocketAPI Key: YOK';
+
+      return { success: false, error: `Veri çekme hatası: ${apiError.message} (${debugInfo})` }
     }
 
     const user = normalizedData.user
