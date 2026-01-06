@@ -178,6 +178,13 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
                 taken_at_timestamp: item.taken_at
             }
         }))
+
+        // SORTING: RocketAPI (and Instagram) may return pinned posts first, regardless of date.
+        // We must sort by 'taken_at_timestamp' descending to ensure we analyze the truly RECENT posts for stats.
+        edges.sort((a, b) => b.node.taken_at_timestamp - a.node.taken_at_timestamp)
+
+        // Also ensure we respect the 'count' limit after sorting if needed, though we asked for 12.
+
     } else {
         console.warn('[InstagramService] RocketAPI Media fetch failed, continuing with partial data.')
     }
