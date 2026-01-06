@@ -22,11 +22,15 @@ export default async function DashboardMessagesPage({
   // Get user role
   const { data: userProfile } = await supabase
     .from('users')
-    .select('role')
+    .select('role, verification_status')
     .eq('id', user.id)
     .maybeSingle()
 
   const role = (userProfile?.role ?? 'influencer') as 'influencer' | 'brand'
+
+  // ... (rest of file)
+
+
 
   // Get all rooms for this user
   const { data: rooms, error: roomsError } = await supabase
@@ -185,6 +189,5 @@ export default async function DashboardMessagesPage({
       return timeB - timeA
     })
 
-  return <MessagesPage currentUserId={user.id} role={role} initialConversations={conversations} initialUserId={searchParams.userId} />
+  return <MessagesPage currentUserId={user.id} role={role} initialConversations={conversations} initialUserId={searchParams.userId} currentUserVerificationStatus={userProfile?.verification_status as 'pending' | 'verified' | 'rejected' | undefined} />
 }
-

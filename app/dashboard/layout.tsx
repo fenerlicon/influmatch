@@ -10,6 +10,7 @@ import type { UserRole } from '@/types/auth'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 import InstagramVerificationBanner from '@/components/dashboard/InstagramVerificationBanner'
+import RejectedScreen from '@/components/dashboard/RejectedScreen'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = createSupabaseServerClient()
@@ -105,6 +106,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Only show generic pending banner if we are not showing the specific Instagram banner
   // This prevents double banners for new users
   const showGenericVerificationBanner = verificationStatus === 'pending' && !showInstagramBanner
+
+  // Check if account is rejected/banned
+  if (verificationStatus === 'rejected') {
+    return <RejectedScreen />
+  }
 
   return (
     <div className="min-h-screen bg-background text-white">

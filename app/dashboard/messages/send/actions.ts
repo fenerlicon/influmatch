@@ -13,6 +13,17 @@ export async function sendMessage(roomId: string, content: string) {
     return { success: false, error: 'Oturum açmanız gerekiyor.' }
   }
 
+  // Check user role and verification status
+  const { data: userData } = await supabase
+    .from('users')
+    .select('role, verification_status')
+    .eq('id', user.id)
+    .single()
+
+  if (userData?.role === 'brand' && userData?.verification_status !== 'verified') {
+    return { success: false, error: 'Mesaj göndermek için hesabınızın onaylanması gerekmektedir.' }
+  }
+
   if (!content.trim()) {
     return { success: false, error: 'Mesaj içeriği boş olamaz.' }
   }

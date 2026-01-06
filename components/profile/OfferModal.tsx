@@ -7,6 +7,7 @@ import { createOffer } from '@/app/profile/actions'
 interface OfferModalProps {
   receiverId: string
   receiverName: string
+  isViewerVerified: boolean
 }
 
 const CAMPAIGN_TYPES = ['Story', 'Reel', 'Post', 'YouTube'] as const
@@ -19,7 +20,7 @@ const initialFormState = {
   paymentType: 'cash' as 'cash' | 'barter',
 }
 
-export default function OfferModal({ receiverId, receiverName }: OfferModalProps) {
+export default function OfferModal({ receiverId, receiverName, isViewerVerified }: OfferModalProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [formState, setFormState] = useState(initialFormState)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -35,7 +36,13 @@ export default function OfferModal({ receiverId, receiverName }: OfferModalProps
     return () => clearTimeout(timer)
   }, [toast])
 
-  const handleOpen = () => setIsOpen(true)
+  const handleOpen = () => {
+    if (!isViewerVerified) {
+      setToast({ type: 'error', message: 'Teklif göndermek için hesabınızın onaylanması gerekmektedir.' })
+      return
+    }
+    setIsOpen(true)
+  }
   const handleClose = () => {
     if (isPending) return
     setIsOpen(false)
@@ -182,8 +189,8 @@ export default function OfferModal({ receiverId, receiverName }: OfferModalProps
       {toast ? (
         <div
           className={`fixed right-6 top-6 z-50 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-glow ${toast.type === 'success'
-              ? 'border-soft-gold/70 bg-soft-gold/15 text-soft-gold'
-              : 'border-red-400/70 bg-red-500/10 text-red-200'
+            ? 'border-soft-gold/70 bg-soft-gold/15 text-soft-gold'
+            : 'border-red-400/70 bg-red-500/10 text-red-200'
             }`}
         >
           {toast.message}

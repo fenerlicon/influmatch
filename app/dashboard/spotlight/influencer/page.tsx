@@ -52,6 +52,7 @@ export default function InfluencerSpotlightPage() {
     const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
     const [userId, setUserId] = useState<string | null>(null)
     const [userRole, setUserRole] = useState<string | null>(null)
+    const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected' | null>(null)
 
     useEffect(() => {
         const checkStatus = async () => {
@@ -70,11 +71,12 @@ export default function InfluencerSpotlightPage() {
 
                 const { data } = await supabase
                     .from('users')
-                    .select('spotlight_active, spotlight_plan, spotlight_expires_at')
+                    .select('spotlight_active, spotlight_plan, spotlight_expires_at, verification_status')
                     .eq('id', session.user.id)
                     .single()
 
                 if (data) {
+                    setVerificationStatus(data.verification_status)
                     setSpotlightActive(!!data.spotlight_active)
                     if (data.spotlight_active) {
                         setSubscriptionTier(data.spotlight_plan || 'ibasic')
@@ -89,6 +91,11 @@ export default function InfluencerSpotlightPage() {
     const handleSubscribe = async (tier: 'ibasic' | 'ipro') => {
         if (!userId) {
             toast.error('Oturum açmanız gerekiyor.')
+            return
+        }
+
+        if (verificationStatus !== 'verified') {
+            toast.error('Spotlight kullanabilmek için hesabınızın onaylanması gerekmektedir.')
             return
         }
 
@@ -262,9 +269,9 @@ export default function InfluencerSpotlightPage() {
                             { text: "Temel Profil Analizi" },
                         ]}
                         variant="influencer"
-                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç")}
+                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : (verificationStatus !== 'verified' ? "Hesap Onayı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"))}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'ibasic'}
-                        disabled={userRole === 'brand'}
+                        disabled={userRole === 'brand' || verificationStatus !== 'verified'}
                         onSelect={() => handleSubscribe('ibasic')}
                         onCancel={handleCancel}
                     />
@@ -283,10 +290,10 @@ export default function InfluencerSpotlightPage() {
                         ]}
                         recommended
                         variant="influencer"
-                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç")}
+                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : (verificationStatus !== 'verified' ? "Hesap Onayı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"))}
                         isUpgrade={spotlightActive && subscriptionTier === 'ibasic'}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'ipro'}
-                        disabled={userRole === 'brand'}
+                        disabled={userRole === 'brand' || verificationStatus !== 'verified'}
                         onSelect={() => handleSubscribe('ipro')}
                         onCancel={handleCancel}
                     />

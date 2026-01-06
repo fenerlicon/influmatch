@@ -115,6 +115,21 @@ export async function activateSpotlightPlan(
 ): Promise<{ success: boolean; error: string | null }> {
     const supabase = createSupabaseServerClient()
 
+    // Check verification status
+    const { data: user, error: fetchError } = await supabase
+        .from('users')
+        .select('verification_status')
+        .eq('id', userId)
+        .single()
+
+    if (fetchError || !user) {
+        return { success: false, error: 'Kullanıcı bulunamadı.' }
+    }
+
+    if (user.verification_status !== 'verified') {
+        return { success: false, error: 'Spotlight planını aktifleştirmek için hesabınızın admin tarafından onaylanması gerekmektedir.' }
+    }
+
     // calculate expiration
     const now = new Date()
     let expiresAt = new Date(now)
@@ -148,17 +163,28 @@ export async function checkSpotlightStatus(userId: string): Promise<void> {
 
     const { data } = await supabase
         .from('users')
-        .select('spotlight_active, spotlight_expires_at')
+        .select('spotlight_active, spotlight_expires_at, verification_status')
         .eq('id', userId)
         .single()
 
-    if (data && data.spotlight_active && data.spotlight_expires_at) {
-        const expires = new Date(data.spotlight_expires_at)
-        if (expires < new Date()) {
+    if (data && data.spotlight_active) {
+        // Deactivate if verification is lost
+        if (data.verification_status !== 'verified') {
             await supabase
                 .from('users')
                 .update({ spotlight_active: false })
                 .eq('id', userId)
+            return
+        }
+
+        if (data.spotlight_expires_at) {
+            const expires = new Date(data.spotlight_expires_at)
+            if (expires < new Date()) {
+                await supabase
+                    .from('users')
+                    .update({ spotlight_active: false })
+                    .eq('id', userId)
+            }
         }
     }
 }

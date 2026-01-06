@@ -28,9 +28,11 @@ interface ChatWindowProps {
   otherParticipantRole?: 'influencer' | 'brand' | null
   otherParticipantBadges?: string[]
   lastBlockUpdate?: number
+  currentUserRole?: 'influencer' | 'brand' | null
+  isSenderVerified?: boolean
 }
 
-export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds, otherParticipantVerificationStatus, otherParticipantRole, otherParticipantBadges, lastBlockUpdate }: ChatWindowProps) {
+export default function ChatWindow({ roomId, currentUserId, initialMessages, brandName, returnUrl, otherParticipantId, activeRoomIds, otherParticipantVerificationStatus, otherParticipantRole, otherParticipantBadges, lastBlockUpdate, currentUserRole, isSenderVerified = true }: ChatWindowProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -44,10 +46,9 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
     ? otherParticipantBadges?.includes('official-business')
     : otherParticipantBadges?.includes('verified-account')
 
-  // ... (rest of the component until return)
+  const isRestricted = currentUserRole === 'brand' && !isSenderVerified
 
-  // Update Render parts:
-  // Replace references to otherParticipantVerificationStatus === 'verified' with isVerifiedBadge
+
 
 
   // Update messages when initialMessages changes (for messages page)
@@ -318,14 +319,14 @@ export default function ChatWindow({ roomId, currentUserId, initialMessages, bra
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isBlocked || hasBlocked ? 'Mesaj gönderilemez...' : 'Mesaj yaz...'}
-          disabled={isBlocked || hasBlocked}
+          placeholder={isBlocked || hasBlocked ? 'Mesaj gönderilemez...' : isRestricted ? 'Hesap onayı bekleniyor...' : 'Mesaj yaz...'}
+          disabled={isBlocked || hasBlocked || isRestricted}
           className="flex-1 rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-sm outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
         />
         <button
           type="button"
           onClick={handleSend}
-          disabled={isSending || isBlocked || hasBlocked}
+          disabled={isSending || isBlocked || hasBlocked || isRestricted}
           className="rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-5 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Gönder

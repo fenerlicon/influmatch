@@ -36,10 +36,12 @@ interface MessagesPageProps {
   role: 'influencer' | 'brand'
   initialConversations: Conversation[]
   initialUserId?: string // User ID to open conversation with
+  currentUserVerificationStatus?: 'pending' | 'verified' | 'rejected'
 }
 
-export default function MessagesPage({ currentUserId, role, initialConversations, initialUserId }: MessagesPageProps) {
+export default function MessagesPage({ currentUserId, role, initialConversations, initialUserId, currentUserVerificationStatus }: MessagesPageProps) {
   const router = useRouter()
+
   const supabase = useSupabaseClient()
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
@@ -580,7 +582,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
       </div>
 
       {/* Right Side - Chat Window */}
-      <div className="flex-1 flex flex-col">
+      <div className={`${!selectedRoomId ? 'hidden sm:flex' : 'flex'} flex-1 flex-col`}>
         {selectedRoomId && otherParticipant ? (
           <>
             {/* Mobile back button */}
@@ -626,6 +628,8 @@ export default function MessagesPage({ currentUserId, role, initialConversations
               otherParticipantBadges={otherParticipant.displayedBadges}
               lastBlockUpdate={lastBlockUpdate}
               onOpenProfile={() => otherParticipant && handleOpenProfile(otherParticipant.id, { stopPropagation: () => { } } as any)}
+              currentUserRole={role}
+              isSenderVerified={currentUserVerificationStatus === 'verified'}
             />
           </>
         ) : (

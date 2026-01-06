@@ -31,6 +31,8 @@ interface ModernChatWindowProps {
     otherParticipantBadges?: string[]
     lastBlockUpdate?: number
     onOpenProfile?: () => void
+    currentUserRole?: 'influencer' | 'brand' | 'admin' | null
+    isSenderVerified?: boolean
 }
 
 export default function ModernChatWindow({
@@ -46,7 +48,9 @@ export default function ModernChatWindow({
     otherParticipantRole,
     otherParticipantBadges,
     lastBlockUpdate,
-    onOpenProfile
+    onOpenProfile,
+    currentUserRole,
+    isSenderVerified = true
 }: ModernChatWindowProps) {
     const supabase = useSupabaseClient()
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -54,6 +58,8 @@ export default function ModernChatWindow({
     const [isBlocked, setIsBlocked] = useState(false)
     const [hasBlocked, setHasBlocked] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+
+    const isRestricted = currentUserRole === 'brand' && !isSenderVerified
 
     // --- LOGIC START (Copied from ChatWindow.tsx) ---
 
@@ -125,6 +131,11 @@ export default function ModernChatWindow({
             return
         }
 
+        if (isRestricted) {
+            alert('Mesaj göndermek için hesabınızın onaylanması gerekmektedir.')
+            return
+        }
+
         setIsSending(true)
 
         const result = await sendMessage(roomId, content)
@@ -148,7 +159,10 @@ export default function ModernChatWindow({
     }
 
     const handleFileUpload = async (file: File) => {
-        if (isBlocked || hasBlocked) return
+        if (isBlocked || hasBlocked || isRestricted) {
+            if (isRestricted) alert('Mesaj göndermek için hesabınızın onaylanması gerekmektedir.')
+            return
+        }
 
         setIsSending(true)
         try {
@@ -208,7 +222,7 @@ export default function ModernChatWindow({
                                 if (isAdmin || hasOfficial || hasVerified) {
                                     return (
                                         <BadgeCheck className={`h-4 w-4 ${isAdmin ? 'text-purple-500' :
-                                                hasOfficial ? 'text-soft-gold' : 'text-blue-400'
+                                            hasOfficial ? 'text-soft-gold' : 'text-blue-400'
                                             }`} />
                                     )
                                 }
@@ -334,11 +348,16 @@ export default function ModernChatWindow({
                         {isBlocked ? 'Bu kullanıcı sizi engellemiş.' : 'Bu kullanıcıyı engellediniz.'}
                     </div>
                 )}
+                {isRestricted && (
+                    <div className="mb-4 flex items-center justify-center rounded-xl bg-yellow-500/10 py-2 text-xs font-medium text-yellow-400 border border-yellow-500/20">
+                        Hesap onayı bekleniyor. Mesaj gönderemezsiniz.
+                    </div>
+                )}
                 <ModernChatInput
                     onSend={handleSendMessage}
                     onFileSelect={handleFileUpload}
-                    disabled={isSending || isBlocked || hasBlocked}
-                    placeholder={isBlocked || hasBlocked ? 'Mesajlaşma devre dışı' : `${brandName?.split(' ')[0] || 'Kullanıcı'} ile sohbet et...`}
+                    disabled={isSending || isBlocked || hasBlocked || isRestricted}
+                    placeholder={isBlocked || hasBlocked ? 'Mesajlaşma devre dışı' : isRestricted ? 'Hesap onayı bekleniyor...' : `${brandName?.split(' ')[0] || 'Kullanıcı'} ile sohbet et...`}
                 />
             </div>
         </div>

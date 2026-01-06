@@ -58,20 +58,26 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
     ([, value]) => Boolean(value),
   )
 
-  // Determine Viewer's Tier
+  // Determine Viewer's Tier and Verification Status
   let viewerTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'
+  let isViewerVerified = false
+
   if (viewer) {
+    // Fetch viewer profile details (including verification status and spotlight)
+    const { data: viewerData } = await supabase
+      .from('users')
+      .select('spotlight_active, verification_status')
+      .eq('id', viewer.id)
+      .single()
+
+    const verificationStatus = viewerData?.verification_status ?? 'pending'
+    isViewerVerified = verificationStatus === 'verified'
+
     if (viewerRole === 'brand') {
       viewerTier = 'BRAND_PRO' // Brands get Pro features for analysis
     } else {
       // Check if viewer has spotlight
-      const { data: viewerProfile } = await supabase
-        .from('users')
-        .select('spotlight_active, verification_status')
-        .eq('id', viewer.id)
-        .single()
-
-      if (viewerProfile?.spotlight_active && viewerProfile?.verification_status === 'verified') {
+      if (viewerData?.spotlight_active && isViewerVerified) {
         viewerTier = 'SPOTLIGHT'
       }
     }
@@ -230,6 +236,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                 <OfferModal
                   receiverId={profile.id}
                   receiverName={profile.full_name || profile.username || ''}
+                  isViewerVerified={isViewerVerified}
                 />
               </div>
             )}
