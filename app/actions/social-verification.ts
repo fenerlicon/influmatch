@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { fetchInstagramData } from '@/utils/instagram-service'
 
 export async function generateVerificationCode(userId: string, username: string) {
     const supabase = createSupabaseServerClient()
@@ -79,50 +80,38 @@ export async function verifyInstagramAccount(userId: string) {
 
         const username = account.username
         const verificationCode = account.verification_code
-        const rapidApiKey = process.env.RAPIDAPI_KEY
+        // 2. FETCH DATA using Service (StarAPI -> RocketAPI Fallback)
+        let normalizedData;
+        try {
+            normalizedData = await fetchInstagramData(username);
+        } catch (apiError: any) {
+            console.error('Instagram Service Error:', apiError)
 
-        if (!rapidApiKey) {
-            console.error('RAPIDAPI_KEY is missing')
-            return { success: false, error: 'API anahtarı eksik.' }
+            // Special handling for the empty edges case from StarAPI which is rethrown by service
+            // We want to handle this gracefully here as we did before
+            if (apiError.message && apiError.message.includes('API Restriction')) {
+                // If it's a known restriction error, we proceed with partial data if possible
+                // OR we can just return the error to the user if it's a critical failure for verification
+                return { success: false, error: 'Instagram verileri çekilemedi. Lütfen daha sonra tekrar deneyin.' }
+            }
+
+            return { success: false, error: `Veri çekme hatası: ${apiError.message}` }
         }
 
-        // 2. API REQUEST: Get User Info & Media (Single Request)
-        // Endpoint: /instagram/user/get_web_profile_info (POST)
-        const response = await fetch('https://starapi1.p.rapidapi.com/instagram/user/get_web_profile_info', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-rapidapi-key': rapidApiKey,
-                'x-rapidapi-host': 'starapi1.p.rapidapi.com'
-            },
-            body: JSON.stringify({ username: username })
-        })
-
-        if (!response.ok) {
-            const errorText = await response.text()
-            console.error('StarAPI Error:', errorText)
-            return { success: false, error: `API hatası: ${errorText}` }
-        }
-
-        const data = await response.json()
-
-        // Parse Web Profile Info Structure
-        const user = data?.response?.body?.data?.user
-
-        if (!user) {
-            console.error('StarAPI: User object not found in response', JSON.stringify(data, null, 2))
-            return { success: false, error: 'Veri ayrıştırma hatası.' }
-        }
+        const user = normalizedData.user
+        const edges = normalizedData.recent_posts
 
         const biography = user.biography || ''
         const platformUserId = user.id
-        const followerCount = user.edge_followed_by?.count || 0
-        const followingCount = user.edge_follow?.count || 0
-        const postCount = user.edge_owner_to_timeline_media?.count || 0
-        const isVerified = user.is_verified || false
-        const categoryName = user.category_name || null
-        const isBusinessAccount = user.is_business_account || false
-        const externalUrl = user.external_url || null
+        const followerCount = user.follower_count
+        const followingCount = user.following_count
+        const postCount = user.media_count
+        const isVerified = user.is_verified
+        const categoryName = user.category_name
+        const isBusinessAccount = user.is_business_account
+        const externalUrl = user.external_url
+
+
 
         // Check verification code ONLY if not already verified
         // If the user is already verified and just updating, we trust the link (unless we want to force re-verification periodically)
@@ -141,14 +130,6 @@ export async function verifyInstagramAccount(userId: string) {
         let averageIntervalDays = 0
 
         // 3. Stats Calculation Logic
-        // Prioritize Reels (edge_felix_video_timeline) as per user request to cover Reels content
-        // Fallback to main timeline (edge_owner_to_timeline_media) if no Reels found
-        const videoEdges = user.edge_felix_video_timeline?.edges || []
-        const timelineEdges = user.edge_owner_to_timeline_media?.edges || []
-
-        // Use video edges if available, otherwise fallback to timeline
-        // Use video edges if available, otherwise fallback to timeline
-        const edges = videoEdges.length > 0 ? videoEdges : timelineEdges
 
         // SAFEGUARD: If user has posts but API returns 0 edges, it's an API failure.
         // Preserve old stats instead of zeroing them out or returning error.
@@ -165,7 +146,11 @@ export async function verifyInstagramAccount(userId: string) {
             engagementRate = account.engagement_rate || 0
         }
 
+        // Processing edges (They are already normalized to contain 'node' in service if using fallback, or raw edges from starapi)
+        // Ensure structure is compatible
         const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
+
+
 
         if (recentPosts.length > 0) {
             const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)

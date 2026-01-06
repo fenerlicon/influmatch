@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { createClient } from '@supabase/supabase-js'
+import { fetchInstagramData } from '@/utils/instagram-service'
 
 const ADMIN_EMAIL = 'admin@influmatch.net'
 
@@ -807,50 +808,36 @@ export async function adminUpdateInstagramData(userId: string) {
 
     const username = account.username
     const verificationCode = account.verification_code
-    const rapidApiKey = process.env.RAPIDAPI_KEY
+    // 2. FETCH DATA using Service (StarAPI -> RocketAPI Fallback)
+    let normalizedData;
+    try {
+      normalizedData = await fetchInstagramData(username);
+    } catch (apiError: any) {
+      console.error('Instagram Service Error:', apiError)
 
-    if (!rapidApiKey) {
-      console.error('RAPIDAPI_KEY is missing')
-      return { success: false, error: 'API anahtarı eksik.' }
+      if (apiError.message && apiError.message.includes('API Restriction')) {
+        // If it's the restriction error, return specific error for admin
+        return {
+          success: false,
+          error: `UYARI: Kullanıcının gönderileri var ancak API içerikleri çekemedi (Instagram Kısıtlaması). İstatistikler GÜNCELLENMEDİ.`
+        }
+      }
+
+      return { success: false, error: `Veri çekme hatası: ${apiError.message}` }
     }
 
-    // 2. API REQUEST: Get User Info & Media (Single Request)
-    // Endpoint: /instagram/user/get_web_profile_info (POST)
-    const response = await fetch('https://starapi1.p.rapidapi.com/instagram/user/get_web_profile_info', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-rapidapi-key': rapidApiKey,
-        'x-rapidapi-host': 'starapi1.p.rapidapi.com'
-      },
-      body: JSON.stringify({ username: username })
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('StarAPI Error:', errorText)
-      return { success: false, error: `API hatası: ${errorText}` }
-    }
-
-    const data = await response.json()
-
-    // Parse Web Profile Info Structure
-    const user = data?.response?.body?.data?.user
-
-    if (!user) {
-      console.error('StarAPI: User object not found in response', JSON.stringify(data, null, 2))
-      return { success: false, error: 'Veri ayrıştırma hatası.' }
-    }
+    const user = normalizedData.user
+    const edges = normalizedData.recent_posts
 
     const biography = user.biography || ''
     const platformUserId = user.id
-    const followerCount = user.edge_followed_by?.count || 0
-    const followingCount = user.edge_follow?.count || 0
-    const postCount = user.edge_owner_to_timeline_media?.count || 0
-    const isVerified = user.is_verified || false
-    const categoryName = user.category_name || null
-    const isBusinessAccount = user.is_business_account || false
-    const externalUrl = user.external_url || null
+    const followerCount = user.follower_count
+    const followingCount = user.following_count
+    const postCount = user.media_count
+    const isVerified = user.is_verified
+    const categoryName = user.category_name
+    const isBusinessAccount = user.is_business_account
+    const externalUrl = user.external_url
 
     // Note: Admin update bypasses verification code check since the account is already linked
     // We assume the admin verified the link is correct or just wants to refresh stats.
@@ -863,25 +850,8 @@ export async function adminUpdateInstagramData(userId: string) {
     let averageIntervalDays = 0
 
     // 3. Stats Calculation Logic
-    // Prioritize Reels (edge_felix_video_timeline) as per user request to cover Reels content
-    // Fallback to main timeline (edge_owner_to_timeline_media) if no Reels found
-    const videoEdges = user.edge_felix_video_timeline?.edges || []
-    const timelineEdges = user.edge_owner_to_timeline_media?.edges || []
-
-    // Use video edges if available, otherwise fallback to timeline
-    const edges = videoEdges.length > 0 ? videoEdges : timelineEdges
-
-    // SAFEGUARD: If user has posts but API returns 0 edges, it's an API failure.
-    // For Admin: Return error so they are aware of the issue.
-    if (postCount > 0 && edges.length === 0) {
-      console.warn(`[adminUpdateInstagramData] User ${username} has ${postCount} posts but API returned 0 edges. Aborting update.`)
-      return {
-        success: false,
-        error: `UYARI: Kullanıcının ${postCount} gönderisi var ancak API içerikleri çekemedi (Instagram Kısıtlaması). İstatistikler GÜNCELLENMEDİ.`
-      }
-    }
-
     const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
+
 
     if (recentPosts.length > 0) {
       const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
