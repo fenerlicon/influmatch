@@ -767,3 +767,195 @@ export async function deleteUser(userId: string) {
     return { error: error.message || 'Silme işlemi sırasında bir hata oluştu.' }
   }
 }
+
+// Update Instagram data (Admin only)
+export async function adminUpdateInstagramData(userId: string) {
+  const supabase = createSupabaseServerClient()
+
+  try {
+    // 0. Security Check: Are we admin?
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) {
+      return { success: false, error: 'Oturum açmanız gerekiyor.' }
+    }
+
+    // Check if user is admin
+    const { data: adminProfile } = await supabase
+      .from('users')
+      .select('role, email')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
+    const isAdmin = adminProfile?.role === 'admin' || authUser.email === ADMIN_EMAIL
+
+    if (!isAdmin) {
+      return { success: false, error: 'Yetkisiz işlem.' }
+    }
+
+
+    // 1. Get the user's social account record
+    const { data: account, error: fetchError } = await supabase
+      .from('social_accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('platform', 'instagram')
+      .single()
+
+    if (fetchError || !account) {
+      return { success: false, error: 'Kullanıcının bağlı Instagram hesabı bulunamadı.' }
+    }
+
+    const username = account.username
+    const verificationCode = account.verification_code
+    const rapidApiKey = process.env.RAPIDAPI_KEY
+
+    if (!rapidApiKey) {
+      console.error('RAPIDAPI_KEY is missing')
+      return { success: false, error: 'API anahtarı eksik.' }
+    }
+
+    // 2. API REQUEST: Get User Info & Media (Single Request)
+    // Endpoint: /instagram/user/get_web_profile_info (POST)
+    const response = await fetch('https://starapi1.p.rapidapi.com/instagram/user/get_web_profile_info', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-rapidapi-key': rapidApiKey,
+        'x-rapidapi-host': 'starapi1.p.rapidapi.com'
+      },
+      body: JSON.stringify({ username: username })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('StarAPI Error:', errorText)
+      return { success: false, error: `API hatası: ${errorText}` }
+    }
+
+    const data = await response.json()
+
+    // Parse Web Profile Info Structure
+    const user = data?.response?.body?.data?.user
+
+    if (!user) {
+      console.error('StarAPI: User object not found in response', JSON.stringify(data, null, 2))
+      return { success: false, error: 'Veri ayrıştırma hatası.' }
+    }
+
+    const biography = user.biography || ''
+    const platformUserId = user.id
+    const followerCount = user.edge_followed_by?.count || 0
+    const followingCount = user.edge_follow?.count || 0
+    const postCount = user.edge_owner_to_timeline_media?.count || 0
+    const isVerified = user.is_verified || false
+    const categoryName = user.category_name || null
+    const isBusinessAccount = user.is_business_account || false
+    const externalUrl = user.external_url || null
+
+    // Note: Admin update bypasses verification code check since the account is already linked
+    // We assume the admin verified the link is correct or just wants to refresh stats.
+
+    // Calculate Stats from Timeline Media
+    let avgLikes = 0
+    let avgComments = 0
+    let avgViews = 0
+    let engagementRate = 0
+    let averageIntervalDays = 0
+
+    // 3. Stats Calculation Logic
+    // Prioritize Reels (edge_felix_video_timeline) as per user request to cover Reels content
+    // Fallback to main timeline (edge_owner_to_timeline_media) if no Reels found
+    const videoEdges = user.edge_felix_video_timeline?.edges || []
+    const timelineEdges = user.edge_owner_to_timeline_media?.edges || []
+
+    // Use video edges if available, otherwise fallback to timeline
+    const edges = videoEdges.length > 0 ? videoEdges : timelineEdges
+    const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
+
+    if (recentPosts.length > 0) {
+      const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
+      const totalComments = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
+
+      // Calculate views for video posts
+      const videoPosts = recentPosts.filter((post: any) => post.is_video)
+      if (videoPosts.length > 0) {
+        const totalViews = videoPosts.reduce((sum: number, post: any) => sum + (post.video_view_count || 0), 0)
+        avgViews = Math.round(totalViews / videoPosts.length)
+      }
+
+      avgLikes = Math.round(totalLikes / recentPosts.length)
+      avgComments = Math.round(totalComments / recentPosts.length)
+
+      if (followerCount > 0) {
+        engagementRate = parseFloat((((avgLikes + avgComments) / followerCount) * 100).toFixed(2))
+      }
+
+      // Calculate Posting Frequency (Average days between posts)
+      if (recentPosts.length > 1) {
+        const sortedPosts = [...recentPosts].sort((a: any, b: any) => b.taken_at_timestamp - a.taken_at_timestamp)
+        const newestDate = sortedPosts[0].taken_at_timestamp
+        const oldestDate = sortedPosts[sortedPosts.length - 1].taken_at_timestamp
+        const diffSeconds = newestDate - oldestDate
+        const diffDays = diffSeconds / (60 * 60 * 24)
+        averageIntervalDays = Math.round(diffDays / (sortedPosts.length - 1))
+      }
+    }
+
+    // 4. Update Database
+    const statsPayload = {
+      avg_likes: avgLikes,
+      avg_comments: avgComments,
+      avg_views: avgViews,
+      following_count: followingCount,
+      post_count: postCount,
+      is_verified: isVerified,
+      category_name: categoryName,
+      is_business_account: isBusinessAccount,
+      external_url: externalUrl,
+      posting_frequency: averageIntervalDays
+    }
+
+    const now = new Date().toISOString()
+
+    const { error: updateError } = await supabase
+      .from('social_accounts')
+      .update({
+        is_verified: true,
+        platform_user_id: platformUserId,
+        follower_count: followerCount,
+        engagement_rate: engagementRate,
+        has_stats: true,
+        stats_payload: statsPayload,
+        last_scraped_at: now,
+        updated_at: now // Explicitly update updated_at
+      })
+      .eq('id', account.id)
+
+    if (updateError) {
+      console.error('Error updating verification status:', updateError)
+      return { success: false, error: 'Güncelleme hatası.' }
+    }
+
+    // Award verified badge if not present? Maybe not, keep that for explicit approval.
+    // But if they are being updated, it implies they are verified.
+    // Let's stick to just updating stats to be safe.
+
+    revalidatePath('/admin')
+    revalidatePath('/dashboard/influencer')
+
+    return {
+      success: true,
+      message: 'Hesap verileri başarıyla güncellendi.',
+      data: {
+        platform_user_id: platformUserId,
+        follower_count: followerCount,
+        engagement_rate: engagementRate,
+        ...statsPayload
+      }
+    }
+
+  } catch (error) {
+    console.error('Exception verifying instagram account:', error)
+    return { success: false, error: 'Genel hata oluştu.' }
+  }
+}

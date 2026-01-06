@@ -140,7 +140,14 @@ export async function verifyInstagramAccount(userId: string) {
         let engagementRate = 0
         let averageIntervalDays = 0
 
-        const edges = user.edge_owner_to_timeline_media?.edges || []
+        // 3. Stats Calculation Logic
+        // Prioritize Reels (edge_felix_video_timeline) as per user request to cover Reels content
+        // Fallback to main timeline (edge_owner_to_timeline_media) if no Reels found
+        const videoEdges = user.edge_felix_video_timeline?.edges || []
+        const timelineEdges = user.edge_owner_to_timeline_media?.edges || []
+
+        // Use video edges if available, otherwise fallback to timeline
+        const edges = videoEdges.length > 0 ? videoEdges : timelineEdges
         const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
 
         if (recentPosts.length > 0) {

@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail } from '@/app/admin/actions'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -696,6 +696,30 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
 
 
+  const handleUpdateInstagramData = async (userId: string) => {
+    if (!confirm('Bu kullanıcının Instagram verilerini güncellemek istediğinizden emin misiniz?')) return
+
+    const loadingToast = toast.loading('Instagram verileri güncelleniyor...')
+
+    startTransition(async () => {
+      try {
+        const result = await adminUpdateInstagramData(userId)
+        toast.dismiss(loadingToast)
+
+        if (result.error) {
+          toast.error(result.error)
+        } else {
+          toast.success('Instagram verileri başarıyla güncellendi!')
+          console.log('Updated stats:', result.data)
+        }
+      } catch (error) {
+        toast.dismiss(loadingToast)
+        console.error('Update instagram data exception:', error)
+        toast.error('Bir hata oluştu.')
+      }
+    })
+  }
+
   const getAvailableBadges = (userRole: 'influencer' | 'brand' | null) => {
     if (userRole === 'influencer') {
       return influencerBadges
@@ -1271,16 +1295,29 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                         (instagramLink || tiktokLink || youtubeLink || websiteLink) && (
                           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
                             {instagramLink && (
-                              <a
-                                href={instagramLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-1.5 text-xs font-semibold text-pink-300 transition hover:border-pink-500 hover:bg-pink-500/20"
-                                title="Instagram'ı Kontrol Et"
-                              >
-                                <Instagram className="h-3.5 w-3.5" />
-                                Instagram
-                              </a>
+                              <div className="flex items-center gap-1">
+                                <a
+                                  href={instagramLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-1.5 text-xs font-semibold text-pink-300 transition hover:border-pink-500 hover:bg-pink-500/20"
+                                  title="Instagram'ı Kontrol Et"
+                                >
+                                  <Instagram className="h-3.5 w-3.5" />
+                                  Instagram
+                                </a>
+                                {activeTab !== 'rejected' && isInfluencer && (
+                                  <button
+                                    onClick={() => handleUpdateInstagramData(user.id)}
+                                    disabled={isPending}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-soft-gold/40 bg-soft-gold/10 px-3 py-1.5 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+                                    title="Verileri Güncelle"
+                                  >
+                                    <Database className="h-3.5 w-3.5" />
+                                    Güncelle
+                                  </button>
+                                )}
+                              </div>
                             )}
                             {tiktokLink && (
                               <a
