@@ -148,46 +148,80 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
 
     const userId = user.id
 
-    // Step 2: Get Media (Posts)
-    // We explicitly fetch media because get_web_profile_info in RocketAPI often excludes it.
-    const mediaResponse = await fetch('https://v1.rocketapi.io/instagram/user/get_media', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Token ${rocketApiKey}`
-        },
-        body: JSON.stringify({ id: Number(userId), count: 12 })
-    })
+    // Step 2: Get Media (Posts) AND Reels (Clips)
+    // We fetch both because 'get_media' (Feed) often excludes generic headers but might miss Reels-only posts.
+    // 'get_clips' fetches specific Reels. We merge them to get a complete picture.
 
-    let edges: any[] = []
+    const [mediaResponse, clipsResponse] = await Promise.all([
+        fetch('https://v1.rocketapi.io/instagram/user/get_media', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${rocketApiKey}`
+            },
+            body: JSON.stringify({ id: Number(userId), count: 12 })
+        }),
+        fetch('https://v1.rocketapi.io/instagram/user/get_clips', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${rocketApiKey}`
+            },
+            body: JSON.stringify({ id: Number(userId), count: 12 })
+        })
+    ]);
 
+    let rawItems: any[] = []
+
+    // Process Feed
     if (mediaResponse.ok) {
         const mediaData = await mediaResponse.json()
         const items = mediaData?.response?.body?.items || []
-
-        // Transform RocketAPI "items" to StarAPI-style "edges" to maintain compatibility
-        edges = items.map((item: any) => ({
-            node: {
-                id: item.id,
-                shortcode: item.code,
-                display_url: item.image_versions2?.candidates?.[0]?.url,
-                is_video: item.media_type === 2 || item.media_type === 8, // 2=Video, 8=Album(could be video), 1=Photo
-                video_view_count: item.play_count || item.view_count || 0,
-                edge_media_to_comment: { count: item.comment_count || 0 },
-                edge_liked_by: { count: item.like_count || 0 },
-                taken_at_timestamp: item.taken_at
-            }
-        }))
-
-        // SORTING: RocketAPI (and Instagram) may return pinned posts first, regardless of date.
-        // We must sort by 'taken_at_timestamp' descending to ensure we analyze the truly RECENT posts for stats.
-        edges.sort((a, b) => b.node.taken_at_timestamp - a.node.taken_at_timestamp)
-
-        // Also ensure we respect the 'count' limit after sorting if needed, though we asked for 12.
-
+        rawItems = [...rawItems, ...items]
     } else {
-        console.warn('[InstagramService] RocketAPI Media fetch failed, continuing with partial data.')
+        console.warn('[InstagramService] RocketAPI Feed fetch failed.')
     }
+
+    // Process Clips
+    if (clipsResponse.ok) {
+        const clipsData = await clipsResponse.json()
+        const items = clipsData?.response?.body?.items || []
+        // Sometimes clips are wrapped in a 'media' object, sometimes direct. 
+        // RocketAPI /get_clips usually returns direct media objects in 'items'.
+        // We'll normalize just in case, but usually they are compatible.
+        const normalizedClips = items.map((item: any) => item.media ? item.media : item)
+        rawItems = [...rawItems, ...normalizedClips]
+    } else {
+        console.warn('[InstagramService] RocketAPI Clips fetch failed.')
+    }
+
+    // Deduplicate by ID
+    const uniqueItemsMap = new Map()
+    rawItems.forEach(item => {
+        if (item.id) uniqueItemsMap.set(item.id, item)
+    })
+    const uniqueItems = Array.from(uniqueItemsMap.values())
+
+    // Convert to Edges (Unified structure)
+    let edges = uniqueItems.map((item: any) => ({
+        node: {
+            id: item.id,
+            shortcode: item.code,
+            display_url: item.image_versions2?.candidates?.[0]?.url,
+            is_video: item.media_type === 2 || item.media_type === 8, // 2=Video, 8=Album(could be video), 1=Photo
+            video_view_count: item.play_count || item.view_count || 0,
+            edge_media_to_comment: { count: item.comment_count || 0 },
+            edge_liked_by: { count: item.like_count || 0 },
+            taken_at_timestamp: item.taken_at || item.device_timestamp
+        }
+    }))
+
+    // SORTING: Sort by date descending
+    edges.sort((a, b) => (b.node.taken_at_timestamp || 0) - (a.node.taken_at_timestamp || 0))
+
+    // Slice top 12
+    edges = edges.slice(0, 12)
+
 
     return {
         user: {
