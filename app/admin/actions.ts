@@ -870,6 +870,17 @@ export async function adminUpdateInstagramData(userId: string) {
 
     // Use video edges if available, otherwise fallback to timeline
     const edges = videoEdges.length > 0 ? videoEdges : timelineEdges
+
+    // SAFEGUARD: If user has posts but API returns 0 edges, it's an API failure.
+    // For Admin: Return error so they are aware of the issue.
+    if (postCount > 0 && edges.length === 0) {
+      console.warn(`[adminUpdateInstagramData] User ${username} has ${postCount} posts but API returned 0 edges. Aborting update.`)
+      return {
+        success: false,
+        error: `UYARI: Kullanıcının ${postCount} gönderisi var ancak API içerikleri çekemedi (Instagram Kısıtlaması). İstatistikler GÜNCELLENMEDİ.`
+      }
+    }
+
     const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
 
     if (recentPosts.length > 0) {

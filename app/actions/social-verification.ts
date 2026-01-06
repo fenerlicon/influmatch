@@ -147,7 +147,24 @@ export async function verifyInstagramAccount(userId: string) {
         const timelineEdges = user.edge_owner_to_timeline_media?.edges || []
 
         // Use video edges if available, otherwise fallback to timeline
+        // Use video edges if available, otherwise fallback to timeline
         const edges = videoEdges.length > 0 ? videoEdges : timelineEdges
+
+        // SAFEGUARD: If user has posts but API returns 0 edges, it's an API failure.
+        // Preserve old stats instead of zeroing them out or returning error.
+        if (postCount > 0 && edges.length === 0) {
+            console.warn(`[verifyInstagramAccount] User ${username} has ${postCount} posts but API returned 0 edges. Preserving old stats.`)
+
+            const oldStats = (account.stats_payload as any) || {}
+            avgLikes = oldStats.avg_likes || 0
+            avgComments = oldStats.avg_comments || 0
+            avgViews = oldStats.avg_views || 0
+            averageIntervalDays = oldStats.posting_frequency || 0
+
+            // Keep existing engagement rate column value
+            engagementRate = account.engagement_rate || 0
+        }
+
         const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
 
         if (recentPosts.length > 0) {
