@@ -833,6 +833,12 @@ export async function adminUpdateInstagramData(userId: string) {
     const user = normalizedData.user
     const edges = normalizedData.recent_posts
 
+    // DEBUG LOG
+    console.log(`[adminUpdateInstagramData] Data fetched for ${username}. UserID: ${user.id}, PostCount (API): ${user.media_count}, Edges fetched: ${edges.length}`)
+    if (edges.length > 0) {
+      console.log(`[adminUpdateInstagramData] Sample Edge:`, JSON.stringify(edges[0].node, null, 2))
+    }
+
     const biography = user.biography || ''
     const platformUserId = user.id
     const followerCount = user.follower_count
