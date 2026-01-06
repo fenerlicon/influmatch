@@ -908,7 +908,16 @@ export async function adminUpdateInstagramData(userId: string) {
 
     const now = new Date().toISOString()
 
-    const { error: updateError } = await supabase
+    // Use ADMIN CLIENT to bypass RLS policies for updating another user's data
+    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+    const supabaseAdmin = createSupabaseAdminClient()
+
+    if (!supabaseAdmin) {
+      console.error('[adminUpdateInstagramData] Service Role Key missing')
+      return { success: false, error: 'Sistem hatası: Admin yetkisi alınamadı.' }
+    }
+
+    const { error: updateError } = await supabaseAdmin
       .from('social_accounts')
       .update({
         is_verified: true,
