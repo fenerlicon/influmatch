@@ -470,7 +470,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
   }, [])
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] rounded-3xl border border-white/10 bg-[#0B0C10] overflow-hidden">
+    <div className="flex h-[calc(100dvh-8rem)] rounded-3xl border border-white/10 bg-[#0B0C10] overflow-hidden">
       {/* Left Sidebar - Conversations List */}
       <div className={`${selectedRoomId ? 'hidden sm:flex' : 'flex'} w-full sm:w-80 lg:w-96 border-r border-white/10 bg-[#0F1014] flex-col`}>
         <div className="p-4 border-b border-white/10">

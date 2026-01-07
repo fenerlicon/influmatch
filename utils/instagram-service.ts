@@ -35,7 +35,7 @@ export interface NormalizedInstagramData {
  * Throws an error only if ALL providers fail.
  */
 export async function fetchInstagramData(username: string): Promise<NormalizedInstagramData> {
-    console.log(`[InstagramService] Fetching data for: ${username}`)
+    let rocketErrorMsg = '';
 
     // 1. Try Primary Source: RocketAPI
     if (process.env.ROCKETAPI_KEY) {
@@ -44,10 +44,12 @@ export async function fetchInstagramData(username: string): Promise<NormalizedIn
             return await fetchFromRocketAPI(username)
         } catch (rocketError: any) {
             console.warn(`[InstagramService] Primary (RocketAPI) failed: ${rocketError.message || rocketError}`)
+            rocketErrorMsg = rocketError.message || 'RocketAPI Failed';
             // Proceed to fallback
         }
     } else {
         console.warn('[InstagramService] ROCKETAPI_KEY missing, skipping RocketAPI.')
+        rocketErrorMsg = 'ROCKETAPI_KEY missing';
     }
 
     // 2. Try Secondary Source: StarAPI (RapidAPI)
@@ -56,7 +58,7 @@ export async function fetchInstagramData(username: string): Promise<NormalizedIn
         return await fetchFromStarAPI(username)
     } catch (starError: any) {
         console.error(`[InstagramService] Secondary (StarAPI) failed: ${starError.message || starError}`)
-        throw new Error(`Tüm veri kaynakları başarısız oldu.`)
+        throw new Error(`Veri kaynakları başarısız: StarAPI(${starError.message || 'Hata'}), RocketAPI(${rocketErrorMsg})`)
     }
 }
 
