@@ -253,7 +253,7 @@ export default function InfluencerStats({
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-500">
                         <AlertCircle className="h-3 w-3" />
-                        <span>Not: Etkileşim verileri sadece Reels içeriklerini kapsamaktadır.</span>
+                        <span>Not: Etkileşim verileri son paylaşılan içerikleri baz alır.</span>
                     </div>
                 </div>
                 <div className="whitespace-nowrap">
