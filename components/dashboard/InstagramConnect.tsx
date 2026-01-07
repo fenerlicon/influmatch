@@ -96,11 +96,12 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
     const handleGenerateCode = async () => {
         if (!username) return setError('Lütfen bir kullanıcı adı girin.');
 
-        let cleanUsername = username;
-        if (username.includes('@')) {
-            cleanUsername = username.replace('@', '');
-            setUsername(cleanUsername);
+        let cleanUsername = username.trim();
+        if (cleanUsername.includes('@')) {
+            cleanUsername = cleanUsername.replace('@', '');
         }
+        // Update state with cleaned version
+        setUsername(cleanUsername);
 
         setLoading(true);
         setError('');
