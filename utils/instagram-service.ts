@@ -195,10 +195,30 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
         console.warn('[InstagramService] RocketAPI Clips fetch failed.')
     }
 
-    // Deduplicate by ID
+    // Deduplicate by ID - Prioritize items with more info (e.g. play_count)
     const uniqueItemsMap = new Map()
+
+    // Helper to evaluate item quality (does it have view counts?)
+    const getItemQuality = (rawItem: any) => {
+        const item = rawItem.media ? rawItem.media : rawItem;
+        const views = Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0;
+        return views;
+    }
+
     rawItems.forEach(item => {
-        if (item.id) uniqueItemsMap.set(item.id, item)
+        if (!item.id) return;
+
+        const existing = uniqueItemsMap.get(item.id);
+        if (!existing) {
+            uniqueItemsMap.set(item.id, item);
+        } else {
+            // If new item has better quality (more views data), overwrite
+            const newQuality = getItemQuality(item);
+            const oldQuality = getItemQuality(existing);
+            if (newQuality > oldQuality) {
+                uniqueItemsMap.set(item.id, item);
+            }
+        }
     })
     const uniqueItems = Array.from(uniqueItemsMap.values())
 
