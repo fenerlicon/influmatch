@@ -135,8 +135,15 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
             } else {
                 setError(result.error || 'Kod biyografide bulunamadı. Lütfen eklediğinizden emin olun.');
             }
-        } catch (err) {
-            setError('Doğrulama sırasında bağlantı hatası.');
+        } catch (err: any) {
+            console.error('Doğrulama hatası:', err);
+            const errorMessage = err?.message || '';
+
+            if (errorMessage.includes('not found') || errorMessage.includes('bulunamadı')) {
+                setError('Kullanıcı adı Instagram\'da bulunamadı veya hesabınız gizli. Lütfen kullanıcı adınızı kontrol edip hesabınızın herkese açık olduğundan emin olun.');
+            } else {
+                setError('Doğrulama sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+            }
         } finally {
             setLoading(false);
         }
