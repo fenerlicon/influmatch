@@ -92,13 +92,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Check Instagram connection for influencers
   let showInstagramBanner = false
   if (role === 'influencer') {
-    const { data: stats } = await supabase
-      .from('social_account_stats')
+    const { data: instagramAccount } = await supabase
+      .from('social_accounts')
       .select('has_stats')
-      .eq('influencer_id', user.id)
+      .eq('user_id', user.id)
+      .eq('platform', 'instagram')
       .maybeSingle()
 
-    if (!stats?.has_stats) {
+    if (!instagramAccount?.has_stats) {
       showInstagramBanner = true
     }
   }
