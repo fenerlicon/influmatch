@@ -233,7 +233,7 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
                 id: item.id,
                 shortcode: item.code,
                 display_url: item.image_versions2?.candidates?.[0]?.url,
-                is_video: item.media_type === 2 || item.media_type === 8, // 2=Video, 8=Album(could be video), 1=Photo
+                is_video: item.media_type === 2, // ONLY Type 2 (Video/Reels) counts as video for stats. Type 8 (Album) is treated as image.
                 // RocketAPI for Clips returns 'play_count', Feed returns 'view_count' or 'play_count'.
                 // We must catch all possibilities.
                 video_view_count: Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0,
