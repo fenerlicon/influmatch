@@ -55,6 +55,11 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
     })
 
     result.sort((a, b) => {
+      // Always prioritize Spotlight members first
+      if (a.spotlight_active !== b.spotlight_active) {
+        return (b.spotlight_active ? 1 : 0) - (a.spotlight_active ? 1 : 0)
+      }
+
       const parseStatsValue = (val: string | undefined): number => {
         if (!val) return 0
         const cleanVal = val.toString().toUpperCase().replace(/,/g, '.')
