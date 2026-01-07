@@ -6,7 +6,7 @@ const ROCKET_KEY = 'Xssgoym3xV1cSl6TX7MwRg';
 
 const data = JSON.stringify({
     id: Number(USER_ID),
-    count: 2
+    count: 5
 });
 
 const options = {
@@ -28,10 +28,11 @@ const req = https.request(options, (res) => {
             const json = JSON.parse(body);
             const items = json.response?.body?.items || [];
             if (items.length > 0) {
-                const item = items[0].media ? items[0].media : items[0];
-                console.log('play_count:', item.play_count);
-                console.log('view_count:', item.view_count);
-                console.log('video_view_count:', item.video_view_count);
+                console.log('Items Found:', items.length);
+                items.forEach((item, index) => {
+                    const media = item.media ? item.media : item;
+                    console.log(`[${index}] Media Type: ${media.media_type}, PlayCount: ${media.play_count}, ViewCount: ${media.view_count}`);
+                });
             }
         } catch (e) { console.log(e); }
     });

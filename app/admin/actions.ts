@@ -870,8 +870,11 @@ export async function adminUpdateInstagramData(userId: string) {
       // Calculate views for video posts
       const videoPosts = recentPosts.filter((post: any) => post.is_video)
       if (videoPosts.length > 0) {
-        const totalViews = videoPosts.reduce((sum: number, post: any) => sum + (post.video_view_count || 0), 0)
+        const totalViews = videoPosts.reduce((sum: number, post: any) => sum + (Number(post.video_view_count) || 0), 0)
         avgViews = Math.round(totalViews / videoPosts.length)
+        console.log(`[adminUpdate] Video Stats: ${videoPosts.length} videos found. Total Views: ${totalViews}, Avg Views: ${avgViews}`)
+      } else {
+        console.log('[adminUpdate] No video posts found for view calculation.')
       }
 
       avgLikes = Math.round(totalLikes / recentPosts.length)
