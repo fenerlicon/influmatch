@@ -55,8 +55,8 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
     })
 
     result.sort((a, b) => {
-      // Always prioritize Spotlight members first
-      if (a.spotlight_active !== b.spotlight_active) {
+      // Prioritize Spotlight members first ONLY if sorting by recommended
+      if (sortBy === 'recommended' && a.spotlight_active !== b.spotlight_active) {
         return (b.spotlight_active ? 1 : 0) - (a.spotlight_active ? 1 : 0)
       }
 
