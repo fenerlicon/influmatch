@@ -203,20 +203,26 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
     const uniqueItems = Array.from(uniqueItemsMap.values())
 
     // Convert to Edges (Unified structure)
-    let edges = uniqueItems.map((item: any) => ({
-        node: {
-            id: item.id,
-            shortcode: item.code,
-            display_url: item.image_versions2?.candidates?.[0]?.url,
-            is_video: item.media_type === 2 || item.media_type === 8, // 2=Video, 8=Album(could be video), 1=Photo
-            // RocketAPI for Clips returns 'play_count', Feed returns 'view_count' or 'play_count'.
-            // We must catch all possibilities.
-            video_view_count: Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0,
-            edge_media_to_comment: { count: item.comment_count || 0 },
-            edge_liked_by: { count: item.like_count || 0 },
-            taken_at_timestamp: item.taken_at || item.device_timestamp
+    // Helper to extract actual media object (handle nesting)
+    const getMediaObject = (item: any) => item.media ? item.media : item;
+
+    let edges = uniqueItems.map((rawItem: any) => {
+        const item = getMediaObject(rawItem);
+        return {
+            node: {
+                id: item.id,
+                shortcode: item.code,
+                display_url: item.image_versions2?.candidates?.[0]?.url,
+                is_video: item.media_type === 2 || item.media_type === 8, // 2=Video, 8=Album(could be video), 1=Photo
+                // RocketAPI for Clips returns 'play_count', Feed returns 'view_count' or 'play_count'.
+                // We must catch all possibilities.
+                video_view_count: Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0,
+                edge_media_to_comment: { count: item.comment_count || 0 },
+                edge_liked_by: { count: item.like_count || 0 },
+                taken_at_timestamp: item.taken_at || item.device_timestamp
+            }
         }
-    }))
+    })
 
     // SORTING: Sort by date descending
     edges.sort((a, b) => (b.node.taken_at_timestamp || 0) - (a.node.taken_at_timestamp || 0))
