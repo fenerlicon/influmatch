@@ -1023,6 +1023,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
   const now = new Date().toISOString()
 
   // 1.5 Try to fetch real live data
+  let recentPosts: any[] = []
   let statsData: any = {
     follower_count: 0,
     engagement_rate: 0,
@@ -1046,7 +1047,6 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     let avgLikes = 0
     let avgComments = 0
     let avgViews = 0
-    let recentPosts: any[] = []
 
     if (edges.length > 0) {
       // Filter out Pinned Posts explicitly (Handle both API structures)
@@ -1152,5 +1152,9 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
   }
 
   revalidatePath('/admin')
-  return { success: true, message: `Kullanıcı (${instagramUsername}) başarıyla bağlandı ve onaylandı.` }
+  return {
+    success: true,
+    message: `Kullanıcı (${instagramUsername}) başarıyla bağlandı ve onaylandı.`,
+    analyzed_posts: recentPosts.map((p: any) => `https://www.instagram.com/p/${p.shortcode}/`)
+  }
 }

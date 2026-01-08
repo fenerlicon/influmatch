@@ -7,6 +7,7 @@ export default function ManualConnectPage() {
     const [identifier, setIdentifier] = useState('')
     const [username, setUsername] = useState('')
     const [status, setStatus] = useState('')
+    const [resultData, setResultData] = useState<any>(null)
     const [loading, setLoading] = useState(false)
 
     const handleConnect = async () => {
@@ -22,7 +23,7 @@ export default function ManualConnectPage() {
             const result = await adminManualConnectInstagram(identifier, username)
             if (result.success) {
                 setStatus(`✅ BAŞARILI: ${result.message}`)
-                // Clear inputs on success maybe?
+                setResultData(result.analyzed_posts)
             } else {
                 setStatus(`❌ HATA: ${result.error}`)
             }
@@ -75,6 +76,18 @@ export default function ManualConnectPage() {
                     {status && (
                         <div className={`mt-4 p-3 rounded-lg text-xs font-mono break-words ${status.startsWith('❌') ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
                             {status}
+                            {resultData && (
+                                <div className="mt-3 pt-3 border-t border-white/10">
+                                    <strong className="block mb-2 text-soft-gold">Analiz Edilen Son 6 Gönderi:</strong>
+                                    <ul className="list-decimal pl-4 space-y-1">
+                                        {resultData.map((url: string, i: number) => (
+                                            <li key={i}>
+                                                <a href={url} target="_blank" rel="noopener noreferrer" className="underline hover:text-white break-all">{url}</a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     )}
 
