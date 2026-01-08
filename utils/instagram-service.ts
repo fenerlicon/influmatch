@@ -237,6 +237,7 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
 
     let edges = uniqueItems.map((rawItem: any) => {
         const item = getMediaObject(rawItem);
+        const isPinned = (item.pinned_for_users && item.pinned_for_users.length > 0) || item.is_pinned === true;
         return {
             node: {
                 id: item.id,
@@ -248,10 +249,14 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
                 video_view_count: Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0,
                 edge_media_to_comment: { count: item.comment_count || 0 },
                 edge_liked_by: { count: item.like_count || 0 },
-                taken_at_timestamp: Number(item.taken_at || item.device_timestamp || 0)
+                taken_at_timestamp: Number(item.taken_at || item.device_timestamp || 0),
+                is_pinned: isPinned
             }
         }
     })
+
+    // Filter out pinned posts
+    edges = edges.filter((e: any) => !e.node.is_pinned)
 
     // SORTING: Sort by date descending
     edges.sort((a, b) => (Number(b.node.taken_at_timestamp) || 0) - (Number(a.node.taken_at_timestamp) || 0))
