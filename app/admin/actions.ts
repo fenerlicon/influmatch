@@ -1021,6 +1021,70 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
 
   const now = new Date().toISOString()
 
+  // 1.5 Try to fetch real live data
+  let statsData: any = {
+    follower_count: 0,
+    engagement_rate: 0,
+    has_stats: false,
+    stats_payload: {
+      following_count: 0,
+      post_count: 0,
+      avg_likes: 0,
+      avg_comments: 0
+    }
+  }
+
+  try {
+    // Dynamic import to avoid potential circular dependencies
+    const { fetchInstagramData } = await import('@/utils/instagram-service')
+    const data = await fetchInstagramData(instagramUsername)
+    const user = data.user
+    const edges = data.recent_posts || []
+
+    // Calculate Stats
+    let avgLikes = 0
+    let avgComments = 0
+    let avgViews = 0
+
+    if (edges.length > 0) {
+      const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
+      const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
+      const totalComments = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
+
+      const videoPosts = recentPosts.filter((post: any) => post.is_video)
+      if (videoPosts.length > 0) {
+        const totalViews = videoPosts.reduce((sum: number, post: any) => sum + (post.video_view_count || 0), 0)
+        avgViews = Math.round(totalViews / videoPosts.length)
+      }
+      avgLikes = Math.round(totalLikes / recentPosts.length)
+      avgComments = Math.round(totalComments / recentPosts.length)
+    }
+
+    let engagementRate = 0
+    if (user.follower_count > 0) {
+      engagementRate = parseFloat((((avgLikes + avgComments) / user.follower_count) * 100).toFixed(2))
+    }
+
+    statsData = {
+      follower_count: user.follower_count,
+      engagement_rate: engagementRate,
+      has_stats: true,
+      stats_payload: {
+        following_count: user.following_count,
+        post_count: user.media_count,
+        avg_likes: avgLikes,
+        avg_comments: avgComments,
+        avg_views: avgViews,
+        is_business_account: user.is_business_account || false,
+        category_name: user.category_name,
+        external_url: user.external_url,
+        posting_frequency: 0
+      }
+    }
+  } catch (e) {
+    console.warn('[adminManualConnect] Failed to fetch live data (proceeding with empty stats):', e)
+  }
+
   // 2. Upsert Social Account
   // Use Admin Client to bypass RLS
   const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
@@ -1039,16 +1103,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
         username: instagramUsername,
         is_verified: true,
         updated_at: now,
-        // Correct schema mapping:
-        follower_count: 0,
-        engagement_rate: 0,
-        has_stats: false,
-        stats_payload: {
-          following_count: 0,
-          post_count: 0,
-          avg_likes: 0,
-          avg_comments: 0
-        }
+        ...statsData
       },
       {
         onConflict: 'user_id, platform'
