@@ -146,11 +146,15 @@ export async function verifyInstagramAccount(userId: string) {
             engagementRate = account.engagement_rate || 0
         }
 
-        // Processing edges (They are already normalized to contain 'node' in service if using fallback, or raw edges from starapi)
-        // Ensure structure is compatible
+        // Process edges: Sort by date descending (Newest first) to handle Pinned Posts
+        // This ensures subsequent calculations (Engagement, Frequency) are based on truly RECENT content.
+        edges.sort((a: any, b: any) => {
+            const timeA = a.node?.taken_at_timestamp || 0
+            const timeB = b.node?.taken_at_timestamp || 0
+            return timeB - timeA
+        })
+
         const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
-
-
 
         if (recentPosts.length > 0) {
             const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
@@ -167,7 +171,9 @@ export async function verifyInstagramAccount(userId: string) {
             avgComments = Math.round(totalComments / recentPosts.length)
 
             if (followerCount > 0) {
-                engagementRate = parseFloat((((avgLikes + avgComments) / followerCount) * 100).toFixed(2))
+                // Calculate engagement rate and cap at 999.99 to avoid DB numeric overflow
+                const rawRate = ((avgLikes + avgComments) / followerCount) * 100
+                engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 999.99)
             }
 
             // Calculate Posting Frequency (Average days between posts)
