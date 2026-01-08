@@ -113,6 +113,24 @@ async function fetchFromStarAPI(username: string): Promise<NormalizedInstagramDa
         throw new Error(`StarAPI returned 0 edges for user with ${postCount} posts (API Restriction).`)
     }
 
+    let edges = videoEdges.length > 0 ? videoEdges : timelineEdges;
+
+    // Normalize, Filter Pinned, and Sort StarAPI data
+    edges = edges.map((edge: any) => {
+        const node = edge.node || {};
+        return {
+            node: {
+                ...node,
+                // Ensure timestamp exists and is a number
+                taken_at_timestamp: Number(node.taken_at_timestamp || node.taken_at || 0),
+                is_pinned: (node.pinned_for_users && node.pinned_for_users.length > 0)
+            }
+        };
+    })
+        .filter((edge: any) => !edge.node.is_pinned) // STRICTLY Remove pinned posts
+        .sort((a: any, b: any) => b.node.taken_at_timestamp - a.node.taken_at_timestamp) // Sort by Date Descending
+        .slice(0, 36); // Keep top 36
+
     return {
         user: {
             id: user.id,
@@ -129,7 +147,7 @@ async function fetchFromStarAPI(username: string): Promise<NormalizedInstagramDa
             category_name: user.category_name,
             is_business_account: user.is_business_account
         },
-        recent_posts: videoEdges.length > 0 ? videoEdges : timelineEdges
+        recent_posts: edges
     }
 }
 
