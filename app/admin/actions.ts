@@ -1062,7 +1062,8 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
 
     let engagementRate = 0
     if (user.follower_count > 0) {
-      engagementRate = parseFloat((((avgLikes + avgComments) / user.follower_count) * 100).toFixed(2))
+      const rawRate = ((avgLikes + avgComments) / user.follower_count) * 100
+      engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 999.99)
     }
 
     statsData = {
