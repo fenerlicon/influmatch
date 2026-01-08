@@ -149,8 +149,8 @@ export async function verifyInstagramAccount(userId: string) {
         // Process edges: Sort by date descending (Newest first) to handle Pinned Posts
         // This ensures subsequent calculations (Engagement, Frequency) are based on truly RECENT content.
         edges.sort((a: any, b: any) => {
-            const timeA = a.node?.taken_at_timestamp || 0
-            const timeB = b.node?.taken_at_timestamp || 0
+            const timeA = Number(a.node?.taken_at_timestamp) || 0
+            const timeB = Number(b.node?.taken_at_timestamp) || 0
             return timeB - timeA
         })
 

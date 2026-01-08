@@ -172,7 +172,7 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
                 'Content-Type': 'application/json',
                 'Authorization': `Token ${rocketApiKey}`
             },
-            body: JSON.stringify({ id: Number(userId), count: 12 })
+            body: JSON.stringify({ id: Number(userId), count: 36 })
         }),
         fetch('https://v1.rocketapi.io/instagram/user/get_clips', {
             method: 'POST',
@@ -180,11 +180,13 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
                 'Content-Type': 'application/json',
                 'Authorization': `Token ${rocketApiKey}`
             },
-            body: JSON.stringify({ id: Number(userId), count: 12 })
+            body: JSON.stringify({ id: Number(userId), count: 36 })
         })
     ]);
 
     let rawItems: any[] = []
+
+    // ... (rest of processing)
 
     // Process Feed
     if (mediaResponse.ok) {
@@ -195,23 +197,19 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
         console.warn('[InstagramService] RocketAPI Feed fetch failed.')
     }
 
-    // Process Clips
     if (clipsResponse.ok) {
         const clipsData = await clipsResponse.json()
         const items = clipsData?.response?.body?.items || []
-        // Sometimes clips are wrapped in a 'media' object, sometimes direct. 
-        // RocketAPI /get_clips usually returns direct media objects in 'items'.
-        // We'll normalize just in case, but usually they are compatible.
         const normalizedClips = items.map((item: any) => item.media ? item.media : item)
         rawItems = [...rawItems, ...normalizedClips]
     } else {
         console.warn('[InstagramService] RocketAPI Clips fetch failed.')
     }
 
-    // Deduplicate by ID - Prioritize items with more info (e.g. play_count)
-    const uniqueItemsMap = new Map()
+    // ...
 
-    // Helper to evaluate item quality (does it have view counts?)
+    // Deduplicate by ID
+    const uniqueItemsMap = new Map()
     const getItemQuality = (rawItem: any) => {
         const item = rawItem.media ? rawItem.media : rawItem;
         const views = Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0;
@@ -220,12 +218,10 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
 
     rawItems.forEach(item => {
         if (!item.id) return;
-
         const existing = uniqueItemsMap.get(item.id);
         if (!existing) {
             uniqueItemsMap.set(item.id, item);
         } else {
-            // If new item has better quality (more views data), overwrite
             const newQuality = getItemQuality(item);
             const oldQuality = getItemQuality(existing);
             if (newQuality > oldQuality) {
@@ -235,8 +231,8 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
     })
     const uniqueItems = Array.from(uniqueItemsMap.values())
 
+
     // Convert to Edges (Unified structure)
-    // Helper to extract actual media object (handle nesting)
     const getMediaObject = (item: any) => item.media ? item.media : item;
 
     let edges = uniqueItems.map((rawItem: any) => {
@@ -246,21 +242,21 @@ async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagram
                 id: item.id,
                 shortcode: item.code,
                 display_url: item.image_versions2?.candidates?.[0]?.url,
-                is_video: item.media_type === 2, // ONLY Type 2 (Video/Reels) counts as video for stats. Type 8 (Album) is treated as image.
+                is_video: item.media_type === 2,
                 // RocketAPI for Clips returns 'play_count', Feed returns 'view_count' or 'play_count'.
                 // We must catch all possibilities.
                 video_view_count: Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0,
                 edge_media_to_comment: { count: item.comment_count || 0 },
                 edge_liked_by: { count: item.like_count || 0 },
-                taken_at_timestamp: item.taken_at || item.device_timestamp
+                taken_at_timestamp: Number(item.taken_at || item.device_timestamp || 0)
             }
         }
     })
 
     // SORTING: Sort by date descending
-    edges.sort((a, b) => (b.node.taken_at_timestamp || 0) - (a.node.taken_at_timestamp || 0))
+    edges.sort((a, b) => (Number(b.node.taken_at_timestamp) || 0) - (Number(a.node.taken_at_timestamp) || 0))
 
-    // Slice top 12
+    // Slice top 12 (Service returns normalized list, caller can slice further)
     edges = edges.slice(0, 12)
 
 

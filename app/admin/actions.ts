@@ -1049,8 +1049,8 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     if (edges.length > 0) {
       // Sort edges by date (newest first) to correctly handle Pinned Posts
       edges.sort((a: any, b: any) => {
-        const timeA = a.node?.taken_at_timestamp || 0
-        const timeB = b.node?.taken_at_timestamp || 0
+        const timeA = Number(a.node?.taken_at_timestamp) || 0
+        const timeB = Number(b.node?.taken_at_timestamp) || 0
         return timeB - timeA
       })
 
