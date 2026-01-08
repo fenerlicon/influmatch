@@ -860,7 +860,7 @@ export async function adminUpdateInstagramData(userId: string) {
     let averageIntervalDays = 0
 
     // 3. Stats Calculation Logic
-    const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
+    const recentPosts = edges.slice(0, 6).map((edge: any) => edge.node)
 
 
     if (recentPosts.length > 0) {
@@ -881,7 +881,8 @@ export async function adminUpdateInstagramData(userId: string) {
       avgComments = Math.round(totalComments / recentPosts.length)
 
       if (followerCount > 0) {
-        engagementRate = parseFloat((((avgLikes + avgComments) / followerCount) * 100).toFixed(2))
+        const rawRate = ((avgLikes + avgComments) / followerCount) * 100
+        engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 999.99)
       }
 
       // Calculate Posting Frequency (Average days between posts)
