@@ -106,7 +106,7 @@ export default function SignupPage() {
           // Rate limit - but email might have been sent on first attempt
           // Redirect immediately to check-email page
           // Use window.location for immediate redirect to prevent page refresh issues
-          window.location.href = '/auth/check-email'
+          window.location.href = `/auth/check-email?email=${encodeURIComponent(email)}`
           return
         }
 
@@ -135,7 +135,7 @@ export default function SignupPage() {
         })
       }
 
-      window.location.href = '/auth/check-email'
+      window.location.href = `/auth/check-email?email=${encodeURIComponent(email)}`
     } catch (error) {
       console.error('[Signup] Unexpected error:', error)
       setErrorMessage('Bir hata oluştu.')

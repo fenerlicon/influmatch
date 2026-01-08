@@ -181,6 +181,22 @@ export async function verifyInstagramAccount(userId: string) {
             }
         }
 
+        // 3.5 Check for duplicate platform_user_id usage (Collision with other users)
+        if (platformUserId) {
+            const platformUserIdStr = String(platformUserId)
+            const { data: existingConflict } = await supabase
+                .from('social_accounts')
+                .select('user_id')
+                .eq('platform', 'instagram')
+                .eq('platform_user_id', platformUserIdStr)
+                .neq('user_id', userId)
+                .maybeSingle()
+
+            if (existingConflict) {
+                return { success: false, error: 'Bu Instagram hesabı sistemde zaten kayıtlı (başka bir kullanıcıda).' }
+            }
+        }
+
         // 4. Update Database
         const statsPayload = {
             avg_likes: avgLikes,
@@ -201,7 +217,7 @@ export async function verifyInstagramAccount(userId: string) {
             .from('social_accounts')
             .update({
                 is_verified: true,
-                platform_user_id: platformUserId,
+                platform_user_id: String(platformUserId),
                 follower_count: followerCount,
                 engagement_rate: engagementRate,
                 has_stats: true,
@@ -213,7 +229,7 @@ export async function verifyInstagramAccount(userId: string) {
 
         if (updateError) {
             console.error('Error updating verification status:', updateError)
-            return { success: false, error: 'Güncelleme hatası.' }
+            return { success: false, error: `Güncelleme hatası: ${updateError.message}` }
         }
 
         // 5. Award "Verified Account" (Blue Tick) Badge
