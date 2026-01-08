@@ -34,6 +34,17 @@ export interface NormalizedInstagramData {
  * Fetches Instagram data using a Chain of Responsibility (RocketAPI -> StarAPI).
  * Throws an error only if ALL providers fail.
  */
+async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number = 1000): Promise<T> {
+    try {
+        return await fn();
+    } catch (error) {
+        if (retries <= 0) throw error;
+        console.warn(`[InstagramService] Retrying operation... Attempts left: ${retries}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return withRetry(fn, retries - 1, delay * 1.5);
+    }
+}
+
 export async function fetchInstagramData(username: string): Promise<NormalizedInstagramData> {
     let rocketErrorMsg = '';
 
@@ -41,9 +52,9 @@ export async function fetchInstagramData(username: string): Promise<NormalizedIn
     if (process.env.ROCKETAPI_KEY) {
         try {
             console.log('[InstagramService] Attempting Primary (RocketAPI)...')
-            return await fetchFromRocketAPI(username)
+            return await withRetry(() => fetchFromRocketAPI(username), 2)
         } catch (rocketError: any) {
-            console.warn(`[InstagramService] Primary (RocketAPI) failed: ${rocketError.message || rocketError}`)
+            console.warn(`[InstagramService] Primary (RocketAPI) failed after retries: ${rocketError.message || rocketError}`)
             rocketErrorMsg = rocketError.message || 'RocketAPI Failed';
             // Proceed to fallback
         }
@@ -55,10 +66,10 @@ export async function fetchInstagramData(username: string): Promise<NormalizedIn
     // 2. Try Secondary Source: StarAPI (RapidAPI)
     try {
         console.log('[InstagramService] Attempting Secondary (StarAPI)...')
-        return await fetchFromStarAPI(username)
+        return await withRetry(() => fetchFromStarAPI(username), 2)
     } catch (starError: any) {
-        console.error(`[InstagramService] Secondary (StarAPI) failed: ${starError.message || starError}`)
-        throw new Error(`Veri kaynakları başarısız: StarAPI(${starError.message || 'Hata'}), RocketAPI(${rocketErrorMsg})`)
+        console.error(`[InstagramService] Secondary (StarAPI) failed after retries: ${starError.message || starError}`)
+        throw new Error(`Veri kaynaklarına erişilemedi (RocketAPI: ${rocketErrorMsg}, StarAPI: ${starError.message}). Lütfen biraz bekleyip tekrar deneyin.`)
     }
 }
 
