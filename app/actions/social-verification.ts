@@ -99,7 +99,7 @@ export async function verifyInstagramAccount(userId: string) {
         }
 
         const user = normalizedData.user
-        const edges = normalizedData.recent_posts
+        let edges = normalizedData.recent_posts
 
         const biography = user.biography || ''
         const platformUserId = user.id
@@ -144,6 +144,16 @@ export async function verifyInstagramAccount(userId: string) {
 
             // Keep existing engagement rate column value
             engagementRate = account.engagement_rate || 0
+        }
+
+        // Filter out Pinned Posts explicitly (Handle both API structures)
+        if (edges) {
+            edges = edges.filter((edge: any) => {
+                const node = edge.node;
+                if (node.is_pinned === true) return false;
+                if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
+                return true;
+            });
         }
 
         // Process edges: Sort by date descending (Newest first) to handle Pinned Posts
@@ -213,7 +223,7 @@ export async function verifyInstagramAccount(userId: string) {
             if (followerCount > 0) {
                 // Calculate engagement rate and cap at 999.99 to avoid DB numeric overflow
                 const rawRate = ((avgLikes + avgComments) / followerCount) * 100
-                engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 100)
+                engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 99.99)
             }
 
             // Calculate Posting Frequency (Average days between posts)

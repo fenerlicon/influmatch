@@ -1039,7 +1039,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     const { fetchInstagramData } = await import('@/utils/instagram-service')
     const data = await fetchInstagramData(instagramUsername)
     const user = data.user
-    const edges = data.recent_posts || []
+    let edges = data.recent_posts || []
 
     // Calculate Stats
     let avgLikes = 0
@@ -1047,6 +1047,15 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     let avgViews = 0
 
     if (edges.length > 0) {
+      // Filter out Pinned Posts explicitly (Handle both API structures)
+      edges = edges.filter((edge: any) => {
+        const node = edge.node;
+        // Custom flag from RocketAPI wrapper OR standard Instagram structure
+        if (node.is_pinned === true) return false;
+        if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
+        return true;
+      });
+
       // Sort edges by date (newest first) to correctly handle Pinned Posts
       edges.sort((a: any, b: any) => {
         const timeA = Number(a.node?.taken_at_timestamp) || 0
@@ -1070,7 +1079,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     let engagementRate = 0
     if (user.follower_count > 0) {
       const rawRate = ((avgLikes + avgComments) / user.follower_count) * 100
-      engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 100)
+      engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 99.99)
     }
 
     statsData = {
