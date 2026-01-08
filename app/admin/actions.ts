@@ -1039,12 +1039,16 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
         username: instagramUsername,
         is_verified: true,
         updated_at: now,
-        // Optional placeholders for stats to avoid null issues if frontend expects them
+        // Correct schema mapping:
         follower_count: 0,
-        following_count: 0,
-        post_count: 0,
         engagement_rate: 0,
-        has_stats: false
+        has_stats: false,
+        stats_payload: {
+          following_count: 0,
+          post_count: 0,
+          avg_likes: 0,
+          avg_comments: 0
+        }
       },
       {
         onConflict: 'user_id, platform'
