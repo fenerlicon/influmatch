@@ -223,7 +223,7 @@ export async function verifyInstagramAccount(userId: string) {
             if (followerCount > 0) {
                 // Calculate engagement rate and cap at 999.99 to avoid DB numeric overflow
                 const rawRate = ((avgLikes + avgComments) / followerCount) * 100
-                engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 9999.99)
+                engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 999.99)
             }
 
             // Calculate Posting Frequency (Average days between posts)
