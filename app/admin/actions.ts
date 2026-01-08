@@ -1054,7 +1054,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
         return timeB - timeA
       })
 
-      const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
+      const recentPosts = edges.slice(0, 6).map((edge: any) => edge.node)
       const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
       const totalComments = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
 

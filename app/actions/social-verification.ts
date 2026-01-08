@@ -154,7 +154,47 @@ export async function verifyInstagramAccount(userId: string) {
             return timeB - timeA
         })
 
-        const recentPosts = edges.slice(0, 12).map((edge: any) => edge.node)
+        const recentPosts = edges.slice(0, 6).map((edge: any) => edge.node)
+
+        // STRATEGY: Prioritize "Last 30 Days". If < 3 posts, fallback to "Last 12 Posts".
+        // 1. Get nodes sorted by date (already done above)
+        const sortedNodes = edges.map((edge: any) => edge.node)
+
+        const nowTimestamp = Math.floor(Date.now() / 1000)
+        const thirtyDaysAgo = nowTimestamp - (30 * 24 * 60 * 60)
+
+        // 2. Filter for last 30 days
+        let targetPosts = sortedNodes.filter((node: any) => (node.taken_at_timestamp || 0) > thirtyDaysAgo)
+
+        // 3. Fallback Check
+        if (targetPosts.length < 3) {
+            console.log(`[verifyInstagramAccount] Only ${targetPosts.length} posts in last 30 days. Falling back to last 12 posts.`)
+            targetPosts = sortedNodes.slice(0, 12)
+        } else {
+            // If we have many posts in last 30 days (e.g. 50), limit to top 24 to avoid huge processing if API returned many
+            targetPosts = targetPosts.slice(0, 24)
+        }
+
+        // Use this new list for calculations
+        // Note: We need to update existing references to 'recentPosts' variable usage below
+        // or just re-assign recentPosts if it was let. It was const.
+        // So we will just use 'targetPosts' logic inside the calculation block or redefine calculation block.
+        // Wait, recentPosts was defined as const above in original code. I need to Replace that specific line.
+
+        /* 
+           The replace_tool replaces lines. 
+           I will replace the line `const recentPosts = ...` with :
+        */
+
+        let analyzedPosts = sortedNodes.filter((node: any) => (node.taken_at_timestamp || 0) > thirtyDaysAgo)
+
+        if (analyzedPosts.length < 3) {
+            analyzedPosts = sortedNodes.slice(0, 12)
+        } else {
+            analyzedPosts = analyzedPosts.slice(0, 24)
+        }
+
+        // Duplicate declaration removed
 
         if (recentPosts.length > 0) {
             const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
