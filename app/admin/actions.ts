@@ -962,3 +962,116 @@ export async function adminUpdateInstagramData(userId: string) {
     return { success: false, error: 'Genel hata oluştu.' }
   }
 }
+
+// Manually connect/verify an Instagram account for a user (Admin only)
+export async function adminManualConnectInstagram(identifier: string, instagramUsername: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
+
+  if (!authUser) {
+    return { success: false, error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', authUser.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || authUser.email === ADMIN_EMAIL
+
+  if (!isAdmin) {
+    return { success: false, error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  if (!identifier || !instagramUsername) {
+    return { success: false, error: 'Kullanıcı Email/ID ve Instagram kullanıcı adı gereklidir.' }
+  }
+
+  // 1. Find Target User
+  // Check if identifier is UUID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)
+
+  let targetUserId = identifier
+
+  if (!isUuid) {
+    // Assume email, lookup user
+    // We cannot search auth.users directly easily without service role + admin client
+    // But we can search public.users if email is there
+    const { data: publicUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', identifier)
+      .maybeSingle()
+
+    if (publicUser) {
+      targetUserId = publicUser.id
+    } else {
+      // Try Admin Client to find user by email in Auth
+      const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+      const supabaseAdmin = createSupabaseAdminClient()
+      // Admin client doesn't verify email lookup easily without exact match in `users` list which is paginated
+      // It's safer to rely on 'users' table sync. If not found, return error.
+      return { success: false, error: 'Kullanıcı bulunamadı (Email public.users tablosunda yok). Lütfen doğrudan User ID (UUID) kullanın.' }
+    }
+  }
+
+  const now = new Date().toISOString()
+
+  // 2. Upsert Social Account
+  // Use Admin Client to bypass RLS
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { success: false, error: 'Admin yetkisi hatası.' }
+  }
+
+  const { error: upsertError } = await supabaseAdmin
+    .from('social_accounts')
+    .upsert(
+      {
+        user_id: targetUserId,
+        platform: 'instagram',
+        username: instagramUsername,
+        is_verified: true,
+        updated_at: now,
+        // Optional placeholders for stats to avoid null issues if frontend expects them
+        follower_count: 0,
+        following_count: 0,
+        post_count: 0,
+        engagement_rate: 0,
+        has_stats: false
+      },
+      {
+        onConflict: 'user_id, platform'
+      }
+    )
+
+  if (upsertError) {
+    console.error('[adminManualConnectInstagram] Upsert error:', upsertError)
+    return { success: false, error: `Veritabanı hatası: ${upsertError.message}` }
+  }
+
+  // 3. Award Blue Tick Badge
+  try {
+    await supabase.rpc('award_user_badge', {
+      target_user_id: targetUserId,
+      badge_id_to_award: 'verified-account',
+    })
+
+    // Sync badge display
+    await supabaseAdmin.from('users').update({
+      displayed_badges: ['verified-account'] // Basic override/append logic might be better but this ensures it shows up
+    }).eq('id', targetUserId)
+
+  } catch (e) {
+    console.warn('Badge award failed but account connected:', e)
+  }
+
+  revalidatePath('/admin')
+  return { success: true, message: `Kullanıcı (${instagramUsername}) başarıyla bağlandı ve onaylandı.` }
+}
