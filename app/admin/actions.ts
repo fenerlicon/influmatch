@@ -906,7 +906,8 @@ export async function adminUpdateInstagramData(userId: string) {
       category_name: categoryName,
       is_business_account: isBusinessAccount,
       external_url: externalUrl,
-      posting_frequency: averageIntervalDays
+      posting_frequency: averageIntervalDays,
+      analyzed_post_urls: recentPosts.map((p: any) => `https://www.instagram.com/p/${p.shortcode}/`)
     }
 
     const now = new Date().toISOString()
@@ -1045,6 +1046,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     let avgLikes = 0
     let avgComments = 0
     let avgViews = 0
+    let recentPosts: any[] = []
 
     if (edges.length > 0) {
       // Filter out Pinned Posts explicitly (Handle both API structures)
@@ -1063,7 +1065,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
         return timeB - timeA
       })
 
-      const recentPosts = edges.slice(0, 6).map((edge: any) => edge.node)
+      recentPosts = edges.slice(0, 6).map((edge: any) => edge.node)
       const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
       const totalComments = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
 
@@ -1095,7 +1097,8 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
         is_business_account: user.is_business_account || false,
         category_name: user.category_name,
         external_url: user.external_url,
-        posting_frequency: 0
+        posting_frequency: 0,
+        analyzed_post_urls: recentPosts.map((p: any) => `https://www.instagram.com/p/${p.shortcode}/`)
       }
     }
   } catch (e) {
