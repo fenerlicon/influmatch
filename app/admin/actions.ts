@@ -897,6 +897,8 @@ export async function adminUpdateInstagramData(userId: string) {
     }
 
     // 4. Update Database
+    const now = new Date().toISOString()
+
     const statsPayload = {
       avg_likes: avgLikes,
       avg_comments: avgComments,
@@ -908,10 +910,18 @@ export async function adminUpdateInstagramData(userId: string) {
       is_business_account: isBusinessAccount,
       external_url: externalUrl,
       posting_frequency: averageIntervalDays,
-      analyzed_post_urls: recentPosts.map((p: any) => `https://www.instagram.com/p/${p.shortcode}/`)
+      analyzed_post_urls: recentPosts.map((p: any) => `https://www.instagram.com/p/${p.shortcode}/`),
+      // Calculate changes vs previous data
+      changes: {
+        engagement_rate: account.engagement_rate ? parseFloat((engagementRate - account.engagement_rate).toFixed(2)) : 0,
+        follower_count: account.follower_count ? followerCount - account.follower_count : 0,
+        avg_likes: account.stats_payload?.avg_likes ? avgLikes - account.stats_payload.avg_likes : 0,
+        avg_views: account.stats_payload?.avg_views ? avgViews - account.stats_payload.avg_views : 0,
+        updated_at: now
+      }
     }
 
-    const now = new Date().toISOString()
+
 
     // Use ADMIN CLIENT to bypass RLS policies for updating another user's data
     const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
@@ -939,6 +949,24 @@ export async function adminUpdateInstagramData(userId: string) {
     if (updateError) {
       console.error('Error updating verification status:', updateError)
       return { success: false, error: 'Güncelleme hatası.' }
+    }
+
+    // 5. Insert into History (New Feature)
+    const { error: historyError } = await supabaseAdmin
+      .from('social_account_history')
+      .insert({
+        social_account_id: account.id,
+        follower_count: followerCount,
+        engagement_rate: engagementRate,
+        avg_likes: avgLikes,
+        avg_comments: avgComments,
+        avg_views: avgViews,
+        recorded_at: now
+      })
+
+    if (historyError) {
+      console.error('Error logging history:', historyError)
+      // Don't fail the main request, just log it
     }
 
     // Award verified badge if not present? Maybe not, keep that for explicit approval.

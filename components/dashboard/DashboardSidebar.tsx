@@ -35,6 +35,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
         { label: 'İlanlar', href: '/dashboard/influencer/advert' },
         { label: 'Teklifler', href: '/dashboard/offers' },
         { label: 'Mesajlar', href: '/dashboard/messages' },
+        { label: 'İstatistiklerim', href: '/dashboard/influencer/stats' },
         { label: 'Spotlight', href: '/dashboard/spotlight' },
         { label: 'Rozetlerim', href: '/dashboard/influencer/badges' },
       ],

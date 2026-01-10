@@ -288,6 +288,24 @@ export async function verifyInstagramAccount(userId: string) {
             return { success: false, error: `Güncelleme hatası: ${updateError.message}` }
         }
 
+        // 5. Insert into History
+        const { error: historyError } = await supabase
+            .from('social_account_history')
+            .insert({
+                social_account_id: account.id,
+                follower_count: followerCount,
+                engagement_rate: engagementRate,
+                avg_likes: avgLikes,
+                avg_comments: avgComments,
+                avg_views: avgViews,
+                recorded_at: now
+            })
+
+        if (historyError) {
+            console.warn('Error logging history:', historyError)
+            // Continue as this is non-critical
+        }
+
         // 5. Award "Verified Account" (Blue Tick) Badge
         const { error: badgeError } = await supabase
             .from('user_badges')

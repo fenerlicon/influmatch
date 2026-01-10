@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
+import { CustomToast } from '../components/CustomToast';
+
+// Türkçe Hata Mesajları Çevirisi
+function getTurkishErrorMessage(error) {
+    if (!error) return 'Bilinmeyen bir hata oluştu.';
+    const msg = error.message || '';
+
+    // Supabase Auth Hataları
+    if (msg.includes('Invalid login credentials')) return 'E-posta adresi veya şifre hatalı.';
+    if (msg.includes('Email not confirmed')) return 'Giriş yapmadan önce e-posta adresinizi doğrulamanız gerekiyor.';
+    if (msg.includes('User not found')) return 'Kullanıcı bulunamadı.';
+    if (msg.includes('Invalid email')) return 'Geçersiz e-posta formatı.';
+    if (msg.includes('network')) return 'Bağlantı hatası. İnternetinizi kontrol edin.';
+    if (msg.includes('Rate limit')) return 'Çok fazla deneme yaptınız. Lütfen bekleyin.';
+
+    return 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
+}
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -12,31 +29,57 @@ export default function LoginScreen({ navigation }) {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    // Toast State
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+    const showToast = (message, type = 'success') => {
+        setToast({ visible: true, message, type });
+    };
+
+    const hideToast = () => {
+        setToast(prev => ({ ...prev, visible: false }));
+    };
+
     async function signInWithEmail() {
         if (!email || !password) {
-            Alert.alert('Hata', 'Lütfen e-posta ve şifrenizi girin.');
+            showToast('Lütfen e-posta ve şifrenizi girin.', 'info');
             return;
         }
 
         setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password,
         });
 
         if (error) {
-            Alert.alert('Giriş Başarısız', error.message);
+            showToast(getTurkishErrorMessage(error), 'error');
             setLoading(false);
         } else {
-            Alert.alert('Başarılı', 'Hoş geldiniz!');
-            setLoading(false);
-            // Link to dashboard later
+            showToast('Giriş başarılı, yönlendiriliyorsunuz...', 'success');
+
+            setTimeout(() => {
+                const isOnboarded = data.user?.user_metadata?.is_onboarded;
+                if (isOnboarded === true) {
+                    navigation.replace('Dashboard');
+                } else {
+                    navigation.replace('Onboarding');
+                }
+                setLoading(false);
+            }, 1000);
         }
     }
 
     return (
         <View className="flex-1 bg-midnight">
             <StatusBar style="light" />
+
+            <CustomToast
+                visible={toast.visible}
+                message={toast.message}
+                type={toast.type}
+                onHide={hideToast}
+            />
 
             {/* Arka Plan Efekti */}
             <View className="absolute top-0 right-0 h-64 w-64 bg-soft-gold rounded-full opacity-[0.03] blur-3xl -translate-y-10 translate-x-10" />
@@ -99,7 +142,7 @@ export default function LoginScreen({ navigation }) {
 
                     <TouchableOpacity
                         className="items-end"
-                        onPress={() => Alert.alert('Bilgi', 'Web sitemizden şifrenizi sıfırlayabilirsiniz.')}
+                        onPress={() => navigation.navigate('ForgotPassword')}
                     >
                         <Text className="text-gray-400 text-xs font-medium">Şifremi Unuttum?</Text>
                     </TouchableOpacity>

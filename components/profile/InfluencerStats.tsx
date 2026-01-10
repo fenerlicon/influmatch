@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, TrendingUp, Users, MessageCircle, Heart, Zap, Lock, Sparkles, AlertCircle } from 'lucide-react'
+import { Activity, TrendingUp, Users, MessageCircle, Heart, Zap, Lock, Sparkles, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react'
 import { generateAIAnalysis, type AnalysisType, type SubscriptionTier } from '@/app/actions/ai-analysis'
 import { toast } from 'sonner'
 
@@ -17,6 +17,13 @@ interface StatsPayload {
     is_business_account?: boolean
     external_url?: string | null
     posting_frequency?: number
+    changes?: {
+        engagement_rate: number
+        follower_count: number
+        avg_likes: number
+        avg_views: number
+        updated_at: string
+    }
 }
 
 interface InfluencerStatsProps {
@@ -158,6 +165,17 @@ export default function InfluencerStats({
         router.push(targetPath)
     }
 
+    const renderChange = (value?: number, isPercent: boolean = false) => {
+        if (!value || value === 0) return null
+        const isPositive = value > 0
+        return (
+            <div className={`mt-1 flex items-center justify-center gap-0.5 text-[10px] font-medium ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                <span>{isPositive ? '+' : ''}{value.toLocaleString('tr-TR')}{isPercent ? '%' : ''}</span>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Identity & Basic Info Row */}
@@ -194,6 +212,7 @@ export default function InfluencerStats({
                     </div>
                     <p className="text-xs uppercase tracking-wider text-gray-400">Takipçi</p>
                     <p className="mt-1 text-lg font-bold text-white">{followerCount.toLocaleString('tr-TR')}</p>
+                    {renderChange(statsPayload.changes?.follower_count)}
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
@@ -202,6 +221,7 @@ export default function InfluencerStats({
                     </div>
                     <p className="text-xs uppercase tracking-wider text-gray-400">Etkileşim</p>
                     <p className="mt-1 text-lg font-bold text-white">%{engagementRate}</p>
+                    {renderChange(statsPayload.changes?.engagement_rate, true)}
                 </div>
 
                 {/* Row 2: Engagement Details */}
@@ -211,6 +231,7 @@ export default function InfluencerStats({
                     </div>
                     <p className="text-xs uppercase tracking-wider text-gray-400">Ort. Beğeni</p>
                     <p className="mt-1 text-lg font-bold text-white">{safeStats.avg_likes.toLocaleString('tr-TR')}</p>
+                    {renderChange(statsPayload.changes?.avg_likes)}
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
                     <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20 text-green-400">
@@ -227,6 +248,7 @@ export default function InfluencerStats({
                         </div>
                         <p className="text-xs uppercase tracking-wider text-gray-400">Ort. İzlenme</p>
                         <p className="mt-1 text-lg font-bold text-white">{safeStats.avg_views.toLocaleString('tr-TR')}</p>
+                        {renderChange(statsPayload.changes?.avg_views)}
                     </div>
                 )}
 

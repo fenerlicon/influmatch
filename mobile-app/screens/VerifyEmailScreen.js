@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, MailOpen } from 'lucide-react-native';
+import { CustomToast } from '../components/CustomToast';
+import { getTurkishErrorMessage } from '../lib/errorUtils';
 
 export default function VerifyEmailScreen({ route, navigation }) {
     const { email } = route.params;
@@ -12,6 +14,17 @@ export default function VerifyEmailScreen({ route, navigation }) {
     const [loading, setLoading] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60); // 60 saniye sayaç
     const inputRef = useRef(null);
+
+    // Toast State
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+    const showToast = (message, type = 'success') => {
+        setToast({ visible: true, message, type });
+    };
+
+    const hideToast = () => {
+        setToast(prev => ({ ...prev, visible: false }));
+    };
 
     // Sayaç Mantığı
     useEffect(() => {
@@ -32,12 +45,11 @@ export default function VerifyEmailScreen({ route, navigation }) {
     }, [code]);
 
     async function handleVerify() {
-        if (code.length < 6) return; // En az 6 olmalı
+        if (code.length < 6) return;
 
         setLoading(true);
         Keyboard.dismiss();
 
-        // ... rest of verify logic ...
         const { data, error } = await supabase.auth.verifyOtp({
             email: email,
             token: code,
@@ -45,14 +57,14 @@ export default function VerifyEmailScreen({ route, navigation }) {
         });
 
         if (error) {
-            Alert.alert('Doğrulama Hatası', 'Girdiğiniz kod hatalı veya süresi dolmuş. Lütfen kontrol edip tekrar deneyin.');
+            showToast(getTurkishErrorMessage(error), 'error');
             setLoading(false);
-            // Kodu silmeyelim, kullanıcı düzeltebilsin
         } else {
-            // ...
-            Alert.alert('Tebrikler! 🎉', 'Hesabınız başarıyla doğrulandı.', [
-                { text: 'Devam Et', onPress: () => navigation.replace('Onboarding') } // Onboarding'e yönlendir (henüz yok ama ekleyeceğiz)
-            ]);
+            showToast('Hesabınız başarıyla doğrulandı!', 'success');
+            // Navigate after delay
+            setTimeout(() => {
+                navigation.replace('Onboarding');
+            }, 1000);
             setLoading(false);
         }
     }
@@ -68,16 +80,22 @@ export default function VerifyEmailScreen({ route, navigation }) {
         });
 
         if (error) {
-            Alert.alert('Hata', error.message);
+            showToast(getTurkishErrorMessage(error), 'error');
         } else {
-            Alert.alert('Başarılı', 'Yeni doğrulama kodu gönderildi.');
-            setTimeLeft(60); // Sayacı sıfırla
+            showToast('Yeni doğrulama kodu gönderildi.', 'success');
+            setTimeLeft(60);
         }
     }
 
     return (
         <View className="flex-1 bg-midnight">
             <StatusBar style="light" />
+            <CustomToast
+                visible={toast.visible}
+                message={toast.message}
+                type={toast.type}
+                onHide={hideToast}
+            />
 
             <SafeAreaView className="flex-1 px-6">
 
@@ -116,18 +134,19 @@ export default function VerifyEmailScreen({ route, navigation }) {
                         />
 
                         {/* Görsel Kutular */}
+                        {/* Fixed to 6 digits to match Supabase default and validation logic */}
                         <View className="flex-row justify-center w-full flex-wrap gap-2" pointerEvents="none">
-                            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+                            {[0, 1, 2, 3, 4, 5].map((i) => {
                                 const digit = code[i];
                                 const isActive = i === code.length;
                                 return (
                                     <View
                                         key={i}
-                                        className={`w-9 h-12 rounded-lg border items-center justify-center bg-surface transition-all ${isActive ? 'border-soft-gold bg-soft-gold/5' :
-                                                digit ? 'border-white/30' : 'border-white/10'
+                                        className={`w-11 h-14 rounded-xl border items-center justify-center bg-surface transition-all ${isActive ? 'border-soft-gold bg-soft-gold/5' :
+                                            digit ? 'border-white/30' : 'border-white/10'
                                             }`}
                                     >
-                                        <Text className="text-white text-xl font-bold">
+                                        <Text className="text-white text-2xl font-bold">
                                             {digit || ''}
                                         </Text>
                                     </View>
@@ -157,19 +176,20 @@ export default function VerifyEmailScreen({ route, navigation }) {
 
                     {/* Sayaç ve Yeniden Gönder */}
                     <TouchableOpacity
-                        className="mt-8 py-2 px-4"
+                        activeOpacity={0.8}
                         onPress={handleResend}
                         disabled={timeLeft > 0}
+                        className={`mt-6 w-full py-4 rounded-xl border items-center justify-center ${timeLeft > 0
+                                ? 'border-white/10 bg-white/5'
+                                : 'border-soft-gold/50 bg-soft-gold/10'
+                            }`}
                     >
-                        {timeLeft > 0 ? (
-                            <Text className="text-gray-500 text-sm">
-                                Kodu tekrar göndermek için bekle: <Text className="text-white font-bold">{timeLeft}sn</Text>
-                            </Text>
-                        ) : (
-                            <Text className="text-gray-500 text-sm">
-                                Kod gelmedi mi? <Text className="text-soft-gold font-bold">Tekrar Gönder</Text>
-                            </Text>
-                        )}
+                        <Text className={`font-medium ${timeLeft > 0 ? 'text-gray-500' : 'text-soft-gold'}`}>
+                            {timeLeft > 0
+                                ? `Yeni kod için bekle: ${timeLeft}sn`
+                                : 'Kodu Tekrar Gönder'
+                            }
+                        </Text>
                     </TouchableOpacity>
 
                 </View>

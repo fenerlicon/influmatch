@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Mail, Lock, User, Briefcase, ChevronRight, Check, Eye, EyeOff } from 'lucide-react-native';
+import { CustomToast } from '../components/CustomToast';
+import { getTurkishErrorMessage } from '../lib/errorUtils';
 
 export default function RegisterFormScreen({ route, navigation }) {
     const { role } = route.params;
@@ -21,6 +23,17 @@ export default function RegisterFormScreen({ route, navigation }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    // Toast State
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+    const showToast = (message, type = 'success') => {
+        setToast({ visible: true, message, type });
+    };
+
+    const hideToast = () => {
+        setToast(prev => ({ ...prev, visible: false }));
+    };
+
     const updateField = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -31,17 +44,17 @@ export default function RegisterFormScreen({ route, navigation }) {
 
     async function handleRegister() {
         if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
-            Alert.alert('Eksik Bilgi', 'Lütfen tüm zorunlu alanları doldurun.');
+            showToast('Lütfen tüm zorunlu alanları doldurun.', 'info');
             return;
         }
 
         if (formData.password !== formData.confirmPassword) {
-            Alert.alert('Hata', 'Şifreler eşleşmiyor.');
+            showToast('Şifreler eşleşmiyor.', 'error');
             return;
         }
 
         if (!formData.isAgreed) {
-            Alert.alert('Uyarı', 'Lütfen Kullanım Koşulları ve Gizlilik Politikasını kabul edin.');
+            showToast('Lütfen Kullanım Koşulları ve Gizlilik Politikasını kabul edin.', 'info');
             return;
         }
 
@@ -59,13 +72,13 @@ export default function RegisterFormScreen({ route, navigation }) {
         });
 
         if (authError) {
-            Alert.alert('Kayıt Başarısız', authError.message);
+            showToast(getTurkishErrorMessage(authError), 'error');
             setLoading(false);
             return;
         }
 
         if (user) {
-            // Otomatik olarak doğrulama ekranına yönlendir
+            // Toast göstermeye gerek yok, direkt geçiş yapıyoruz
             navigation.navigate('VerifyEmail', { email: formData.email });
         }
         setLoading(false);
@@ -74,6 +87,12 @@ export default function RegisterFormScreen({ route, navigation }) {
     return (
         <View className="flex-1 bg-midnight">
             <StatusBar style="light" />
+            <CustomToast
+                visible={toast.visible}
+                message={toast.message}
+                type={toast.type}
+                onHide={hideToast}
+            />
 
             {/* Üst Gradient */}
             <LinearGradient
@@ -203,12 +222,12 @@ export default function RegisterFormScreen({ route, navigation }) {
                                 <Text className="text-gray-300 text-xs leading-5">
                                     <Text
                                         className="text-soft-gold font-bold"
-                                        onPress={() => openLink('https://influmatch.com/legal?tab=terms')}
+                                        onPress={() => openLink('https://influmatch.net/legal?tab=terms')}
                                     >
                                         Kullanım Koşulları
                                     </Text> ve <Text
                                         className="text-soft-gold font-bold"
-                                        onPress={() => openLink('https://influmatch.com/legal?tab=privacy')}
+                                        onPress={() => openLink('https://influmatch.net/legal?tab=privacy')}
                                     >
                                         Gizlilik Politikası
                                     </Text>'nı okudum ve kabul ediyorum.
