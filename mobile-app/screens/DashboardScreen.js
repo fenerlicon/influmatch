@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, TextInput, Switch, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, TextInput, Switch, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
@@ -66,7 +66,27 @@ export default function DashboardScreen({ navigation }) {
                 if (data.bio) score += 20;
                 if (data.city) score += 20;
                 if (social) score += 20;
+                if (social) score += 20;
                 setStats(prev => ({ ...prev, profileCompletion: score }));
+
+                // Fetch real favorites count
+                const { count: favoritesCount } = await supabase
+                    .from('favorites')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('target_user_id', user.id);
+
+                // Fetch pending offers count
+                const { count: offersCount } = await supabase
+                    .from('offers')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('influencer_id', user.id)
+                    .eq('status', 'pending');
+
+                setStats(prev => ({
+                    ...prev,
+                    favorites: favoritesCount || 0,
+                    pendingOffers: offersCount || 0
+                }));
             }
 
         } catch (error) {
@@ -148,150 +168,214 @@ export default function DashboardScreen({ navigation }) {
     return (
         <View className="flex-1 bg-midnight">
             <StatusBar style="light" />
-            <SafeAreaView className="flex-1">
-                {/* Header */}
-                <View className="px-6 py-4 flex-row justify-between items-center bg-midnight z-10">
-                    <View className="flex-row items-center space-x-3">
-                        <View className="w-10 h-10 rounded-full bg-soft-gold items-center justify-center border-2 border-white/10 overflow-hidden">
-                            {profile?.avatar_url ? (
-                                <Image source={{ uri: profile.avatar_url }} className="w-full h-full" />
-                            ) : (
-                                <Text className="text-[#0B0F19] font-bold text-base">
-                                    {profile?.username ? profile.username.substring(0, 2).toUpperCase() : 'US'}
+            <StatusBar style="light" />
+            <SafeAreaView className="flex-1" edges={['top']}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={{ flex: 1 }}
+                >
+                    {/* Header */}
+                    <View className="px-6 py-4 flex-row justify-between items-center bg-midnight z-10">
+                        <View className="flex-row items-center space-x-3">
+                            <View className="w-10 h-10 rounded-full bg-soft-gold items-center justify-center border-2 border-white/10 overflow-hidden">
+                                {profile?.avatar_url ? (
+                                    <Image source={{ uri: profile.avatar_url }} className="w-full h-full" />
+                                ) : (
+                                    <Text className="text-[#0B0F19] font-bold text-base">
+                                        {profile?.username ? profile.username.substring(0, 2).toUpperCase() : 'US'}
+                                    </Text>
+                                )}
+                            </View>
+                            <View>
+                                <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Influencer Paneli</Text>
+                                <Text className="text-white font-bold text-base">
+                                    @{profile?.username || 'kullanici'}
                                 </Text>
-                            )}
+                            </View>
                         </View>
-                        <View>
-                            <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Influencer Paneli</Text>
-                            <Text className="text-white font-bold text-base">
-                                @{profile?.username || 'kullanici'}
-                            </Text>
+                        <View className="flex-row items-center space-x-3">
+                            {/* Spotlight Status Badge in Header */}
+                            {profile?.spotlight_active && (
+                                <View className="bg-soft-gold/20 px-2 py-1 rounded border border-soft-gold/50">
+                                    <Text className="text-soft-gold text-[8px] font-bold">PRO</Text>
+                                </View>
+                            )}
+                            <TouchableOpacity className="w-10 h-10 bg-surface rounded-full items-center justify-center border border-white/5">
+                                <Bell color="white" size={18} />
+                            </TouchableOpacity>
                         </View>
                     </View>
-                    <View className="flex-row items-center space-x-3">
-                        {/* Spotlight Status Badge in Header */}
-                        {profile?.spotlight_active && (
-                            <View className="bg-soft-gold/20 px-2 py-1 rounded border border-soft-gold/50">
-                                <Text className="text-soft-gold text-[8px] font-bold">PRO</Text>
+
+                    <ScrollView
+                        className="flex-1 px-6"
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4AF37" />}
+                    >
+                        {/* Welcome Text */}
+                        <View className="mt-2 mb-6">
+                            <Text className="text-white text-2xl font-bold mb-1">Genel Bakış</Text>
+                            <Text className="text-gray-400 text-sm">Profil gücünü artır ve teklifleri yönet.</Text>
+                        </View>
+
+
+
+                        {/* Stats Grid */}
+                        <View className="flex-row flex-wrap justify-between mb-2">
+                            <View className="w-[48%] p-4 rounded-2xl mb-4 bg-surface border border-white/10">
+                                <View className="flex-row justify-between items-start mb-2">
+                                    <Text className="text-gray-400 text-xs font-bold uppercase">PROFİL</Text>
+                                    <PieChart color="#D4AF37" size={20} />
+                                </View>
+                                <Text className="text-white text-2xl font-bold mb-1">%{stats.profileCompletion}</Text>
+                                <Text className="text-gray-500 text-[10px]">Doluluk oranı</Text>
+                            </View>
+                            <View className="w-[48%] p-4 rounded-2xl mb-4 bg-surface border border-white/10">
+                                <View className="flex-row justify-between items-start mb-2">
+                                    <Text className="text-gray-400 text-xs font-bold uppercase">TEKLİF</Text>
+                                    <TrendingUp color="#D4AF37" size={20} />
+                                </View>
+                                <Text className="text-white text-2xl font-bold mb-1">{stats.pendingOffers}</Text>
+                                <Text className="text-gray-500 text-[10px]">Bekleyen teklif</Text>
+                            </View>
+
+                            {/* New Stats Row */}
+                            <View className="w-[48%] p-4 rounded-2xl mb-4 bg-surface border border-white/10">
+                                <View className="flex-row justify-between items-start mb-2">
+                                    <Text className="text-gray-400 text-xs font-bold uppercase">GÜVEN</Text>
+                                    <ShieldCheck color="#D4AF37" size={20} />
+                                </View>
+                                <Text className="text-white text-2xl font-bold mb-1">{stats.trustScore}</Text>
+                                <Text className="text-gray-500 text-[10px]">Güven Skoru</Text>
+                            </View>
+                            <View className="w-[48%] p-4 rounded-2xl mb-4 bg-surface border border-white/10">
+                                <View className="flex-row justify-between items-start mb-2">
+                                    <Text className="text-gray-400 text-xs font-bold uppercase">FAVORİ</Text>
+                                    <Star color="#D4AF37" size={20} />
+                                </View>
+                                <Text className="text-white text-2xl font-bold mb-1">{stats.favorites}</Text>
+                                <Text className="text-gray-500 text-[10px]">Marka beğendi</Text>
+                            </View>
+                        </View>
+
+                        {/* Instagram Verification Section */}
+                        {!(socialAccount && socialAccount.has_stats) ? (
+                            <View className="p-6 rounded-3xl border border-white/10 bg-surface mb-6 relative overflow-hidden">
+                                <LinearGradient
+                                    colors={['rgba(131, 58, 180, 0.1)', 'rgba(253, 29, 29, 0.05)', 'rgba(252, 176, 69, 0.05)']}
+                                    className="absolute inset-0"
+                                />
+                                <View className="flex-row items-center mb-4">
+                                    <View className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-orange-500 items-center justify-center mr-4">
+                                        <Instagram color="white" size={24} />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-white font-bold text-lg">Hesabını Doğrula</Text>
+                                        <Text className="text-gray-400 text-xs">İstatistiklerini göster, güven kazan.</Text>
+                                    </View>
+                                </View>
+
+                                <View className="flex-row items-center space-x-3">
+                                    <View className="flex-1 bg-black/30 border border-white/10 rounded-xl h-12 justify-center px-4">
+                                        <TextInput
+                                            placeholder="Instagram Kullanıcı Adı"
+                                            placeholderTextColor="#6B7280"
+                                            className="text-white font-medium flex-1 h-full"
+                                            style={{ color: 'white' }}
+                                            value={instaUsername}
+                                            onChangeText={setInstaUsername}
+                                            autoCapitalize="none"
+                                        />
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={handleConnectInstagram}
+                                        disabled={connectLoading}
+                                        className="bg-white h-12 px-6 rounded-xl items-center justify-center"
+                                    >
+                                        {connectLoading ? (
+                                            <ActivityIndicator color="black" size="small" />
+                                        ) : (
+                                            <Text className="text-black font-bold">Bağla</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ) : (
+                            // Connected State
+                            <View className="p-4 rounded-3xl border border-green-500/20 bg-green-500/5 mb-6 flex-row items-center justify-between">
+                                <View className="flex-row items-center">
+                                    <View className="w-10 h-10 rounded-full bg-green-500/20 items-center justify-center mr-3">
+                                        <Instagram color="#4ade80" size={20} />
+                                    </View>
+                                    <View>
+                                        <Text className="text-white font-bold">Instagram Bağlı</Text>
+                                        <Text className="text-green-400 text-xs">@{socialAccount.username} • Doğrulandı</Text>
+                                    </View>
+                                </View>
+                                <ShieldCheck color="#4ade80" size={24} />
                             </View>
                         )}
-                        <TouchableOpacity className="w-10 h-10 bg-surface rounded-full items-center justify-center border border-white/5">
-                            <Bell color="white" size={18} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
 
-                <ScrollView
-                    className="flex-1 px-6"
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4AF37" />}
-                >
-                    {/* Welcome Text */}
-                    <View className="mt-2 mb-6">
-                        <Text className="text-white text-2xl font-bold mb-1">Genel Bakış</Text>
-                        <Text className="text-gray-400 text-sm">Profil gücünü artır ve teklifleri yönet.</Text>
-                    </View>
-
-                    {/* Spotlight Toggle Card */}
-                    <LinearGradient
-                        colors={['rgba(212,175,55,0.1)', 'rgba(212,175,55,0.05)']}
-                        className="p-4 rounded-2xl border border-soft-gold/30 mb-6 flex-row items-center justify-between"
-                    >
-                        <View className="flex-1 mr-4">
-                            <Text className="text-soft-gold font-bold text-lg mb-1">Vitrine Çık</Text>
-                            <Text className="text-gray-400 text-xs">
-                                {profile?.is_showcase_visible
-                                    ? 'Profilin şu an markalar tarafından görüntülenebilir.'
-                                    : 'Profilin gizli. Görünür olmak için aç.'}
-                            </Text>
-                        </View>
-                        <Switch
-                            trackColor={{ false: "#3e3e3e", true: "#D4AF37" }}
-                            thumbColor={profile?.is_showcase_visible ? "#FFFFFF" : "#f4f3f4"}
-                            onValueChange={toggleSpotlight}
-                            value={profile?.is_showcase_visible}
-                        />
-                    </LinearGradient>
-
-                    {/* Stats Grid */}
-                    <View className="flex-row flex-wrap justify-between mb-2">
-                        <View className="w-[48%] p-4 rounded-2xl mb-4 bg-surface border border-white/10">
-                            <View className="flex-row justify-between items-start mb-2">
-                                <Text className="text-gray-400 text-xs font-bold uppercase">PROFİL</Text>
-                                <PieChart color="#D4AF37" size={20} />
+                        {/* Spotlight Toggle Card */}
+                        <LinearGradient
+                            colors={['rgba(212,175,55,0.1)', 'rgba(212,175,55,0.05)']}
+                            className="p-4 rounded-2xl border border-soft-gold/30 mb-6 flex-row items-center justify-between"
+                        >
+                            <View className="flex-1 mr-4">
+                                <Text className="text-soft-gold font-bold text-lg mb-1">Vitrine Çık</Text>
+                                <Text className="text-gray-400 text-xs">
+                                    {profile?.is_showcase_visible
+                                        ? 'Profilin şu an markalar tarafından görüntülenebilir.'
+                                        : 'Profilin gizli. Görünür olmak için aç.'}
+                                </Text>
                             </View>
-                            <Text className="text-white text-2xl font-bold mb-1">%{stats.profileCompletion}</Text>
-                            <Text className="text-gray-500 text-[10px]">Doluluk oranı</Text>
-                        </View>
-                        <View className="w-[48%] p-4 rounded-2xl mb-4 bg-surface border border-white/10">
-                            <View className="flex-row justify-between items-start mb-2">
-                                <Text className="text-gray-400 text-xs font-bold uppercase">TEKLİF</Text>
-                                <TrendingUp color="#D4AF37" size={20} />
-                            </View>
-                            <Text className="text-white text-2xl font-bold mb-1">{stats.pendingOffers}</Text>
-                            <Text className="text-gray-500 text-[10px]">Bekleyen teklif</Text>
-                        </View>
-                    </View>
-
-                    {/* Instagram Verification Section */}
-                    {!(socialAccount && socialAccount.has_stats) ? (
-                        <View className="p-6 rounded-3xl border border-white/10 bg-surface mb-6 relative overflow-hidden">
-                            <LinearGradient
-                                colors={['rgba(131, 58, 180, 0.1)', 'rgba(253, 29, 29, 0.05)', 'rgba(252, 176, 69, 0.05)']}
-                                className="absolute inset-0"
+                            <Switch
+                                trackColor={{ false: "#3e3e3e", true: "#D4AF37" }}
+                                thumbColor={profile?.is_showcase_visible ? "#FFFFFF" : "#f4f3f4"}
+                                onValueChange={toggleSpotlight}
+                                value={profile?.is_showcase_visible}
                             />
-                            <View className="flex-row items-center mb-4">
-                                <View className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-orange-500 items-center justify-center mr-4">
-                                    <Instagram color="white" size={24} />
-                                </View>
-                                <View className="flex-1">
-                                    <Text className="text-white font-bold text-lg">Hesabını Doğrula</Text>
-                                    <Text className="text-gray-400 text-xs">İstatistiklerini göster, güven kazan.</Text>
-                                </View>
-                            </View>
+                        </LinearGradient>
 
-                            <View className="flex-row items-center space-x-3">
-                                <View className="flex-1 bg-black/30 border border-white/10 rounded-xl h-12 justify-center px-4">
-                                    <TextInput
-                                        placeholder="Instagram Kullanıcı Adı"
-                                        placeholderTextColor="#6B7280"
-                                        className="text-white font-medium"
-                                        value={instaUsername}
-                                        onChangeText={setInstaUsername}
-                                        autoCapitalize="none"
-                                    />
-                                </View>
-                                <TouchableOpacity
-                                    onPress={handleConnectInstagram}
-                                    disabled={connectLoading}
-                                    className="bg-white h-12 px-6 rounded-xl items-center justify-center"
-                                >
-                                    {connectLoading ? (
-                                        <ActivityIndicator color="black" size="small" />
-                                    ) : (
-                                        <Text className="text-black font-bold">Bağla</Text>
-                                    )}
+                        {/* Recent Offers Flow */}
+                        <View className="mb-6">
+                            <View className="flex-row justify-between items-center mb-4">
+                                <Text className="text-white text-lg font-bold">Teklif Akışı</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('Teklifler')}>
+                                    <Text className="text-soft-gold text-xs font-bold">TÜMÜNÜ GÖR</Text>
                                 </TouchableOpacity>
                             </View>
-                        </View>
-                    ) : (
-                        // Connected State
-                        <View className="p-4 rounded-3xl border border-green-500/20 bg-green-500/5 mb-6 flex-row items-center justify-between">
-                            <View className="flex-row items-center">
-                                <View className="w-10 h-10 rounded-full bg-green-500/20 items-center justify-center mr-3">
-                                    <Instagram color="#4ade80" size={20} />
-                                </View>
-                                <View>
-                                    <Text className="text-white font-bold">Instagram Bağlı</Text>
-                                    <Text className="text-green-400 text-xs">@{socialAccount.username} • Doğrulandı</Text>
-                                </View>
-                            </View>
-                            <ShieldCheck color="#4ade80" size={24} />
-                        </View>
-                    )}
 
-                    <View className="h-10" />
-                </ScrollView>
+                            {/* Empty State or List */}
+                            {stats.pendingOffers === 0 ? (
+                                <View className="bg-surface rounded-2xl p-6 items-center border border-white/5">
+                                    <View className="w-12 h-12 rounded-full bg-white/5 items-center justify-center mb-3">
+                                        <TrendingUp color="#6B7280" size={24} />
+                                    </View>
+                                    <Text className="text-white font-bold mb-1">Henüz Teklif Yok</Text>
+                                    <Text className="text-gray-500 text-xs text-center">Profilini güçlendirerek markaların dikkatini çekebilirsin.</Text>
+                                </View>
+                            ) : (
+                                <View className="bg-surface rounded-2xl border border-white/5 overflow-hidden">
+                                    <View className="p-4 border-b border-white/5 flex-row items-center">
+                                        <View className="w-2 h-2 rounded-full bg-soft-gold mr-3" />
+                                        <View>
+                                            <Text className="text-white font-bold text-sm">Yeni İşbirliği Teklifi</Text>
+                                            <Text className="text-gray-400 text-[10px]">Az önce • Marka adı gizli</Text>
+                                        </View>
+                                        <View className="flex-1" />
+                                        <View className="bg-soft-gold/10 px-2 py-1 rounded">
+                                            <Text className="text-soft-gold text-[10px] font-bold">BEKLİYOR</Text>
+                                        </View>
+                                    </View>
+                                    {/* Mocking more items or leave just one as teaser */}
+                                </View>
+                            )}
+                        </View>
+
+                        <View className="h-10" />
+                        <View className="h-20" />
+                    </ScrollView>
+                </KeyboardAvoidingView>
             </SafeAreaView>
         </View>
     );
