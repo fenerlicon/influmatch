@@ -335,7 +335,7 @@ export default function InfluencerStats({
 
                                     {/* Footer Info or Disclaimer */}
                                     <p className="mt-4 text-[10px] text-gray-500">
-                                        * Bu analiz Gemini AI tarafından oluşturulmuştur. Finansal veya kesin yatırım tavsiyesi değildir.
+                                        * Bu analiz Influmatch Akıllı Algoritması tarafından oluşturulmuştur. Kesin yatırım tavsiyesi değildir.
                                     </p>
                                 </>
                             )}

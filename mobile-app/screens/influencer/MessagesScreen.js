@@ -1,91 +1,167 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, Modal, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Search, ChevronRight, Check, Pin, ArrowLeft, MoreVertical, Send, ImagePlus, Mic } from 'lucide-react-native';
+import { supabase } from '../../lib/supabase';
 
 export default function MessagesScreen() {
     const [selectedChat, setSelectedChat] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [inputText, setInputText] = useState('');
-    const [messages, setMessages] = useState({}); // Messages keyed by chat ID
 
-    // Mock Conversations
-    const conversations = [
-        {
-            id: 'support',
-            name: 'Influmatch Destek',
-            avatar: 'IM',
-            isBrand: false,
-            lastMessage: 'Hoş geldin! Profilini tamamlayarak rozet kazanabilirsin.',
-            time: '12:30',
-            unread: true,
-            pinned: true,
-            initialMessages: [
-                { id: 1, text: 'Merhaba! Influmatch dünyasına hoş geldin. 🚀', sender: 'them', time: '12:28' },
-                { id: 2, text: 'Hoş geldin! Profilini tamamlayarak rozet kazanabilirsin.', sender: 'them', time: '12:30' }
-            ]
-        },
-        {
-            id: 'lcwaikiki',
-            name: 'LC Waikiki',
-            avatar: 'LC',
-            isBrand: true,
-            lastMessage: 'Kampanya detaylarını ilettim, dönüşünü bekliyoruz.',
-            time: 'Dün',
-            unread: false,
-            initialMessages: [
-                { id: 1, text: 'Merhaba, son Instagram Reels paylaşımınızı çok beğendik.', sender: 'them', time: 'Dün 14:00' },
-                { id: 2, text: 'Teşekkür ederim! 🙏 Yeni projeler için heyecanlıyım.', sender: 'me', time: 'Dün 14:05' },
-                { id: 3, text: 'Harika! Kış koleksiyonumuz için bir iş birliği düşünüyoruz.', sender: 'them', time: 'Dün 14:10' },
-                { id: 4, text: 'Kampanya detaylarını ilettim, dönüşünü bekliyoruz.', sender: 'them', time: 'Dün 14:11' }
-            ]
-        },
-        {
-            id: 'trendyol',
-            name: 'Trendyol',
-            avatar: 'TY',
-            isBrand: true,
-            lastMessage: 'Teklifiniz onaylandı! 🎉 İşlem adımlarını...',
-            time: 'Paz',
-            unread: true,
-            initialMessages: [
-                { id: 1, text: 'Yaz kampanyası başvurunuzu aldık.', sender: 'them', time: 'Paz 09:00' },
-                { id: 2, text: 'Teklifiniz onaylandı! 🎉 İşlem adımlarını e-posta ile gönderdik.', sender: 'them', time: 'Paz 10:30' }
-            ]
+    // Real Data States
+    const [conversations, setConversations] = useState([]);
+    const [messages, setMessages] = useState({}); // { [roomId]: [messages...] }
+    const [loading, setLoading] = useState(true);
+    const [currentUserId, setCurrentUserId] = useState(null);
+
+    const subscriptionRef = useRef(null);
+
+    useEffect(() => {
+        fetchConversations();
+    }, []);
+
+    const fetchConversations = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            setCurrentUserId(user.id);
+
+            // Fetch rooms where I am the influencer
+            // Also fetch the brand details (partner)
+            const { data: rooms, error } = await supabase
+                .from('rooms')
+                .select('*, brand:brand_id(*)')
+                .eq('influencer_id', user.id);
+
+            if (error) throw error;
+
+            console.log('Rooms fetched:', rooms.length);
+
+            // For each room, fetch the last message
+            const roomsWithLastMsg = await Promise.all(rooms.map(async (room) => {
+                const { data: msgs } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .eq('room_id', room.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                const lastMsg = msgs && msgs.length > 0 ? msgs[0] : null;
+
+                return {
+                    id: room.id,
+                    name: room.brand?.full_name || room.brand?.email || 'Bilinmeyen Marka',
+                    avatar: (room.brand?.full_name || 'B').substring(0, 2).toUpperCase(),
+                    isBrand: true,
+                    lastMessage: lastMsg ? lastMsg.content : 'Henüz mesaj yok.',
+                    time: lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                    unread: false, // Pending: implement unread logic
+                    pinned: false
+                };
+            }));
+
+            setConversations(roomsWithLastMsg);
+        } catch (error) {
+            console.error('Error fetching conversations:', error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const fetchMessages = async (roomId) => {
+        if (!roomId) return;
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('room_id', roomId)
+                .order('created_at', { ascending: true }); // Oldest first
+
+            if (error) throw error;
+
+            setMessages(prev => ({
+                ...prev,
+                [roomId]: data.map(m => ({
+                    id: m.id,
+                    text: m.content,
+                    sender: m.sender_id === currentUserId ? 'me' : 'them',
+                    time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }))
+            }));
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    };
+
+    const subscribeToMessages = (roomId) => {
+        if (subscriptionRef.current) {
+            subscriptionRef.current.unsubscribe();
+        }
+
+        subscriptionRef.current = supabase
+            .channel(`room:${roomId}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: `room_id=eq.${roomId}`
+            }, (payload) => {
+                const newMsg = payload.new;
+                setMessages(prev => ({
+                    ...prev,
+                    [roomId]: [...(prev[roomId] || []), {
+                        id: newMsg.id,
+                        text: newMsg.content,
+                        sender: newMsg.sender_id === currentUserId ? 'me' : 'them',
+                        time: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    }]
+                }));
+            })
+            .subscribe();
+    };
 
     const openChat = (chat) => {
         setSelectedChat(chat);
-        // Load messages for this chat if not already loaded, otherwise use initials
-        if (!messages[chat.id]) {
-            setMessages(prev => ({ ...prev, [chat.id]: chat.initialMessages }));
-        }
         setModalVisible(true);
+        fetchMessages(chat.id);
+        subscribeToMessages(chat.id);
     };
 
     const closeChat = () => {
         setModalVisible(false);
         setSelectedChat(null);
+        if (subscriptionRef.current) {
+            subscriptionRef.current.unsubscribe();
+            subscriptionRef.current = null;
+        }
+        // Refresh conversations to update last message/time in the list
+        fetchConversations();
     };
 
-    const sendMessage = () => {
-        if (inputText.trim() === '') return;
+    const sendMessage = async () => {
+        if (inputText.trim() === '' || !selectedChat || !currentUserId) return;
 
-        const newMessage = {
-            id: Date.now(),
-            text: inputText,
-            sender: 'me',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
+        const textToSend = inputText.trim();
+        setInputText(''); // Clear immediately
 
-        setMessages(prev => ({
-            ...prev,
-            [selectedChat.id]: [...(prev[selectedChat.id] || []), newMessage]
-        }));
+        try {
+            const { error } = await supabase
+                .from('messages')
+                .insert({
+                    room_id: selectedChat.id,
+                    sender_id: currentUserId,
+                    content: textToSend
+                });
 
-        setInputText('');
+            if (error) throw error;
+            // The subscription will handle adding it to the list
+        } catch (error) {
+            Alert.alert('Hata', 'Mesaj gönderilemedi.');
+            console.error(error);
+            setInputText(textToSend); // Restore text on error
+        }
     };
 
     return (

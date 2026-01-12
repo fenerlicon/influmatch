@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Platform, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, ShoppingBag, Send, MessageCircle, User } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Auth Screens
 import LoginScreen from './screens/LoginScreen';
@@ -12,6 +13,7 @@ import RegisterFormScreen from './screens/RegisterFormScreen';
 import VerifyEmailScreen from './screens/VerifyEmailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import IntroVideoScreen from './screens/IntroVideoScreen';
 
 // Influencer Screens
 import DashboardScreen from './screens/DashboardScreen'; // Home Tab
@@ -87,14 +89,47 @@ function InfluencerTabs() {
 }
 
 export default function App() {
+  const [initialRoute, setInitialRoute] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkIntroStatus();
+  }, []);
+
+  const checkIntroStatus = async () => {
+    try {
+      const hasSeenIntro = await AsyncStorage.getItem('hasSeenIntro');
+      if (hasSeenIntro === 'true') {
+        setInitialRoute('Login');
+      } else {
+        setInitialRoute('IntroVideo');
+      }
+    } catch (error) {
+      console.error('Error checking intro status:', error);
+      setInitialRoute('Login'); // Fallback
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: 'black', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#D4AF37" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
+        initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: 'black' }
         }}
       >
+        <Stack.Screen name="IntroVideo" component={IntroVideoScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="RegisterRole" component={RegisterRoleScreen} />
