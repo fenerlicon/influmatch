@@ -258,9 +258,19 @@ export default function OnboardingScreen({ navigation }) {
                 type={toast.type}
                 onHide={hideToast}
             />
-            <SafeAreaView className="flex-1">
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-                    <ScrollView className="flex-1 px-6 pt-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            {/* KeyboardAvoidingView moved to wrap content properly */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                className="flex-1"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+                <SafeAreaView className="flex-1">
+                    <ScrollView
+                        className="flex-1 px-6 pt-4"
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 100 }}
+                        keyboardShouldPersistTaps="handled"
+                    >
 
                         <Text className="text-soft-gold text-sm font-bold uppercase tracking-widest mb-2">Profilini Tamamla</Text>
                         <Text className="text-white text-3xl font-bold mb-6">
@@ -429,8 +439,8 @@ export default function OnboardingScreen({ navigation }) {
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
-                </KeyboardAvoidingView>
-            </SafeAreaView>
+                </SafeAreaView>
+            </KeyboardAvoidingView>
 
             <Modal visible={showCityModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCityModal(false)}>
                 <View className="flex-1 bg-midnight">

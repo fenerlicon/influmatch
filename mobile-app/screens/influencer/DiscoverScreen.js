@@ -1,257 +1,439 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, ImageBackground, Modal } from 'react-native';
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Image, TextInput, ActivityIndicator, Modal, Dimensions, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Search, Filter, Instagram, Award, ShieldCheck, Star, X, MapPin, Briefcase, Globe, Zap, Lock, Info, Sparkles, TrendingUp } from 'lucide-react-native';
+import { Search, Filter, BadgeCheck, X, MapPin, Briefcase, Sparkles, TrendingUp, Smartphone, ChevronRight, Award, Check, ArrowLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
-import { BlurView } from 'expo-blur';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = width * 0.42;
+
+// Genişletilmiş Rozet İsimleri (Türkçe)
+const BADGE_NAMES = {
+    'verified-account': 'Doğrulanmış Hesap',
+    'founder-member': 'Kurucu Üye',
+    'profile-expert': 'Profil Uzmanı',
+    'rising-star': 'Yükselen Yıldız',
+    'high-engagement': 'Yüksek Etkileşim',
+    'creative-mind': 'Yaratıcı Zihin',
+    'trend-setter': 'Trend Belirleyici',
+    'community-leader': 'Topluluk Lideri',
+    'early-adopter': 'Erken Üye',
+    'pro-member': 'Pro Üye',
+    'content-creator': 'İçerik Üreticisi',
+    'super-seller': 'Süper Satıcı',
+    'brand-favorite': 'Marka Favorisi',
+    'consistent-poster': 'İstikrarlı Paylaşım',
+    'elite-influencer': 'Elit Influencer'
+};
+
+// Kategori Çevirileri ve Normalizasyon
+const CATEGORY_MAP = {
+    'lifestyle': 'Yaşam Tarzı',
+    'Lifestyle': 'Yaşam Tarzı',
+    'food': 'Yeme & İçme',
+    'Food': 'Yeme & İçme',
+    'technology': 'Teknoloji',
+    'Technology': 'Teknoloji',
+    'tech': 'Teknoloji',
+    'fashion': 'Moda',
+    'Fashion': 'Moda',
+    'travel': 'Seyahat',
+    'Travel': 'Seyahat',
+    'beauty': 'Güzellik',
+    'Beauty': 'Güzellik',
+    'fitness': 'Spor & Fitness',
+    'Fitness': 'Spor & Fitness',
+    'gaming': 'Oyun',
+    'Gaming': 'Oyun',
+    'music': 'Müzik',
+    'art': 'Sanat',
+    'finance': 'Finans',
+    'education': 'Eğitim',
+    'health': 'Sağlık',
+    'business': 'İş Dünyası'
+};
+
+// Custom Verified Badge Component
+const VerifiedBadge = ({ size = 14 }) => (
+    <View className="relative items-center justify-center ml-1" style={{ width: size, height: size }}>
+        <BadgeCheck color="#3b82f6" fill="#3b82f6" size={size} className="absolute" />
+        <Check color="white" size={size * 0.6} strokeWidth={4} />
+    </View>
+);
+
+// --- COMPONENTS ---
+
+// Horizontal Influencer Card
+const InfluencerCard = memo(({ item, onPress, width: customWidth }) => {
+    const instagram = item.social_accounts?.[0];
+    const isVerified = item.verification_status === 'verified';
+    const isSpotlight = item.spotlight_active;
+
+    return (
+        <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onPress}
+            style={{ width: customWidth || CARD_WIDTH }}
+            className={`mr-4 relative ${customWidth ? 'mb-4 mr-0' : ''}`}
+        >
+            <View className={`h-64 rounded-2xl overflow-hidden bg-[#15171e] border ${isSpotlight ? 'border-purple-500 border-2 shadow-sm shadow-purple-500/30' : 'border-white/5'}`}>
+                <View className="h-40 w-full relative">
+                    {item.avatar_url ? (
+                        <Image
+                            source={{ uri: item.avatar_url?.includes('?') ? item.avatar_url : `${item.avatar_url}?w=400&q=80` }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                            fadeDuration={0}
+                        />
+                    ) : (
+                        <View className="w-full h-full items-center justify-center bg-[#1F2128]">
+                            <Text className="text-white font-bold text-2xl opacity-50">{item.username?.charAt(0).toUpperCase()}</Text>
+                        </View>
+                    )}
+
+                    <LinearGradient
+                        colors={['transparent', 'rgba(21, 23, 30, 1)']}
+                        className="absolute bottom-0 left-0 right-0 h-20"
+                    />
+
+                    {isSpotlight && (
+                        <LinearGradient
+                            colors={['rgba(168, 85, 247, 0.9)', 'rgba(168, 85, 247, 0.5)']}
+                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                            className="absolute top-2 right-2 px-2 py-0.5 rounded-md"
+                        >
+                            <Text className="text-white text-[9px] font-black tracking-widest">ÖNE ÇIKAN</Text>
+                        </LinearGradient>
+                    )}
+                </View>
+
+                <View className="flex-1 px-3 py-2 justify-between pb-3">
+                    <View>
+                        <View className="flex-row items-center space-x-1 mb-0.5">
+                            <Text className="text-white font-bold text-sm leading-5" numberOfLines={1}>
+                                {item.full_name || item.username}
+                            </Text>
+                            {isVerified && instagram && <VerifiedBadge size={14} />}
+                        </View>
+                        <Text className="text-gray-500 text-[10px]" numberOfLines={1}>@{item.username}</Text>
+                    </View>
+
+                    <View className="flex-row items-center space-x-3">
+                        <View>
+                            <Text className="text-white font-bold text-xs">
+                                {instagram?.follower_count ? (instagram.follower_count > 1000 ? (instagram.follower_count / 1000).toFixed(1) + 'K' : instagram.follower_count) : '-'}
+                            </Text>
+                            <Text className="text-gray-600 text-[8px] uppercase">Takipçi</Text>
+                        </View>
+                        <View className="w-[1px] h-4 bg-white/10" />
+                        <View>
+                            <Text className="text-soft-gold font-bold text-xs">
+                                {instagram?.engagement_rate ? instagram.engagement_rate + '%' : '-'}
+                            </Text>
+                            <Text className="text-gray-600 text-[8px] uppercase">Etkileşim</Text>
+                        </View>
+                    </View>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+});
+
+const CategorySection = memo(({ title, data, onProfilePress, onViewAll }) => {
+    if (!data || data.length === 0) return null;
+
+    return (
+        <View className="mb-8">
+            <View className="flex-row items-center justify-between px-6 mb-4">
+                <Text className="text-white font-bold text-lg tracking-tight">{title}</Text>
+                <TouchableOpacity onPress={() => onViewAll(title, data)} className="flex-row items-center p-1">
+                    <Text className="text-gray-500 text-xs font-medium mr-1">Tümü</Text>
+                    <ChevronRight color="#6b7280" size={14} />
+                </TouchableOpacity>
+            </View>
+
+            <FlatList
+                horizontal
+                data={data}
+                renderItem={({ item }) => <InfluencerCard item={item} onPress={() => onProfilePress(item)} />}
+                keyExtractor={item => item.id}
+                contentContainerStyle={{ paddingHorizontal: 24 }}
+                showsHorizontalScrollIndicator={false}
+                initialNumToRender={2}
+                maxToRenderPerBatch={2}
+                windowSize={3}
+                removeClippedSubviews={true}
+                getItemLayout={(data, index) => ({
+                    length: CARD_WIDTH + 16, // Card width + margin (mr-4 = 16px)
+                    offset: (CARD_WIDTH + 16) * index,
+                    index,
+                })}
+            />
+        </View>
+    );
+});
+
 
 export default function DiscoverScreen() {
-    const [influencers, setInfluencers] = useState([
-        {
-            id: 'mock1',
-            full_name: 'Aslı Yılmaz',
-            username: 'asliyilmaz',
-            avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80',
-            category: 'Moda & Giyim',
-            spotlight_active: true,
-            verification_status: 'verified',
-            social_accounts: [{ platform: 'instagram', follower_count: 45200, engagement_rate: 5.2 }]
-        },
-        {
-            id: 'mock2',
-            full_name: 'Berk Demir',
-            username: 'berkfit',
-            avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80',
-            category: 'Spor & Fitness',
-            spotlight_active: false,
-            verification_status: 'verified',
-            social_accounts: [{ platform: 'instagram', follower_count: 12800, engagement_rate: 8.4 }]
-        },
-        {
-            id: 'mock3',
-            full_name: 'Selin Tech',
-            username: 'selintech',
-            avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80',
-            category: 'Teknoloji',
-            spotlight_active: true,
-            verification_status: 'pending',
-            social_accounts: [{ platform: 'instagram', follower_count: 8500, engagement_rate: 3.1 }]
-        },
-        {
-            id: 'mock4',
-            full_name: 'Gurme Can',
-            username: 'yiyelimgezelim',
-            avatar_url: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80',
-            category: 'Yeme & İçme',
-            spotlight_active: false,
-            verification_status: 'verified',
-            social_accounts: [{ platform: 'instagram', follower_count: 156000, engagement_rate: 2.8 }]
-        }
-    ]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Modal & Selection
     const [selectedInfluencer, setSelectedInfluencer] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
 
-    const openProfile = (influencer) => {
+    // Category Detail Modal
+    const [selectedCategoryData, setSelectedCategoryData] = useState(null);
+    const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+
+    const [currentUserRole, setCurrentUserRole] = useState(null);
+    const [detailedBadges, setDetailedBadges] = useState([]);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    const openProfile = useCallback((influencer) => {
+        // If coming from category modal, keep category modal open beneath
         setSelectedInfluencer(influencer);
         setModalVisible(true);
-    };
+        fetchUserBadges(influencer.id);
+    }, []);
 
-    const closeProfile = () => {
+    const closeProfile = useCallback(() => {
         setModalVisible(false);
         setSelectedInfluencer(null);
+        setDetailedBadges([]);
+    }, []);
+
+    const openCategory = useCallback((title, data) => {
+        setSelectedCategoryData({ title, data });
+        setCategoryModalVisible(true);
+    }, []);
+
+    const closeCategory = useCallback(() => {
+        setCategoryModalVisible(false);
+        setSelectedCategoryData(null);
+    }, []);
+
+    const fetchUserBadges = async (userId) => {
+        setLoadingDetails(true);
+        try {
+            const { data, error } = await supabase
+                .from('user_badges')
+                .select('badge_id')
+                .eq('user_id', userId);
+
+            if (data) {
+                setDetailedBadges(data.map(b => b.badge_id));
+            }
+        } catch (e) {
+            console.log("Badge fetch error", e);
+        } finally {
+            setLoadingDetails(false);
+        }
     };
 
     useEffect(() => {
-        fetchInfluencers();
+        const fetchUserRole = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+                if (userData) setCurrentUserRole(userData.role);
+            }
+        };
+        fetchUserRole();
     }, []);
 
     const fetchInfluencers = async () => {
         try {
-            const { data, error } = await supabase
+            const { data: users, error: userError } = await supabase
                 .from('users')
-                .select(`
-                    id, 
-                    full_name, 
-                    username, 
-                    avatar_url, 
-                    category, 
-                    spotlight_active, 
-                    displayed_badges, 
-                    verification_status,
-                    social_accounts (
-                        platform,
-                        follower_count,
-                        engagement_rate
-                    )
-                `)
+                .select('id, full_name, username, avatar_url, category, city, spotlight_active, is_showcase_visible, verification_status')
                 .eq('role', 'influencer')
-                .eq('is_showcase_visible', true)
-                .order('spotlight_active', { ascending: false })
-                .limit(20);
+                .is('is_showcase_visible', true)  // Vitrin görünürlüğü AKTİF
+                // .eq('verification_status', 'verified') // (İsteğe bağlı: Doğrulanmış hesap şartı kapalı)
+                .neq('verification_status', 'pending') // Bekleyen hesaplar GİZLİ
+                .neq('verification_status', 'rejected') // Reddedilenler GİZLİ
+                .order('spotlight_active', { ascending: false });
 
-            if (data && data.length > 0) {
-                setInfluencers(data);
+            if (userError) {
+                console.log("User fetch error:", userError.message);
+                return;
             }
-            // If empty, keep dummy data (demo mode)
+            console.log("Fetched users count:", users ? users.length : 0);
+
+            if (!users || users.length === 0) {
+                console.log("No users found with role='influencer'");
+                setCategories([]);
+                return;
+            }
+
+            const userIds = users.map(u => u.id);
+            const { data: socialAccounts } = await supabase
+                .from('social_accounts')
+                .select('user_id, platform, follower_count, engagement_rate')
+                .in('user_id', userIds)
+                .eq('platform', 'instagram');
+
+            const allInfluencers = users.map(user => {
+                const account = socialAccounts?.find(a => a.user_id === user.id);
+                // Kategori Normalizasyonu
+                let cat = user.category || 'Diğer';
+                if (CATEGORY_MAP[cat]) {
+                    cat = CATEGORY_MAP[cat];
+                } else {
+                    cat = cat.charAt(0).toUpperCase() + cat.slice(1);
+                }
+
+                return {
+                    ...user,
+                    displayCategory: cat,
+                    social_accounts: account ? [account] : []
+                };
+            });
+
+            const grouped = [];
+
+            // Spotlight
+            // Verisi olmayan (Instagram bağlamamış) kullanıcılar öne çıkanlarda görünmesin
+            const spotlightUsers = allInfluencers.filter(u => u.spotlight_active && u.social_accounts && u.social_accounts.length > 0);
+            if (spotlightUsers.length > 0) {
+                grouped.push({ title: '🔥 Öne Çıkanlar', data: spotlightUsers });
+            }
+
+            // Categories
+            const categoryMap = {};
+            allInfluencers.forEach(user => {
+                const cat = user.displayCategory;
+                if (!categoryMap[cat]) categoryMap[cat] = [];
+                categoryMap[cat].push(user);
+            });
+
+            Object.keys(categoryMap).forEach(catTitle => {
+                if (categoryMap[catTitle].length > 0) {
+                    grouped.push({ title: catTitle, data: categoryMap[catTitle] });
+                }
+            });
+
+            setCategories(grouped);
+
         } catch (error) {
-            console.log('Error fetching influencers:', error);
+            console.log('Error:', error);
+            Alert.alert("Hata", "Veriler yüklenirken bir sorun oluştu.");
         } finally {
             setLoading(false);
         }
     };
 
-    const renderBadge = (badgeCode) => {
-        // Simple badge mapper based on string or ID
-        // In real app, you might map IDs to Icons
-        return (
-            <View className="bg-white/10 p-1 rounded-full mr-1">
-                <Star color="#D4AF37" size={10} fill="#D4AF37" />
-            </View>
-        );
-    };
+    useEffect(() => {
+        setLoading(true);
+        fetchInfluencers();
+    }, []);
 
-    if (loading) {
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await fetchInfluencers();
+        setRefreshing(false);
+    }, []);
+
+    if (loading && !refreshing) {
         return (
-            <View className="flex-1 bg-midnight items-center justify-center">
+            <View className="flex-1 bg-[#020617] items-center justify-center">
                 <ActivityIndicator color="#D4AF37" size="large" />
             </View>
         );
     }
 
     return (
-        <View className="flex-1 bg-midnight">
+        <View className="flex-1 bg-[#020617]">
             <StatusBar style="light" />
+            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
+
             <SafeAreaView className="flex-1" edges={['top']}>
-                <View className="px-6 pb-4 border-b border-white/5 bg-midnight pt-2">
-                    <Text className="text-soft-gold text-xs font-bold uppercase tracking-widest mb-1">VİTRİN</Text>
-                    <Text className="text-white text-3xl font-bold mb-4">Topluluğu Keşfet</Text>
+                <View className="px-6 pb-2 pt-2">
+                    <Text className="text-soft-gold text-xs font-bold uppercase tracking-widest mb-1">KEŞFET</Text>
+                    <Text className="text-white text-3xl font-bold mb-4 tracking-tight">Vitrin</Text>
 
-                    <Text className="text-gray-400 text-xs mb-4 leading-5">
-                        Diğer influencer profillerini incele, Spotlight vitrininde nasıl göründüğünü karşılaştır.
-                    </Text>
-
-                    <View className="flex-row space-x-3">
-                        <View className="flex-1 h-12 bg-surface border border-white/10 rounded-xl flex-row items-center px-4">
-                            <Search color="#6B7280" size={20} />
-                            <TextInput
-                                placeholder="Kullanıcı adı veya kategori..."
-                                placeholderTextColor="#6B7280"
-                                className="flex-1 ml-3 text-white font-medium"
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                        </View>
-                        <TouchableOpacity className="w-12 h-12 bg-surface border border-white/10 rounded-xl items-center justify-center">
-                            <Filter color="#D4AF37" size={20} />
-                        </TouchableOpacity>
+                    <View className="bg-white/5 border border-white/10 rounded-2xl flex-row items-center px-4 h-12 mb-4">
+                        <Search color="#6B7280" size={18} />
+                        <TextInput
+                            placeholder="Influencer ara..."
+                            placeholderTextColor="#6B7280"
+                            className="flex-1 ml-3 text-white font-medium text-sm"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
                     </View>
                 </View>
 
-                <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
-                    <View className="flex-row flex-wrap justify-between">
-                        {influencers.map((item) => {
-                            const instagram = item.social_accounts?.find(acc => acc.platform === 'instagram');
-                            const isVerified = item.verification_status === 'verified';
-                            const isSpotlight = item.spotlight_active;
-
-                            return (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    activeOpacity={0.9}
-                                    onPress={() => openProfile(item)}
-                                    className={`w-[48%] mb-4 bg-surface rounded-3xl overflow-hidden shadow-lg shadow-black/50 border ${isSpotlight ? 'border-purple-500 shadow-purple-500/20' : 'border-white/10'}`}
-                                >
-                                    <View className="h-32 bg-gray-800 relative items-center justify-center">
-                                        {/* Avatar Background Blur Effect */}
-                                        {item.avatar_url ? (
-                                            <Image
-                                                source={{ uri: item.avatar_url }}
-                                                className="absolute inset-0 w-full h-full opacity-50"
-                                                blurRadius={10}
-                                            />
-                                        ) : (
-                                            <LinearGradient colors={['#2A2D35', '#1F2128']} className="absolute inset-0" />
-                                        )}
-
-                                        <LinearGradient
-                                            colors={['transparent', 'rgba(15, 16, 20, 0.9)']}
-                                            className="absolute inset-0"
-                                        />
-
-                                        {/* Avatar */}
-                                        <View className={`absolute bottom-[-20px] w-16 h-16 rounded-full border-4 z-10 items-center justify-center overflow-hidden bg-gray-700 ${isSpotlight ? 'border-purple-500 shadow-purple-500/50' : 'border-surface'}`}>
-                                            {item.avatar_url ? (
-                                                <Image source={{ uri: item.avatar_url }} className="w-full h-full" />
-                                            ) : (
-                                                <Text className="text-white font-bold text-lg">{item.username?.charAt(0).toUpperCase()}</Text>
-                                            )}
-                                        </View>
-
-                                        {/* Spotlight Crown / Badge */}
-                                        {isSpotlight && (
-                                            <View className="absolute top-2 right-2 bg-purple-500 px-2 py-0.5 rounded text-[8px] shadow-lg shadow-purple-500/50">
-                                                <Text className="text-white text-[8px] font-bold">PRO</Text>
-                                            </View>
-                                        )}
-                                    </View>
-
-                                    <View className="pt-8 pb-4 px-3 items-center">
-                                        <View className="flex-row items-center justify-center space-x-1 mb-0.5">
-                                            <Text className="text-white font-bold text-base text-center" numberOfLines={1}>
-                                                {item.full_name || item.username}
-                                            </Text>
-                                            {isVerified && <ShieldCheck color="#4ade80" size={14} fill="#4ade80" />}
-                                        </View>
-
-                                        <Text className="text-gray-500 text-xs mb-2 text-center">@{item.username}</Text>
-
-                                        {/* Category Badge */}
-                                        {item.category && (
-                                            <View className="bg-white/5 py-1 px-3 rounded-full mb-3 border border-white/5">
-                                                <Text className="text-gray-300 text-[10px] uppercase font-bold" numberOfLines={1}>
-                                                    {Array.isArray(item.category) ? item.category[0] : item.category}
-                                                </Text>
-                                            </View>
-                                        )}
-
-                                        {/* Stats Row */}
-                                        <View className="flex-row items-center justify-center space-x-3 w-full border-t border-white/5 pt-3">
-                                            <View className="items-center">
-                                                <Text className="text-white font-bold text-xs">
-                                                    {instagram?.follower_count ? (instagram.follower_count > 1000 ? (instagram.follower_count / 1000).toFixed(1) + 'K' : instagram.follower_count) : '-'}
-                                                </Text>
-                                                <Text className="text-gray-600 text-[8px] uppercase">Takipçi</Text>
-                                            </View>
-                                            <View className="w-[1px] h-6 bg-white/10" />
-                                            <View className="items-center">
-                                                <Text className="text-white font-bold text-xs">
-                                                    {instagram?.engagement_rate ? instagram.engagement_rate + '%' : '-'}
-                                                </Text>
-                                                <Text className="text-gray-600 text-[8px] uppercase">Etkileşim</Text>
-                                            </View>
-                                        </View>
-
-                                        {/* Badges Row */}
-                                        {/* <View className="flex-row mt-3 justify-center">
-                                            {renderBadge()}
-                                            {renderBadge()}
-                                        </View> */}
-                                    </View>
-                                </TouchableOpacity>
-                            )
-                        })}
-                        {influencers.length === 0 && !loading && (
-                            <Text className="text-gray-500 text-center w-full mt-10">Kriterlere uygun influencer bulunamadı.</Text>
-                        )}
-                    </View>
-                    <View className="h-24" />
-                </ScrollView>
+                <FlatList
+                    data={categories}
+                    keyExtractor={(item) => item.title}
+                    renderItem={({ item }) => (
+                        <CategorySection
+                            title={item.title}
+                            data={item.data}
+                            onProfilePress={openProfile}
+                            onViewAll={openCategory}
+                        />
+                    )}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4AF37" />
+                    }
+                    ListEmptyComponent={
+                        !loading && <Text className="text-gray-500 text-center mt-10">Kriterlere uygun influencer bulunamadı.</Text>
+                    }
+                />
             </SafeAreaView>
-            {/* Profile Detail Modal */}
+
+            {/* --- CATEGORY DETAIL MODAL (FULL SCREEN) --- */}
+            <Modal
+                animationType="slide"
+                transparent={false}
+                visible={categoryModalVisible}
+                onRequestClose={closeCategory}
+            >
+                <View className="flex-1 bg-[#020617]">
+                    <StatusBar style="light" />
+                    <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
+
+                    <SafeAreaView className="flex-1" edges={['top']}>
+                        {/* Header */}
+                        <View className="px-6 py-4 flex-row items-center space-x-4 border-b border-white/5">
+                            <TouchableOpacity onPress={closeCategory} className="w-10 h-10 bg-white/5 rounded-full items-center justify-center border border-white/10">
+                                <ArrowLeft color="white" size={24} />
+                            </TouchableOpacity>
+                            <Text className="text-white text-xl font-bold flex-1" numberOfLines={1}>{selectedCategoryData?.title}</Text>
+                        </View>
+
+                        {/* Grid List */}
+                        <FlatList
+                            data={selectedCategoryData?.data}
+                            keyExtractor={item => item.id}
+                            numColumns={2}
+                            columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 24 }}
+                            contentContainerStyle={{ paddingVertical: 20, paddingBottom: 100 }}
+                            renderItem={({ item }) => (
+                                <InfluencerCard
+                                    item={item}
+                                    onPress={() => openProfile(item)}
+                                    width={(width - 48 - 16) / 2} // (Screen - Padding - Gap) / 2
+                                />
+                            )}
+                        />
+                    </SafeAreaView>
+                </View>
+            </Modal>
+
+
+            {/* --- PROFILE DETAIL MODAL (BOTTOM SHEET) --- */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -260,173 +442,145 @@ export default function DiscoverScreen() {
             >
                 {selectedInfluencer && (
                     <View className="flex-1 bg-black/90 justify-end">
-                        <View className="h-[90%] bg-midnight rounded-t-[32px] border-t border-white/10 overflow-hidden relative">
-                            {/* Modal Header Image */}
-                            <View className="h-48 w-full relative">
-                                <Image
-                                    source={{ uri: selectedInfluencer.avatar_url }}
-                                    className="w-full h-full opacity-60"
-                                    blurRadius={20}
-                                />
-                                <LinearGradient
-                                    colors={['transparent', '#0F1014']}
-                                    className="absolute inset-0"
-                                />
-                                <TouchableOpacity
-                                    onPress={closeProfile}
-                                    className="absolute top-4 right-4 w-10 h-10 bg-black/30 rounded-full items-center justify-center border border-white/10 z-50">
-                                    <X color="white" size={20} />
+                        <TouchableOpacity className="flex-1" onPress={closeProfile} />
+
+                        <View className="h-[90%] bg-[#0B0F19] rounded-t-[32px] overflow-hidden relative shadow-2xl border-t border-white/10">
+                            <View className="absolute top-0 left-0 right-0 z-50 flex-row justify-between items-center px-6 pt-5 pb-2">
+                                <View />
+                                <TouchableOpacity onPress={closeProfile} className="w-9 h-9 bg-black/40 rounded-full items-center justify-center border border-white/10 backdrop-blur-md">
+                                    <X color="white" size={18} />
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Profile Content */}
-                            <ScrollView className="flex-1 px-6 -mt-12">
-                                <View className="items-center mb-6">
-                                    <View className={`w-28 h-28 rounded-full border-4 items-center justify-center overflow-hidden bg-gray-700 mb-4 ${selectedInfluencer.spotlight_active ? 'border-purple-500 shadow-lg shadow-purple-500/50' : 'border-surface'}`}>
-                                        <Image source={{ uri: selectedInfluencer.avatar_url }} className="w-full h-full" />
-                                    </View>
+                            <FlatList
+                                data={[selectedInfluencer]}
+                                keyExtractor={item => item.id}
+                                contentContainerStyle={{ paddingBottom: 100 }}
+                                renderItem={({ item }) => {
+                                    const instagram = item.social_accounts?.[0];
+                                    const hasInstagram = !!instagram;
+                                    const updateDate = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+                                    const isVerified = item.verification_status === 'verified';
 
-                                    <View className="flex-row items-center space-x-2 mb-1">
-                                        <Text className="text-white text-2xl font-bold">{selectedInfluencer.full_name}</Text>
-                                        {selectedInfluencer.verification_status === 'verified' && <ShieldCheck color="#4ade80" size={20} fill="#4ade80" />}
-                                    </View>
-                                    <Text className="text-gray-400 text-sm font-medium mb-3">@{selectedInfluencer.username}</Text>
+                                    return (
+                                        <View>
+                                            {/* Header */}
+                                            <View className="items-center pt-16 pb-6 px-6 bg-[#0F1119] border-b border-dashed border-white/5 relative">
+                                                <LinearGradient colors={['rgba(168, 85, 247, 0.05)', 'transparent']} className="absolute inset-0" />
 
-                                    {/* Tags */}
-                                    <View className="flex-row space-x-2 mb-6">
-                                        <View className="bg-white/5 px-3 py-1.5 rounded-full border border-white/10 flex-row items-center">
-                                            <Briefcase color="#D4AF37" size={12} className="mr-1.5" />
-                                            <Text className="text-gray-300 text-xs font-bold uppercase">{selectedInfluencer.category}</Text>
-                                        </View>
-                                        <View className="bg-white/5 px-3 py-1.5 rounded-full border border-white/10 flex-row items-center">
-                                            <MapPin color="#6B7280" size={12} className="mr-1.5" />
-                                            <Text className="text-gray-300 text-xs text-center">İstanbul, TR</Text>
-                                        </View>
-                                    </View>
+                                                <View className={`w-28 h-28 rounded-full border-4 items-center justify-center overflow-hidden bg-[#15171e] mb-4 shadow-xl ${item.spotlight_active ? 'border-purple-500 shadow-purple-500/20' : 'border-[#2A2D35]'}`}>
+                                                    {item.avatar_url ? (
+                                                        <Image source={{ uri: item.avatar_url }} className="w-full h-full" resizeMode="cover" />
+                                                    ) : (
+                                                        <Text className="text-white text-3xl font-bold opacity-50">{item.username?.charAt(0).toUpperCase()}</Text>
+                                                    )}
+                                                </View>
 
-                                    {/* Stats Cards */}
-                                    <View className="flex-row justify-between w-full mb-8">
-                                        <View className="bg-surface p-4 rounded-2xl border border-white/5 w-[30%] items-center">
-                                            <Text className="text-white font-bold text-lg mb-1">
-                                                {selectedInfluencer.social_accounts[0]?.follower_count > 1000
-                                                    ? (selectedInfluencer.social_accounts[0]?.follower_count / 1000).toFixed(1) + 'K'
-                                                    : selectedInfluencer.social_accounts[0]?.follower_count}
-                                            </Text>
-                                            <Text className="text-gray-500 text-[10px] uppercase font-bold text-center">Takipçi</Text>
-                                        </View>
-                                        <View className="bg-surface p-4 rounded-2xl border border-white/5 w-[30%] items-center">
-                                            <Text className="text-white font-bold text-lg mb-1">%{selectedInfluencer.social_accounts[0]?.engagement_rate}</Text>
-                                            <Text className="text-gray-500 text-[10px] uppercase font-bold text-center">Etkileşim</Text>
-                                        </View>
-                                        <View className="bg-surface p-4 rounded-2xl border border-white/5 w-[30%] items-center">
-                                            <Text className="text-white font-bold text-lg mb-1">4.9</Text>
-                                            <Text className="text-gray-500 text-[10px] uppercase font-bold text-center">Rating</Text>
-                                        </View>
-                                    </View>
+                                                <View className="flex-row items-center space-x-2 mb-1">
+                                                    <Text className="text-white text-2xl font-bold tracking-tight text-center">{item.full_name || item.username}</Text>
+                                                    {isVerified && hasInstagram && <VerifiedBadge size={22} />}
+                                                </View>
+                                                <Text className="text-gray-400 text-sm font-medium mb-3">@{item.username}</Text>
 
-                                    {/* Info Bar */}
-                                    <View className="w-full bg-surface px-4 py-3 rounded-xl border border-white/5 mb-6 flex-row justify-between items-center">
-                                        <View className="flex-1 mr-4">
-                                            <View className="flex-row items-center mb-1">
-                                                <View className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
-                                                <Text className="text-gray-300 text-[10px] font-bold">Son 6 gönderi analiz edildi</Text>
+                                                <View className="flex-row items-center space-x-2">
+                                                    {item.displayCategory && (
+                                                        <View className="bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                                                            <Text className="text-white/80 text-[10px] font-bold uppercase tracking-wider">{item.displayCategory}</Text>
+                                                        </View>
+                                                    )}
+                                                    <View className="bg-white/5 px-3 py-1 rounded-full border border-white/10 flex-row items-center">
+                                                        <MapPin size={10} color="#9ca3af" className="mr-1" />
+                                                        <Text className="text-white/80 text-[10px] font-bold uppercase tracking-wider">{item.city || 'Türkiye'}</Text>
+                                                    </View>
+                                                </View>
                                             </View>
-                                            <View className="flex-row items-center">
-                                                <Info color="#4B5563" size={10} className="mr-1" />
-                                                <Text className="text-gray-500 text-[9px] flex-1" numberOfLines={1}>Not: Etkileşim verileri son paylaşılan içerikleri baz alır.</Text>
-                                            </View>
-                                        </View>
-                                        <View className="items-end">
-                                            <Text className="text-gray-600 text-[8px]">Son Güncelleme</Text>
-                                            <Text className="text-gray-400 text-[9px] font-bold">8 Ocak 2026</Text>
-                                        </View>
-                                    </View>
 
-                                    {/* Analysis Card */}
-                                    <View className="w-full bg-surface rounded-3xl border border-soft-gold/30 p-5 mb-6 shadow-2xl shadow-soft-gold/5 relative overflow-hidden">
-                                        {/* Glow Effect */}
-                                        <LinearGradient
-                                            colors={['rgba(212,175,55,0.05)', 'transparent']}
-                                            className="absolute inset-0"
-                                        />
+                                            <View className="px-6 py-6">
+                                                {/* Stats */}
+                                                <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">PERFORMANS</Text>
 
-                                        {/* Tabs */}
-                                        <View className="flex-row mb-5 space-x-3">
-                                            <View className="bg-soft-gold/10 border border-soft-gold/20 px-3 py-1.5 rounded-lg flex-row items-center">
-                                                <Sparkles color="#D4AF37" size={10} className="mr-1.5" />
-                                                <Text className="text-soft-gold text-[10px] font-bold">Genel Özet</Text>
-                                            </View>
-                                            <View className="bg-white/5 border border-white/5 px-3 py-1.5 rounded-lg flex-row items-center opacity-50">
-                                                <Lock color="#9CA3AF" size={10} className="mr-1.5" />
-                                                <Text className="text-gray-400 text-[10px] font-bold">AI Uyum Skoru</Text>
-                                                <Text className="text-[#333] text-[8px] font-bold ml-1 bg-[#111] px-1 rounded">SPOTLIGHT</Text>
-                                            </View>
-                                        </View>
+                                                {hasInstagram ? (
+                                                    <View className="flex-row space-x-3 mb-4">
+                                                        <View className="flex-1 bg-[#15171e] rounded-2xl p-4 border border-white/5 relative overflow-hidden">
+                                                            <LinearGradient colors={['rgba(255,255,255,0.03)', 'transparent']} className="absolute inset-0" />
+                                                            <Text className="text-gray-400 text-[10px] uppercase font-bold mb-1">Takipçi</Text>
+                                                            <Text className="text-white text-2xl font-black">
+                                                                {instagram.follower_count > 1000 ? (instagram.follower_count / 1000).toFixed(1) + 'K' : instagram.follower_count}
+                                                            </Text>
+                                                        </View>
+                                                        <View className="flex-1 bg-[#15171e] rounded-2xl p-4 border border-white/5 relative overflow-hidden">
+                                                            <LinearGradient colors={['rgba(168, 85, 247, 0.05)', 'transparent']} className="absolute inset-0" />
+                                                            <Text className="text-purple-400 text-[10px] uppercase font-bold mb-1">Etkileşim</Text>
+                                                            <Text className="text-white text-2xl font-black">%{instagram.engagement_rate}</Text>
+                                                        </View>
+                                                    </View>
+                                                ) : (
+                                                    <View className="w-full bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-4">
+                                                        <Text className="text-red-200 text-xs font-medium">Veriler henüz doğrulanmadı.</Text>
+                                                    </View>
+                                                )}
 
-                                        {/* Header */}
-                                        <View className="flex-row items-center mb-4">
-                                            <View className="w-8 h-8 rounded-full bg-soft-gold items-center justify-center mr-3 shadow-lg shadow-soft-gold/50">
-                                                <Zap color="#0F1014" size={16} fill="#0F1014" />
-                                            </View>
-                                            <Text className="text-white font-bold text-lg mr-2">Detaylı Profil Analizi</Text>
-                                            <View className="bg-white/10 px-1.5 py-0.5 rounded border border-white/10">
-                                                <Text className="text-gray-400 text-[8px] font-bold">BETA</Text>
-                                            </View>
-                                        </View>
+                                                {/* AI Summary */}
+                                                <View className="mb-8 mt-4">
+                                                    <View className="flex-row items-center justify-between mb-3">
+                                                        <View className="flex-row items-center">
+                                                            <Sparkles color="#a855f7" size={14} className="mr-2" />
+                                                            <Text className="text-white font-bold text-sm">Yapay Zeka Özeti</Text>
+                                                        </View>
+                                                        <View className="bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                                                            <Text className="text-purple-300 text-[9px] font-bold">INFLU AI</Text>
+                                                        </View>
+                                                    </View>
+                                                    <View className="bg-[#15171e] p-4 rounded-2xl border border-white/5">
+                                                        <Text className="text-gray-300 text-xs leading-5 font-light">
+                                                            Bu profil, özellikle <Text className="text-purple-300 font-bold">{item.displayCategory}</Text> alanında tutarlı bir büyüme sergiliyor.
+                                                            {hasInstagram && instagram.engagement_rate > 3 && " Marka işbirlikleri için yüksek potansiyel."}
+                                                        </Text>
+                                                    </View>
+                                                </View>
 
-                                        {/* Analysis Items */}
-                                        <View className="space-y-2">
-                                            <View className="bg-white/5 p-3 rounded-xl border border-white/5 flex-row items-center">
-                                                <TrendingUp color="#D4AF37" size={14} className="mr-3" />
-                                                <Text className="text-gray-300 text-xs font-medium">Gelişmekte olan bir etkileşim grafiği var.</Text>
-                                            </View>
-                                            <View className="bg-white/5 p-3 rounded-xl border border-white/5 flex-row items-center mt-2">
-                                                <TrendingUp color="#D4AF37" size={14} className="mr-3" />
-                                                <Text className="text-gray-300 text-xs font-medium">Niş kitlelere hitap eden Micro Influencer.</Text>
-                                            </View>
-                                            <View className="bg-white/5 p-3 rounded-xl border border-white/5 flex-row items-center mt-2">
-                                                <TrendingUp color="#D4AF37" size={14} className="mr-3" />
-                                                <Text className="text-gray-300 text-xs font-medium">Takipçileriyle güçlü bir iletişimi var.</Text>
-                                            </View>
-                                        </View>
+                                                {/* BADGES (Fetched Full List) */}
+                                                <View className="mb-8">
+                                                    <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">ROZETLER</Text>
+                                                    <View className="flex-row flex-wrap">
+                                                        {detailedBadges.length > 0 ? (
+                                                            detailedBadges.map((badge, index) => (
+                                                                <View key={index} className="bg-[#15171e] border border-white/5 px-3 py-2 rounded-xl mr-2 mb-2 flex-row items-center">
+                                                                    <Award size={14} color="#D4AF37" className="mr-2" />
+                                                                    <Text className="text-gray-300 text-[11px] font-medium">
+                                                                        {BADGE_NAMES[badge] || badge.replace(/[-_]/g, ' ')}
+                                                                    </Text>
+                                                                </View>
+                                                            ))
+                                                        ) : (
+                                                            <Text className="text-gray-600 text-xs italic ml-1">Henüz rozet kazanılmamış.</Text>
+                                                        )}
+                                                    </View>
+                                                </View>
 
-                                        <Text className="text-gray-600 text-[8px] mt-4 text-center">* Bu analiz Gemini AI tarafından oluşturulmuştur.</Text>
-                                    </View>
-
-                                    {/* Badges Row in Modal */}
-                                    <View className="w-full mb-6">
-                                        <Text className="text-white font-bold text-base mb-3">Rozetler</Text>
-                                        <View className="flex-row flex-wrap">
-                                            <View className="bg-white/5 px-3 py-2 rounded-xl border border-white/10 mr-2 mb-2 flex-row items-center">
-                                                <Star color="#D4AF37" size={12} className="mr-2" />
-                                                <Text className="text-gray-300 text-xs text-center">Yükselen Yıldız</Text>
-                                            </View>
-                                            <View className="bg-white/5 px-3 py-2 rounded-xl border border-white/10 mr-2 mb-2 flex-row items-center">
-                                                <Award color="#A855F7" size={12} className="mr-2" />
-                                                <Text className="text-gray-300 text-xs text-center">Güvenilir</Text>
+                                                {/* About */}
+                                                <View className="mb-24">
+                                                    <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">HAKKINDA</Text>
+                                                    <Text className="text-gray-300 text-sm leading-6 font-light">
+                                                        {item.bio || 'Merhaba! Influmatch topluluğunun bir parçasıyım.'}
+                                                    </Text>
+                                                </View>
                                             </View>
                                         </View>
-                                    </View>
+                                    );
+                                }}
+                            />
 
-                                    {/* Bio / About */}
-                                    <View className="w-full bg-surface p-5 rounded-2xl border border-white/5 mb-6">
-                                        <Text className="text-white font-bold text-base mb-2">Hakkında</Text>
-                                        <Text className="text-gray-400 text-sm leading-6">
-                                            Merhaba! Ben {selectedInfluencer.full_name}, {selectedInfluencer.category} alanında içerik üretiyorum. Markalarla yaratıcı projelerde çalışmayı seviyorum. Profesyonel iş birlikleri için bana ulaşabilirsiniz.
-                                        </Text>
-                                    </View>
-
-                                    {/* Action Buttons */}
-                                    {/* Only show 'Teklif Ver' if user is Brand (Currently logged in user role logic needed, but UI shown) */}
+                            {currentUserRole === 'brand' && (
+                                <View className="absolute bottom-0 left-0 right-0 p-6 bg-[#0B0F19] border-t border-white/5">
                                     <TouchableOpacity
-                                        className="w-full bg-soft-gold h-14 rounded-xl items-center justify-center mb-10 shadow-lg shadow-soft-gold/20"
-                                        onPress={() => alert('Teklif verme ekranına yönlendiriliyor...')}
+                                        onPress={() => Alert.alert("Bilgi", "Mesajlaşma özelliği yakında aktif!")}
+                                        className="w-full bg-soft-gold h-14 rounded-2xl items-center justify-center flex-row shadow-lg shadow-soft-gold/20"
                                     >
-                                        <Text className="text-midnight font-bold text-base uppercase tracking-wider">Teklif Gönder</Text>
+                                        <Text className="text-black font-extrabold text-base tracking-wide uppercase">İLETİŞİME GEÇ</Text>
                                     </TouchableOpacity>
-
                                 </View>
-                            </ScrollView>
+                            )}
                         </View>
                     </View>
                 )}

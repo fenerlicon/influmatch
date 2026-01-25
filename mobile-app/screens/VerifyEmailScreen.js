@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
@@ -97,103 +97,112 @@ export default function VerifyEmailScreen({ route, navigation }) {
                 onHide={hideToast}
             />
 
-            <SafeAreaView className="flex-1 px-6">
-
-                {/* Header */}
-                <TouchableOpacity
-                    onPress={() => navigation.goBack()}
-                    className="w-10 h-10 bg-white/5 rounded-full items-center justify-center border border-white/5 mt-4"
-                >
-                    <ArrowLeft color="white" size={20} />
-                </TouchableOpacity>
-
-                <View className="flex-1 items-center justify-center -mt-20">
-
-                    {/* İkon */}
-                    <View className="w-24 h-24 bg-soft-gold/10 rounded-full items-center justify-center mb-6 border border-soft-gold/20">
-                        <MailOpen color="#D4AF37" size={40} />
-                    </View>
-
-                    <Text className="text-white text-3xl font-bold mb-3 text-center">E-Postanı Doğrula</Text>
-                    <Text className="text-gray-400 text-center text-sm px-4 mb-2 leading-6">
-                        <Text className="text-white font-bold">{email}</Text> adresine gönderdiğimiz 6 haneli doğrulama kodunu gir.
-                    </Text>
-                    <Text className="text-gray-500 text-[10px] text-center mb-10">
-                        Lütfen spam klasörünü de kontrol etmeyi unutma.
-                    </Text>
-
-                    {/* Code Input UI */}
-                    <View className="relative mb-8 w-full items-center">
-                        <TextInput
-                            ref={inputRef}
-                            value={code}
-                            onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').substr(0, 6))}
-                            keyboardType="number-pad"
-                            className="absolute w-full h-16 opacity-0" // Gizli input
-                            autoFocus={true}
-                        />
-
-                        {/* Görsel Kutular */}
-                        {/* Fixed to 6 digits to match Supabase default and validation logic */}
-                        <View className="flex-row justify-center w-full flex-wrap gap-2" pointerEvents="none">
-                            {[0, 1, 2, 3, 4, 5].map((i) => {
-                                const digit = code[i];
-                                const isActive = i === code.length;
-                                return (
-                                    <View
-                                        key={i}
-                                        className={`w-11 h-14 rounded-xl border items-center justify-center bg-surface transition-all ${isActive ? 'border-soft-gold bg-soft-gold/5' :
-                                            digit ? 'border-white/30' : 'border-white/10'
-                                            }`}
-                                    >
-                                        <Text className="text-white text-2xl font-bold">
-                                            {digit || ''}
-                                        </Text>
-                                    </View>
-                                );
-                            })}
-                        </View>
-                    </View>
-
-                    {/* Buton */}
-                    <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={handleVerify}
-                        disabled={loading || code.length !== 6}
-                        className={`w-full overflow-hidden rounded-2xl shadow-lg shadow-soft-gold/20 ${code.length !== 6 ? 'opacity-50' : ''}`}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+            >
+                <SafeAreaView className="flex-1">
+                    <ScrollView
+                        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24 }}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        <LinearGradient
-                            colors={['#D4AF37', '#b89428']}
-                            className="h-14 items-center justify-center"
+                        {/* Header */}
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            className="w-10 h-10 bg-white/5 rounded-full items-center justify-center border border-white/5 mt-4"
                         >
-                            {loading ? (
-                                <ActivityIndicator color="black" />
-                            ) : (
-                                <Text className="text-[#0B0F19] font-bold text-lg">Doğrula ve Devam Et</Text>
-                            )}
-                        </LinearGradient>
-                    </TouchableOpacity>
+                            <ArrowLeft color="white" size={20} />
+                        </TouchableOpacity>
 
-                    {/* Sayaç ve Yeniden Gönder */}
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={handleResend}
-                        disabled={timeLeft > 0}
-                        className={`mt-6 w-full py-4 rounded-xl border items-center justify-center ${timeLeft > 0
-                                ? 'border-white/10 bg-white/5'
-                                : 'border-soft-gold/50 bg-soft-gold/10'
-                            }`}
-                    >
-                        <Text className={`font-medium ${timeLeft > 0 ? 'text-gray-500' : 'text-soft-gold'}`}>
-                            {timeLeft > 0
-                                ? `Yeni kod için bekle: ${timeLeft}sn`
-                                : 'Kodu Tekrar Gönder'
-                            }
-                        </Text>
-                    </TouchableOpacity>
+                        <View className="flex-1 items-center justify-center min-h-[500px]">
 
-                </View>
-            </SafeAreaView>
+                            {/* İkon */}
+                            <View className="w-24 h-24 bg-soft-gold/10 rounded-full items-center justify-center mb-6 border border-soft-gold/20">
+                                <MailOpen color="#D4AF37" size={40} />
+                            </View>
+
+                            <Text className="text-white text-3xl font-bold mb-3 text-center">E-Postanı Doğrula</Text>
+                            <Text className="text-gray-400 text-center text-sm px-4 mb-2 leading-6">
+                                <Text className="text-white font-bold">{email}</Text> adresine gönderdiğimiz 6 haneli doğrulama kodunu gir.
+                            </Text>
+                            <Text className="text-gray-500 text-[10px] text-center mb-10">
+                                Lütfen spam klasörünü de kontrol etmeyi unutma.
+                            </Text>
+
+                            {/* Code Input UI */}
+                            <View className="relative mb-8 w-full items-center">
+                                <TextInput
+                                    ref={inputRef}
+                                    value={code}
+                                    onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').substr(0, 6))}
+                                    keyboardType="number-pad"
+                                    className="absolute w-full h-16 opacity-0" // Gizli input
+                                    autoFocus={true}
+                                />
+
+                                {/* Görsel Kutular */}
+                                {/* Fixed to 6 digits to match Supabase default and validation logic */}
+                                <View className="flex-row justify-center w-full flex-wrap gap-2" pointerEvents="none">
+                                    {[0, 1, 2, 3, 4, 5].map((i) => {
+                                        const digit = code[i];
+                                        const isActive = i === code.length;
+                                        return (
+                                            <View
+                                                key={i}
+                                                className={`w-11 h-14 rounded-xl border items-center justify-center bg-surface transition-all ${isActive ? 'border-soft-gold bg-soft-gold/5' :
+                                                    digit ? 'border-white/30' : 'border-white/10'
+                                                    }`}
+                                            >
+                                                <Text className="text-white text-2xl font-bold">
+                                                    {digit || ''}
+                                                </Text>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+
+                            {/* Buton */}
+                            <TouchableOpacity
+                                activeOpacity={0.9}
+                                onPress={handleVerify}
+                                disabled={loading || code.length !== 6}
+                                className={`w-full overflow-hidden rounded-2xl shadow-lg shadow-soft-gold/20 ${code.length !== 6 ? 'opacity-50' : ''}`}
+                            >
+                                <LinearGradient
+                                    colors={['#D4AF37', '#b89428']}
+                                    className="h-14 items-center justify-center"
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="black" />
+                                    ) : (
+                                        <Text className="text-[#0B0F19] font-bold text-lg">Doğrula ve Devam Et</Text>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            {/* Sayaç ve Yeniden Gönder */}
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={handleResend}
+                                disabled={timeLeft > 0}
+                                className={`mt-6 w-full py-4 rounded-xl border items-center justify-center ${timeLeft > 0
+                                    ? 'border-white/10 bg-white/5'
+                                    : 'border-soft-gold/50 bg-soft-gold/10'
+                                    }`}
+                            >
+                                <Text className={`font-medium ${timeLeft > 0 ? 'text-gray-500' : 'text-soft-gold'}`}>
+                                    {timeLeft > 0
+                                        ? `Yeni kod için bekle: ${timeLeft}sn`
+                                        : 'Kodu Tekrar Gönder'
+                                    }
+                                </Text>
+                            </TouchableOpacity>
+
+                        </View>
+                    </ScrollView>
+                </SafeAreaView>
+            </KeyboardAvoidingView>
         </View>
     );
 }

@@ -52,7 +52,29 @@ export default async function BrandAdvertPage() {
   if (myProjectIdsForFilter.length > 0) {
     const result = await supabase
       .from('advert_applications')
-      .select(`id, advert_id, influencer_id, cover_letter, deliverable_idea, budget_expectation, status, created_at`)
+      .select(`
+        id, 
+        advert_id, 
+        influencer_id, 
+        cover_letter, 
+        deliverable_idea, 
+        budget_expectation, 
+        status, 
+        created_at,
+        room_id,
+        has_messages,
+        influencer:influencer_id (
+          id,
+          full_name,
+          username,
+          avatar_url,
+          verification_status
+        ),
+        advert:advert_id (
+          title,
+          category
+        )
+      `)
       .in('advert_id', myProjectIdsForFilter)
       .order('created_at', { ascending: false })
     applicationRows = result.data
@@ -137,30 +159,30 @@ export default async function BrandAdvertPage() {
   const myProjects: AdvertProject[] = myRows?.map((row) => mapRowToProject(row, false)) ?? []
   const myProjectIds = myRows?.map((row) => row.id).filter(Boolean) ?? []
 
-  // Ensure applications are mapped correctly if used in tabs
-  // The tabs component might expect applications. 
-  // Looking at BrandAdvertTabs usage in previous turn/files:
-  // <BrandAdvertTabs myProjects={myProjects} communityProjects={openProjects} applications={applications} ... />
-
-  const myApplications: AdvertApplication[] = (applicationRows ?? []).map((row: any) => {
-    // mapping logic similar to influencer page but simplified for brand?
-    // actually BrandAdvertTabs usually takes `applications` as AdvertApplication[]
-    // We need to map applicationRows to AdvertApplication type.
-
-    // For now, let's look at what BrandAdvertTabs expects.
-    // I'll assume standard mapping or maybe the component handles raw data? No, it expects typed data.
-    return {
-      id: row.id,
-      advert_id: row.advert_id,
-      advert_title: 'Yükleniyor...', // simplified as we might not have all joins here efficiently ?
-      // actually we fetched applications with basic fields.
-      // Let's retry to be safe and just enable the tabs.
-      status: row.status,
-      created_at: row.created_at,
-      influencer: { id: row.influencer_id, full_name: 'Influencer', username: 'user', avatar_url: null }, // placeholders if not joined
-      // This might be risky. 
-    } as any // Temporary casting to get it running, or I should check BrandAdvertTabs props.
-  })
+  const myApplications: AdvertApplication[] = (applicationRows ?? []).map((row: any) => ({
+    id: row.id,
+    advert_id: row.advert_id,
+    advert_title: row.advert?.title ?? 'Bilinmeyen İlan',
+    advert_category: row.advert?.category ?? null,
+    influencer: {
+      id: row.influencer?.id ?? row.influencer_id,
+      full_name: row.influencer?.full_name ?? null,
+      username: row.influencer?.username ?? null,
+      avatar_url: row.influencer?.avatar_url ?? null,
+      verification_status: row.influencer?.verification_status ?? null,
+    },
+    // For brand view, we don't necessarily need brand details in the application object 
+    // as we are the brand, but we can populate it if needed or leave undefined.
+    // The AdvertApplicationsList uses it for Avatar if 'isInfluencerView' is true.
+    // Here logic is clearer. 
+    cover_letter: row.cover_letter,
+    deliverable_idea: row.deliverable_idea,
+    budget_expectation: row.budget_expectation,
+    status: row.status,
+    created_at: row.created_at,
+    room_id: row.room_id,
+    has_messages: row.has_messages
+  }))
   // actually, look at line 4 imports: `import BrandAdvertTabs from '@/components/dashboard/BrandAdvertTabs'`
 
   // Let's just restore the return block assuming the commented out variables are available.
@@ -185,7 +207,7 @@ export default async function BrandAdvertPage() {
       <BrandAdvertTabs
         myProjects={myProjects}
         communityProjects={openProjects}
-        applications={[]} // Passing empty for now to avoid mapping errors, can fix later
+        applications={myApplications}
         currentUserId={user.id}
         myProjectIds={myProjectIds}
         verificationStatus={verificationStatus}

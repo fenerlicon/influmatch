@@ -90,7 +90,7 @@ export default function BrandAdvertTabs({ myProjects, communityProjects, applica
         ) : activeTab === 'mine' ? (
           <BrandAdvertManager projects={myProjects} verificationStatus={verificationStatus} currentUserId={currentUserId} userSpotlightStatus={userSpotlightStatus} />
         ) : (
-          <AdvertApplicationsList applications={applications} currentUserId={currentUserId} />
+          <AdvertApplicationsList applications={applications} currentUserId={currentUserId} myProjectIds={myProjectIds} />
         )}
       </div>
     </section>

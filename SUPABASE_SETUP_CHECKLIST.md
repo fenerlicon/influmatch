@@ -12,7 +12,7 @@ Migration'ları çalıştırdıktan sonra Supabase Dashboard'da yapmanız gereke
    - `feedback-images`
 
 ### Eğer YOKSA oluşturun:
-
+77
 #### Advert Hero Images Bucket
 1. **"New bucket"** butonuna tıklayın
 2. Ayarlar:

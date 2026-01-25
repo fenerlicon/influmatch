@@ -61,7 +61,7 @@ export default async function AdminPage() {
               <p>User ID: {user.id}</p>
               <p>Email: {user.email}</p>
               <p>Role: {adminProfile?.role || 'null'}</p>
-              <p>Expected Admin: {ADMIN_EMAIL}</p>
+
             </div>
 
             <a

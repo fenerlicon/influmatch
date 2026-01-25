@@ -91,25 +91,41 @@ interface AdvertApplicationsListProps {
   isInfluencerView?: boolean
   currentUserId?: string
   onOpenChat?: (applicationId: string) => void
+  myProjectIds?: string[]
 }
 
-export default function AdvertApplicationsList({ applications, isInfluencerView = false, currentUserId, onOpenChat }: AdvertApplicationsListProps) {
+export default function AdvertApplicationsList({
+  applications,
+  isInfluencerView = false,
+  currentUserId,
+  onOpenChat,
+  myProjectIds
+}: AdvertApplicationsListProps) {
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
   const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  // Use local state for applications to handle real-time updates
+  const [localApplications, setLocalApplications] = useState<AdvertApplication[]>(applications)
+
+  // Update local state when props change
+  useEffect(() => {
+    setLocalApplications(applications)
+  }, [applications])
+
   const [applicationsWithMessages, setApplicationsWithMessages] = useState<Set<string>>(
-    new Set(applications.filter((app) => app.has_messages).map((app) => app.id))
+    new Set(localApplications.filter((app) => app.has_messages).map((app) => app.id))
   )
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map())
 
-  // Calculate unread count for a specific room (only messages from other party that current user hasn't seen)
+  // Calculate unread count for a specific room
   const calculateUnreadCount = useCallback(
     async (roomId: string) => {
+      // ... same logic ...
       if (!currentUserId || !roomId) return 0
 
       try {
-        // Get all messages in the room
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select('id, sender_id')
@@ -120,13 +136,11 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
           return 0
         }
 
-        // Filter only messages from the other party (not from current user)
         const otherPartyMessages = messages.filter((m) => m.sender_id !== currentUserId)
         if (otherPartyMessages.length === 0) {
           return 0
         }
 
-        // Get read receipts for current user for these messages
         const messageIds = otherPartyMessages.map((m) => m.id)
         const { data: readReceipts, error: readError } = await supabase
           .from('message_reads')
@@ -140,8 +154,6 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
         }
 
         const readMessageIds = new Set(readReceipts?.map((r) => r.message_id) ?? [])
-
-        // Count only unread messages from the other party
         const unreadCount = otherPartyMessages.filter((m) => !readMessageIds.has(m.id)).length
 
         return unreadCount
@@ -153,6 +165,93 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
     [supabase, currentUserId],
   )
 
+  // Real-time subscription for new APPLICATIONS
+  useEffect(() => {
+    // Only subscribe if we are in brand view (have project IDs)
+    if (isInfluencerView || !myProjectIds || myProjectIds.length === 0) return
+
+    const channel = supabase
+      .channel('advert-applications-insert')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'advert_applications',
+        },
+        async (payload) => {
+          const newApp = payload.new as any
+
+          // Check if this application belongs to one of our projects
+          if (myProjectIds.includes(newApp.advert_id)) {
+            // Fetch full details for the new application
+            const { data: fullApp, error } = await supabase
+              .from('advert_applications')
+              .select(`
+                id, 
+                advert_id, 
+                influencer_id, 
+                cover_letter, 
+                deliverable_idea, 
+                budget_expectation, 
+                status, 
+                created_at,
+                room_id,
+                has_messages,
+                influencer:influencer_id (
+                  id,
+                  full_name,
+                  username,
+                  avatar_url,
+                  verification_status
+                ),
+                advert:advert_id (
+                  title,
+                  category
+                )
+              `)
+              .eq('id', newApp.id)
+              .single()
+
+            if (error || !fullApp) {
+              console.error('Error fetching new application details:', error)
+              return
+            }
+
+            // Transform to AdvertApplication type
+            const newAdvertApp: AdvertApplication = {
+              id: fullApp.id,
+              advert_id: fullApp.advert_id,
+              advert_title: fullApp.advert?.title ?? 'Bilinmeyen İlan',
+              advert_category: fullApp.advert?.category ?? null,
+              influencer: {
+                id: fullApp.influencer?.id ?? fullApp.influencer_id,
+                full_name: fullApp.influencer?.full_name ?? null,
+                username: fullApp.influencer?.username ?? null,
+                avatar_url: fullApp.influencer?.avatar_url ?? null,
+                verification_status: fullApp.influencer?.verification_status ?? null,
+              },
+              cover_letter: fullApp.cover_letter,
+              deliverable_idea: fullApp.deliverable_idea,
+              budget_expectation: fullApp.budget_expectation,
+              status: fullApp.status,
+              created_at: fullApp.created_at,
+              room_id: fullApp.room_id,
+              has_messages: fullApp.has_messages
+            }
+
+            setLocalApplications((prev) => [newAdvertApp, ...prev])
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, myProjectIds, isInfluencerView])
+
+
   // Fetch unread counts for all applications with rooms
   useEffect(() => {
     if (!currentUserId) return
@@ -160,7 +259,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
     const fetchUnreadCounts = async () => {
       const counts = new Map<string, number>()
       await Promise.all(
-        applications.map(async (app) => {
+        localApplications.map(async (app) => {
           if (app.room_id) {
             const unreadCount = await calculateUnreadCount(app.room_id)
             if (unreadCount > 0) {
@@ -175,7 +274,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
     fetchUnreadCounts()
 
     // Set up real-time subscription for messages
-    const roomIds = applications.filter((app) => app.room_id).map((app) => app.room_id!).filter(Boolean)
+    const roomIds = localApplications.filter((app) => app.room_id).map((app) => app.room_id!).filter(Boolean)
     if (roomIds.length === 0) return
 
     const channels = roomIds.map((roomId) => {
@@ -194,7 +293,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
             if (payload.new.sender_id !== currentUserId) {
               // Recalculate unread counts after a short delay to ensure message is in DB
               setTimeout(async () => {
-                const app = applications.find((a) => a.room_id === roomId)
+                const app = localApplications.find((a) => a.room_id === roomId)
                 if (app) {
                   const unreadCount = await calculateUnreadCount(roomId)
                   setUnreadCounts((prev) => {
@@ -212,6 +311,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
           },
         )
         .on(
+          // ... rest of the code logic remains largely same but using localApplications
           'postgres_changes',
           {
             event: '*',
@@ -221,7 +321,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
           },
           async () => {
             // Recalculate unread counts when read receipts change for current user
-            const app = applications.find((a) => a.room_id === roomId)
+            const app = localApplications.find((a) => a.room_id === roomId)
             if (app) {
               const unreadCount = await calculateUnreadCount(roomId)
               setUnreadCounts((prev) => {
@@ -244,14 +344,14 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
     return () => {
       channels.forEach((channel) => supabase.removeChannel(channel))
     }
-  }, [applications, currentUserId, supabase, calculateUnreadCount])
+  }, [localApplications, currentUserId, supabase, calculateUnreadCount])
 
-  // Update applicationsWithMessages when applications prop changes
+  // Update applicationsWithMessages when localApplications prop changes
   useEffect(() => {
     setApplicationsWithMessages(
-      new Set(applications.filter((app) => app.has_messages).map((app) => app.id))
+      new Set(localApplications.filter((app) => app.has_messages).map((app) => app.id))
     )
-  }, [applications])
+  }, [localApplications])
 
   // Real-time subscription for messages (influencer view only)
   useEffect(() => {
@@ -324,7 +424,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
       }
     })
   }
-  if (applications.length === 0) {
+  if (localApplications.length === 0) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
         <p>{isInfluencerView ? 'Henüz hiç başvuru yapmadın.' : 'Henüz hiç başvuru yok.'}</p>
@@ -339,7 +439,7 @@ export default function AdvertApplicationsList({ applications, isInfluencerView 
 
   return (
     <div className="space-y-4">
-      {applications.map((application) => {
+      {localApplications.map((application) => {
         const StatusIcon = STATUS_ICONS[application.status] || Clock
         return (
           <article
