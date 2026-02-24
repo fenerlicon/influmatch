@@ -8,16 +8,17 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     ChevronLeft, Camera, Save, User, Briefcase,
-    Link as LinkIcon, Edit2, Instagram, CheckCircle2, X, AtSign
+    Link as LinkIcon, Edit2, Instagram, CheckCircle2, X, Copy, AtSign, Info
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 
-// ─── Production URL ───────────────────────────────────────────────────────────
+// ─── Production API URL ───────────────────────────────────────────────────────
 const API_BASE = 'https://influmatch.vercel.app';
 
-// ─── Reusable input field ──────────────────────────────────────────────────────
+// ─── Input Field Component ────────────────────────────────────────────────────
 const Field = ({ label, icon: Icon, value, onChange, placeholder, multiline = false }) => (
     <View className="mb-5">
         <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">{label}</Text>
@@ -37,21 +38,35 @@ const Field = ({ label, icon: Icon, value, onChange, placeholder, multiline = fa
     </View>
 );
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Step indicator ────────────────────────────────────────────────────────────
+const Step = ({ n, active, done }) => (
+    <View className="items-center">
+        <View className={`w-8 h-8 rounded-full items-center justify-center border-2 ${done ? 'bg-green-500/20 border-green-500' : active ? 'bg-soft-gold/20 border-soft-gold' : 'bg-white/5 border-white/20'}`}>
+            {done
+                ? <CheckCircle2 size={14} color="#4ade80" />
+                : <Text className={`text-xs font-bold ${active ? 'text-soft-gold' : 'text-gray-600'}`}>{n}</Text>}
+        </View>
+    </View>
+);
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function MyProfileScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState({
         full_name: '', username: '', bio: '', website: '', category: '', avatar_url: null,
     });
-    const [igAccount, setIgAccount] = useState(null); // existing connected account
+    const [igAccount, setIgAccount] = useState(null);
 
-    // Instagram connect modal
+    // Modal state
     const [modalVisible, setModalVisible] = useState(false);
+    const [step, setStep] = useState(1); // 1: username input, 2: bio code, 3: success
     const [igUsername, setIgUsername] = useState('');
-    const [connecting, setConnecting] = useState(false);
-    const [connectSuccess, setConnectSuccess] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [verifiedData, setVerifiedData] = useState(null);
 
+    // ── Fetch data ─────────────────────────────────────────────────────────────
     const fetchProfile = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -64,19 +79,17 @@ export default function MyProfileScreen({ navigation }) {
                     .eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
             ]);
 
-            if (prof) {
-                setProfile({
-                    full_name: prof.full_name || '',
-                    username: prof.username || '',
-                    bio: prof.bio || '',
-                    website: prof.website || '',
-                    category: prof.category || '',
-                    avatar_url: prof.avatar_url || null,
-                });
-            }
+            if (prof) setProfile({
+                full_name: prof.full_name || '',
+                username: prof.username || '',
+                bio: prof.bio || '',
+                website: prof.website || '',
+                category: prof.category || '',
+                avatar_url: prof.avatar_url || null,
+            });
             setIgAccount(social || null);
         } catch (e) {
-            console.error('[MyProfile fetch]', e);
+            console.error('[MyProfile]', e);
         } finally {
             setLoading(false);
         }
@@ -84,13 +97,12 @@ export default function MyProfileScreen({ navigation }) {
 
     useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
 
-    // ── Save profile info ──────────────────────────────────────────────────────
+    // ── Save profile ───────────────────────────────────────────────────────────
     const handleSave = async () => {
         setSaving(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Kullanıcı bulunamadı.');
-
             const { error } = await supabase.from('users').update({
                 full_name: profile.full_name.trim(),
                 username: profile.username.trim().toLowerCase(),
@@ -99,7 +111,6 @@ export default function MyProfileScreen({ navigation }) {
                 category: profile.category.trim(),
                 updated_at: new Date().toISOString(),
             }).eq('id', user.id);
-
             if (error) throw error;
             Alert.alert('Başarılı ✓', 'Profil bilgilerin güncellendi.');
             navigation.goBack();
@@ -110,31 +121,25 @@ export default function MyProfileScreen({ navigation }) {
         }
     };
 
-    // ── Avatar upload ────────────────────────────────────────────────────────
+    // ── Avatar upload ──────────────────────────────────────────────────────────
     const pickAvatar = async () => {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) return Alert.alert('İzin Gerekli', 'Fotoğraf galerisine erişim izni gerekiyor.');
-
+        if (!perm.granted) return Alert.alert('İzin Gerekli', 'Galeri erişim izni gerekiyor.');
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true, aspect: [1, 1], quality: 0.8,
         });
         if (result.canceled) return;
-
-        const asset = result.assets[0];
         try {
             setSaving(true);
             const { data: { user } } = await supabase.auth.getUser();
-            const res = await fetch(asset.uri);
-            const blob = await res.blob();
-            const ext = asset.uri.split('.').pop() || 'jpg';
-            const filePath = `${user.id}/avatar.${ext}`;
-
-            const { error: upErr } = await supabase.storage.from('avatars').upload(filePath, blob, { upsert: true, contentType: `image/${ext}` });
+            const blob = await (await fetch(result.assets[0].uri)).blob();
+            const ext = result.assets[0].uri.split('.').pop() || 'jpg';
+            const path = `${user.id}/avatar.${ext}`;
+            const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: `image/${ext}` });
             if (upErr) throw upErr;
-
-            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-            const url = `${urlData.publicUrl}?t=${Date.now()}`;
+            const { data: urlD } = supabase.storage.from('avatars').getPublicUrl(path);
+            const url = `${urlD.publicUrl}?t=${Date.now()}`;
             await supabase.from('users').update({ avatar_url: url }).eq('id', user.id);
             setProfile(p => ({ ...p, avatar_url: url }));
         } catch (e) {
@@ -144,50 +149,73 @@ export default function MyProfileScreen({ navigation }) {
         }
     };
 
-    // ── Instagram connect (username only, no code) ────────────────────────────
-    const handleConnect = async () => {
+    // ── STEP 1: Generate code ──────────────────────────────────────────────────
+    const handleGenerate = async () => {
         const clean = igUsername.trim().replace(/^@/, '').toLowerCase();
         if (!clean) return Alert.alert('Uyarı', 'Kullanıcı adı boş olamaz.');
 
-        setConnecting(true);
+        setBusy(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Oturum bulunamadı.');
 
-            const response = await fetch(`${API_BASE}/api/mobile/verify-instagram`, {
+            const res = await fetch(`${API_BASE}/api/mobile/verify-instagram`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({
-                    action: 'connect',
-                    userId: session.user.id,
-                    username: clean,
-                }),
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'generate', userId: session.user.id, username: clean }),
             });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Kod üretilemedi.');
+            setVerificationCode(data.code);
+            setStep(2);
+        } catch (e) {
+            Alert.alert('Hata', e.message);
+        } finally {
+            setBusy(false);
+        }
+    };
 
-            const data = await response.json();
-            if (!data.success) throw new Error(data.error || 'Bağlanamadı.');
+    // ── STEP 2: Verify code in bio ─────────────────────────────────────────────
+    const handleVerify = async () => {
+        setBusy(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Oturum bulunamadı.');
 
+            const res = await fetch(`${API_BASE}/api/mobile/verify-instagram`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'verify', userId: session.user.id }),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Doğrulama başarısız.');
+
+            setVerifiedData(data.data);
             setIgAccount({
-                username: data.data.username,
-                follower_count: data.data.follower_count,
-                engagement_rate: data.data.engagement_rate,
+                username: data.data?.username || igUsername.replace(/^@/, ''),
+                follower_count: data.data?.follower_count,
+                engagement_rate: data.data?.engagement_rate,
                 is_verified: true,
             });
-            setConnectSuccess(true);
+            setStep(3);
         } catch (e) {
-            Alert.alert('Hata', e.message || 'Bağlantı hatası.');
+            Alert.alert('Hata', e.message);
         } finally {
-            setConnecting(false);
+            setBusy(false);
         }
+    };
+
+    const copyCode = async () => {
+        await Clipboard.setStringAsync(verificationCode);
+        Alert.alert('Kopyalandı ✓', 'Kodu biyografine yapıştır.');
     };
 
     const closeModal = () => {
         setModalVisible(false);
+        setStep(1);
         setIgUsername('');
-        setConnectSuccess(false);
+        setVerificationCode('');
+        setVerifiedData(null);
     };
 
     if (loading) {
@@ -201,9 +229,7 @@ export default function MyProfileScreen({ navigation }) {
 
     const initials = (profile.full_name || profile.username || '?').substring(0, 2).toUpperCase();
     const followerText = igAccount?.follower_count
-        ? igAccount.follower_count >= 1000
-            ? (igAccount.follower_count / 1000).toFixed(1) + 'K'
-            : String(igAccount.follower_count)
+        ? igAccount.follower_count >= 1000 ? (igAccount.follower_count / 1000).toFixed(1) + 'K' : String(igAccount.follower_count)
         : null;
 
     return (
@@ -236,10 +262,10 @@ export default function MyProfileScreen({ navigation }) {
                                 <Camera size={14} color="black" />
                             </View>
                         </TouchableOpacity>
-                        <Text className="text-gray-600 text-xs mt-2">Fotoğrafı değiştirmek için dokun</Text>
+                        <Text className="text-gray-600 text-xs mt-2">Değiştirmek için dokun</Text>
                     </View>
 
-                    {/* ── Instagram Section ── */}
+                    {/* ── Instagram ── */}
                     <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase mb-3 ml-1">INSTAGRAM</Text>
                     <View className="bg-white/[0.04] border border-white/10 rounded-[20px] overflow-hidden mb-6">
                         <LinearGradient colors={['rgba(255,255,255,0.05)', 'transparent']} className="absolute inset-0" />
@@ -252,24 +278,19 @@ export default function MyProfileScreen({ navigation }) {
                                     <Text className="text-white font-bold text-sm">
                                         {igAccount ? `@${igAccount.username}` : 'Instagram'}
                                     </Text>
-                                    {igAccount && followerText ? (
-                                        <Text className="text-gray-500 text-xs">
-                                            {followerText} takipçi · %{igAccount.engagement_rate} etkileşim
-                                        </Text>
-                                    ) : (
-                                        <Text className="text-gray-600 text-xs">Bağlı değil</Text>
-                                    )}
+                                    {igAccount && followerText
+                                        ? <Text className="text-gray-500 text-xs">{followerText} takipçi · %{igAccount.engagement_rate} etkileşim</Text>
+                                        : <Text className="text-gray-600 text-xs">Bağlı değil</Text>}
                                 </View>
                             </View>
-
                             {igAccount?.is_verified ? (
-                                <TouchableOpacity onPress={() => setModalVisible(true)}
+                                <TouchableOpacity onPress={() => { setStep(1); setModalVisible(true); }}
                                     className="flex-row items-center gap-1.5 bg-green-500/10 border border-green-500/25 px-3 py-1.5 rounded-xl">
                                     <CheckCircle2 size={12} color="#4ade80" />
-                                    <Text className="text-green-400 text-xs font-bold">Bağlı</Text>
+                                    <Text className="text-green-400 text-xs font-bold">Doğrulandı</Text>
                                 </TouchableOpacity>
                             ) : (
-                                <TouchableOpacity onPress={() => setModalVisible(true)}
+                                <TouchableOpacity onPress={() => { setStep(1); setModalVisible(true); }}
                                     className="bg-purple-500/15 border border-purple-500/30 px-4 py-2 rounded-xl">
                                     <Text className="text-purple-300 text-xs font-bold">Bağla</Text>
                                 </TouchableOpacity>
@@ -279,95 +300,67 @@ export default function MyProfileScreen({ navigation }) {
 
                     {/* ── Profile Fields ── */}
                     <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase mb-3 ml-1">PROFİL BİLGİLERİ</Text>
-
-                    <Field label="Ad Soyad" icon={User} value={profile.full_name}
-                        onChange={v => setProfile(p => ({ ...p, full_name: v }))} placeholder="Adın ve soyadın" />
+                    <Field label="Ad Soyad" icon={User} value={profile.full_name} onChange={v => setProfile(p => ({ ...p, full_name: v }))} placeholder="Adın ve soyadın" />
 
                     <View className="mb-5">
                         <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">KULLANICI ADI</Text>
                         <View className="flex-row items-center bg-black/30 border border-white/10 rounded-xl px-4 h-12">
                             <AtSign size={17} color="#4b5563" style={{ marginRight: 8 }} />
-                            <TextInput
-                                className="flex-1 text-white text-sm font-medium"
-                                value={profile.username}
+                            <TextInput className="flex-1 text-white text-sm font-medium" value={profile.username}
                                 onChangeText={v => setProfile(p => ({ ...p, username: v }))}
-                                placeholder="kullaniciadi"
-                                placeholderTextColor="#374151"
-                                autoCapitalize="none"
-                            />
+                                placeholder="kullaniciadi" placeholderTextColor="#374151" autoCapitalize="none" />
                         </View>
                     </View>
 
-                    <Field label="Kategori" icon={Briefcase} value={profile.category}
-                        onChange={v => setProfile(p => ({ ...p, category: v }))} placeholder="Ör: Teknoloji, Moda, Spor..." />
+                    <Field label="Kategori" icon={Briefcase} value={profile.category} onChange={v => setProfile(p => ({ ...p, category: v }))} placeholder="Ör: Teknoloji, Moda, Spor..." />
+                    <Field label="Website" icon={LinkIcon} value={profile.website} onChange={v => setProfile(p => ({ ...p, website: v }))} placeholder="https://..." />
+                    <Field label="Biyografi" icon={Edit2} value={profile.bio} onChange={v => setProfile(p => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." multiline />
 
-                    <Field label="Website" icon={LinkIcon} value={profile.website}
-                        onChange={v => setProfile(p => ({ ...p, website: v }))} placeholder="https://..." />
-
-                    <Field label="Biyografi" icon={Edit2} value={profile.bio}
-                        onChange={v => setProfile(p => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." multiline />
-
-                    {/* ── Save button ── */}
+                    {/* Save */}
                     <TouchableOpacity onPress={handleSave} disabled={saving}
                         className="bg-soft-gold h-14 rounded-2xl items-center justify-center flex-row gap-2 shadow-lg shadow-soft-gold/20 mt-2">
-                        {saving
-                            ? <ActivityIndicator color="black" />
-                            : <>
-                                <Save color="black" size={18} />
-                                <Text className="text-black font-bold text-base">Kaydet</Text>
-                            </>}
+                        {saving ? <ActivityIndicator color="black" /> : <><Save color="black" size={18} /><Text className="text-black font-bold text-base">Kaydet</Text></>}
                     </TouchableOpacity>
                 </ScrollView>
             </SafeAreaView>
 
-            {/* ── Instagram Connect Modal ─────────────────────────────────────── */}
+            {/* ════════════════════════════════════════════════════════════════
+                  Instagram Doğrulama Modalı  (3 adım)
+               ════════════════════════════════════════════════════════════════ */}
             <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={closeModal}>
-                <View className="flex-1 bg-black/80 justify-end">
+                <View className="flex-1 bg-black/85 justify-end">
                     <TouchableOpacity className="flex-1" onPress={closeModal} />
                     <View className="bg-[#0B0F19] border-t border-white/10 rounded-t-[32px] px-6 pt-6 pb-12">
-                        <View className="flex-row items-center justify-between mb-6">
-                            <Text className="text-white font-bold text-xl">Instagram Hesabını Bağla</Text>
+
+                        {/* Modal header */}
+                        <View className="flex-row items-center justify-between mb-5">
+                            <Text className="text-white font-bold text-xl">
+                                {step === 1 ? 'Instagram Hesabını Bağla' : step === 2 ? 'Sahipliği Doğrula' : 'Bağlandı! 🎉'}
+                            </Text>
                             <TouchableOpacity onPress={closeModal}
                                 className="w-9 h-9 bg-white/5 rounded-2xl items-center justify-center border border-white/10">
                                 <X color="white" size={17} />
                             </TouchableOpacity>
                         </View>
 
-                        {connectSuccess ? (
-                            /* ── Success state ── */
-                            <View className="items-center py-8">
-                                <View className="w-16 h-16 bg-green-500/15 border border-green-500/30 rounded-full items-center justify-center mb-4">
-                                    <CheckCircle2 color="#4ade80" size={32} />
-                                </View>
-                                <Text className="text-white font-bold text-xl mb-2">Bağlandı! 🎉</Text>
-                                <Text className="text-gray-400 text-sm text-center mb-2">
-                                    @{igAccount?.username} hesabın başarıyla bağlandı.
-                                </Text>
-                                {followerText && (
-                                    <View className="bg-white/5 border border-white/10 px-5 py-3 rounded-2xl mt-2 flex-row gap-6">
-                                        <View className="items-center">
-                                            <Text className="text-soft-gold font-black text-lg">{followerText}</Text>
-                                            <Text className="text-gray-500 text-[10px] uppercase">Takipçi</Text>
-                                        </View>
-                                        <View className="items-center">
-                                            <Text className="text-purple-300 font-black text-lg">%{igAccount?.engagement_rate}</Text>
-                                            <Text className="text-gray-500 text-[10px] uppercase">Etkileşim</Text>
-                                        </View>
-                                    </View>
-                                )}
-                                <TouchableOpacity onPress={closeModal}
-                                    className="mt-6 bg-soft-gold h-12 w-full rounded-2xl items-center justify-center">
-                                    <Text className="text-black font-bold">Tamam</Text>
-                                </TouchableOpacity>
+                        {/* Step indicator */}
+                        {step < 3 && (
+                            <View className="flex-row items-center gap-2 mb-6">
+                                <Step n="1" active={step === 1} done={step > 1} />
+                                <View className={`flex-1 h-px ${step > 1 ? 'bg-green-500/50' : 'bg-white/10'}`} />
+                                <Step n="2" active={step === 2} done={step > 2} />
+                                <View className="flex-1 h-px bg-white/10" />
+                                <Step n="3" active={false} done={false} />
                             </View>
-                        ) : (
-                            /* ── Input state ── */
+                        )}
+
+                        {/* ── STEP 1: Enter username ── */}
+                        {step === 1 && (
                             <>
                                 <Text className="text-gray-400 text-sm leading-5 mb-5">
-                                    Instagram kullanıcı adını gir. Profilin herkese açık olmalıdır.
+                                    Instagram kullanıcı adını gir. Sahipliğini doğrulamak için biyografine bir kod eklememizi isteyeceğiz.
                                 </Text>
-
-                                <View className="flex-row items-center bg-black/40 border border-white/15 rounded-2xl px-4 h-14 mb-4">
+                                <View className="flex-row items-center bg-black/40 border border-white/15 rounded-2xl px-4 h-14 mb-5">
                                     <Text className="text-gray-500 text-base mr-1">@</Text>
                                     <TextInput
                                         className="flex-1 text-white text-base font-medium"
@@ -380,18 +373,79 @@ export default function MyProfileScreen({ navigation }) {
                                         autoFocus
                                     />
                                 </View>
-
-                                <Text className="text-gray-600 text-xs mb-6 ml-1">
-                                    ℹ️ Hesabın herkese açık (public) değilse veriler çekilemez.
-                                </Text>
-
-                                <TouchableOpacity onPress={handleConnect} disabled={connecting}
+                                <TouchableOpacity onPress={handleGenerate} disabled={busy}
                                     className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20">
-                                    {connecting
-                                        ? <ActivityIndicator color="black" />
-                                        : <Text className="text-black font-bold text-base">Hesabı Bağla</Text>}
+                                    {busy ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold text-base">Devam Et →</Text>}
                                 </TouchableOpacity>
                             </>
+                        )}
+
+                        {/* ── STEP 2: Bio code ── */}
+                        {step === 2 && (
+                            <>
+                                {/* Info banner */}
+                                <View className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 mb-5 flex-row items-start gap-3">
+                                    <Info color="#60a5fa" size={16} style={{ marginTop: 1 }} />
+                                    <Text className="text-blue-300 text-xs leading-5 flex-1">
+                                        Bu kod, hesabın gerçekten sana ait olduğunu kanıtlar. Doğrulama sonrası biyografinden kaldırabilirsin.
+                                    </Text>
+                                </View>
+
+                                <Text className="text-gray-400 text-sm mb-3">
+                                    Aşağıdaki kodu <Text className="text-white font-bold">@{igUsername.replace(/^@/, '')}</Text> hesabının{' '}
+                                    <Text className="text-soft-gold font-bold">Instagram biyografisine</Text> ekle:
+                                </Text>
+
+                                {/* Code box */}
+                                <TouchableOpacity onPress={copyCode}
+                                    className="bg-soft-gold/8 border border-soft-gold/30 rounded-2xl p-4 flex-row items-center justify-between mb-2 active:opacity-75">
+                                    <Text className="text-soft-gold font-mono text-xl font-black tracking-[0.2em]">{verificationCode}</Text>
+                                    <View className="flex-row items-center gap-2 bg-soft-gold/15 px-3 py-2 rounded-xl">
+                                        <Copy size={14} color="#D4AF37" />
+                                        <Text className="text-soft-gold text-xs font-bold">Kopyala</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <Text className="text-gray-600 text-xs mb-5 ml-1">Koda dokunarak kopyalayabilirsin</Text>
+
+                                <TouchableOpacity onPress={handleVerify} disabled={busy}
+                                    className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mb-3">
+                                    {busy ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold text-base">Biyografime Ekledim, Doğrula ✓</Text>}
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setStep(1)} className="items-center py-2">
+                                    <Text className="text-gray-600 text-xs">← Geri dön</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+
+                        {/* ── STEP 3: Success ── */}
+                        {step === 3 && (
+                            <View className="items-center py-4">
+                                <View className="w-20 h-20 bg-green-500/15 border border-green-500/30 rounded-full items-center justify-center mb-4">
+                                    <CheckCircle2 color="#4ade80" size={40} />
+                                </View>
+                                <Text className="text-white font-bold text-xl mb-1">Hesap Doğrulandı!</Text>
+                                <Text className="text-gray-400 text-sm text-center mb-5">
+                                    @{igAccount?.username} hesabın başarıyla bağlandı.{'\n'}Artık biyografindeki kodu kaldırabilirsin.
+                                </Text>
+                                {followerText && (
+                                    <View className="flex-row gap-4 mb-6">
+                                        <View className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl items-center">
+                                            <Text className="text-soft-gold font-black text-xl">{followerText}</Text>
+                                            <Text className="text-gray-500 text-[10px] uppercase mt-0.5">Takipçi</Text>
+                                        </View>
+                                        {igAccount?.engagement_rate > 0 && (
+                                            <View className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl items-center">
+                                                <Text className="text-purple-300 font-black text-xl">%{igAccount.engagement_rate}</Text>
+                                                <Text className="text-gray-500 text-[10px] uppercase mt-0.5">Etkileşim</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                                <TouchableOpacity onPress={closeModal}
+                                    className="bg-soft-gold h-13 w-full rounded-2xl items-center justify-center px-6 py-4">
+                                    <Text className="text-black font-bold text-base">Harika, Tamam!</Text>
+                                </TouchableOpacity>
+                            </View>
                         )}
                     </View>
                 </View>
