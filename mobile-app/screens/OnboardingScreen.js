@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
-import { User, MapPin, AlignLeft, Globe, Instagram, Youtube, Music2, ChevronRight, Hash, Building, AtSign, AlertCircle, X, Search, CheckCircle, XCircle, Camera, Check } from 'lucide-react-native';
+import { User, MapPin, AlignLeft, Globe, Instagram, Youtube, Music2, ChevronRight, ChevronLeft, Hash, Building, AtSign, AlertCircle, X, Search, CheckCircle, XCircle, Camera, Check } from 'lucide-react-native';
 import { CustomToast } from '../components/CustomToast';
 import { getTurkishErrorMessage } from '../lib/errorUtils';
 import * as ImagePicker from 'expo-image-picker';
@@ -271,6 +271,18 @@ export default function OnboardingScreen({ navigation }) {
                         contentContainerStyle={{ paddingBottom: 100 }}
                         keyboardShouldPersistTaps="handled"
                     >
+
+                        {/* Geri Butonu */}
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('RegisterRole')}
+                            className="flex-row items-center mb-6"
+                            activeOpacity={0.7}
+                        >
+                            <View className="w-9 h-9 bg-white/5 border border-white/10 rounded-2xl items-center justify-center mr-3">
+                                <ChevronLeft color="white" size={18} />
+                            </View>
+                            <Text className="text-gray-400 text-sm">Rol seçimine dön</Text>
+                        </TouchableOpacity>
 
                         <Text className="text-soft-gold text-sm font-bold uppercase tracking-widest mb-2">Profilini Tamamla</Text>
                         <Text className="text-white text-3xl font-bold mb-6">
