@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert, Modal, Clipboard, Platform } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Camera, Save, User, Briefcase, Link as LinkIcon, Edit2, Instagram, CheckCircle2, Copy, X } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
+import { useFocusEffect } from '@react-navigation/native';
+
+// Production API base URL
+const API_BASE = 'https://influmatch.vercel.app';
 
 export default function MyProfileScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
@@ -28,9 +33,7 @@ export default function MyProfileScreen({ navigation }) {
     const [verificationCode, setVerificationCode] = useState('');
     const [verifying, setVerifying] = useState(false);
 
-    useEffect(() => {
-        getProfile();
-    }, []);
+    useFocusEffect(useCallback(() => { getProfile(); }, []));
 
     async function getProfile() {
         try {
@@ -98,28 +101,54 @@ export default function MyProfileScreen({ navigation }) {
     };
 
     const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
+        const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permResult.granted) {
+            return Alert.alert('İzin Gerekli', 'Fotoğraf galerisine erişim izni gerekiyor.');
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 1,
+            quality: 0.8,
         });
 
-        if (!result.canceled) {
-            Alert.alert('Demo', 'Avatar yükleme işlemi bu demoda simüle edilmiştir.');
+        if (result.canceled) return;
+
+        const asset = result.assets[0];
+        try {
+            setSaving(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('Kullanıcı bulunamadı');
+
+            // Convert URI to blob
+            const response = await fetch(asset.uri);
+            const blob = await response.blob();
+            const ext = asset.uri.split('.').pop() || 'jpg';
+            const filePath = `${user.id}/avatar.${ext}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, blob, { upsert: true, contentType: `image/${ext}` });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+            await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id);
+            setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+            Alert.alert('Başarılı', 'Profil fotoğrafı güncellendi.');
+        } catch (e) {
+            Alert.alert('Hata', e.message || 'Fotoğraf yüklenemedi.');
+        } finally {
+            setSaving(false);
         }
     };
 
     // --- INSTAGRAM VERIFICATION LOGIC ---
 
-    const getApiUrl = () => {
-        // Change this to your production URL when deploying
-        // For Android Emulator use 10.0.2.2, for iOS Simulator use localhost
-        if (Platform.OS === 'android') return 'http://10.0.2.2:3000/api/mobile/verify-instagram';
-
-        // Default (iOS Simulator or Web Preview)
-        return 'http://localhost:3000/api/mobile/verify-instagram';
-    };
+    const getApiUrl = () => `${API_BASE}/api/mobile/verify-instagram`;
 
     const generateCode = async () => {
         if (!igUsername) return Alert.alert('Uyarı', 'Lütfen Instagram kullanıcı adını gir.');
@@ -206,9 +235,9 @@ export default function MyProfileScreen({ navigation }) {
         }
     };
 
-    const copyToClipboard = () => {
-        Clipboard.setString(verificationCode);
-        Alert.alert('Kopyalandı', 'Doğrulama kodu kopyalandı.');
+    const copyToClipboard = async () => {
+        await Clipboard.setStringAsync(verificationCode);
+        Alert.alert('Kopyalandı', 'Doğrulama kodu panoya kopyalandı.');
     };
 
     if (loading) {
