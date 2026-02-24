@@ -2,9 +2,11 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck, Loader2, Trash2 } from 'lucide-react'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
+import { cancelApplication } from '@/app/dashboard/influencer/advert/actions'
+import { toast } from 'sonner'
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString)
@@ -104,6 +106,7 @@ export default function AdvertApplicationsList({
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
   const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   // Use local state for applications to handle real-time updates
@@ -115,7 +118,7 @@ export default function AdvertApplicationsList({
   }, [applications])
 
   const [applicationsWithMessages, setApplicationsWithMessages] = useState<Set<string>>(
-    new Set(localApplications.filter((app) => app.has_messages).map((app) => app.id))
+    new Set(Array.from(localApplications.filter((app) => app.has_messages).map((app) => app.id)))
   )
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map())
 
@@ -219,25 +222,26 @@ export default function AdvertApplicationsList({
             }
 
             // Transform to AdvertApplication type
+            const appData = fullApp as any
             const newAdvertApp: AdvertApplication = {
-              id: fullApp.id,
-              advert_id: fullApp.advert_id,
-              advert_title: fullApp.advert?.title ?? 'Bilinmeyen İlan',
-              advert_category: fullApp.advert?.category ?? null,
+              id: appData.id,
+              advert_id: appData.advert_id,
+              advert_title: appData.advert?.title ?? 'Bilinmeyen İlan',
+              advert_category: appData.advert?.category ?? null,
               influencer: {
-                id: fullApp.influencer?.id ?? fullApp.influencer_id,
-                full_name: fullApp.influencer?.full_name ?? null,
-                username: fullApp.influencer?.username ?? null,
-                avatar_url: fullApp.influencer?.avatar_url ?? null,
-                verification_status: fullApp.influencer?.verification_status ?? null,
+                id: appData.influencer?.id ?? appData.influencer_id,
+                full_name: appData.influencer?.full_name ?? null,
+                username: appData.influencer?.username ?? null,
+                avatar_url: appData.influencer?.avatar_url ?? null,
+                verification_status: appData.influencer?.verification_status ?? null,
               },
-              cover_letter: fullApp.cover_letter,
-              deliverable_idea: fullApp.deliverable_idea,
-              budget_expectation: fullApp.budget_expectation,
-              status: fullApp.status,
-              created_at: fullApp.created_at,
-              room_id: fullApp.room_id,
-              has_messages: fullApp.has_messages
+              cover_letter: appData.cover_letter,
+              deliverable_idea: appData.deliverable_idea,
+              budget_expectation: appData.budget_expectation,
+              status: appData.status,
+              created_at: appData.created_at,
+              room_id: appData.room_id,
+              has_messages: appData.has_messages
             }
 
             setLocalApplications((prev) => [newAdvertApp, ...prev])
@@ -398,6 +402,21 @@ export default function AdvertApplicationsList({
     }
   }, [applications, isInfluencerView, currentUserId, supabase])
 
+  const handleCancel = async (applicationId: string) => {
+    if (!confirm('Bu başvuruyu geri çekmek istediğinize emin misiniz?')) return
+    setCancellingId(applicationId)
+    const result = await cancelApplication(applicationId)
+    setCancellingId(null)
+    if (result?.error) {
+      toast.error(result.error)
+    } else {
+      toast.success('Başvurunuz geri çekildi.')
+      // Optimistic removal from list
+      setLocalApplications((prev) => prev.filter((a) => a.id !== applicationId))
+      router.refresh()
+    }
+  }
+
   const handleOpenChat = async (application: AdvertApplication) => {
     if (onOpenChat) {
       onOpenChat(application.id)
@@ -525,6 +544,23 @@ export default function AdvertApplicationsList({
                   <CalendarDays className="h-4 w-4" />
                   <span>{formatRelativeTime(application.created_at)}</span>
                 </div>
+                {/* Influencer: Geri Çek button (only for pending/shortlisted) */}
+                {isInfluencerView && ['pending', 'shortlisted'].includes(application.status) && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancel(application.id)}
+                    disabled={cancellingId === application.id}
+                    className="flex items-center gap-1.5 rounded-2xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs font-medium text-red-400 transition hover:border-red-500/60 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {cancellingId === application.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    Geri Çek
+                  </button>
+                )}
+
                 {/* Brand: İletişime Geç button */}
                 {!isInfluencerView && (
                   <button

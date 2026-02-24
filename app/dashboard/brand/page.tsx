@@ -12,7 +12,7 @@ import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import { calculateMatchScore, getMatchReason } from '@/utils/matching'
 import { Sparkles, Layers, Lock } from 'lucide-react'
-import InflistCard from '@/components/dashboard/InflistCard'
+import InflistManager from '@/components/dashboard/InflistManager'
 
 export default async function BrandDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -205,45 +205,11 @@ export default async function BrandDashboardPage() {
         </section>
       )}
 
-      {/* Inflist (User Lists) Section */}
-      {userLists && userLists.length > 0 && (
-        <section className="rounded-3xl border border-white/10 bg-[#12131A] p-6 shadow-glow relative overflow-hidden">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-cyan-400">Influencer Listelerin</p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Inflist</h2>
-            </div>
-            {isSpotlight && (
-              <Link
-                href="/dashboard/brand/favorites"
-                className="text-xs font-medium text-gray-400 hover:text-white transition-colors"
-              >
-                Tümünü Yönet
-              </Link>
-            )}
-          </div>
-          <div className="relative">
-            <div className={`grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6 ${!isSpotlight ? 'blur-md pointer-events-none select-none opacity-50' : ''}`}>
-              {userLists.map((list: any) => (
-                <InflistCard key={list.id} list={list} />
-              ))}
-            </div>
-
-            {!isSpotlight && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-500 mb-3 border border-cyan-500/30">
-                  <Lock className="h-6 w-6" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Inflist'e Özel Erişim</h3>
-                <p className="text-xs text-gray-400 mt-1 mb-4 max-w-[200px]">Listelerinizi yönetmek için Spotlight ayrıcalıklarına sahip olun.</p>
-                <Link href="/dashboard/spotlight/brand" className="text-xs font-bold text-cyan-500 hover:text-cyan-400 transition-colors uppercase tracking-wider border-b border-cyan-500/30 pb-0.5 hover:border-cyan-500">
-                  Spotlight'a Geç
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      {/* Inflist (User Lists) Section - always visible */}
+      <InflistManager
+        initialLists={(userLists ?? []) as { id: string; name: string }[]}
+        isSpotlight={isSpotlight}
+      />
 
       {/* AI Recommendations Section */}
       {recommendations.length > 0 && (

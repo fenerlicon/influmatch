@@ -17,9 +17,15 @@ export default function MessagesScreen() {
     const [currentUserId, setCurrentUserId] = useState(null);
 
     const subscriptionRef = useRef(null);
+    const listSubscriptionRef = useRef(null); // Realtime for conversation list
+    const currentUserIdRef = useRef(null);
 
     useEffect(() => {
         fetchConversations();
+        return () => {
+            if (listSubscriptionRef.current) listSubscriptionRef.current.unsubscribe();
+            if (subscriptionRef.current) subscriptionRef.current.unsubscribe();
+        };
     }, []);
 
     const fetchConversations = async () => {
@@ -27,17 +33,15 @@ export default function MessagesScreen() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
             setCurrentUserId(user.id);
+            currentUserIdRef.current = user.id;
 
             // Fetch rooms where I am the influencer
-            // Also fetch the brand details (partner)
             const { data: rooms, error } = await supabase
                 .from('rooms')
                 .select('*, brand:brand_id(*)')
                 .eq('influencer_id', user.id);
 
             if (error) throw error;
-
-            console.log('Rooms fetched:', rooms.length);
 
             // For each room, fetch the last message
             const roomsWithLastMsg = await Promise.all(rooms.map(async (room) => {
@@ -57,12 +61,38 @@ export default function MessagesScreen() {
                     isBrand: true,
                     lastMessage: lastMsg ? lastMsg.content : 'Henüz mesaj yok.',
                     time: lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-                    unread: false, // Pending: implement unread logic
+                    unread: false,
                     pinned: false
                 };
             }));
 
             setConversations(roomsWithLastMsg);
+
+            // Subscribe to new messages across all rooms for list refresh
+            if (listSubscriptionRef.current) listSubscriptionRef.current.unsubscribe();
+            const roomIds = rooms.map(r => r.id);
+            if (roomIds.length > 0) {
+                listSubscriptionRef.current = supabase
+                    .channel('conversations-list')
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'messages',
+                    }, (payload) => {
+                        const newMsg = payload.new;
+                        if (!roomIds.includes(newMsg.room_id)) return;
+                        setConversations(prev => prev.map(conv => {
+                            if (conv.id !== newMsg.room_id) return conv;
+                            return {
+                                ...conv,
+                                lastMessage: newMsg.content,
+                                time: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                unread: newMsg.sender_id !== currentUserIdRef.current,
+                            };
+                        }));
+                    })
+                    .subscribe();
+            }
         } catch (error) {
             console.error('Error fetching conversations:', error);
         } finally {

@@ -440,7 +440,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
-                  disabled={!isEditing || (initialData.username && initialData.username.trim() !== '') ? true : undefined}
+                  disabled={(!isEditing || (initialData.username != null && initialData.username.trim() !== '')) || undefined}
                   placeholder="@marka"
                   className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />
@@ -640,7 +640,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 setErrorMsg(null)
                 startTransition(async () => {
                   try {
-                    const result = await updateBrandProfile({
+                    await updateBrandProfile({
                       brandName: formState.brandName,
                       username: formState.username,
                       city: formState.city,
@@ -657,16 +657,12 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                       companyLegalName: formState.companyLegalName.trim() || null,
                       taxId: formState.taxId.trim() || null,
                     })
-                    if (!result.success) {
-                      setErrorMsg((result as any).error || 'Güncelleme başarısız.')
-                    } else {
-                      setToast('Kurumsal bilgiler güncellendi!')
-                      setIsEditingCorporate(false)
-                      router.refresh()
-                    }
+                    setToast('Kurumsal bilgiler güncellendi!')
+                    setIsEditingCorporate(false)
+                    router.refresh()
                   } catch (error) {
-                    console.error('Update failed:', error)
-                    setErrorMsg('Güncelleme başarısız.')
+                    console.error('Corporate update failed:', error)
+                    setErrorMsg(error instanceof Error ? error.message : 'Güncelleme başarısız.')
                   }
                 })
               }}

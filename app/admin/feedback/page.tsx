@@ -62,12 +62,15 @@ export default async function AdminFeedbackPage() {
           adminNotes: submission.admin_notes,
           createdAt: submission.created_at,
           role: submission.role as 'influencer' | 'brand',
-          user: (Array.isArray(submission.user) ? submission.user[0] : submission.user) as {
-            id: string
-            full_name: string | null
-            email: string | null
-            username: string | null
-          },
+          user: (() => {
+            const u = submission.user as any
+            return (Array.isArray(u) ? u[0] : u) as {
+              id: string
+              full_name: string | null
+              email: string | null
+              username: string | null
+            }
+          })(),
         })) ?? []
       }
     />

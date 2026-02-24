@@ -23,7 +23,7 @@ export default async function BrandAdvertPage() {
     .eq('id', user.id)
     .single()
 
-  const verificationStatus = userProfile?.verification_status ?? 'pending'
+  const verificationStatus = (userProfile?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
 
   const [{ data: allOpenRows, error: openError }, { data: myRows, error: myError }] = await Promise.all([
     supabase

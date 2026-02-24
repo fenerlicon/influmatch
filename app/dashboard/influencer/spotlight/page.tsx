@@ -172,40 +172,45 @@ export default async function InfluencerSpotlightPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-[#0F1014] p-5 text-white">
-            <div className="flex items-center justify-between" id="spotlight-purchase">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Spotlight Paketi</p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">Premium vitrin görünürlüğü</h3>
-                <p className="mt-2 text-sm text-gray-400">Keşfet algoritmasında öncelik, mor çerçeve ve marka öneri boost'u.</p>
-              </div>
-              <BadgeDollarSign className="h-10 w-10 text-soft-gold" />
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <p className="text-4xl font-semibold text-soft-gold">Çok Yakında</p>
-              <span className="text-sm text-gray-400">/ 30 gün</span>
-            </div>
-            <ul className="mt-4 space-y-2 text-sm text-gray-300">
-              <li>• Mor çerçeve & Spotlight etiketi</li>
-              <li>• Keşfet listelerinde +%40 görünürlük</li>
-              <li>• Marka öneri algoritmasında öncelik</li>
-            </ul>
-            <button className="mt-5 w-full rounded-2xl border border-soft-gold/40 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold">
-              Manuel Satın Alma Talebi Gönder
-            </button>
-            <p className="mt-2 text-xs text-gray-400">MVP aşamasında manuel onay ile aktive edilecek.</p>
+      <section className="rounded-3xl border border-soft-gold/20 bg-soft-gold/5 p-6 shadow-glow">
+        <div className="flex flex-col items-center justify-center gap-4 py-6 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-soft-gold/30 bg-soft-gold/10">
+            <BadgeDollarSign className="h-7 w-7 text-soft-gold" />
           </div>
-
-          <div className="rounded-3xl border border-white/10 bg-[#0F1014] p-5 text-gray-300">
-            <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Bilgilendirme</p>
-            <p className="mt-2 text-sm text-gray-400">
-              Spotlight satın alımında fatura bilgilerin mail üzerinden doğrulanır. MVP döneminde ödeme işlemleri manuel olarak alınır ve
-              24 saat içinde hesabın Spotlight’a taşınır.
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Spotlight Premium</p>
+            <h3 className="mt-2 text-2xl font-semibold text-white">Satın Alma Yakında Açılıyor</h3>
+            <p className="mt-3 max-w-lg text-sm text-gray-400 leading-relaxed">
+              Ödeme altyapımız şu an hazırlanma aşamasında. Spotlight Premium'u satın alma özelliği
+              en kısa sürede aktif olacak. Hazır olduğunda seni bilgilendireceğiz.
             </p>
-            <p className="mt-4 text-sm text-gray-400">Soru ve talepler için: spotlight@influmatch.net</p>
           </div>
+          <ul className="mt-2 flex flex-wrap justify-center gap-3 text-sm text-gray-300">
+            <li className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-soft-gold" />
+              Mor çerçeve &amp; Spotlight etiketi
+            </li>
+            <li className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-soft-gold" />
+              +%40 görünürlük
+            </li>
+            <li className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-soft-gold" />
+              Marka öneri önceliği
+            </li>
+          </ul>
+          <button
+            disabled
+            className="mt-2 cursor-not-allowed rounded-2xl border border-soft-gold/20 bg-soft-gold/5 px-8 py-3 text-sm font-semibold text-soft-gold/50"
+          >
+            Satın Alma Kapalı — Yakında
+          </button>
+          <p className="text-xs text-gray-500">
+            Sorularınız için:{' '}
+            <a href="mailto:spotlight@influmatch.net" className="text-soft-gold hover:underline">
+              spotlight@influmatch.net
+            </a>
+          </p>
         </div>
       </section>
     </div>

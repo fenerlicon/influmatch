@@ -398,7 +398,7 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
-                  disabled={!isEditing || (initialData.username && initialData.username.trim() !== '') ? true : undefined}
+                  disabled={(!isEditing || (initialData.username != null && initialData.username.trim() !== '')) || undefined}
                   className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.username || usernameStatus === 'taken'
                     ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
                     : usernameStatus === 'available'

@@ -18,7 +18,7 @@ const pageVariants: Variants = {
     y: 0,
     transition: {
       duration: 0.1,
-      ease: [0.16, 1, 0.3, 1],
+      ease: 'easeOut' as const,
       opacity: {
         duration: 0.08,
       },
@@ -32,7 +32,7 @@ const pageVariants: Variants = {
     y: -5,
     transition: {
       duration: 0.08,
-      ease: [0.16, 1, 0.3, 1],
+      ease: 'easeIn' as const,
       opacity: {
         duration: 0.05,
       },

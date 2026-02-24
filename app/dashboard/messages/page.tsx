@@ -160,7 +160,7 @@ export default async function DashboardMessagesPage({
             username: otherParticipant.username,
             avatarUrl: otherParticipant.avatar_url,
             role: otherParticipant.role,
-            verificationStatus: (otherParticipant.verification_status as 'pending' | 'verified' | 'rejected' | null) ?? undefined,
+            verificationStatus: (otherParticipant.verification_status as 'pending' | 'verified' | 'rejected' | null | undefined) ?? undefined,
             displayedBadges: otherParticipant.displayed_badges as string[] | undefined,
           }
           : null,

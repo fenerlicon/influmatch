@@ -89,7 +89,7 @@ export default function ProposalsScreen({ route, navigation }) {
                 const { data: appsData, error: appsError } = await supabase
                     .from('advert_applications')
                     .select('*, advert_projects!advert_applications_advert_id_fkey(*)') // Use explicit FK avoid ambiguity
-                    .eq('influencer_user_id', user.id)
+                    .eq('influencer_id', user.id)  // DB column is influencer_id (not influencer_user_id)
                     .order('created_at', { ascending: false });
 
                 if (appsError) throw appsError;
@@ -135,18 +135,22 @@ export default function ProposalsScreen({ route, navigation }) {
         setIsApplying(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Kullanıcı bulunamadı.");
+            if (!user) throw new Error('Kullanıcı bulunamadı.');
 
-            // Detayları cover_letter'a ekle (Schema uyumluluğu için)
-            const fullCoverLetter = `${coverLetter}\n\n--- Teklif Detayları ---\nTeslimat: ${deliveryItem}\nÖdeme Tercihi: ${paymentType === 'cash' ? 'Nakit' : 'Barter'}`;
+            if (!coverLetter.trim()) {
+                Alert.alert('Eksik Bilgi', 'Lütfen bir niyet mesajı yazın.');
+                setIsApplying(false);
+                return;
+            }
 
             const { error } = await supabase
                 .from('advert_applications')
                 .insert({
                     advert_id: selectedProject.id,
-                    influencer_user_id: user.id,
+                    influencer_id: user.id,          // Correct column name (web uses influencer_id)
                     status: 'pending',
-                    cover_letter: fullCoverLetter,
+                    cover_letter: coverLetter.trim() || null,
+                    deliverable_idea: deliveryItem.trim() || null,  // Save to its own column
                     budget_expectation: budgetExpectation ? parseInt(budgetExpectation) : 0
                 });
 
@@ -453,7 +457,10 @@ export default function ProposalsScreen({ route, navigation }) {
                             </View>
 
                             <TouchableOpacity
-                                onPress={() => alert('İptal işlemi henüz aktif değil.')}
+                                onPress={() => Alert.alert('Başvuruyu İptal Et', 'Bu başvuruyu iptal etmek istediğinize emin misiniz?', [
+                                    { text: 'Vazgeç', style: 'cancel' },
+                                    { text: 'İptal Et', style: 'destructive', onPress: () => closeApplication() }
+                                ])}
                                 className="mt-auto w-full h-14 rounded-xl border border-red-500/30 items-center justify-center bg-red-500/5"
                             >
                                 <Text className="text-red-500 font-bold">Başvuruyu İptal Et</Text>

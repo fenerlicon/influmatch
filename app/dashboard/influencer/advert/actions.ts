@@ -78,3 +78,47 @@ export async function applyToAdvert(payload: ApplyToAdvertPayload) {
   return { success: true }
 }
 
+export async function cancelApplication(applicationId: string) {
+  if (!applicationId) return { error: 'Başvuru bulunamadı.' }
+
+  const supabase = createSupabaseServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { error: 'Oturum açmanız gerekiyor.' }
+
+  // Fetch the application — ensure it belongs to this user
+  const { data: application, error: fetchError } = await supabase
+    .from('advert_applications')
+    .select('id, status, influencer_id')
+    .eq('id', applicationId)
+    .maybeSingle()
+
+  if (fetchError || !application) return { error: 'Başvuru bulunamadı.' }
+
+  // Ownership check
+  if (application.influencer_id !== user.id) {
+    return { error: 'Bu başvuruyu iptal etme yetkiniz yok.' }
+  }
+
+  // Only pending or shortlisted can be cancelled
+  if (!['pending', 'shortlisted'].includes(application.status)) {
+    return {
+      error: application.status === 'accepted'
+        ? 'Kabul edilen bir başvuruyu geri çekemezsiniz.'
+        : 'Bu başvuru zaten iptal edilmiş.',
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from('advert_applications')
+    .delete()
+    .eq('id', applicationId)
+
+  if (deleteError) {
+    console.error('[cancelApplication] delete error', deleteError)
+    return { error: 'Başvuru iptal edilemedi: ' + deleteError.message }
+  }
+
+  revalidatePath('/dashboard/influencer/advert')
+  return { success: true }
+}
+

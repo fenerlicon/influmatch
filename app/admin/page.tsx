@@ -99,7 +99,6 @@ export default async function AdminPage() {
 
         // If rate limit and not last attempt, retry
         if (isRateLimit && attempt < maxRetries) {
-          console.log(`[AdminPage] Rate limit error, retrying (${attempt}/${maxRetries})...`)
           await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt))
           continue
         }

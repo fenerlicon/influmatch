@@ -5,12 +5,12 @@ import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-    Bell, Zap, ChevronRight, Search,
-    TrendingUp, ArrowUpRight, Instagram, BarChart3,
-    Eye, Lock, Unlock, Info, X, CheckCircle2, Sparkles
+    Bell, Zap, ChevronRight,
+    TrendingUp, Instagram, BarChart3,
+    Eye, Info, X, CheckCircle2, Sparkles
 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { calculateTrustScore } from '../utils/calculation';
+import { calculateTrustScore, calculateProfileCompletion } from '../utils/calculation';
 
 const { width, height } = Dimensions.get('window');
 const CARD_GAP = 16;
@@ -198,13 +198,15 @@ export default function DashboardScreen({ navigation }) {
 
     // UI States
     const [scoreModalVisible, setScoreModalVisible] = useState(false);
-    const [showNotificationToast, setShowNotificationToast] = useState(false);
+    const [notificationModalVisible, setNotificationModalVisible] = useState(false);
 
     // Data
     const [profile, setProfile] = useState(null);
-    const [stats, setStats] = useState({ trustScore: 0, balance: 0 });
+    const [stats, setStats] = useState({ trustScore: 0, profileCompletion: 0 });
     const [projects, setProjects] = useState([]);
     const [socialStats, setSocialStats] = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
     useFocusEffect(
         useCallback(() => {
@@ -217,36 +219,28 @@ export default function DashboardScreen({ navigation }) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: profileData } = await supabase.from('users').select('*').eq('id', user.id).single();
+            const [{ data: profileData }, { data: projectsData }, { data: socialData }, { data: notifData }] = await Promise.all([
+                supabase.from('users').select('*').eq('id', user.id).single(),
+                supabase.from('advert_projects').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(5),
+                supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
+                supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+            ]);
+
             setProfile(profileData);
-
-            // Fetch Opportunities
-            const { data: projectsData } = await supabase
-                .from('advert_projects')
-                .select('*')
-                .eq('status', 'open')
-                .order('created_at', { ascending: false })
-                .limit(5);
             setProjects(projectsData || []);
+            setSocialStats(socialData || null);
 
-            // Fetch Social Stats
-            let social = null;
-            if (profileData?.role === 'influencer') {
-                const { data } = await supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'instagram').single();
-                social = data;
-                setSocialStats(social);
-            }
-
-            // Trust Score Calculation
-            const calculatedScore = calculateTrustScore(profileData, social);
+            const notifs = notifData || [];
+            setNotifications(notifs);
+            setUnreadNotifCount(notifs.filter(n => !n.is_read).length);
 
             setStats({
-                trustScore: calculatedScore,
-                balance: 0 // Placeholder layout
+                trustScore: calculateTrustScore(profileData, socialData),
+                profileCompletion: calculateProfileCompletion(profileData, socialData),
             });
 
         } catch (e) {
-            console.error(e);
+            console.error('[Dashboard] fetchDashboardData error:', e);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -257,33 +251,47 @@ export default function DashboardScreen({ navigation }) {
         if (!profile) return;
 
         const newState = !profile.is_showcase_visible;
-        console.log("[Dashboard] Vitrin Durumu Değiştiriliyor:", newState);
+
+        // Security: Only verified accounts can enable showcase
+        if (newState && profile.verification_status !== 'verified') {
+            Alert.alert(
+                'Hesap Doğrulama Gerekli',
+                'Vitrinde görünmek için hesabınızın onaylanmış olması gerekiyor. Doğrulama için profil sayfanızı ziyaret edin.',
+                [{ text: 'Tamam' }]
+            );
+            return;
+        }
 
         // Optimistic UI update
         setProfile(prev => ({ ...prev, is_showcase_visible: newState }));
 
-        const { error } = await supabase.from('users').update({ is_showcase_visible: newState }).eq('id', profile.id);
+        const { error } = await supabase
+            .from('users')
+            .update({ is_showcase_visible: newState })
+            .eq('id', profile.id);
 
         if (error) {
-            console.error("Vitrin güncelleme hatası:", error);
-            Alert.alert("Hata", "Durum güncellenemedi: " + error.message);
-            // Revert changes
+            Alert.alert('Hata', 'Durum güncellenemedi: ' + error.message);
             setProfile(prev => ({ ...prev, is_showcase_visible: !newState }));
+        } else if (newState) {
+            Alert.alert('Vitrin Modu Aktif! 🚀', 'Artık markalar tarafından keşfedilebilirsin.');
         } else {
-            console.log("[Dashboard] Vitrin Durumu Başarılı:", newState);
-            if (newState) {
-                Alert.alert("Vitrin Modu Aktif! 🚀", "Artık markalar tarafından keşfedilebilirsin.");
-            } else {
-                Alert.alert("Gizli Mod 🔒", "Vitrinden kaldırıldın.");
-            }
+            Alert.alert('Gizli Mod 🔒', 'Vitrinden kaldırıldın.');
         }
     };
 
-    const handleNotificationPress = () => {
-        // Toggle Custom Notification Toast
-        setShowNotificationToast(prev => !prev);
-        // Auto hide after 3 seconds
-        setTimeout(() => setShowNotificationToast(false), 3000);
+    const handleNotificationPress = async () => {
+        setNotificationModalVisible(true);
+        // Mark all as read
+        if (unreadNotifCount > 0 && profile?.id) {
+            await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('user_id', profile.id)
+                .eq('is_read', false);
+            setUnreadNotifCount(0);
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        }
     };
 
     const onRefresh = () => {
@@ -313,23 +321,56 @@ export default function DashboardScreen({ navigation }) {
             <View className="absolute -top-20 -right-20 w-80 h-80 bg-soft-gold/10 rounded-full blur-[100px]" />
             <View className="absolute bottom-0 -left-20 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px]" />
 
-            {/* CUSTOM NOTIFICATION TOAST */}
-            {showNotificationToast && (
-                <View className="absolute top-24 left-6 right-6 z-[100] animate-in slide-in-from-top-4 fade-in duration-300">
-                    <View className="bg-[#15171e] p-4 rounded-2xl border border-white/10 shadow-2xl shadow-black items-center">
-                        <Bell color="#6b7280" size={24} className="mb-2 opacity-50" />
-                        <Text className="text-white font-bold text-base mb-1">Bildirimler</Text>
-                        <Text className="text-gray-500 text-xs">Henüz yeni bir bildiriminiz yok.</Text>
+            {/* NOTIFICATION MODAL */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={notificationModalVisible}
+                onRequestClose={() => setNotificationModalVisible(false)}
+            >
+                <View className="flex-1 bg-black/80 justify-end">
+                    <TouchableOpacity className="flex-1" onPress={() => setNotificationModalVisible(false)} />
+                    <View className="bg-[#0B0F19] rounded-t-[32px] border-t border-white/10 p-6 max-h-[70%]">
+                        <View className="flex-row justify-between items-center mb-4">
+                            <Text className="text-white font-bold text-xl">Bildirimler</Text>
+                            <TouchableOpacity onPress={() => setNotificationModalVisible(false)}>
+                                <X color="#6b7280" size={20} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {notifications.length === 0 ? (
+                                <View className="items-center py-10">
+                                    <Bell color="#374151" size={40} />
+                                    <Text className="text-gray-500 mt-4 text-sm">Henüz bildiriminiz yok.</Text>
+                                </View>
+                            ) : (
+                                notifications.map(notif => (
+                                    <View
+                                        key={notif.id}
+                                        className={`mb-3 p-4 rounded-2xl border ${notif.is_read
+                                                ? 'border-white/5 bg-white/[0.02]'
+                                                : 'border-soft-gold/20 bg-soft-gold/5'
+                                            }`}
+                                    >
+                                        <Text className="text-white font-bold text-sm mb-1">{notif.title}</Text>
+                                        <Text className="text-gray-400 text-xs leading-4">{notif.message}</Text>
+                                        <Text className="text-gray-600 text-[10px] mt-2">
+                                            {new Date(notif.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                                        </Text>
+                                    </View>
+                                ))
+                            )}
+                        </ScrollView>
                     </View>
                 </View>
-            )}
+            </Modal>
 
             <ScoreInfoModal visible={scoreModalVisible} onClose={() => setScoreModalVisible(false)} />
 
             <SafeAreaView className="flex-1">
                 <Header
                     profile={profile}
-                    unreadCount={0}
+                    unreadCount={unreadNotifCount}
                     onNotificationPress={handleNotificationPress}
                 />
 
@@ -342,12 +383,19 @@ export default function DashboardScreen({ navigation }) {
                     <View className="px-6 mt-6 mb-6">
                         <View className="flex-row justify-between items-end mb-2">
                             <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">PROFİL DOLULUĞU</Text>
-                            <Text className="text-soft-gold text-xs font-bold">%65</Text>
+                            <Text className="text-soft-gold text-xs font-bold">%{stats.profileCompletion}</Text>
                         </View>
                         <View className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <View className="h-full bg-soft-gold w-[65%] rounded-full shadow-[0_0_10px_rgba(212,175,55,0.5)]" />
+                            <View
+                                className="h-full bg-soft-gold rounded-full shadow-[0_0_10px_rgba(212,175,55,0.5)]"
+                                style={{ width: `${stats.profileCompletion}%` }}
+                            />
                         </View>
-                        <Text className="text-gray-500 text-[10px] mt-2">Daha fazla işbirliği için profilini tamamla.</Text>
+                        <Text className="text-gray-500 text-[10px] mt-2">
+                            {stats.profileCompletion < 100
+                                ? 'Daha fazla işbirliği için profilini tamamla.'
+                                : 'Profil tamamlandı! Markalar seni görebilir.'}
+                        </Text>
                     </View>
 
                     <View className="px-6 mt-2">
@@ -367,10 +415,7 @@ export default function DashboardScreen({ navigation }) {
                                 <CircularProgress score={stats.trustScore} />
                                 <View className="items-center mt-3">
                                     <Text className="text-white font-bold text-lg tracking-tight">Marka Güven Skoru</Text>
-                                    <View className="flex-row items-center bg-green-500/10 px-2 py-0.5 rounded mt-1 border border-green-500/20">
-                                        <TrendingUp size={10} color="#4ade80" />
-                                        <Text className="text-green-400 text-[10px] font-extrabold ml-1 uppercase">%5 ARTIŞ</Text>
-                                    </View>
+                                    <Text className="text-gray-500 text-[10px] mt-1">Profil ve Instagram verilerine göre</Text>
                                 </View>
                             </GlassCard>
 

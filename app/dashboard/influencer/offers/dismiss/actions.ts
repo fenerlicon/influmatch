@@ -34,13 +34,8 @@ export async function dismissOffer(offerId: string) {
     offer_id: offerId,
   })
 
-  // Ignore unique constraint violation (already dismissed)
+  // Ignore unique constraint violation (already dismissed = still success)
   if (error && error.code !== '23505') {
-    console.error('Dismiss offer error:', error)
-    return { error: `Teklif gizlenemedi: ${error.message}` }
-  }
-
-  if (error) {
     console.error('Dismiss offer error:', error)
     return { error: `Teklif gizlenemedi: ${error.message}` }
   }

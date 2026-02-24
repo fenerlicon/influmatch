@@ -707,7 +707,14 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         toast.dismiss(loadingToast)
 
         if (result.error) {
-          toast.error(result.error)
+          toast.error(result.error, { duration: 7000 })
+        } else if ((result as any).warning) {
+          toast((result as any).message, {
+            icon: '⚠️',
+            duration: 8000,
+            style: { background: '#1c1a00', color: '#fbbf24', border: '1px solid #d97706' }
+          })
+          console.log('Partial update data:', (result as any).data)
         } else {
           toast.success('Instagram verileri başarıyla güncellendi!')
           console.log('Updated stats:', result.data)

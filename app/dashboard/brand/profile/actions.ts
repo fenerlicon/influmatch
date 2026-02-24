@@ -43,7 +43,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
   // Try to select social_links_last_updated, but handle gracefully if column doesn't exist yet
   let currentUser: any = null
   let currentUserError: any = null
-  
+
   try {
     const result = await supabase
       .from('users')
@@ -84,7 +84,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
   if (currentUsername && payload.username && payload.username.trim()) {
     const trimmedNewUsername = payload.username.trim().toLowerCase()
     const trimmedCurrentUsername = currentUsername.trim().toLowerCase()
-    
+
     // If trying to change username, reject it
     if (trimmedNewUsername !== trimmedCurrentUsername) {
       throw new Error('Kullanıcı adı bir kez belirlendikten sonra değiştirilemez.')
@@ -94,7 +94,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
   // Validate username format and uniqueness if username is provided and user doesn't have one yet
   if (payload.username && payload.username.trim() && !currentUsername) {
     const trimmedUsername = payload.username.trim().toLowerCase()
-    
+
     // Validate format (Instagram rules)
     const usernameValidation = validateUsername(trimmedUsername)
     if (!usernameValidation.isValid) {
@@ -149,7 +149,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     const lastUpdated = new Date(socialLinksLastUpdated)
     const now = new Date()
     const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
-    
+
     if (daysSinceLastUpdate < 30) {
       const daysRemaining = 30 - daysSinceLastUpdate
       throw new Error(`Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz. ${daysRemaining} gün sonra tekrar değiştirebilirsiniz.`)
@@ -220,9 +220,6 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     updates.displayed_badges = payload.displayedBadges
   }
 
-  console.log('[updateBrandProfile] Attempting update for user:', user.id)
-  console.log('[updateBrandProfile] Updates:', JSON.stringify(updates, null, 2))
-
   const { data: updateResult, error: updateError } = await supabase
     .from('users')
     .update(updates)
@@ -235,7 +232,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     if (updateError.code === '23505' || updateError.message.includes('unique') || updateError.message.includes('duplicate')) {
       throw new Error('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
     }
-    
+
     // Check if it's a column not found error for displayed_badges
     if (updateError.message.includes('displayed_badges') || updateError.message.includes('schema cache')) {
       console.error('[updateBrandProfile] displayed_badges column error:', updateError.message)
@@ -245,24 +242,17 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
         .from('users')
         .update(updates)
         .eq('id', user.id)
-      
+
       if (retryError) {
         throw new Error(retryError.message)
       }
-      
+
       // Log warning about displayed_badges column
       console.warn('[updateBrandProfile] displayed_badges column not found, profile updated without badges. Please run migration: add_displayed_badges_column.sql')
     } else {
       console.error('[updateBrandProfile] Update failed with error:', updateError)
       throw new Error(updateError.message)
     }
-  }
-
-  // Log update result
-  if (updateResult && updateResult.length > 0) {
-    console.log('[updateBrandProfile] Update successful, returned data:', JSON.stringify(updateResult[0], null, 2))
-  } else {
-    console.warn('[updateBrandProfile] Update completed but no data returned (this is normal for UPDATE operations)')
   }
 
   // Award badges after profile update
