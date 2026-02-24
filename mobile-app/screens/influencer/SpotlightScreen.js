@@ -152,7 +152,7 @@ export default function SpotlightScreen({ navigation }) {
     const onSubscribePress = (tier) => {
         Alert.alert(
             'Ödeme Sistemi Hazırlanıyor',
-            `${PLANS[tier]?.label || ''} paketi yakında aktif olacak.\n\nDetay için: spotlight@influmatch.net`,
+            `${PLANS[tier]?.label || ''} paketi yakında aktif olacak.\n\nDetay için: destek@influmatch.net`,
             [{ text: 'Tamam' }]
         );
     };
@@ -256,7 +256,7 @@ export default function SpotlightScreen({ navigation }) {
                     ))}
 
                     <Text className="text-gray-700 text-[11px] text-center mt-2">
-                        Satın alma için: spotlight@influmatch.net
+                        Satın alma için: destek@influmatch.net
                     </Text>
                 </ScrollView>
             </SafeAreaView>
