@@ -78,7 +78,7 @@ export default function LegalPage() {
 
               <div>
                 <h3 className="text-lg font-bold text-white mb-2">4. Haklarınız</h3>
-                <p className="mb-2">KVKK Madde 11 uyarınca, info@influmatch.net adresine başvurarak:</p>
+                <p className="mb-2">KVKK Madde 11 uyarınca, destek@influmatch.net adresine başvurarak:</p>
                 <ul className="list-disc pl-6 space-y-1 marker:text-soft-gold">
                   <li>Verilerinizin işlenip işlenmediğini öğrenebilir,</li>
                   <li>İşlenen verilerinizin düzeltilmesini veya silinmesini talep edebilir,</li>

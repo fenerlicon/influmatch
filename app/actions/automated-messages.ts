@@ -3,7 +3,7 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { v4 as uuidv4 } from 'uuid'
 
-const ADMIN_EMAIL = 'info@influmatch.net'
+const ADMIN_EMAIL = 'destek@influmatch.net'
 
 /**
  * Sends a welcome message to a newly registered user from the Admin.

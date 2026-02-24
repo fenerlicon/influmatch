@@ -340,7 +340,7 @@ export default function InfluencerSpotlightPage() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => window.location.href = 'mailto:info@influmatch.net'}
+                                        onClick={() => window.location.href = 'mailto:destek@influmatch.net'}
                                         className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95"
                                     >
                                         Ajans Başvurusu

@@ -207,8 +207,8 @@ export default async function InfluencerSpotlightPage() {
           </button>
           <p className="text-xs text-gray-500">
             Sorularınız için:{' '}
-            <a href="mailto:spotlight@influmatch.net" className="text-soft-gold hover:underline">
-              spotlight@influmatch.net
+            <a href="mailto:destek@influmatch.net" className="text-soft-gold hover:underline">
+              destek@influmatch.net
             </a>
           </p>
         </div>

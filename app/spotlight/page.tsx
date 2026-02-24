@@ -170,7 +170,7 @@ export default function PublicSpotlightPage() {
                                                     <span className="text-3xl font-bold text-white">Teklif Alın</span>
                                                 </div>
                                             </div>
-                                            <Link href="mailto:info@influmatch.net" className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95">
+                                            <Link href="mailto:destek@influmatch.net" className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95">
                                                 İletişime Geçin
                                             </Link>
                                         </div>
@@ -254,7 +254,7 @@ export default function PublicSpotlightPage() {
                                                     <span className="text-3xl font-bold text-white">Teklif Alın</span>
                                                 </div>
                                             </div>
-                                            <Link href="mailto:info@influmatch.net" className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95">
+                                            <Link href="mailto:destek@influmatch.net" className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95">
                                                 Ajans Başvurusu
                                             </Link>
                                         </div>

@@ -212,7 +212,7 @@ export default function BrandProfileScreen({ navigation }) {
                     <SectionLabel title="DESTEK" />
                     <GlassCard>
                         <TouchableOpacity className="px-5 py-4 flex-row items-center gap-4 border-b border-white/[0.06]"
-                            onPress={() => Alert.alert('Destek', 'brands@influmatch.net adresine yazabilirsiniz.')}>
+                            onPress={() => Alert.alert('Destek', 'destek@influmatch.net adresine yazabilirsiniz.')}>
                             <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center border border-white/[0.07]">
                                 <HelpCircle color="#9ca3af" size={17} />
                             </View>

@@ -1,20 +1,29 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Alert, TextInput, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+    View, Text, ScrollView, TouchableOpacity, Switch,
+    TextInput, ActivityIndicator, Alert, Linking
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../lib/supabase';
 import {
-    User, Bell, Lock, HelpCircle, FileText, LogOut,
-    ChevronRight, Shield, Mail, Smartphone, ArrowLeft,
-    Eye, EyeOff, Send,
+    ArrowLeft, User, Lock, Smartphone, Bell, Mail,
+    FileText, LogOut, ChevronRight, Eye, EyeOff,
+    HelpCircle, Send, Info
 } from 'lucide-react-native';
+import { supabase } from '../lib/supabase';
+import { useFocusEffect } from '@react-navigation/native';
 
-// ¦¦¦ Design System ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+const SectionLabel = ({ title }) => (
+    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest mt-7 mb-3 ml-1 uppercase">
+        {title}
+    </Text>
+);
+
 const GlassCard = ({ children, className }) => (
-    <View className={`rounded-[24px] overflow-hidden border border-white/10 relative ${className}`}>
+    <View className={`bg-white/[0.04] border border-white/10 rounded-[22px] overflow-hidden ${className || ''}`}>
         <LinearGradient
-            colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)']}
+            colors={['rgba(255,255,255,0.05)', 'transparent']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             className="absolute inset-0"
         />
@@ -22,99 +31,100 @@ const GlassCard = ({ children, className }) => (
     </View>
 );
 
-// ¦¦¦ Reusable MenuItem ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
-const MenuItem = ({ icon: Icon, title, subtitle, onPress, hasSwitch, value, onValueChange, iconColor = '#9CA3AF', last = false }) => (
+const MenuItem = ({ icon: Icon, iconColor = '#9CA3AF', title, subtitle, onPress, last }) => (
     <TouchableOpacity
-        onPress={hasSwitch ? null : onPress}
-        activeOpacity={hasSwitch ? 1 : 0.7}
-        className={`flex-row items-center justify-between px-5 py-4 ${!last ? 'border-b border-white/[0.06]' : ''}`}
+        onPress={onPress}
+        activeOpacity={0.7}
+        className={`flex-row items-center px-5 py-4 ${!last ? 'border-b border-white/[0.06]' : ''}`}
     >
-        <View className="flex-row items-center flex-1">
-            <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]">
-                <Icon color={iconColor} size={17} />
-            </View>
-            <View className="flex-1">
-                <Text className="text-white font-semibold text-[15px]">{title}</Text>
-                {subtitle && <Text className="text-gray-500 text-[12px] mt-0.5">{subtitle}</Text>}
-            </View>
+        <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]"
+            style={{ backgroundColor: `${iconColor}15` }}>
+            <Icon color={iconColor} size={17} />
         </View>
-        {hasSwitch
-            ? <Switch trackColor={{ false: '#374151', true: '#D4AF37' }} thumbColor={value ? '#FFFFFF' : '#9CA3AF'} onValueChange={onValueChange} value={value} />
-            : <ChevronRight color="#4B5563" size={18} />}
+        <View className="flex-1">
+            <Text className="text-white font-semibold text-[15px]">{title}</Text>
+            {subtitle && <Text className="text-gray-500 text-[12px] mt-0.5">{subtitle}</Text>}
+        </View>
+        <ChevronRight color="#4B5563" size={18} />
     </TouchableOpacity>
 );
 
-const SectionLabel = ({ title }) => (
-    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest mt-7 mb-3 ml-1">{title}</Text>
-);
-
-// ¦¦¦ Password Change (inline expandable) ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
-const PasswordSection = ({ last }) => {
+const PasswordSection = () => {
     const [open, setOpen] = useState(false);
-    const [newPass, setNewPass] = useState('');
+    const [current, setCurrent] = useState('');
+    const [next, setNext] = useState('');
     const [confirm, setConfirm] = useState('');
-    const [showPass, setShowPass] = useState(false);
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNext, setShowNext] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    const save = async () => {
-        if (newPass.length < 6) return Alert.alert('Hata', 'Þifre en az 6 karakter olmalý.');
-        if (newPass !== confirm) return Alert.alert('Hata', 'Þifreler eþleþmiyor.');
+    const handleChange = async () => {
+        if (!current || !next || !confirm) return Alert.alert('Eksik Alan', 'TÃ¼m alanlarÄ± doldur.');
+        if (next !== confirm) return Alert.alert('Hata', 'Yeni ÅŸifreler eÅŸleÅŸmiyor.');
+        if (next.length < 8) return Alert.alert('Hata', 'Åžifre en az 8 karakter olmalÄ±.');
         setSaving(true);
-        const { error } = await supabase.auth.updateUser({ password: newPass });
-        setSaving(false);
-        if (error) return Alert.alert('Hata', error.message);
-        Alert.alert('Baþarýlý', 'Þifreniz güncellendi.');
-        setOpen(false); setNewPass(''); setConfirm('');
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user.email, password: current });
+            if (signInErr) throw new Error('Mevcut ÅŸifre yanlÄ±ÅŸ.');
+            const { error } = await supabase.auth.updateUser({ password: next });
+            if (error) throw error;
+            Alert.alert('BaÅŸarÄ±lÄ± âœ“', 'Åžifren gÃ¼ncellendi.');
+            setCurrent(''); setNext(''); setConfirm(''); setOpen(false);
+        } catch (e) {
+            Alert.alert('Hata', e.message);
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
         <>
             <TouchableOpacity onPress={() => setOpen(v => !v)} activeOpacity={0.7}
-                className={`flex-row items-center justify-between px-5 py-4 ${!last || open ? 'border-b border-white/[0.06]' : ''}`}>
-                <View className="flex-row items-center flex-1">
-                    <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]">
-                        <Lock color="#9CA3AF" size={17} />
-                    </View>
-                    <View>
-                        <Text className="text-white font-semibold text-[15px]">Þifre Deðiþtir</Text>
-                        <Text className="text-gray-500 text-[12px] mt-0.5">Hesap güvenliðini güncelle</Text>
-                    </View>
+                className="flex-row items-center px-5 py-4 border-b border-white/[0.06]">
+                <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]"
+                    style={{ backgroundColor: '#a855f715' }}>
+                    <Lock color="#a855f7" size={17} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-white font-semibold text-[15px]">Åžifre DeÄŸiÅŸtir</Text>
+                    <Text className="text-gray-500 text-[12px] mt-0.5">Hesap gÃ¼venliÄŸini gÃ¼ncelle</Text>
                 </View>
                 <ChevronRight color="#4B5563" size={18} style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
             </TouchableOpacity>
 
             {open && (
                 <View className="mx-4 mb-4 mt-1 p-4 rounded-2xl border border-white/[0.07] bg-black/20">
-                    {/* New password */}
-                    <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">YENÝ ÞÝFRE</Text>
+                    <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">MEVCUT ÅžÄ°FRE</Text>
                     <View className="flex-row items-center bg-black/30 rounded-xl border border-white/10 px-4 h-12 mb-3">
-                        <TextInput
-                            className="flex-1 text-white text-sm"
-                            value={newPass} onChangeText={setNewPass}
-                            secureTextEntry={!showPass}
-                            placeholder="En az 6 karakter" placeholderTextColor="#4b5563"
-                            autoCapitalize="none"
-                        />
-                        <TouchableOpacity onPress={() => setShowPass(v => !v)}>
-                            {showPass ? <EyeOff color="#6b7280" size={17} /> : <Eye color="#6b7280" size={17} />}
+                        <TextInput className="flex-1 text-white text-sm" value={current} onChangeText={setCurrent}
+                            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" placeholderTextColor="#4b5563"
+                            secureTextEntry={!showCurrent} autoCapitalize="none" />
+                        <TouchableOpacity onPress={() => setShowCurrent(v => !v)} hitSlop={10}>
+                            {showCurrent ? <EyeOff color="#6b7280" size={16} /> : <Eye color="#6b7280" size={16} />}
                         </TouchableOpacity>
                     </View>
 
-                    {/* Confirm */}
-                    <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">ÞÝFRE TEKRAR</Text>
-                    <View className="flex-row items-center bg-black/30 rounded-xl border border-white/10 px-4 h-12 mb-4">
-                        <TextInput
-                            className="flex-1 text-white text-sm"
-                            value={confirm} onChangeText={setConfirm}
-                            secureTextEntry={!showPass}
-                            placeholder="Þifreyi tekrarla" placeholderTextColor="#4b5563"
-                            autoCapitalize="none"
-                        />
+                    <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">YENÄ° ÅžÄ°FRE</Text>
+                    <View className="flex-row items-center bg-black/30 rounded-xl border border-white/10 px-4 h-12 mb-3">
+                        <TextInput className="flex-1 text-white text-sm" value={next} onChangeText={setNext}
+                            placeholder="Min. 8 karakter" placeholderTextColor="#4b5563"
+                            secureTextEntry={!showNext} autoCapitalize="none" />
+                        <TouchableOpacity onPress={() => setShowNext(v => !v)} hitSlop={10}>
+                            {showNext ? <EyeOff color="#6b7280" size={16} /> : <Eye color="#6b7280" size={16} />}
+                        </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity onPress={save} disabled={saving}
+                    <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">YENÄ° ÅžÄ°FRE (TEKRAR)</Text>
+                    <View className={`flex-row items-center bg-black/30 rounded-xl border px-4 h-12 mb-4 ${confirm && next !== confirm ? 'border-red-500/50' : 'border-white/10'}`}>
+                        <TextInput className="flex-1 text-white text-sm" value={confirm} onChangeText={setConfirm}
+                            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" placeholderTextColor="#4b5563" secureTextEntry autoCapitalize="none" />
+                    </View>
+
+                    <TouchableOpacity onPress={handleChange} disabled={saving}
                         className="bg-soft-gold h-11 rounded-xl items-center justify-center">
-                        {saving ? <ActivityIndicator color="black" size="small" /> : <Text className="text-midnight font-bold text-sm">Þifreyi Kaydet</Text>}
+                        {saving ? <ActivityIndicator color="black" size="small" /> :
+                            <Text className="text-midnight font-bold text-sm">Åžifreyi GÃ¼ncelle</Text>}
                     </TouchableOpacity>
                 </View>
             )}
@@ -122,15 +132,97 @@ const PasswordSection = ({ last }) => {
     );
 };
 
-// ¦¦¦ Support Ticket (inline expandable) ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
-const SupportSection = ({ last }) => {
+const NotificationsSection = () => {
+    const [enabled, setEnabled] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    useFocusEffect(useCallback(() => {
+        (async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data } = await supabase.from('users').select('push_notifications_enabled').eq('id', user.id).maybeSingle();
+            if (data && data.push_notifications_enabled !== null) setEnabled(data.push_notifications_enabled);
+        })();
+    }, []));
+
+    const toggle = async (val) => {
+        setEnabled(val);
+        setSaving(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            await supabase.from('users').update({ push_notifications_enabled: val }).eq('id', user.id);
+        } catch (e) {
+            setEnabled(!val);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <View className="flex-row items-center px-5 py-4">
+            <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]"
+                style={{ backgroundColor: '#f59e0b15' }}>
+                <Bell color="#f59e0b" size={17} />
+            </View>
+            <View className="flex-1">
+                <Text className="text-white font-semibold text-[15px]">Bildirimler</Text>
+                <Text className="text-gray-500 text-[12px] mt-0.5">
+                    {saving ? 'Kaydediliyor...' : enabled ? 'Aktif' : 'KapalÄ±'}
+                </Text>
+            </View>
+            <Switch value={enabled} onValueChange={toggle}
+                trackColor={{ false: '#1f2937', true: '#D4AF37' }}
+                thumbColor={enabled ? '#fff' : '#6b7280'} />
+        </View>
+    );
+};
+
+const UsernameInfoSection = () => {
+    const [username, setUsername] = useState('');
+
+    useFocusEffect(useCallback(() => {
+        (async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data } = await supabase.from('users').select('username').eq('id', user.id).maybeSingle();
+            if (data?.username) setUsername(data.username);
+        })();
+    }, []));
+
+    return (
+        <View className="px-5 py-4 border-b border-white/[0.06]">
+            <View className="flex-row items-center mb-2">
+                <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]"
+                    style={{ backgroundColor: '#60a5fa15' }}>
+                    <Info color="#60a5fa" size={17} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-white font-semibold text-[15px]">
+                        Kullanici Adi: <Text className="text-soft-gold">@{username || '...'}</Text>
+                    </Text>
+                </View>
+            </View>
+            <Text className="text-gray-600 text-[11px] ml-[52px] leading-5">
+                Kullanici adi yalnizca uyelik sirasinda belirlenir ve sonradan degistirilemez.{' '}
+                Degistirmek icin{' '}
+                <Text className="text-blue-400"
+                    onPress={() => Linking.openURL('mailto:destek@influmatch.net?subject=Kullanici Adi Degisikligi')}>
+                    destek@influmatch.net
+                </Text>{' '}
+                adresine destek talebi olusturun.
+            </Text>
+        </View>
+    );
+};
+
+const SupportSection = () => {
     const [open, setOpen] = useState(false);
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [sending, setSending] = useState(false);
 
     const send = async () => {
-        if (!subject.trim() || !message.trim()) return Alert.alert('Eksik', 'Konu ve mesaj alanlarýný doldur.');
+        if (!subject.trim() || !message.trim()) return Alert.alert('Eksik', 'Konu ve mesaj alanlarini doldur.');
         setSending(true);
         const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase.from('support_tickets').insert({
@@ -138,47 +230,41 @@ const SupportSection = ({ last }) => {
         });
         setSending(false);
         if (error) return Alert.alert('Hata', error.message);
-        Alert.alert('Gönderildi', 'Talebiniz alýndý. En kýsa sürede dönüþ yapacaðýz.');
+        Alert.alert('Gonderildi', 'Talebiniz alindi. En kisa surede donus yapacagiz.');
         setSubject(''); setMessage(''); setOpen(false);
     };
 
     return (
         <>
             <TouchableOpacity onPress={() => setOpen(v => !v)} activeOpacity={0.7}
-                className={`flex-row items-center justify-between px-5 py-4 ${!last || open ? 'border-b border-white/[0.06]' : ''}`}>
-                <View className="flex-row items-center flex-1">
-                    <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]">
-                        <HelpCircle color="#9CA3AF" size={17} />
-                    </View>
-                    <View>
-                        <Text className="text-white font-semibold text-[15px]">Destek Talebi</Text>
-                        <Text className="text-gray-500 text-[12px] mt-0.5">Sorununu bize ilet</Text>
-                    </View>
+                className={`flex-row items-center px-5 py-4 border-b border-white/[0.06]`}>
+                <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]">
+                    <HelpCircle color="#9CA3AF" size={17} />
                 </View>
-                <ChevronRight color="#4B5563" size={18} style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
+                <View className="flex-1">
+                    <Text className="text-white font-semibold text-[15px]">Destek Talebi</Text>
+                    <Text className="text-gray-500 text-[12px] mt-0.5">Sorununu bize ilet</Text>
+                </View>
+                <ChevronRight color="#4B5563" size={18}
+                    style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
             </TouchableOpacity>
 
             {open && (
                 <View className="mx-4 mb-4 mt-1 p-4 rounded-2xl border border-white/[0.07] bg-black/20">
                     <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">KONU</Text>
                     <View className="bg-black/30 rounded-xl border border-white/10 px-4 h-12 justify-center mb-3">
-                        <TextInput className="text-white text-sm" value={subject} onChangeText={setSubject} placeholder="Konu baþlýðý" placeholderTextColor="#4b5563" />
+                        <TextInput className="text-white text-sm" value={subject} onChangeText={setSubject}
+                            placeholder="Konu basligi" placeholderTextColor="#4b5563" />
                     </View>
-
                     <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">MESAJ</Text>
                     <View className="bg-black/30 rounded-xl border border-white/10 p-4 min-h-[90px] mb-4">
-                        <TextInput
-                            className="text-white text-sm leading-5"
-                            value={message} onChangeText={setMessage}
-                            placeholder="Sorunu açýkla..." placeholderTextColor="#4b5563"
-                            multiline textAlignVertical="top"
-                        />
+                        <TextInput className="text-white text-sm leading-5" value={message} onChangeText={setMessage}
+                            placeholder="Sorunu acikla..." placeholderTextColor="#4b5563" multiline textAlignVertical="top" />
                     </View>
-
                     <TouchableOpacity onPress={send} disabled={sending}
                         className="bg-soft-gold h-11 rounded-xl items-center justify-center flex-row gap-2">
                         {sending ? <ActivityIndicator color="black" size="small" /> : (
-                            <><Send color="black" size={15} /><Text className="text-midnight font-bold text-sm">Talebi Gönder</Text></>
+                            <><Send color="black" size={15} /><Text className="text-midnight font-bold text-sm">Talebi Gonder</Text></>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -187,15 +273,12 @@ const SupportSection = ({ last }) => {
     );
 };
 
-// ¦¦¦ Main ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
 export default function SettingsScreen({ navigation }) {
-    const [notifEnabled, setNotifEnabled] = useState(true);
-
     const handleLogout = () => {
-        Alert.alert('Çýkýþ Yap', 'Hesabýndan çýkýþ yapmak istediðine emin misin?', [
-            { text: 'Vazgeç', style: 'cancel' },
+        Alert.alert('Cikis Yap', 'Hesabindan cikis yapmak istedigine emin misin?', [
+            { text: 'Vazgec', style: 'cancel' },
             {
-                text: 'Çýkýþ Yap', style: 'destructive',
+                text: 'Cikis Yap', style: 'destructive',
                 onPress: async () => {
                     await supabase.auth.signOut();
                     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
@@ -207,18 +290,11 @@ export default function SettingsScreen({ navigation }) {
     return (
         <View className="flex-1 bg-[#020617]">
             <StatusBar style="light" />
-
-            {/* Master backgrounds */}
             <LinearGradient colors={['#12153d', '#020617', '#020617']} className="absolute inset-0" />
-            <View className="absolute top-0 right-0 w-64 h-64 bg-soft-gold/4 rounded-full blur-[80px]" />
-
             <SafeAreaView className="flex-1">
-                {/* Header */}
                 <View className="px-6 py-4 flex-row items-center border-b border-white/5">
-                    <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        className="w-11 h-11 bg-white/5 rounded-2xl items-center justify-center border border-white/10 mr-4"
-                    >
+                    <TouchableOpacity onPress={() => navigation.goBack()}
+                        className="w-11 h-11 bg-white/5 rounded-2xl items-center justify-center border border-white/10 mr-4">
                         <ArrowLeft color="white" size={20} />
                     </TouchableOpacity>
                     <Text className="text-white font-bold text-xl">Ayarlar</Text>
@@ -226,43 +302,40 @@ export default function SettingsScreen({ navigation }) {
 
                 <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
 
-                    {/* ¦¦ HESAP ¦¦ */}
                     <SectionLabel title="HESAP" />
-                    <GlassCard className="overflow-hidden">
-                        <MenuItem icon={User} title="Profil Bilgileri" subtitle="Ad, biyografi, kategori..." onPress={() => navigation.navigate('MyProfile')} />
-                        <PasswordSection />
-                        <MenuItem icon={Smartphone} title="Baðlý Hesaplar" subtitle="Instagram hesap baðlantýsý" iconColor="#E1306C" onPress={() => navigation.navigate('MyProfile')} last />
-                    </GlassCard>
-
-                    {/* ¦¦ TERCÝHLER ¦¦ */}
-                    <SectionLabel title="TERCÝHLER" />
                     <GlassCard>
-                        <MenuItem icon={Bell} title="Bildirimler" subtitle="Push bildirimlerini yönet" hasSwitch value={notifEnabled} onValueChange={setNotifEnabled} last />
+                        <MenuItem icon={User} iconColor="#D4AF37" title="Profil Bilgileri"
+                            subtitle="Ad, biyografi, kategori..." onPress={() => navigation.navigate('MyProfile')} />
+                        <UsernameInfoSection />
+                        <PasswordSection />
+                        <MenuItem icon={Smartphone} iconColor="#E1306C" title="Bagli Hesaplar"
+                            subtitle="Instagram hesap baglantisi" onPress={() => navigation.navigate('MyProfile')} last />
                     </GlassCard>
 
-                    {/* ¦¦ DESTEK ¦¦ */}
+                    <SectionLabel title="TERCIHLER" />
+                    <GlassCard>
+                        <NotificationsSection />
+                    </GlassCard>
+
                     <SectionLabel title="DESTEK" />
                     <GlassCard>
                         <SupportSection />
-                        <MenuItem icon={Mail} title="Bize Ulaþýn" subtitle="support@influmatch.net"
-                            onPress={() => Alert.alert('Ýletiþim', 'support@influmatch.net\nadresine e-posta gönderebilirsiniz.')} />
-                        <MenuItem icon={FileText} title="Kullaným Koþullarý"
-                            onPress={() => Alert.alert('Kullaným Koþullarý', 'influmatch.net/terms adresinden eriþebilirsiniz.')} last />
+                        <MenuItem icon={Mail} iconColor="#4ade80" title="Bize Ulasin"
+                            subtitle="destek@influmatch.net"
+                            onPress={() => Linking.openURL('mailto:destek@influmatch.net')} />
+                        <MenuItem icon={FileText} iconColor="#60a5fa" title="Kullanim Kosullari"
+                            onPress={() => Linking.openURL('https://influmatch.net/legal?tab=terms')} last />
                     </GlassCard>
 
-                    {/* ¦¦ ÇIKIÞ ¦¦ */}
-                    <TouchableOpacity
-                        onPress={handleLogout}
-                        className="mt-7 bg-red-500/8 border border-red-500/20 p-4 rounded-[22px] flex-row items-center justify-center gap-3"
-                    >
+                    <TouchableOpacity onPress={handleLogout}
+                        className="mt-7 bg-red-500/8 border border-red-500/20 p-4 rounded-[22px] flex-row items-center justify-center gap-3">
                         <View className="w-9 h-9 bg-red-500/10 rounded-xl items-center justify-center border border-red-500/15">
                             <LogOut color="#EF4444" size={17} />
                         </View>
-                        <Text className="text-red-500 font-bold text-base">Çýkýþ Yap</Text>
+                        <Text className="text-red-500 font-bold text-base">Cikis Yap</Text>
                     </TouchableOpacity>
 
-                    <Text className="text-gray-700 text-[11px] text-center mt-5">InfluMatch v1.0 · influmatch.net</Text>
-
+                    <Text className="text-gray-700 text-[11px] text-center mt-5">InfluMatch v1.0 â€¢ influmatch.net</Text>
                 </ScrollView>
             </SafeAreaView>
         </View>

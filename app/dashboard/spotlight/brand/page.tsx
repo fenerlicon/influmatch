@@ -89,7 +89,7 @@ export default function BrandSpotlightPage() {
 
     const handleSubscribe = async (_tier: 'mbasic' | 'mpro') => {
         toast.info('Ödeme sistemi hazırlanıyor.', {
-            description: 'Spotlight satın alma özelliği yakında aktif olacak. Bilgilendirme için spotlight@influmatch.net adresine yazabilirsiniz.',
+            description: 'Spotlight satın alma özelliği yakında aktif olacak. Bilgilendirme için destek@influmatch.net adresine yazabilirsiniz.',
             duration: 6000,
         })
     }
@@ -265,7 +265,7 @@ export default function BrandSpotlightPage() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => window.location.href = 'mailto:info@influmatch.net'}
+                                        onClick={() => window.location.href = 'mailto:destek@influmatch.net'}
                                         className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95"
                                     >
                                         Bizimle İletişime Geçin
