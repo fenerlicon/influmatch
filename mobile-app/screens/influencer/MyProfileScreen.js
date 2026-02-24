@@ -1,144 +1,142 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
+import {
+    View, Text, ScrollView, TouchableOpacity, TextInput,
+    Image, ActivityIndicator, Alert, Modal
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Camera, Save, User, Briefcase, Link as LinkIcon, Edit2, Instagram, CheckCircle2, Copy, X } from 'lucide-react-native';
+import {
+    ChevronLeft, Camera, Save, User, Briefcase,
+    Link as LinkIcon, Edit2, Instagram, CheckCircle2, X, AtSign
+} from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 
-// Production API base URL
+// ─── Production URL ───────────────────────────────────────────────────────────
 const API_BASE = 'https://influmatch.vercel.app';
 
+// ─── Reusable input field ──────────────────────────────────────────────────────
+const Field = ({ label, icon: Icon, value, onChange, placeholder, multiline = false }) => (
+    <View className="mb-5">
+        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">{label}</Text>
+        <View className={`flex-row items-${multiline ? 'start' : 'center'} bg-black/30 border border-white/10 rounded-xl px-4 ${multiline ? 'pt-3 min-h-[80px]' : 'h-12'}`}>
+            {Icon && <Icon size={17} color="#4b5563" style={{ marginRight: 10, marginTop: multiline ? 2 : 0 }} />}
+            <TextInput
+                className="flex-1 text-white text-sm font-medium"
+                value={value}
+                onChangeText={onChange}
+                placeholder={placeholder}
+                placeholderTextColor="#374151"
+                multiline={multiline}
+                textAlignVertical={multiline ? 'top' : 'center'}
+                autoCapitalize="none"
+            />
+        </View>
+    </View>
+);
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function MyProfileScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState({
-        full_name: '',
-        username: '',
-        bio: '',
-        website: '',
-        location: 'Türkiye',
-        category: 'Lifestyle',
-        avatar_url: null,
-        instagram_connected: false
+        full_name: '', username: '', bio: '', website: '', category: '', avatar_url: null,
     });
+    const [igAccount, setIgAccount] = useState(null); // existing connected account
 
-    // Instagram Verification States
+    // Instagram connect modal
     const [modalVisible, setModalVisible] = useState(false);
-    const [verifyStep, setVerifyStep] = useState(1); // 1: Input, 2: Code, 3: Success
     const [igUsername, setIgUsername] = useState('');
-    const [verificationCode, setVerificationCode] = useState('');
-    const [verifying, setVerifying] = useState(false);
+    const [connecting, setConnecting] = useState(false);
+    const [connectSuccess, setConnectSuccess] = useState(false);
 
-    useFocusEffect(useCallback(() => { getProfile(); }, []));
-
-    async function getProfile() {
+    const fetchProfile = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // 1. Get User Profile
-            const { data, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', user.id)
-                .single();
+            const [{ data: prof }, { data: social }] = await Promise.all([
+                supabase.from('users').select('*').eq('id', user.id).maybeSingle(),
+                supabase.from('social_accounts')
+                    .select('username, follower_count, engagement_rate, is_verified')
+                    .eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
+            ]);
 
-            // 2. Check if Instagram is connected
-            const { data: socialData } = await supabase
-                .from('social_accounts')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('platform', 'instagram')
-                .single();
-
-            if (data) {
+            if (prof) {
                 setProfile({
-                    ...data,
-                    location: data.location || 'Türkiye',
-                    website: data.website || '',
-                    bio: data.bio || '',
-                    instagram_connected: !!socialData
+                    full_name: prof.full_name || '',
+                    username: prof.username || '',
+                    bio: prof.bio || '',
+                    website: prof.website || '',
+                    category: prof.category || '',
+                    avatar_url: prof.avatar_url || null,
                 });
             }
-        } catch (error) {
-            console.log('Error:', error);
+            setIgAccount(social || null);
+        } catch (e) {
+            console.error('[MyProfile fetch]', e);
         } finally {
             setLoading(false);
         }
-    }
+    }, []);
 
-    const handleUpdate = async () => {
+    useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
+
+    // ── Save profile info ──────────────────────────────────────────────────────
+    const handleSave = async () => {
         setSaving(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('No user');
+            if (!user) throw new Error('Kullanıcı bulunamadı.');
 
-            const updates = {
-                id: user.id,
-                full_name: profile.full_name,
-                username: profile.username,
-                bio: profile.bio,
-                website: profile.website,
-                category: profile.category,
-                updated_at: new Date(),
-            };
+            const { error } = await supabase.from('users').update({
+                full_name: profile.full_name.trim(),
+                username: profile.username.trim().toLowerCase(),
+                bio: profile.bio.trim(),
+                website: profile.website.trim(),
+                category: profile.category.trim(),
+                updated_at: new Date().toISOString(),
+            }).eq('id', user.id);
 
-            const { error } = await supabase.from('users').upsert(updates);
             if (error) throw error;
-
-            Alert.alert('Başarılı', 'Profiliniz güncellendi.');
+            Alert.alert('Başarılı ✓', 'Profil bilgilerin güncellendi.');
             navigation.goBack();
-
-        } catch (error) {
-            Alert.alert('Hata', error.message);
+        } catch (e) {
+            Alert.alert('Hata', e.message || 'Kaydedilemedi.');
         } finally {
             setSaving(false);
         }
     };
 
-    const pickImage = async () => {
-        const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permResult.granted) {
-            return Alert.alert('İzin Gerekli', 'Fotoğraf galerisine erişim izni gerekiyor.');
-        }
+    // ── Avatar upload ────────────────────────────────────────────────────────
+    const pickAvatar = async () => {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) return Alert.alert('İzin Gerekli', 'Fotoğraf galerisine erişim izni gerekiyor.');
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
+            allowsEditing: true, aspect: [1, 1], quality: 0.8,
         });
-
         if (result.canceled) return;
 
         const asset = result.assets[0];
         try {
             setSaving(true);
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Kullanıcı bulunamadı');
-
-            // Convert URI to blob
-            const response = await fetch(asset.uri);
-            const blob = await response.blob();
+            const res = await fetch(asset.uri);
+            const blob = await res.blob();
             const ext = asset.uri.split('.').pop() || 'jpg';
             const filePath = `${user.id}/avatar.${ext}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, blob, { upsert: true, contentType: `image/${ext}` });
-
-            if (uploadError) throw uploadError;
+            const { error: upErr } = await supabase.storage.from('avatars').upload(filePath, blob, { upsert: true, contentType: `image/${ext}` });
+            if (upErr) throw upErr;
 
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-            const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
-            await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id);
-            setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
-            Alert.alert('Başarılı', 'Profil fotoğrafı güncellendi.');
+            const url = `${urlData.publicUrl}?t=${Date.now()}`;
+            await supabase.from('users').update({ avatar_url: url }).eq('id', user.id);
+            setProfile(p => ({ ...p, avatar_url: url }));
         } catch (e) {
             Alert.alert('Hata', e.message || 'Fotoğraf yüklenemedi.');
         } finally {
@@ -146,107 +144,67 @@ export default function MyProfileScreen({ navigation }) {
         }
     };
 
-    // --- INSTAGRAM VERIFICATION LOGIC ---
+    // ── Instagram connect (username only, no code) ────────────────────────────
+    const handleConnect = async () => {
+        const clean = igUsername.trim().replace(/^@/, '').toLowerCase();
+        if (!clean) return Alert.alert('Uyarı', 'Kullanıcı adı boş olamaz.');
 
-    const getApiUrl = () => `${API_BASE}/api/mobile/verify-instagram`;
-
-    const generateCode = async () => {
-        if (!igUsername) return Alert.alert('Uyarı', 'Lütfen Instagram kullanıcı adını gir.');
-
-        setVerifying(true);
+        setConnecting(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Kullanıcı bulunamadı");
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Oturum bulunamadı.');
 
-            const response = await fetch(getApiUrl(), {
+            const response = await fetch(`${API_BASE}/api/mobile/verify-instagram`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
                 body: JSON.stringify({
-                    action: 'generate',
-                    userId: user.id,
-                    username: igUsername
-                })
+                    action: 'connect',
+                    userId: session.user.id,
+                    username: clean,
+                }),
             });
 
-            // Handle non-JSON responses (like 404 HTML)
-            const text = await response.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                console.error("API Response not JSON:", text);
-                throw new Error("Sunucudan geçersiz yanıt alındı. API rotasını kontrol edin.");
-            }
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Bağlanamadı.');
 
-            if (data.success && data.code) {
-                setVerificationCode(data.code);
-                setVerifyStep(2);
-            } else {
-                throw new Error(data.error || 'Kod üretilemedi.');
-            }
-
-        } catch (error) {
-            console.error('API Error:', error);
-            Alert.alert('Hata', error.message || 'Bağlantı hatası.');
+            setIgAccount({
+                username: data.data.username,
+                follower_count: data.data.follower_count,
+                engagement_rate: data.data.engagement_rate,
+                is_verified: true,
+            });
+            setConnectSuccess(true);
+        } catch (e) {
+            Alert.alert('Hata', e.message || 'Bağlantı hatası.');
         } finally {
-            setVerifying(false);
+            setConnecting(false);
         }
     };
 
-    const verifyAccount = async () => {
-        setVerifying(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Kullanıcı bulunamadı");
-
-            const response = await fetch(getApiUrl(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'verify',
-                    userId: user.id
-                })
-            });
-
-            const text = await response.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                console.error("API Response not JSON (Verify):", text);
-                throw new Error("Sunucu hatası.");
-            }
-
-            if (data.success) {
-                setProfile(prev => ({ ...prev, instagram_connected: true }));
-                setVerifyStep(3);
-
-                // Refresh profile data to get social stats
-                getProfile();
-            } else {
-                throw new Error(data.error || 'Doğrulama başarısız.');
-            }
-
-        } catch (error) {
-            console.error('Verification Error:', error);
-            Alert.alert('Hata', error.message || 'Doğrulama sırasında hata oluştu.');
-        } finally {
-            setVerifying(false);
-        }
-    };
-
-    const copyToClipboard = async () => {
-        await Clipboard.setStringAsync(verificationCode);
-        Alert.alert('Kopyalandı', 'Doğrulama kodu panoya kopyalandı.');
+    const closeModal = () => {
+        setModalVisible(false);
+        setIgUsername('');
+        setConnectSuccess(false);
     };
 
     if (loading) {
         return (
             <View className="flex-1 bg-[#020617] items-center justify-center">
-                <ActivityIndicator color="#D4AF37" />
+                <StatusBar style="light" />
+                <ActivityIndicator color="#D4AF37" size="large" />
             </View>
         );
     }
+
+    const initials = (profile.full_name || profile.username || '?').substring(0, 2).toUpperCase();
+    const followerText = igAccount?.follower_count
+        ? igAccount.follower_count >= 1000
+            ? (igAccount.follower_count / 1000).toFixed(1) + 'K'
+            : String(igAccount.follower_count)
+        : null;
 
     return (
         <View className="flex-1 bg-[#020617]">
@@ -254,246 +212,186 @@ export default function MyProfileScreen({ navigation }) {
             <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
 
             <SafeAreaView className="flex-1" edges={['top']}>
-                <View className="px-6 py-4 flex-row items-center justify-between">
-                    <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-white/5 rounded-xl items-center justify-center border border-white/10">
-                        <ChevronLeft color="white" size={24} />
+                {/* Header */}
+                <View className="px-6 py-4 flex-row items-center justify-between border-b border-white/5">
+                    <TouchableOpacity onPress={() => navigation.goBack()}
+                        className="w-10 h-10 bg-white/5 rounded-2xl items-center justify-center border border-white/10">
+                        <ChevronLeft color="white" size={20} />
                     </TouchableOpacity>
-                    <Text className="text-white text-xl font-bold">Profili Düzenle</Text>
+                    <Text className="text-white text-base font-bold">Profili Düzenle</Text>
                     <View className="w-10" />
                 </View>
 
-                <ScrollView className="flex-1 px-6">
+                <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
 
-                    {/* Avatar Edit */}
-                    <View className="items-center my-6">
-                        <View className="w-28 h-28 rounded-full border-4 border-white/10 relative">
-                            <Image
-                                source={{ uri: profile.avatar_url || 'https://via.placeholder.com/150' }}
-                                className="w-full h-full rounded-full bg-gray-800"
-                            />
-                            <TouchableOpacity
-                                onPress={pickImage}
-                                className="absolute bottom-0 right-0 bg-soft-gold w-8 h-8 rounded-full items-center justify-center shadow-lg"
-                            >
-                                <Camera size={16} color="black" />
-                            </TouchableOpacity>
-                        </View>
+                    {/* ── Avatar ── */}
+                    <View className="items-center mb-8">
+                        <TouchableOpacity onPress={pickAvatar} className="relative">
+                            <View className="w-24 h-24 rounded-full bg-[#1A1D24] border-2 border-soft-gold/40 items-center justify-center overflow-hidden">
+                                {profile.avatar_url
+                                    ? <Image source={{ uri: profile.avatar_url }} className="w-full h-full" resizeMode="cover" />
+                                    : <Text className="text-white text-2xl font-black">{initials}</Text>}
+                            </View>
+                            <View className="absolute bottom-0 right-0 w-8 h-8 bg-soft-gold rounded-full items-center justify-center border-2 border-[#020617]">
+                                <Camera size={14} color="black" />
+                            </View>
+                        </TouchableOpacity>
+                        <Text className="text-gray-600 text-xs mt-2">Fotoğrafı değiştirmek için dokun</Text>
                     </View>
 
-                    {/* Social Accounts Section */}
-                    <View className="mb-8">
-                        <Text className="text-gray-400 text-xs font-bold uppercase ml-1 mb-3">SOSYAL HESAPLAR</Text>
-
-                        <View className="bg-[#15171e] rounded-xl border border-white/10 overflow-hidden">
-                            <View className="p-4 flex-row items-center justify-between">
-                                <View className="flex-row items-center">
-                                    <View className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 items-center justify-center mr-3">
-                                        <Instagram color="white" size={20} />
-                                    </View>
-                                    <View>
-                                        <Text className="text-white font-bold text-sm">Instagram</Text>
-                                        <Text className="text-gray-500 text-xs">{profile.instagram_connected ? 'Bağlandı' : 'Bağlı Değil'}</Text>
-                                    </View>
+                    {/* ── Instagram Section ── */}
+                    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase mb-3 ml-1">INSTAGRAM</Text>
+                    <View className="bg-white/[0.04] border border-white/10 rounded-[20px] overflow-hidden mb-6">
+                        <LinearGradient colors={['rgba(255,255,255,0.05)', 'transparent']} className="absolute inset-0" />
+                        <View className="px-5 py-4 flex-row items-center justify-between">
+                            <View className="flex-row items-center gap-3">
+                                <View className="w-10 h-10 rounded-[14px] items-center justify-center" style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}>
+                                    <Instagram color="#a855f7" size={18} />
                                 </View>
-
-                                {profile.instagram_connected ? (
-                                    <View className="bg-green-500/10 px-3 py-1.5 rounded-lg border border-green-500/20 flex-row items-center">
-                                        <CheckCircle2 size={12} color="#4ade80" className="mr-1.5" />
-                                        <Text className="text-green-400 text-xs font-bold">ONAYLI</Text>
-                                    </View>
-                                ) : (
-                                    <TouchableOpacity
-                                        onPress={() => setModalVisible(true)}
-                                        className="bg-white/10 px-4 py-2 rounded-lg"
-                                    >
-                                        <Text className="text-white text-xs font-bold">BAĞLA</Text>
-                                    </TouchableOpacity>
-                                )}
+                                <View>
+                                    <Text className="text-white font-bold text-sm">
+                                        {igAccount ? `@${igAccount.username}` : 'Instagram'}
+                                    </Text>
+                                    {igAccount && followerText ? (
+                                        <Text className="text-gray-500 text-xs">
+                                            {followerText} takipçi · %{igAccount.engagement_rate} etkileşim
+                                        </Text>
+                                    ) : (
+                                        <Text className="text-gray-600 text-xs">Bağlı değil</Text>
+                                    )}
+                                </View>
                             </View>
+
+                            {igAccount?.is_verified ? (
+                                <TouchableOpacity onPress={() => setModalVisible(true)}
+                                    className="flex-row items-center gap-1.5 bg-green-500/10 border border-green-500/25 px-3 py-1.5 rounded-xl">
+                                    <CheckCircle2 size={12} color="#4ade80" />
+                                    <Text className="text-green-400 text-xs font-bold">Bağlı</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity onPress={() => setModalVisible(true)}
+                                    className="bg-purple-500/15 border border-purple-500/30 px-4 py-2 rounded-xl">
+                                    <Text className="text-purple-300 text-xs font-bold">Bağla</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
 
-                    {/* Form Fields */}
-                    <View className="space-y-5 pb-10">
-                        <View>
-                            <Text className="text-gray-400 text-xs font-bold uppercase ml-1 mb-2">AD SOYAD</Text>
-                            <View className="flex-row items-center bg-[#15171e] rounded-xl border border-white/10 px-4 h-12">
-                                <User size={18} color="#6b7280" className="mr-3" />
-                                <TextInput
-                                    className="flex-1 text-white font-medium"
-                                    value={profile.full_name}
-                                    onChangeText={(text) => setProfile({ ...profile, full_name: text })}
-                                    placeholder="Ad Soyad"
-                                    placeholderTextColor="#4b5563"
-                                />
-                            </View>
-                        </View>
+                    {/* ── Profile Fields ── */}
+                    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase mb-3 ml-1">PROFİL BİLGİLERİ</Text>
 
-                        <View>
-                            <Text className="text-gray-400 text-xs font-bold uppercase ml-1 mb-2">KULLANICI ADI</Text>
-                            <View className="flex-row items-center bg-[#15171e] rounded-xl border border-white/10 px-4 h-12">
-                                <Text className="text-gray-500 mr-1">@</Text>
-                                <TextInput
-                                    className="flex-1 text-white font-medium"
-                                    value={profile.username}
-                                    onChangeText={(text) => setProfile({ ...profile, username: text })}
-                                    placeholder="kullaniciadi"
-                                    placeholderTextColor="#4b5563"
-                                />
-                            </View>
-                        </View>
+                    <Field label="Ad Soyad" icon={User} value={profile.full_name}
+                        onChange={v => setProfile(p => ({ ...p, full_name: v }))} placeholder="Adın ve soyadın" />
 
-                        <View>
-                            <Text className="text-gray-400 text-xs font-bold uppercase ml-1 mb-2">kategori</Text>
-                            <View className="flex-row items-center bg-[#15171e] rounded-xl border border-white/10 px-4 h-12">
-                                <Briefcase size={18} color="#6b7280" className="mr-3" />
-                                <TextInput
-                                    className="flex-1 text-white font-medium"
-                                    value={profile.category}
-                                    onChangeText={(text) => setProfile({ ...profile, category: text })}
-                                    placeholder="Örn: Teknoloji"
-                                    placeholderTextColor="#4b5563"
-                                />
-                            </View>
-                        </View>
-
-                        <View>
-                            <Text className="text-gray-400 text-xs font-bold uppercase ml-1 mb-2">WEBSITE</Text>
-                            <View className="flex-row items-center bg-[#15171e] rounded-xl border border-white/10 px-4 h-12">
-                                <LinkIcon size={18} color="#6b7280" className="mr-3" />
-                                <TextInput
-                                    className="flex-1 text-white font-medium"
-                                    value={profile.website}
-                                    onChangeText={(text) => setProfile({ ...profile, website: text })}
-                                    placeholder="https://..."
-                                    placeholderTextColor="#4b5563"
-                                />
-                            </View>
-                        </View>
-
-                        <View>
-                            <Text className="text-gray-400 text-xs font-bold uppercase ml-1 mb-2">BİYOGRAFİ</Text>
-                            <View className="flex-row items-start bg-[#15171e] rounded-xl border border-white/10 p-4 h-32">
-                                <Edit2 size={18} color="#6b7280" className="mr-3 mt-1" />
-                                <TextInput
-                                    className="flex-1 text-white font-medium text-sm leading-5"
-                                    value={profile.bio}
-                                    onChangeText={(text) => setProfile({ ...profile, bio: text })}
-                                    placeholder="Kendinden bahset..."
-                                    placeholderTextColor="#4b5563"
-                                    multiline
-                                    textAlignVertical="top"
-                                />
-                            </View>
+                    <View className="mb-5">
+                        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">KULLANICI ADI</Text>
+                        <View className="flex-row items-center bg-black/30 border border-white/10 rounded-xl px-4 h-12">
+                            <AtSign size={17} color="#4b5563" style={{ marginRight: 8 }} />
+                            <TextInput
+                                className="flex-1 text-white text-sm font-medium"
+                                value={profile.username}
+                                onChangeText={v => setProfile(p => ({ ...p, username: v }))}
+                                placeholder="kullaniciadi"
+                                placeholderTextColor="#374151"
+                                autoCapitalize="none"
+                            />
                         </View>
                     </View>
 
-                    <TouchableOpacity
-                        onPress={handleUpdate}
-                        disabled={saving}
-                        className="bg-soft-gold h-14 rounded-2xl items-center justify-center flex-row shadow-lg shadow-soft-gold/20 mb-10"
-                    >
-                        {saving ? (
-                            <ActivityIndicator color="black" />
-                        ) : (
-                            <>
-                                <Save color="black" size={20} className="mr-2" />
-                                <Text className="text-black font-bold text-lg">Değişiklikleri Kaydet</Text>
-                            </>
-                        )}
+                    <Field label="Kategori" icon={Briefcase} value={profile.category}
+                        onChange={v => setProfile(p => ({ ...p, category: v }))} placeholder="Ör: Teknoloji, Moda, Spor..." />
+
+                    <Field label="Website" icon={LinkIcon} value={profile.website}
+                        onChange={v => setProfile(p => ({ ...p, website: v }))} placeholder="https://..." />
+
+                    <Field label="Biyografi" icon={Edit2} value={profile.bio}
+                        onChange={v => setProfile(p => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." multiline />
+
+                    {/* ── Save button ── */}
+                    <TouchableOpacity onPress={handleSave} disabled={saving}
+                        className="bg-soft-gold h-14 rounded-2xl items-center justify-center flex-row gap-2 shadow-lg shadow-soft-gold/20 mt-2">
+                        {saving
+                            ? <ActivityIndicator color="black" />
+                            : <>
+                                <Save color="black" size={18} />
+                                <Text className="text-black font-bold text-base">Kaydet</Text>
+                            </>}
                     </TouchableOpacity>
-
                 </ScrollView>
             </SafeAreaView>
 
-            {/* --- INSTAGRAM VERIFICATION MODAL --- */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View className="flex-1 bg-black/80 justify-center px-6">
-                    <View className="bg-[#15171e] rounded-3xl border border-white/10 p-6">
-                        <View className="flex-row justify-between items-center mb-6">
-                            <Text className="text-white text-xl font-bold">Instagram Hesabını Bağla</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <X color="gray" size={24} />
+            {/* ── Instagram Connect Modal ─────────────────────────────────────── */}
+            <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={closeModal}>
+                <View className="flex-1 bg-black/80 justify-end">
+                    <TouchableOpacity className="flex-1" onPress={closeModal} />
+                    <View className="bg-[#0B0F19] border-t border-white/10 rounded-t-[32px] px-6 pt-6 pb-12">
+                        <View className="flex-row items-center justify-between mb-6">
+                            <Text className="text-white font-bold text-xl">Instagram Hesabını Bağla</Text>
+                            <TouchableOpacity onPress={closeModal}
+                                className="w-9 h-9 bg-white/5 rounded-2xl items-center justify-center border border-white/10">
+                                <X color="white" size={17} />
                             </TouchableOpacity>
                         </View>
 
-                        {verifyStep === 1 && (
-                            <>
-                                <Text className="text-gray-400 text-sm mb-4">
-                                    Instagram hesabını analiz edebilmemiz için kullanıcı adını gir.
+                        {connectSuccess ? (
+                            /* ── Success state ── */
+                            <View className="items-center py-8">
+                                <View className="w-16 h-16 bg-green-500/15 border border-green-500/30 rounded-full items-center justify-center mb-4">
+                                    <CheckCircle2 color="#4ade80" size={32} />
+                                </View>
+                                <Text className="text-white font-bold text-xl mb-2">Bağlandı! 🎉</Text>
+                                <Text className="text-gray-400 text-sm text-center mb-2">
+                                    @{igAccount?.username} hesabın başarıyla bağlandı.
                                 </Text>
-                                <View className="bg-black/30 h-14 rounded-xl border border-white/10 px-4 flex-row items-center mb-6">
-                                    <Instagram size={20} color="#a855f7" className="mr-3" />
+                                {followerText && (
+                                    <View className="bg-white/5 border border-white/10 px-5 py-3 rounded-2xl mt-2 flex-row gap-6">
+                                        <View className="items-center">
+                                            <Text className="text-soft-gold font-black text-lg">{followerText}</Text>
+                                            <Text className="text-gray-500 text-[10px] uppercase">Takipçi</Text>
+                                        </View>
+                                        <View className="items-center">
+                                            <Text className="text-purple-300 font-black text-lg">%{igAccount?.engagement_rate}</Text>
+                                            <Text className="text-gray-500 text-[10px] uppercase">Etkileşim</Text>
+                                        </View>
+                                    </View>
+                                )}
+                                <TouchableOpacity onPress={closeModal}
+                                    className="mt-6 bg-soft-gold h-12 w-full rounded-2xl items-center justify-center">
+                                    <Text className="text-black font-bold">Tamam</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            /* ── Input state ── */
+                            <>
+                                <Text className="text-gray-400 text-sm leading-5 mb-5">
+                                    Instagram kullanıcı adını gir. Profilin herkese açık olmalıdır.
+                                </Text>
+
+                                <View className="flex-row items-center bg-black/40 border border-white/15 rounded-2xl px-4 h-14 mb-4">
+                                    <Text className="text-gray-500 text-base mr-1">@</Text>
                                     <TextInput
-                                        className="flex-1 text-white font-medium"
-                                        placeholder="Kullanıcı adı"
-                                        placeholderTextColor="#6b7280"
+                                        className="flex-1 text-white text-base font-medium"
+                                        placeholder="kullaniciadi"
+                                        placeholderTextColor="#374151"
                                         value={igUsername}
                                         onChangeText={setIgUsername}
                                         autoCapitalize="none"
+                                        autoCorrect={false}
+                                        autoFocus
                                     />
                                 </View>
-                                <TouchableOpacity
-                                    onPress={generateCode}
-                                    disabled={verifying}
-                                    className="bg-purple-600 h-12 rounded-xl items-center justify-center"
-                                >
-                                    {verifying ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Devam Et</Text>}
-                                </TouchableOpacity>
-                            </>
-                        )}
 
-                        {verifyStep === 2 && (
-                            <>
-                                <Text className="text-gray-300 text-sm mb-4 leading-6">
-                                    Aşağıdaki doğrulama kodunu Instagram biyografine ekle ve "Doğrula" butonuna bas.
+                                <Text className="text-gray-600 text-xs mb-6 ml-1">
+                                    ℹ️ Hesabın herkese açık (public) değilse veriler çekilemez.
                                 </Text>
 
-                                <View className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-4 mb-6 flex-row items-center justify-between">
-                                    <Text className="text-white font-mono text-lg font-bold tracking-widest">{verificationCode}</Text>
-                                    <TouchableOpacity onPress={copyToClipboard} className="p-2">
-                                        <Copy size={20} color="#a855f7" />
-                                    </TouchableOpacity>
-                                </View>
-
-                                <TouchableOpacity
-                                    onPress={verifyAccount}
-                                    disabled={verifying}
-                                    className="bg-soft-gold h-12 rounded-xl items-center justify-center mb-3"
-                                >
-                                    {verifying ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold">Hesabı Doğrula</Text>}
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setVerifyStep(1)} className="items-center py-2">
-                                    <Text className="text-gray-500 text-xs">Geri Dön</Text>
+                                <TouchableOpacity onPress={handleConnect} disabled={connecting}
+                                    className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20">
+                                    {connecting
+                                        ? <ActivityIndicator color="black" />
+                                        : <Text className="text-black font-bold text-base">Hesabı Bağla</Text>}
                                 </TouchableOpacity>
                             </>
-                        )}
-
-                        {verifyStep === 3 && (
-                            <View className="items-center py-6">
-                                <View className="w-16 h-16 bg-green-500/20 rounded-full items-center justify-center mb-4 border border-green-500/50">
-                                    <CheckCircle2 size={32} color="#4ade80" />
-                                </View>
-                                <Text className="text-white text-lg font-bold mb-2">Başarıyla Bağlandı!</Text>
-                                <Text className="text-gray-400 text-center text-sm mb-6">
-                                    Instagram hesabın doğrulandı ve verilerin çekildi.
-                                </Text>
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setModalVisible(false);
-                                        setVerifyStep(1); // Reset for future
-                                        setIgUsername('');
-                                    }}
-                                    className="bg-white/10 w-full h-12 rounded-xl items-center justify-center"
-                                >
-                                    <Text className="text-white font-bold">Tamam</Text>
-                                </TouchableOpacity>
-                            </View>
                         )}
                     </View>
                 </View>
