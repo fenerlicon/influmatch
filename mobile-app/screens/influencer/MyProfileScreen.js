@@ -266,7 +266,7 @@ export default function MyProfileScreen({ navigation }) {
                     </View>
 
                     {/* ── Instagram ── */}
-                    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase mb-3 ml-1">INSTAGRAM</Text>
+                    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3 ml-1">INSTAGRAM</Text>
                     <View className="bg-white/[0.04] border border-white/10 rounded-[20px] overflow-hidden mb-6">
                         <LinearGradient colors={['rgba(255,255,255,0.05)', 'transparent']} className="absolute inset-0" />
                         <View className="px-5 py-4 flex-row items-center justify-between">
@@ -299,7 +299,7 @@ export default function MyProfileScreen({ navigation }) {
                     </View>
 
                     {/* ── Profile Fields ── */}
-                    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase mb-3 ml-1">PROFİL BİLGİLERİ</Text>
+                    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3 ml-1">PROFİL BİLGİLERİ</Text>
                     <Field label="Ad Soyad" icon={User} value={profile.full_name} onChange={v => setProfile(p => ({ ...p, full_name: v }))} placeholder="Adın ve soyadın" />
 
                     <View className="mb-5">
@@ -399,7 +399,7 @@ export default function MyProfileScreen({ navigation }) {
                                 {/* Code box */}
                                 <TouchableOpacity onPress={copyCode}
                                     className="bg-soft-gold/8 border border-soft-gold/30 rounded-2xl p-4 flex-row items-center justify-between mb-2 active:opacity-75">
-                                    <Text className="text-soft-gold font-mono text-xl font-black tracking-[0.2em]">{verificationCode}</Text>
+                                    <Text className="text-soft-gold font-mono text-xl font-black tracking-widest">{verificationCode}</Text>
                                     <View className="flex-row items-center gap-2 bg-soft-gold/15 px-3 py-2 rounded-xl">
                                         <Copy size={14} color="#D4AF37" />
                                         <Text className="text-soft-gold text-xs font-bold">Kopyala</Text>

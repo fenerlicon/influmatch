@@ -179,7 +179,7 @@ export default function StatisticsScreen({ navigation }) {
 
                             {/* ── Content Performance ── */}
                             <AccentCard color="#D4AF37" className="p-5 mb-3">
-                                <Text className="text-soft-gold text-[10px] font-bold tracking-[0.3em] uppercase mb-5">İÇERİK PERFORMANSI • ORTALAMA</Text>
+                                <Text className="text-soft-gold text-[10px] font-bold tracking-widest uppercase mb-5">İÇERİK PERFORMANSI • ORTALAMA</Text>
                                 {[
                                     { icon: Heart, color: '#f87171', label: 'Beğeni / Post', value: formatNumber(avgLikes) },
                                     { icon: Play, color: '#60a5fa', label: 'Görüntülenme / Post', value: formatNumber(avgViews) },
@@ -200,7 +200,7 @@ export default function StatisticsScreen({ navigation }) {
 
                             {/* ── Account details ── */}
                             <GlassCard className="p-5">
-                                <Text className="text-gray-500 text-[10px] font-bold tracking-[0.3em] uppercase mb-5">HESAP BİLGİLERİ</Text>
+                                <Text className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-5">HESAP BİLGİLERİ</Text>
                                 {[
                                     { label: 'Toplam Gönderi', value: postCount ? `${postCount}` : '—' },
                                     { label: 'Haftalık Paylaşım Sıklığı', value: postingFreq != null ? `~${postingFreq.toFixed(1)} / hafta` : '—' },

@@ -16,7 +16,7 @@ const GlassCard = ({ children, className }) => (
 );
 
 const SectionLabel = ({ title }) => (
-    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] mt-6 mb-3 ml-1">{title}</Text>
+    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest mt-6 mb-3 ml-1">{title}</Text>
 );
 
 const InfoRow = ({ label, value, last, editing, edit, onEdit, onSave, onCancel }) => (

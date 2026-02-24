@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -33,10 +33,10 @@ const AnalysisScreen = ({ navigation, route }) => {
     const followerCount = socialStats?.follower_count ? (socialStats.follower_count / 1000).toFixed(1) + 'K' : '0';
 
     // Determining Score Label
-    let scoreLabel = 'GeliÅŸtirilmeli';
-    if (score > 40) scoreLabel = 'Ä°yi';
+    let scoreLabel = 'Geliþtirilmeli';
+    if (score > 40) scoreLabel = 'Ýyi';
     if (score > 70) scoreLabel = 'Harika';
-    if (score > 85) scoreLabel = 'MÃ¼kemmel';
+    if (score > 85) scoreLabel = 'Mükemmel';
 
     return (
         <View className="flex-1 bg-[#020617]">
@@ -59,7 +59,7 @@ const AnalysisScreen = ({ navigation, route }) => {
                     >
                         <ArrowLeft color="white" size={20} />
                     </TouchableOpacity>
-                    <Text className="text-white font-black text-xl tracking-tight">ANALÄ°Z MERKEZÄ°</Text>
+                    <Text className="text-white font-black text-xl tracking-tight">ANALÝZ MERKEZÝ</Text>
                     <View className="w-12" />
                 </View>
 
@@ -71,7 +71,7 @@ const AnalysisScreen = ({ navigation, route }) => {
                         <View className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-soft-gold/20 rounded-full blur-[60px] opacity-${Math.min(score, 100) / 100}`} />
 
                         <GlassCard className="p-8 items-center !rounded-[40px] !border-soft-gold/20 bg-soft-gold/[0.03]">
-                            <Text className="text-soft-gold/80 font-bold uppercase tracking-[0.2em] text-[10px] mb-6">GENEL PERFORMANS SKORU</Text>
+                            <Text className="text-soft-gold/80 font-bold uppercase tracking-widest text-[10px] mb-6">GENEL PERFORMANS SKORU</Text>
 
                             <View className="w-40 h-40 items-center justify-center relative mb-6">
                                 {/* Outer Ring */}
@@ -87,7 +87,7 @@ const AnalysisScreen = ({ navigation, route }) => {
 
                             <View className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 flex-row items-center">
                                 <TrendingUp size={14} color="#4ade80" className="mr-2" />
-                                <Text className="text-gray-300 text-xs font-medium">Bu hafta skorunuz <Text className="text-green-400 font-bold">sabit kaldÄ±</Text></Text>
+                                <Text className="text-gray-300 text-xs font-medium">Bu hafta skorunuz <Text className="text-green-400 font-bold">sabit kaldý</Text></Text>
                             </View>
                         </GlassCard>
                     </View>
@@ -98,7 +98,7 @@ const AnalysisScreen = ({ navigation, route }) => {
                             <View className="w-10 h-10 bg-purple-500/20 rounded-xl items-center justify-center mb-4 shadow-lg shadow-purple-500/20">
                                 <Users color="#d8b4fe" size={20} />
                             </View>
-                            <Text className="text-gray-400 text-[10px] font-bold mb-1 tracking-wider uppercase">TAKÄ°PÃ‡Ä°LER</Text>
+                            <Text className="text-gray-400 text-[10px] font-bold mb-1 tracking-wider uppercase">TAKÝPÇÝLER</Text>
                             <Text className="text-white text-2xl font-black tracking-tight">{followerCount}</Text>
                             <View className="flex-row items-center mt-2">
                                 <View className="bg-white/5 px-1.5 py-0.5 rounded">
@@ -111,12 +111,12 @@ const AnalysisScreen = ({ navigation, route }) => {
                             <View className="w-10 h-10 bg-blue-500/20 rounded-xl items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
                                 <Activity color="#93c5fd" size={20} />
                             </View>
-                            <Text className="text-gray-400 text-[10px] font-bold mb-1 tracking-wider uppercase">ETKÄ°LEÅžÄ°M ORANI</Text>
+                            <Text className="text-gray-400 text-[10px] font-bold mb-1 tracking-wider uppercase">ETKÝLEÞÝM ORANI</Text>
                             <Text className="text-white text-2xl font-black tracking-tight">%{engagementRate}</Text>
                             <View className="flex-row items-center mt-2">
                                 <View className={`px-1.5 py-0.5 rounded ${engagementRate > 1 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                                     <Text className={`${engagementRate > 1 ? 'text-green-400' : 'text-red-400'} text-[9px] font-bold`}>
-                                        {engagementRate > 4 ? 'YÃ¼ksek' : engagementRate > 1 ? 'Normal' : 'DÃ¼ÅŸÃ¼k'}
+                                        {engagementRate > 4 ? 'Yüksek' : engagementRate > 1 ? 'Normal' : 'Düþük'}
                                     </Text>
                                 </View>
                             </View>
@@ -126,14 +126,14 @@ const AnalysisScreen = ({ navigation, route }) => {
                     {/* AI Insights - Premium List */}
                     <View className="flex-row items-center mb-5 space-x-2">
                         <Zap color="#D4AF37" size={20} fill="#D4AF37" />
-                        <Text className="text-white font-bold text-xl tracking-tight">Yapay Zeka Ã–nerileri</Text>
+                        <Text className="text-white font-bold text-xl tracking-tight">Yapay Zeka Önerileri</Text>
                     </View>
 
                     <View className="mb-10 space-y-4">
                         {[
-                            { title: 'Reels EtkileÅŸimi', desc: 'Video iÃ§eriklerin fotoÄŸraflara gÃ¶re %40 daha fazla eriÅŸim alÄ±yor. Haftada en az 3 Reels paylaÅŸ.', icon: BarChart3, color: '#D4AF37', accent: 'bg-yellow-500/10' },
-                            { title: 'Kitle Analizi', desc: 'TakipÃ§ilerin en Ã§ok akÅŸam saatlerinde aktif. PaylaÅŸÄ±mlarÄ±nÄ± 20:00 sonrasÄ±na kaydÄ±r.', icon: Users, color: '#A855F7', accent: 'bg-purple-500/10' },
-                            { title: 'Profil Optimizasyonu', desc: 'Biyografine "Harekete GeÃ§irici Mesaj" (Call to Action) eklemen dÃ¶nÃ¼ÅŸÃ¼mleri artÄ±rabilir.', icon: CheckCircle2, color: '#10B981', accent: 'bg-green-500/10' }
+                            { title: 'Reels Etkileþimi', desc: 'Video içeriklerin fotoðraflara göre %40 daha fazla eriþim alýyor. Haftada en az 3 Reels paylaþ.', icon: BarChart3, color: '#D4AF37', accent: 'bg-yellow-500/10' },
+                            { title: 'Kitle Analizi', desc: 'Takipçilerin en çok akþam saatlerinde aktif. Paylaþýmlarýný 20:00 sonrasýna kaydýr.', icon: Users, color: '#A855F7', accent: 'bg-purple-500/10' },
+                            { title: 'Profil Optimizasyonu', desc: 'Biyografine "Harekete Geçirici Mesaj" (Call to Action) eklemen dönüþümleri artýrabilir.', icon: CheckCircle2, color: '#10B981', accent: 'bg-green-500/10' }
                         ].map((item, index) => (
                             <GlassCard key={index} className="p-5 flex-row items-start !rounded-[24px]">
                                 <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${item.accent} border border-white/5`}>
@@ -148,7 +148,7 @@ const AnalysisScreen = ({ navigation, route }) => {
                     </View>
 
                     <TouchableOpacity className="w-full bg-white/5 h-14 rounded-2xl border border-white/10 items-center justify-center mb-10">
-                        <Text className="text-gray-400 font-bold text-xs uppercase tracking-widest">TÃ¼m Raporu Ä°ndir (PDF)</Text>
+                        <Text className="text-gray-400 font-bold text-xs uppercase tracking-widest">Tüm Raporu Ýndir (PDF)</Text>
                     </TouchableOpacity>
 
                 </ScrollView>

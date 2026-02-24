@@ -41,7 +41,7 @@ const MenuLink = ({ icon: Icon, iconColor = '#D4AF37', title, subtitle, badge, o
 );
 
 const SectionLabel = ({ title }) => (
-    <Text className="text-soft-gold/60 text-[10px] font-bold tracking-[0.3em] uppercase mb-3 mt-7 ml-1">{title}</Text>
+    <Text className="text-soft-gold/60 text-[10px] font-bold tracking-widest uppercase mb-3 mt-7 ml-1">{title}</Text>
 );
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

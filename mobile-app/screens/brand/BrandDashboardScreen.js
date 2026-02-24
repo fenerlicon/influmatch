@@ -142,7 +142,7 @@ export default function BrandDashboardScreen({ navigation }) {
 
                     {/* Quick Actions */}
                     <View className="mb-6">
-                        <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase mb-3">HIZLI ERİŞİM</Text>
+                        <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3">HIZLI ERİŞİM</Text>
                         <View className="flex-row gap-3">
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('BrandAdverts')}
@@ -174,7 +174,7 @@ export default function BrandDashboardScreen({ navigation }) {
                     {/* Recent Applications */}
                     <View>
                         <View className="flex-row items-center justify-between mb-3">
-                            <Text className="text-soft-gold/70 text-[10px] font-bold tracking-[0.3em] uppercase">SON BAŞVURULAR</Text>
+                            <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase">SON BAŞVURULAR</Text>
                             {recentApplications.length > 0 && (
                                 <TouchableOpacity onPress={() => navigation.navigate('BrandAdverts')} className="flex-row items-center gap-1">
                                     <Text className="text-gray-500 text-xs">Tümü</Text>
