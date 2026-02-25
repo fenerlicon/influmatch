@@ -126,7 +126,7 @@ export default function VerificationScreen({ navigation }) {
         if (status !== 'granted') return Alert.alert('İzin Gerekli', 'Galeriye erişim izni gerekiyor.');
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ImagePicker.MediaType.Images,
             allowsEditing: true,
             quality: 0.7,
             base64: true,
