@@ -134,11 +134,13 @@ export default function BrandAdvertsScreen({ navigation }) {
     const fetchMyProjects = async (uid) => {
         setLoadingMy(true);
         try {
-            const { data } = await supabase
+            // Query both brand_user_id AND brand_id — older web ads may only have brand_id set
+            const { data, error } = await supabase
                 .from('advert_projects')
                 .select('*, advert_applications(count)')
-                .eq('brand_user_id', uid)
+                .or(`brand_user_id.eq.${uid},brand_id.eq.${uid}`)
                 .order('created_at', { ascending: false });
+            if (error) console.error('[BrandAdverts] fetchMyProjects error:', error.message);
             setMyProjects(data || []);
         } catch (e) {
             console.error('[BrandAdverts] fetchMyProjects', e);
@@ -205,7 +207,7 @@ export default function BrandAdvertsScreen({ navigation }) {
             const { data: myProjectIds } = await supabase
                 .from('advert_projects')
                 .select('id')
-                .eq('brand_user_id', uid);
+                .or(`brand_user_id.eq.${uid},brand_id.eq.${uid}`);
 
             if (!myProjectIds || myProjectIds.length === 0) {
                 setAllApps([]);
