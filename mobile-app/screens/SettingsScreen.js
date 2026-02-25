@@ -198,18 +198,18 @@ const UsernameInfoSection = () => {
                 </View>
                 <View className="flex-1">
                     <Text className="text-white font-semibold text-[15px]">
-                        Kullanici Adi: <Text className="text-soft-gold">@{username || '...'}</Text>
+                        Kullanıcı Adı: <Text className="text-soft-gold">@{username || '...'}</Text>
                     </Text>
                 </View>
             </View>
             <Text className="text-gray-600 text-[11px] ml-[52px] leading-5">
-                Kullanici adi yalnizca uyelik sirasinda belirlenir ve sonradan degistirilemez.{' '}
-                Degistirmek icin{' '}
+                Kullanıcı adı yalnızca üyelik sırasında belirlenir ve sonradan değiştirilemez.{' '}
+                Değiştirmek için{' '}
                 <Text className="text-blue-400"
-                    onPress={() => Linking.openURL('mailto:destek@influmatch.net?subject=Kullanici Adi Degisikligi')}>
+                    onPress={() => Linking.openURL('mailto:destek@influmatch.net?subject=Kullanıcı Adı Değişikliği')}>
                     destek@influmatch.net
                 </Text>{' '}
-                adresine destek talebi olusturun.
+                adresine destek talebi oluşturun.
             </Text>
         </View>
     );
@@ -222,7 +222,7 @@ const SupportSection = () => {
     const [sending, setSending] = useState(false);
 
     const send = async () => {
-        if (!subject.trim() || !message.trim()) return Alert.alert('Eksik', 'Konu ve mesaj alanlarini doldur.');
+        if (!subject.trim() || !message.trim()) return Alert.alert('Eksik', 'Konu ve mesaj alanlarını doldur.');
         setSending(true);
         const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase.from('support_tickets').insert({
@@ -230,7 +230,7 @@ const SupportSection = () => {
         });
         setSending(false);
         if (error) return Alert.alert('Hata', error.message);
-        Alert.alert('Gonderildi', 'Talebiniz alindi. En kisa surede donus yapacagiz.');
+        Alert.alert('Gönderildi', 'Talebiniz alındı. En kısa sürede dönüş yapacağız.');
         setSubject(''); setMessage(''); setOpen(false);
     };
 
@@ -254,17 +254,17 @@ const SupportSection = () => {
                     <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">KONU</Text>
                     <View className="bg-black/30 rounded-xl border border-white/10 px-4 h-12 justify-center mb-3">
                         <TextInput className="text-white text-sm" value={subject} onChangeText={setSubject}
-                            placeholder="Konu basligi" placeholderTextColor="#4b5563" />
+                            placeholder="Konu başlığı" placeholderTextColor="#4b5563" />
                     </View>
                     <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">MESAJ</Text>
                     <View className="bg-black/30 rounded-xl border border-white/10 p-4 min-h-[90px] mb-4">
                         <TextInput className="text-white text-sm leading-5" value={message} onChangeText={setMessage}
-                            placeholder="Sorunu acikla..." placeholderTextColor="#4b5563" multiline textAlignVertical="top" />
+                            placeholder="Sorunu açıkla..." placeholderTextColor="#4b5563" multiline textAlignVertical="top" />
                     </View>
                     <TouchableOpacity onPress={send} disabled={sending}
                         className="bg-soft-gold h-11 rounded-xl items-center justify-center flex-row gap-2">
                         {sending ? <ActivityIndicator color="black" size="small" /> : (
-                            <><Send color="black" size={15} /><Text className="text-midnight font-bold text-sm">Talebi Gonder</Text></>
+                            <><Send color="black" size={15} /><Text className="text-midnight font-bold text-sm">Talebi Gönder</Text></>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -275,10 +275,10 @@ const SupportSection = () => {
 
 export default function SettingsScreen({ navigation }) {
     const handleLogout = () => {
-        Alert.alert('Cikis Yap', 'Hesabindan cikis yapmak istedigine emin misin?', [
-            { text: 'Vazgec', style: 'cancel' },
+        Alert.alert('Çıkış Yap', 'Hesabından çıkış yapmak istediğine emin misin?', [
+            { text: 'Vazgeç', style: 'cancel' },
             {
-                text: 'Cikis Yap', style: 'destructive',
+                text: 'Çıkış Yap', style: 'destructive',
                 onPress: async () => {
                     await supabase.auth.signOut();
                     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
@@ -308,11 +308,11 @@ export default function SettingsScreen({ navigation }) {
                             subtitle="Ad, biyografi, kategori..." onPress={() => navigation.navigate('MyProfile')} />
                         <UsernameInfoSection />
                         <PasswordSection />
-                        <MenuItem icon={Smartphone} iconColor="#E1306C" title="Bagli Hesaplar"
-                            subtitle="Instagram hesap baglantisi" onPress={() => navigation.navigate('MyProfile')} last />
+                        <MenuItem icon={Smartphone} iconColor="#E1306C" title="Bağlı Hesaplar"
+                            subtitle="Instagram hesap bağlantısı" onPress={() => navigation.navigate('MyProfile')} last />
                     </GlassCard>
 
-                    <SectionLabel title="TERCIHLER" />
+                    <SectionLabel title="TERCİHLER" />
                     <GlassCard>
                         <NotificationsSection />
                     </GlassCard>
@@ -320,10 +320,10 @@ export default function SettingsScreen({ navigation }) {
                     <SectionLabel title="DESTEK" />
                     <GlassCard>
                         <SupportSection />
-                        <MenuItem icon={Mail} iconColor="#4ade80" title="Bize Ulasin"
+                        <MenuItem icon={Mail} iconColor="#4ade80" title="Bize Ulaşın"
                             subtitle="destek@influmatch.net"
                             onPress={() => Linking.openURL('mailto:destek@influmatch.net')} />
-                        <MenuItem icon={FileText} iconColor="#60a5fa" title="Kullanim Kosullari"
+                        <MenuItem icon={FileText} iconColor="#60a5fa" title="Kullanım Koşulları"
                             onPress={() => Linking.openURL('https://influmatch.net/legal?tab=terms')} last />
                     </GlassCard>
 
@@ -332,7 +332,7 @@ export default function SettingsScreen({ navigation }) {
                         <View className="w-9 h-9 bg-red-500/10 rounded-xl items-center justify-center border border-red-500/15">
                             <LogOut color="#EF4444" size={17} />
                         </View>
-                        <Text className="text-red-500 font-bold text-base">Cikis Yap</Text>
+                        <Text className="text-red-500 font-bold text-base">Çıkış Yap</Text>
                     </TouchableOpacity>
 
                     <Text className="text-gray-700 text-[11px] text-center mt-5">InfluMatch v1.0 • influmatch.net</Text>

@@ -18,57 +18,57 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const INFLUENCER_BADGES = [
     // MVP
-    { id: 'verified-account',  name: 'Onayly Hesap',       desc: 'Kimlik dogrulanmis influencer hesabi.',   icon: BadgeCheck, phase: 'mvp'  },
-    { id: 'founder-member',    name: 'Kurucu Uye',          desc: 'Platformun ilk uyelerinden.',             icon: Crown,      phase: 'mvp'  },
-    { id: 'profile-expert',    name: 'Profil Uzmani',       desc: 'Profilini eksiksiz doldurmac kullanici.', icon: UserCheck,  phase: 'mvp'  },
+    { id: 'verified-account', name: 'Onaylı Hesap', desc: 'Kimliği doğrulanmış influencer hesabı.', icon: BadgeCheck, phase: 'mvp' },
+    { id: 'founder-member', name: 'Kurucu Üye', desc: 'Platformun ilk üyelerinden.', icon: Crown, phase: 'mvp' },
+    { id: 'profile-expert', name: 'Profil Uzmanı', desc: 'Profilini eksiksiz doldurmuş kullanıcı.', icon: UserCheck, phase: 'mvp' },
     // v1.2
-    { id: 'brand-ambassador',  name: 'Marka Elcisi',        desc: 'Markalarla uzun sureli isbirlikleri.',    icon: Megaphone,  phase: 'v1.2' },
-    { id: 'lightning-fast',    name: 'Hizli Donus',         desc: 'Mesajlara cok hizli yanit veren.',        icon: Zap,        phase: 'v1.2' },
-    { id: 'five-star',         name: '5 Yildiz',            desc: 'Yuksek puanli isbirlikleri.',             icon: Star,       phase: 'v1.2' },
-    { id: 'trendsetter',       name: 'Trend Belirleyici',   desc: 'Icerikleri trend olan.',                  icon: TrendingUp, phase: 'v1.2' },
+    { id: 'brand-ambassador', name: 'Marka Elçisi', desc: 'Markalarla uzun süreli işbirlikleri.', icon: Megaphone, phase: 'v1.2' },
+    { id: 'lightning-fast', name: 'Hızlı Dönüş', desc: 'Mesajlara çok hızlı yanıt veren.', icon: Zap, phase: 'v1.2' },
+    { id: 'five-star', name: '5 Yıldız', desc: 'Yüksek puanlı işbirlikleri.', icon: Star, phase: 'v1.2' },
+    { id: 'trendsetter', name: 'Trend Belirleyici', desc: 'İçerikleri trend olan.', icon: TrendingUp, phase: 'v1.2' },
     // v1.3
-    { id: 'million-club',      name: 'Milyon Kulubu',       desc: 'Milyonlarca erisime sahip.',              icon: Trophy,     phase: 'v1.3' },
-    { id: 'conversion-wizard', name: 'Donusum Sihirbazi',   desc: 'Yuksek donusum oranlari.',                icon: ShieldCheck,phase: 'v1.3' },
+    { id: 'million-club', name: 'Milyon Kulübü', desc: 'Milyonlarca erişime sahip.', icon: Trophy, phase: 'v1.3' },
+    { id: 'conversion-wizard', name: 'Dönüşüm Sihirbazı', desc: 'Yüksek dönüşüm oranları.', icon: ShieldCheck, phase: 'v1.3' },
 ];
 
 const BRAND_BADGES = [
     // MVP
-    { id: 'official-business', name: 'Resmi Isletme',       desc: 'Vergi levhasi dogrulanmis isletme.',     icon: Building,        phase: 'mvp'  },
-    { id: 'pioneer-brand',     name: 'Oncu Marka',          desc: 'Platformun ilk marklarindan.',           icon: Rocket,          phase: 'mvp'  },
-    { id: 'showcase-brand',    name: 'Vitrin Marka',         desc: 'Ornek kampanya sayfali marka.',          icon: LayoutTemplate,  phase: 'mvp'  },
+    { id: 'official-business', name: 'Resmi İşletme', desc: 'Vergi levhası doğrulanmış işletme.', icon: Building, phase: 'mvp' },
+    { id: 'pioneer-brand', name: 'Öncü Marka', desc: 'Platformun ilk markalarından.', icon: Rocket, phase: 'mvp' },
+    { id: 'showcase-brand', name: 'Vitrin Marka', desc: 'Örnek kampanya sayfası olan marka.', icon: LayoutTemplate, phase: 'mvp' },
     // v1.2
-    { id: 'jet-approval',      name: 'Jet Onay',            desc: 'Basvurulari hizli onaylayan.',           icon: Zap,             phase: 'v1.2' },
-    { id: 'elite-budget',      name: 'Elit Butce',          desc: 'Yuksek butceli kampanyalar.',            icon: Gem,             phase: 'v1.2' },
-    { id: 'communication-expert', name: 'Iletisim Uzmani',  desc: 'Influencerlarla iletisimi guclu.',       icon: Megaphone,       phase: 'v1.2' },
+    { id: 'jet-approval', name: 'Jet Onay', desc: 'Başvuruları hızlı onaylayan.', icon: Zap, phase: 'v1.2' },
+    { id: 'elite-budget', name: 'Elit Bütçe', desc: 'Yüksek bütçeli kampanyalar.', icon: Gem, phase: 'v1.2' },
+    { id: 'communication-expert', name: 'İletişim Uzmanı', desc: 'Influencerlarla iletişimi güçlü.', icon: Megaphone, phase: 'v1.2' },
     // v1.3
-    { id: 'loyal-partner',     name: 'Sadik Partner',       desc: 'Duzenli isbirligi yapan.',               icon: Star,            phase: 'v1.3' },
-    { id: 'global',            name: 'Global',              desc: 'Uluslararasi faaliyet gosteren.',        icon: Trophy,          phase: 'v1.3' },
+    { id: 'loyal-partner', name: 'Sadık Partner', desc: 'Düzenli işbirliği yapan.', icon: Star, phase: 'v1.3' },
+    { id: 'global', name: 'Global', desc: 'Uluslararası faaliyet gösteren.', icon: Trophy, phase: 'v1.3' },
 ];
 
 const BADGE_REQUIREMENTS = {
-    'verified-account':   'Instagram hesabini dogrulayarak kazanilir.',
-    'founder-member':     'Platforma ilk 1000 uye arasinda katilarak kazanilir.',
-    'profile-expert':     'Profil bilgilerini %100 eksiksiz doldurarak kazanilir.',
-    'brand-ambassador':   'En az 5 marka ile basarili isbirligi yaparak kazanilir.',
-    'lightning-fast':     'Mesajlara ortalama 1 saatten hizli yanit vererek kazanilir.',
-    'five-star':          'Yuksek puanli isbirlikleriyle kazanilir.',
-    'trendsetter':        'Icerikleriniz kesfet sayfasinda yer alarak kazanilir.',
-    'million-club':       'Milyonlarca erisime ulasarak kazanilir.',
-    'conversion-wizard':  'Yuksek donusum oranlariyla kazanilir.',
-    'official-business':  'Vergi levhaniz admin tarafindan dogrulanarak kazanilir.',
-    'pioneer-brand':      'Platforma ilk 100 marka arasinda katilarak kazanilir.',
-    'showcase-brand':     'Marka profilinizi eksiksiz tamamlayarak kazanilir.',
-    'jet-approval':       'Basvurulari 24 saatten hizli onaylayarak kazanilir.',
-    'elite-budget':       'Yuksek butceli kampanyalar yayinlayarak kazanilir.',
-    'communication-expert': 'Guclu iletisim gecsimisiyle kazanilir.',
-    'loyal-partner':      'Duzenli isbirlikleri yaparak kazanilir.',
-    'global':             'Uluslararasi faaliyetler gostererek kazanilir.',
+    'verified-account': 'Instagram hesabını doğrulayarak kazanılır.',
+    'founder-member': 'Platforma ilk 1000 üye arasında katılarak kazanılır.',
+    'profile-expert': 'Profil bilgilerini %100 eksiksiz doldurarak kazanılır.',
+    'brand-ambassador': 'En az 5 marka ile başarılı işbirliği yaparak kazanılır.',
+    'lightning-fast': 'Mesajlara ortalama 1 saatten hızlı yanıt vererek kazanılır.',
+    'five-star': 'Yüksek puanlı işbirlikleriyle kazanılır.',
+    'trendsetter': 'İçerikleriniz keşfet sayfasında yer alarak kazanılır.',
+    'million-club': 'Milyonlarca erişime ulaşarak kazanılır.',
+    'conversion-wizard': 'Yüksek dönüşüm oranlarıyla kazanılır.',
+    'official-business': 'Vergi levhanız admin tarafından doğrulanarak kazanılır.',
+    'pioneer-brand': 'Platforma ilk 100 marka arasında katılarak kazanılır.',
+    'showcase-brand': 'Marka profilinizi eksiksiz tamamlayarak kazanılır.',
+    'jet-approval': 'Başvuruları 24 saatten hızlı onaylayarak kazanılır.',
+    'elite-budget': 'Yüksek bütçeli kampanyalar yayınlayarak kazanılır.',
+    'communication-expert': 'Güçlü iletişim geçmişiyle kazanılır.',
+    'loyal-partner': 'Düzenli işbirlikleri yaparak kazanılır.',
+    'global': 'Uluslararası faaliyetler göstererek kazanılır.',
 };
 
 const PHASE_CONFIG = {
-    mvp:   { label: 'MVP',    color: '#f59e0b', border: 'rgba(245,158,11,0.30)', bg: 'rgba(245,158,11,0.08)' },
-    'v1.2':{ label: 'v1.2',   color: '#94a3b8', border: 'rgba(148,163,184,0.20)', bg: 'rgba(148,163,184,0.05)' },
-    'v1.3':{ label: 'v1.3',   color: '#a855f7', border: 'rgba(168,85,247,0.20)', bg: 'rgba(168,85,247,0.05)' },
+    mvp: { label: 'MVP', color: '#f59e0b', border: 'rgba(245,158,11,0.30)', bg: 'rgba(245,158,11,0.08)' },
+    'v1.2': { label: 'v1.2', color: '#94a3b8', border: 'rgba(148,163,184,0.20)', bg: 'rgba(148,163,184,0.05)' },
+    'v1.3': { label: 'v1.3', color: '#a855f7', border: 'rgba(168,85,247,0.20)', bg: 'rgba(168,85,247,0.05)' },
 };
 
 // ─── Earned badge row ─────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ const UnearnedRow = ({ badge }) => {
                 </View>
                 <Text className="text-gray-400 text-xs leading-4 mb-1">{badge.desc}</Text>
                 <Text className="text-gray-600 text-[10px] leading-4">
-                    {BADGE_REQUIREMENTS[badge.id] || 'Platformdaki aktivitelerini artir.'}
+                    {BADGE_REQUIREMENTS[badge.id] || 'Platformdaki aktivitelerini artır.'}
                 </Text>
             </View>
         </View>
@@ -169,13 +169,13 @@ export default function BadgesScreen({ navigation }) {
     useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
     const allBadges = userRole === 'brand' ? BRAND_BADGES : INFLUENCER_BADGES;
-    const mvpBadges  = allBadges.filter(b => b.phase === 'mvp');
-    const v12Badges  = allBadges.filter(b => b.phase === 'v1.2');
-    const v13Badges  = allBadges.filter(b => b.phase === 'v1.3');
+    const mvpBadges = allBadges.filter(b => b.phase === 'mvp');
+    const v12Badges = allBadges.filter(b => b.phase === 'v1.2');
+    const v13Badges = allBadges.filter(b => b.phase === 'v1.3');
 
-    const earnedBadges   = allBadges.filter(b => earnedIds.includes(b.id));
-    const unearnedMvp    = mvpBadges.filter(b => !earnedIds.includes(b.id));
-    const mvpEarned      = mvpBadges.filter(b => earnedIds.includes(b.id)).length;
+    const earnedBadges = allBadges.filter(b => earnedIds.includes(b.id));
+    const unearnedMvp = mvpBadges.filter(b => !earnedIds.includes(b.id));
+    const mvpEarned = mvpBadges.filter(b => earnedIds.includes(b.id)).length;
 
     const progress = allBadges.length > 0 ? Math.round((earnedBadges.length / allBadges.length) * 100) : 0;
 
@@ -223,12 +223,12 @@ export default function BadgesScreen({ navigation }) {
                             {earnedBadges.length}
                             <Text className="text-gray-500" style={{ fontSize: 22 }}>/{allBadges.length}</Text>
                         </Text>
-                        <Text className="text-gray-400 text-sm mt-1 font-medium">rozet kazanildi</Text>
+                        <Text className="text-gray-400 text-sm mt-1 font-medium">rozet kazanıldı</Text>
 
                         <View className="w-full h-2 rounded-full mt-5 overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                             <View className="h-full rounded-full" style={{ width: progress + '%', backgroundColor: '#D4AF37' }} />
                         </View>
-                        <Text className="text-gray-600 text-xs mt-2">{progress}% tamamlandi</Text>
+                        <Text className="text-gray-600 text-xs mt-2">{progress}% tamamlandı</Text>
 
                         {/* Mini stats */}
                         <View className="flex-row gap-6 mt-5 pt-5 border-t border-white/5 w-full justify-center">
@@ -266,7 +266,7 @@ export default function BadgesScreen({ navigation }) {
                         {earnedBadges.length > 0 && (
                             <View className="mb-5">
                                 <Text className="text-green-400 text-[10px] font-bold tracking-widest uppercase mb-3">
-                                    Sahip Oldugun Rozetler ({earnedBadges.length})
+                                    Sahip Olduğun Rozetler ({earnedBadges.length})
                                 </Text>
                                 {earnedBadges.map(b => <EarnedRow key={b.id} badge={b} />)}
                             </View>
@@ -276,7 +276,7 @@ export default function BadgesScreen({ navigation }) {
                         {unearnedMvp.length > 0 && (
                             <View className="mb-5">
                                 <Text className="text-amber-300 text-[10px] font-bold tracking-widest uppercase mb-3">
-                                    Kazanabilecegin Rozetler ({unearnedMvp.length})
+                                    Kazanabileceğin Rozetler ({unearnedMvp.length})
                                 </Text>
                                 {unearnedMvp.map(b => <UnearnedRow key={b.id} badge={b} />)}
                             </View>
@@ -290,7 +290,7 @@ export default function BadgesScreen({ navigation }) {
                                     Gelecek Rozetler
                                 </Text>
                                 <Text className="text-gray-300 text-xs leading-5">
-                                    {v12Badges.length + v13Badges.length} yeni rozet yakinda platforma eklenecek. Takipte kal!
+                                    {v12Badges.length + v13Badges.length} yeni rozet yakında platforma eklenecek. Takipte kal!
                                 </Text>
                                 <View className="flex-row flex-wrap gap-2 mt-3">
                                     {[...v12Badges, ...v13Badges].map(b => (
