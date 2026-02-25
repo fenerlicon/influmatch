@@ -313,9 +313,10 @@ export default function BrandAdvertsScreen({ navigation }) {
             const { data: { user } } = await supabase.auth.getUser();
             const { error } = await supabase.from('advert_projects').insert({
                 brand_user_id: user.id,
+                brand_id: user.id,          // NOT NULL constraint — same as web
                 title: form.title.trim(),
-                summary: form.description.trim(),      // web uses 'summary'
-                description: form.description.trim(),  // keep for mobile compat
+                summary: form.description.trim(),
+                description: form.description.trim(),
                 budget_min: form.budget ? parseFloat(form.budget) : null,
                 category: form.category.trim() || null,
                 deadline: form.deadline.trim() || null,
