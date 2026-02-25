@@ -465,8 +465,8 @@ export default function BrandAdvertsScreen({ navigation }) {
                         <Text className="text-white text-3xl font-bold tracking-tight">İlanlar</Text>
                     </View>
                     <TouchableOpacity onPress={() => setCreateVisible(true)}
-                        className="mt-2 flex-row items-center gap-2 bg-soft-gold/10 border border-soft-gold/30 px-4 py-2.5 rounded-2xl">
-                        <Plus color="#D4AF37" size={16} />
+                        className="flex-row items-center gap-1.5 bg-soft-gold/10 border border-soft-gold/30 px-3 py-1.5 rounded-xl">
+                        <Plus color="#D4AF37" size={14} />
                         <Text className="text-soft-gold font-bold text-sm">Yeni İlan</Text>
                     </TouchableOpacity>
                 </View>
@@ -625,7 +625,7 @@ export default function BrandAdvertsScreen({ navigation }) {
                             <ActivityIndicator color="#D4AF37" />
                         </View>
                     ) : myProjects.length === 0 ? (
-                        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
+                        <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 32 }}>
                             <GlassCard className="p-8 items-center">
                                 <View className="w-16 h-16 bg-white/5 rounded-full items-center justify-center mb-4">
                                     <Briefcase color="#4b5563" size={28} />
