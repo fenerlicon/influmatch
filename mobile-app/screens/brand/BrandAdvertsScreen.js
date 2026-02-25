@@ -137,7 +137,7 @@ export default function BrandAdvertsScreen({ navigation }) {
             // Query both brand_user_id AND brand_id — older web ads may only have brand_id set
             const { data, error } = await supabase
                 .from('advert_projects')
-                .select('*, advert_applications(count)')
+                .select('*, advert_applications!advert_id(count)')
                 .or(`brand_user_id.eq.${uid},brand_id.eq.${uid}`)
                 .order('created_at', { ascending: false });
             if (error) console.error('[BrandAdverts] fetchMyProjects error:', error.message);
