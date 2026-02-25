@@ -33,6 +33,7 @@ const ADV_STATUS_CFG = {
     open: { label: 'Aktif', color: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
     closed: { label: 'Kapalı', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
     draft: { label: 'Taslak', color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
+    paused: { label: 'Durduruldu', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' }, // legacy fallback
 };
 
 const TABS = ['Tüm İlanlar', 'İlanlarım', 'Başvurular'];
@@ -341,7 +342,8 @@ export default function BrandAdvertsScreen({ navigation }) {
 
     const toggleProjectStatus = async (proj) => {
         setActionSheetProject(null);
-        const newStatus = proj.status === 'open' ? 'paused' : 'open';
+        // 'paused' is not a valid DB status — use 'draft' to take offline, 'open' to publish
+        const newStatus = proj.status === 'open' ? 'draft' : 'open';
         const { error } = await supabase
             .from('advert_projects')
             .update({ status: newStatus })
@@ -501,7 +503,6 @@ export default function BrandAdvertsScreen({ navigation }) {
 
                                         {app.budget_expectation && (
                                             <View className="flex-row items-center gap-2 mb-3">
-                                                <DollarSign color="#D4AF37" size={13} />
                                                 <Text className="text-soft-gold text-xs font-medium">
                                                     {app.payment_type === 'barter' ? 'Barter' : app.budget_expectation + ' ₺'}
                                                 </Text>
@@ -686,7 +687,6 @@ export default function BrandAdvertsScreen({ navigation }) {
                                             <View className="flex-row items-center justify-between pt-3 border-t border-white/5">
                                                 {proj.budget_min && (
                                                     <View className="flex-row items-center gap-1.5">
-                                                        <DollarSign color="#D4AF37" size={12} />
                                                         <Text className="text-soft-gold text-xs font-bold">{proj.budget_min.toLocaleString('tr-TR')} ₺'den başlayan</Text>
                                                     </View>
                                                 )}
@@ -765,7 +765,6 @@ export default function BrandAdvertsScreen({ navigation }) {
                                             <View className="flex-row items-center gap-4">
                                                 {proj.budget_min && (
                                                     <View className="flex-row items-center gap-1.5">
-                                                        <DollarSign color="#D4AF37" size={12} />
                                                         <Text className="text-soft-gold text-xs font-bold">{proj.budget_min} ₺</Text>
                                                     </View>
                                                 )}
@@ -815,7 +814,7 @@ export default function BrandAdvertsScreen({ navigation }) {
                                         : <Play color="#4ade80" size={17} />}
                                 </View>
                                 <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
-                                    {actionSheetProject?.status === 'open' ? 'Yayından Al' : 'Yayına Al'}
+                                    {actionSheetProject?.status === 'open' ? 'Yayından Al (Taslak)' : 'Yayına Al'}
                                 </Text>
                             </TouchableOpacity>
 
