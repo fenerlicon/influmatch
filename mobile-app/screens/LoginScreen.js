@@ -68,10 +68,17 @@ export default function LoginScreen({ navigation }) {
 
             showToast('Giriş başarılı, yönlendiriliyorsunuz...', 'success');
 
-            setTimeout(() => {
+            setTimeout(async () => {
                 const isOnboarded = data.user?.user_metadata?.is_onboarded;
                 if (isOnboarded === true) {
-                    navigation.replace('Dashboard');
+                    // Fetch role from DB to route correctly
+                    const { data: userData } = await supabase
+                        .from('users')
+                        .select('role')
+                        .eq('id', data.user.id)
+                        .maybeSingle();
+                    const dest = userData?.role === 'brand' ? 'BrandDashboard' : 'Dashboard';
+                    navigation.replace(dest);
                 } else {
                     navigation.replace('Onboarding');
                 }

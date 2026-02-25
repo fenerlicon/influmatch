@@ -234,7 +234,8 @@ export default function OnboardingScreen({ navigation }) {
 
             showToast('Profiliniz oluşturuldu!', 'success');
             setTimeout(() => {
-                navigation.replace('Dashboard');
+                const dest = role === 'brand' ? 'BrandDashboard' : 'Dashboard';
+                navigation.replace(dest);
             }, 1000);
 
         } catch (error) {
