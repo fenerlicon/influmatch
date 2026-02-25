@@ -191,10 +191,6 @@ export default function OnboardingScreen({ navigation }) {
             return;
         }
 
-        if (role === 'brand' && !formData.taxId) {
-            showToast('Lütfen Vergi Numarası girin.', 'info');
-            return;
-        }
 
         // Zorunlu alan kontrolü - Sosyal Medya
         const hasSocial = (formData.instagram?.trim()) || (formData.tiktok?.trim()) || (formData.youtube?.trim());
@@ -369,10 +365,14 @@ export default function OnboardingScreen({ navigation }) {
                                 </View>
                             )}
 
-                            {/* Tax ID (SADECE MARKA) */}
                             {role === 'brand' && (
                                 <View className="space-y-2">
-                                    <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Vergi Numarası</Text>
+                                    <View className="flex-row items-center ml-1 gap-2">
+                                        <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">Vergi Numarası</Text>
+                                        <View className="bg-gray-700/60 px-2 py-0.5 rounded-full">
+                                            <Text className="text-gray-400 text-[9px] font-bold">OPSİYONEL</Text>
+                                        </View>
+                                    </View>
                                     <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
                                         <Building color="#6B7280" size={18} />
                                         <TextInput
@@ -383,6 +383,13 @@ export default function OnboardingScreen({ navigation }) {
                                             value={formData.taxId}
                                             onChangeText={(t) => updateField('taxId', t)}
                                         />
+                                    </View>
+                                    {/* Info banner */}
+                                    <View className="flex-row items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-2xl px-4 py-3 mt-1">
+                                        <AlertCircle color="#fbbf24" size={15} style={{ marginTop: 1 }} />
+                                        <Text className="flex-1 text-amber-200/80 text-[11px] leading-5">
+                                            Vergi levhanızı ekleyerek <Text className="text-amber-300 font-bold">"Resmi İşletme"</Text> rozeti kazanabilirsin. Rozet için vergi numarasının admin tarafından onaylanması gerekir.
+                                        </Text>
                                     </View>
                                 </View>
                             )}
