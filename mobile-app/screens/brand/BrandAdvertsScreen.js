@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
     Plus, Briefcase, ChevronRight, Clock, CheckCircle2, XCircle,
     ArrowLeft, Users, Calendar, DollarSign, FileText, X, Sparkles,
-    Search, Filter, Bell, Camera, ImageIcon
+    Search, Filter, Bell, Camera, ImageIcon, MoreVertical, Pause, Play, Trash2, Edit2
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -109,13 +109,18 @@ export default function BrandAdvertsScreen({ navigation }) {
     const [loadingAppsAll, setLoadingAppsAll] = useState(true);
     const [pendingCount, setPendingCount] = useState(0);
 
-    // Create modal
+    // Create / Edit modal
     const [createVisible, setCreateVisible] = useState(false);
+    const [editMode, setEditMode] = useState(false);      // true = editing existing
+    const [editId, setEditId] = useState(null);           // id of project being edited
     const [form, setForm] = useState({ title: '', description: '', budget: '', category: '', deadline: '' });
-    const [heroImage, setHeroImage] = useState(null);   // local URI for preview
-    const [heroImageUrl, setHeroImageUrl] = useState(null); // uploaded Supabase URL
+    const [heroImage, setHeroImage] = useState(null);
+    const [heroImageUrl, setHeroImageUrl] = useState(null);
     const [uploadingHero, setUploadingHero] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // Action sheet (⋯ menu)
+    const [actionSheetProject, setActionSheetProject] = useState(null); // project object or null
 
     // ── Fetch helpers ──────────────────────────────────────────────────────────
     const fetchAll = useCallback(async () => {
@@ -306,6 +311,73 @@ export default function BrandAdvertsScreen({ navigation }) {
         }
     };
 
+    const closeModal = () => {
+        setCreateVisible(false);
+        setEditMode(false);
+        setEditId(null);
+        setForm({ title: '', description: '', budget: '', category: '', deadline: '' });
+        setHeroImage(null);
+        setHeroImageUrl(null);
+    };
+
+    const openEditModal = (proj) => {
+        setActionSheetProject(null);
+        setEditMode(true);
+        setEditId(proj.id);
+        setForm({
+            title: proj.title || '',
+            description: proj.summary || proj.description || '',
+            budget: proj.budget_min ? String(proj.budget_min) : '',
+            category: proj.category || '',
+            deadline: proj.deadline || '',
+        });
+        // Show existing banner as preview (remote URL, not base64)
+        if (proj.hero_image) {
+            setHeroImage(proj.hero_image);
+            setHeroImageUrl(proj.hero_image);
+        }
+        setCreateVisible(true);
+    };
+
+    const toggleProjectStatus = async (proj) => {
+        setActionSheetProject(null);
+        const newStatus = proj.status === 'open' ? 'paused' : 'open';
+        const { error } = await supabase
+            .from('advert_projects')
+            .update({ status: newStatus })
+            .eq('id', proj.id);
+        if (error) {
+            Alert.alert('Hata', error.message);
+        } else {
+            setMyProjects(prev => prev.map(p => p.id === proj.id ? { ...p, status: newStatus } : p));
+        }
+    };
+
+    const deleteProject = (proj) => {
+        setActionSheetProject(null);
+        Alert.alert(
+            'İlanı Sil',
+            `"${proj.title}" adlı ilanı silmek istediğinden emin misin? Bu işlem geri alınamaz.`,
+            [
+                { text: 'İptal', style: 'cancel' },
+                {
+                    text: 'Sil', style: 'destructive',
+                    onPress: async () => {
+                        const { error } = await supabase
+                            .from('advert_projects')
+                            .delete()
+                            .eq('id', proj.id);
+                        if (error) {
+                            Alert.alert('Hata', error.message);
+                        } else {
+                            setMyProjects(prev => prev.filter(p => p.id !== proj.id));
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const createProject = async () => {
         if (!form.title.trim() || !form.description.trim()) {
             return Alert.alert('Hata', 'Başlık ve açıklama alanları zorunlu.');
@@ -313,9 +385,7 @@ export default function BrandAdvertsScreen({ navigation }) {
         setSaving(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            const { error } = await supabase.from('advert_projects').insert({
-                brand_user_id: user.id,
-                brand_id: user.id,          // NOT NULL constraint — same as web
+            const payload = {
                 title: form.title.trim(),
                 summary: form.description.trim(),
                 description: form.description.trim(),
@@ -323,17 +393,31 @@ export default function BrandAdvertsScreen({ navigation }) {
                 category: form.category.trim() || null,
                 deadline: form.deadline.trim() || null,
                 hero_image: heroImageUrl || null,
-                status: 'open',
-            });
-            if (error) throw error;
-            setCreateVisible(false);
-            setForm({ title: '', description: '', budget: '', category: '', deadline: '' });
-            setHeroImage(null);
-            setHeroImageUrl(null);
+            };
+
+            if (editMode && editId) {
+                // UPDATE existing
+                const { error } = await supabase
+                    .from('advert_projects')
+                    .update(payload)
+                    .eq('id', editId);
+                if (error) throw error;
+            } else {
+                // INSERT new
+                const { error } = await supabase.from('advert_projects').insert({
+                    ...payload,
+                    brand_user_id: user.id,
+                    brand_id: user.id,
+                    status: 'open',
+                });
+                if (error) throw error;
+            }
+
+            closeModal();
             fetchMyProjects(currentUserId);
             setActiveTab('İlanlarım');
         } catch (e) {
-            Alert.alert('Hata', e.message || 'İlan oluşturulamadı.');
+            Alert.alert('Hata', e.message || 'İşlem başarısız.');
         } finally {
             setSaving(false);
         }
@@ -659,14 +743,23 @@ export default function BrandAdvertsScreen({ navigation }) {
                                                     </View>
                                                 )}
                                             </View>
-                                            <View className="px-3 py-1.5 rounded-xl" style={{ backgroundColor: st.bg }}>
-                                                <Text className="text-xs font-bold" style={{ color: st.color }}>{st.label}</Text>
+                                            <View className="flex-row items-center gap-2">
+                                                <View className="px-2.5 py-1.5 rounded-xl" style={{ backgroundColor: st.bg }}>
+                                                    <Text className="text-xs font-bold" style={{ color: st.color }}>{st.label}</Text>
+                                                </View>
+                                                <TouchableOpacity
+                                                    onPress={(e) => { e.stopPropagation?.(); setActionSheetProject(proj); }}
+                                                    className="w-8 h-8 bg-white/5 rounded-xl items-center justify-center border border-white/10"
+                                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                                >
+                                                    <MoreVertical color="#9ca3af" size={16} />
+                                                </TouchableOpacity>
                                             </View>
                                         </View>
 
-                                        {proj.description && (
-                                            <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{proj.description}</Text>
-                                        )}
+                                        {(proj.summary || proj.description) ? (
+                                            <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{proj.summary || proj.description}</Text>
+                                        ) : null}
 
                                         <View className="flex-row items-center justify-between pt-3 border-t border-white/5">
                                             <View className="flex-row items-center gap-4">
@@ -691,8 +784,56 @@ export default function BrandAdvertsScreen({ navigation }) {
                 )}
             </SafeAreaView>
 
-            {/* ── Create Modal ──────────────────────────────────────────────── */}
-            <Modal animationType="slide" transparent visible={createVisible} onRequestClose={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }}>
+            {/* ── Action Sheet Modal ──────────────────────────────────────── */}
+            <Modal animationType="slide" transparent visible={!!actionSheetProject} onRequestClose={() => setActionSheetProject(null)}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setActionSheetProject(null)} />
+                    <View style={{ backgroundColor: '#0B0F19', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingBottom: 36 }}>
+                        <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+                            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+                        </View>
+                        <View style={{ paddingHorizontal: 16 }}>
+                            <Text style={{ color: '#9ca3af', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', paddingHorizontal: 8, marginBottom: 8 }}>
+                                {actionSheetProject?.title}
+                            </Text>
+
+                            {/* Edit */}
+                            <TouchableOpacity onPress={() => openEditModal(actionSheetProject)}
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, marginBottom: 4 }}>
+                                <View style={{ width: 38, height: 38, backgroundColor: 'rgba(212,175,55,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Edit2 color="#D4AF37" size={17} />
+                                </View>
+                                <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>Düzenle</Text>
+                            </TouchableOpacity>
+
+                            {/* Pause / Resume */}
+                            <TouchableOpacity onPress={() => toggleProjectStatus(actionSheetProject)}
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, marginBottom: 4 }}>
+                                <View style={{ width: 38, height: 38, backgroundColor: actionSheetProject?.status === 'open' ? 'rgba(251,191,36,0.12)' : 'rgba(74,222,128,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                                    {actionSheetProject?.status === 'open'
+                                        ? <Pause color="#fbbf24" size={17} />
+                                        : <Play color="#4ade80" size={17} />}
+                                </View>
+                                <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
+                                    {actionSheetProject?.status === 'open' ? 'Yayından Al' : 'Yayına Al'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Delete */}
+                            <TouchableOpacity onPress={() => deleteProject(actionSheetProject)}
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, marginBottom: 4 }}>
+                                <View style={{ width: 38, height: 38, backgroundColor: 'rgba(248,113,113,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Trash2 color="#f87171" size={17} />
+                                </View>
+                                <Text style={{ color: '#f87171', fontWeight: '600', fontSize: 15 }}>Sil</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Create / Edit Modal ─────────────────────────────────────── */}
+            <Modal animationType="slide" transparent visible={createVisible} onRequestClose={closeModal}>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'flex-end' }}>
                     <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
                         <TouchableOpacity style={{ flex: 1 }} onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} />
@@ -708,8 +849,8 @@ export default function BrandAdvertsScreen({ navigation }) {
                                 contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40 }}
                             >
                                 <View className="flex-row items-center justify-between mb-5">
-                                    <Text className="text-white font-bold text-xl">Yeni İlan Oluştur</Text>
-                                    <TouchableOpacity onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
+                                    <Text className="text-white font-bold text-xl">{editMode ? 'İlanı Düzenle' : 'Yeni İlan Oluştur'}</Text>
+                                    <TouchableOpacity onPress={closeModal} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
                                         <X color="white" size={18} />
                                     </TouchableOpacity>
                                 </View>
@@ -760,7 +901,7 @@ export default function BrandAdvertsScreen({ navigation }) {
 
                                 <TouchableOpacity onPress={createProject} disabled={saving || uploadingHero}
                                     className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mt-2 ${(saving || uploadingHero) ? 'bg-soft-gold/50' : 'bg-soft-gold'}`}>
-                                    {saving ? <ActivityIndicator color="black" /> : <Text className="text-midnight font-bold text-base">{uploadingHero ? 'Banner yükleniyor...' : 'İlanı Yayınla'}</Text>}
+                                    {saving ? <ActivityIndicator color="black" /> : <Text className="text-midnight font-bold text-base">{uploadingHero ? 'Banner yükleniyor...' : (editMode ? 'Değişiklikleri Kaydet' : 'İlanı Yayınla')}</Text>}
                                 </TouchableOpacity>
                             </ScrollView>
                         </View>
