@@ -26,6 +26,7 @@ export default function OnboardingScreen({ navigation }) {
 
     const [formData, setFormData] = useState({
         username: '',
+        corporateName: '',
         bio: '',
         city: '',
         website: '',
@@ -192,12 +193,13 @@ export default function OnboardingScreen({ navigation }) {
         }
 
 
-        // Zorunlu alan kontrolü - Sosyal Medya
-        const hasSocial = (formData.instagram?.trim()) || (formData.tiktok?.trim()) || (formData.youtube?.trim());
-
-        if (!hasSocial) {
-            showToast('Hesabınızın doğrulanması için en az 1 sosyal medya hesabı eklemeniz şarttır.', 'error');
-            return;
+        // Zorunlu alan kontrolü - Sosyal Medya (sadece influencer için)
+        if (role === 'influencer') {
+            const hasSocial = (formData.instagram?.trim()) || (formData.tiktok?.trim()) || (formData.youtube?.trim());
+            if (!hasSocial) {
+                showToast('Hesabınızın doğrulanması için en az 1 sosyal medya hesabı eklemeniz şarttır.', 'error');
+                return;
+            }
         }
 
         setLoading(true);
@@ -214,7 +216,13 @@ export default function OnboardingScreen({ navigation }) {
                     youtube: formData.youtube ? `https://youtube.com/${formData.youtube}` : null,
                     website: formData.website
                 },
-                ...(role === 'influencer' ? { category: formData.category.join(', ') } : { tax_id: formData.taxId })
+                ...(role === 'influencer'
+                    ? { category: formData.category.join(', ') }
+                    : {
+                        corporate_name: formData.corporateName.trim() || null,
+                        tax_id: formData.taxId.trim() || null,
+                    }
+                )
             };
 
             const { error: updateError } = await supabase
@@ -366,30 +374,48 @@ export default function OnboardingScreen({ navigation }) {
                             )}
 
                             {role === 'brand' && (
-                                <View className="space-y-2">
-                                    <View className="flex-row items-center ml-1 gap-2">
-                                        <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">Vergi Numarası</Text>
-                                        <View className="bg-gray-700/60 px-2 py-0.5 rounded-full">
-                                            <Text className="text-gray-400 text-[9px] font-bold">OPSİYONEL</Text>
+                                <View className="space-y-4">
+                                    {/* Marka / Şirket Adı */}
+                                    <View className="space-y-2">
+                                        <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Marka / Şirket Adı</Text>
+                                        <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
+                                            <Building color="#6B7280" size={18} />
+                                            <TextInput
+                                                className="flex-1 text-white font-medium"
+                                                placeholder="Şirket Adı A.Ş."
+                                                placeholderTextColor="#4B5563"
+                                                value={formData.corporateName}
+                                                onChangeText={(t) => updateField('corporateName', t)}
+                                            />
                                         </View>
                                     </View>
-                                    <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
-                                        <Building color="#6B7280" size={18} />
-                                        <TextInput
-                                            className="flex-1 text-white font-medium"
-                                            placeholder="1234567890"
-                                            placeholderTextColor="#4B5563"
-                                            keyboardType="number-pad"
-                                            value={formData.taxId}
-                                            onChangeText={(t) => updateField('taxId', t)}
-                                        />
-                                    </View>
-                                    {/* Info banner */}
-                                    <View className="flex-row items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-2xl px-4 py-3 mt-1">
-                                        <AlertCircle color="#fbbf24" size={15} style={{ marginTop: 1 }} />
-                                        <Text className="flex-1 text-amber-200/80 text-[11px] leading-5">
-                                            Vergi levhanızı ekleyerek <Text className="text-amber-300 font-bold">"Resmi İşletme"</Text> rozeti kazanabilirsin. Rozet için vergi numarasının admin tarafından onaylanması gerekir.
-                                        </Text>
+
+                                    {/* Vergi Numarası */}
+                                    <View className="space-y-2">
+                                        <View className="flex-row items-center ml-1 gap-2">
+                                            <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">Vergi Numarası</Text>
+                                            <View className="bg-gray-700/60 px-2 py-0.5 rounded-full">
+                                                <Text className="text-gray-400 text-[9px] font-bold">OPSİYONEL</Text>
+                                            </View>
+                                        </View>
+                                        <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
+                                            <Building color="#6B7280" size={18} />
+                                            <TextInput
+                                                className="flex-1 text-white font-medium"
+                                                placeholder="1234567890"
+                                                placeholderTextColor="#4B5563"
+                                                keyboardType="number-pad"
+                                                value={formData.taxId}
+                                                onChangeText={(t) => updateField('taxId', t)}
+                                            />
+                                        </View>
+                                        {/* Info banner */}
+                                        <View className="flex-row items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-2xl px-4 py-3 mt-1">
+                                            <AlertCircle color="#fbbf24" size={15} style={{ marginTop: 1 }} />
+                                            <Text className="flex-1 text-amber-200/80 text-[11px] leading-5">
+                                                Vergi levhanızı ekleyerek <Text className="text-amber-300 font-bold">"Resmi İşletme"</Text> rozeti kazanabilirsin. Rozet için vergi numarasının admin tarafından onaylanması gerekir.
+                                            </Text>
+                                        </View>
                                     </View>
                                 </View>
                             )}

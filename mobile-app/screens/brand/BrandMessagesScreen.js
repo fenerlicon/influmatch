@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, TextInput, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -23,7 +23,7 @@ const Avatar = ({ name, uri, size = 48 }) => (
 );
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function BrandMessagesScreen() {
+export default function BrandMessagesScreen({ route }) {
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -46,6 +46,25 @@ export default function BrandMessagesScreen() {
             listSubRef.current?.unsubscribe();
         };
     }, []);
+
+    // Auto-open a room when navigated from Keşfet (via İletişime Geç)
+    const openedRoomRef = useRef(null);
+    useEffect(() => {
+        const roomId = route?.params?.openRoomId;
+        if (!roomId || openedRoomRef.current === roomId) return;
+        openedRoomRef.current = roomId;
+        // Wait for conversations to load then open the specific room
+        const tryOpen = async () => {
+            // Build a minimal conv object from params so chat opens immediately
+            const partnerName = route?.params?.partnerName || 'Influencer';
+            const partnerAvatar = route?.params?.partnerAvatar || null;
+            const fakeConv = { id: roomId, partner: { full_name: partnerName, avatar_url: partnerAvatar } };
+            openChat(fakeConv);
+        };
+        // Small delay so state is ready
+        const t = setTimeout(tryOpen, 500);
+        return () => clearTimeout(t);
+    }, [route?.params?.openRoomId]);
 
     const fetchConversations = async () => {
         try {
@@ -172,7 +191,7 @@ export default function BrandMessagesScreen() {
             <SafeAreaView className="flex-1" edges={['top']}>
                 <View className="px-6 pt-4 pb-2">
                     <Text className="text-soft-gold text-xs font-bold uppercase tracking-widest mb-1">MESAJLAR</Text>
-                    <Text className="text-white text-3xl font-bold tracking-tight mb-4">Inbox</Text>
+                    <Text className="text-white text-3xl font-bold tracking-tight mb-4">Gelen Kutusu</Text>
                     <View className="bg-white/5 border border-white/10 rounded-2xl flex-row items-center px-4 h-11">
                         <Search color="#6b7280" size={16} />
                         <TextInput

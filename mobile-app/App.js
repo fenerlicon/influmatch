@@ -32,6 +32,7 @@ import BrandDashboardScreen from './screens/brand/BrandDashboardScreen';
 import BrandMessagesScreen from './screens/brand/BrandMessagesScreen';
 import BrandAdvertsScreen from './screens/brand/BrandAdvertsScreen';
 import BrandProfileScreen from './screens/brand/BrandProfileScreen';
+import BrandVerificationScreen from './screens/brand/BrandVerificationScreen';
 
 // ─── Shared Screens ───────────────────────────────────────────────────────────
 import SettingsScreen from './screens/SettingsScreen';
@@ -233,6 +234,9 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Feedback" component={FeedbackScreen} />
           <Stack.Screen name="AiAssistant" component={AiAssistantScreen} />
+
+          {/* ── Brand Sub-screens ── */}
+          <Stack.Screen name="BrandVerification" component={BrandVerificationScreen} />
 
         </Stack.Navigator>
       </NavigationContainer>

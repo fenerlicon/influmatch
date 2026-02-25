@@ -176,7 +176,7 @@ const CategorySection = memo(({ title, data, onProfilePress, onViewAll }) => {
 });
 
 
-export default function DiscoverScreen() {
+export default function DiscoverScreen({ navigation }) {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -206,6 +206,43 @@ export default function DiscoverScreen() {
         setSelectedInfluencer(null);
         setDetailedBadges([]);
     }, []);
+
+    const startConversation = useCallback(async (influencer) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Find or create a room between this brand and influencer
+            let { data: existingRoom } = await supabase
+                .from('rooms')
+                .select('id')
+                .eq('brand_id', user.id)
+                .eq('influencer_id', influencer.id)
+                .maybeSingle();
+
+            if (!existingRoom) {
+                const { data: newRoom, error } = await supabase
+                    .from('rooms')
+                    .insert({ brand_id: user.id, influencer_id: influencer.id })
+                    .select('id')
+                    .single();
+                if (error) throw error;
+                existingRoom = newRoom;
+            }
+
+            // Close profile modal then navigate to messages
+            setModalVisible(false);
+            setSelectedInfluencer(null);
+            setDetailedBadges([]);
+
+            // Navigate to Brand's Mesajlar tab and open the specific chat
+            setTimeout(() => {
+                navigation.navigate('Mesajlar', { openRoomId: existingRoom.id, partnerName: influencer.full_name || influencer.username, partnerAvatar: influencer.avatar_url });
+            }, 300);
+        } catch (e) {
+            Alert.alert('Hata', 'Mesajlaşma başlatılamadı: ' + (e.message || ''));
+        }
+    }, [navigation]);
 
     const openCategory = useCallback((title, data) => {
         setSelectedCategoryData({ title, data });
@@ -574,7 +611,7 @@ export default function DiscoverScreen() {
                             {currentUserRole === 'brand' && (
                                 <View className="absolute bottom-0 left-0 right-0 p-6 bg-[#0B0F19] border-t border-white/5">
                                     <TouchableOpacity
-                                        onPress={() => Alert.alert("Bilgi", "Mesajlaşma özelliği yakında aktif!")}
+                                        onPress={() => startConversation(selectedInfluencer)}
                                         className="w-full bg-soft-gold h-14 rounded-2xl items-center justify-center flex-row shadow-lg shadow-soft-gold/20"
                                     >
                                         <Text className="text-black font-extrabold text-base tracking-wide uppercase">İLETİŞİME GEÇ</Text>
