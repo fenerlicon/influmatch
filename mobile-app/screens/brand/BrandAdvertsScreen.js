@@ -145,19 +145,54 @@ export default function BrandAdvertsScreen({ navigation }) {
     const fetchAllProjects = async () => {
         setLoadingAll(true);
         try {
-            const { data } = await supabase
+            // Step 1: fetch open ads with same columns as web
+            const { data: rows, error } = await supabase
                 .from('advert_projects')
-                .select('*, brand:brand_user_id(id, corporate_name, full_name, avatar_url)')
+                .select('id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, platforms, deliverables, location, hero_image, deadline, status, created_at, brand_user_id')
                 .eq('status', 'open')
                 .order('created_at', { ascending: false })
-                .limit(30);
-            setAllProjects(data || []);
+                .limit(40);
+
+            if (error) {
+                console.error('[BrandAdverts] fetchAllProjects error:', error.message);
+                setAllProjects([]);
+                return;
+            }
+
+            if (!rows || rows.length === 0) {
+                setAllProjects([]);
+                return;
+            }
+
+            // Step 2: fetch brand user info separately (same pattern as web)
+            const brandUserIds = [...new Set(rows.map(r => r.brand_user_id).filter(Boolean))];
+            let brandMap = {};
+            if (brandUserIds.length > 0) {
+                const { data: brandUsers } = await supabase
+                    .from('users')
+                    .select('id, full_name, corporate_name, avatar_url, verification_status')
+                    .in('id', brandUserIds);
+                brandUsers?.forEach(u => { brandMap[u.id] = u; });
+            }
+
+            // Step 3: merge — use brand_name field first, then corporate_name, then full_name
+            const merged = rows.map(row => {
+                const brandUser = row.brand_user_id ? brandMap[row.brand_user_id] : null;
+                return {
+                    ...row,
+                    brand: brandUser || null,
+                    displayBrandName: row.brand_name || brandUser?.corporate_name || brandUser?.full_name || 'Marka',
+                };
+            });
+
+            setAllProjects(merged);
         } catch (e) {
-            console.error('[BrandAdverts] fetchAllProjects', e);
+            console.error('[BrandAdverts] fetchAllProjects exception:', e);
         } finally {
             setLoadingAll(false);
         }
     };
+
 
     const fetchAllApplications = async (uid) => {
         setLoadingAppsAll(true);
@@ -481,7 +516,7 @@ export default function BrandAdvertsScreen({ navigation }) {
                             <FlatList
                                 data={allProjects.filter(p =>
                                     !searchAll || p.title?.toLowerCase().includes(searchAll.toLowerCase()) ||
-                                    p.brand?.corporate_name?.toLowerCase().includes(searchAll.toLowerCase())
+                                    p.displayBrandName?.toLowerCase().includes(searchAll.toLowerCase())
                                 )}
                                 keyExtractor={p => p.id}
                                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
@@ -493,7 +528,8 @@ export default function BrandAdvertsScreen({ navigation }) {
                                     </View>
                                 }
                                 renderItem={({ item: proj }) => {
-                                    const brandName = proj.brand?.corporate_name || proj.brand?.full_name || 'Marka';
+                                    const brandName = proj.displayBrandName || 'Marka';
+                                    const desc = proj.summary || proj.description || '';
                                     return (
                                         <GlassCard className="p-5 mb-3">
                                             <View className="flex-row items-start justify-between mb-2">
@@ -507,9 +543,9 @@ export default function BrandAdvertsScreen({ navigation }) {
                                                     </View>
                                                 )}
                                             </View>
-                                            {proj.description && (
-                                                <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{proj.description}</Text>
-                                            )}
+                                            {desc ? (
+                                                <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{desc}</Text>
+                                            ) : null}
                                             <View className="flex-row items-center justify-between pt-3 border-t border-white/5">
                                                 {proj.budget_min && (
                                                     <View className="flex-row items-center gap-1.5">
