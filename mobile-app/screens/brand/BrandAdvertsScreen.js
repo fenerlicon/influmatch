@@ -691,65 +691,76 @@ export default function BrandAdvertsScreen({ navigation }) {
 
             {/* ── Create Modal ──────────────────────────────────────────────── */}
             <Modal animationType="slide" transparent visible={createVisible} onRequestClose={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1" style={{ justifyContent: 'flex-end' }}>
-                    <View className="bg-black/80 flex-1 justify-end" >
-                        <TouchableOpacity className="flex-1" onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} />
-                        <View className="bg-[#0B0F19] rounded-t-[32px] border-t border-white/10 px-6 pt-6 pb-12">
-                            <View className="flex-row items-center justify-between mb-5">
-                                <Text className="text-white font-bold text-xl">Yeni İlan Oluştur</Text>
-                                <TouchableOpacity onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
-                                    <X color="white" size={18} />
-                                </TouchableOpacity>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'flex-end' }}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
+                        <TouchableOpacity style={{ flex: 1 }} onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} />
+                        <View style={{ backgroundColor: '#0B0F19', borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.1)', maxHeight: '92%' }}>
+                            {/* Drag handle */}
+                            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
+                                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)' }} />
                             </View>
 
-                            {/* Banner Image Picker */}
-                            <TouchableOpacity
-                                onPress={pickHeroImage}
-                                disabled={uploadingHero}
-                                className="rounded-2xl overflow-hidden border-2 border-dashed border-white/20 mb-5"
-                                style={{ height: 140 }}
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                keyboardShouldPersistTaps="handled"
+                                contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40 }}
                             >
-                                {heroImage ? (
-                                    <View className="flex-1">
-                                        <Image source={{ uri: heroImage }} className="w-full h-full" resizeMode="cover" />
-                                        {uploadingHero && (
-                                            <View className="absolute inset-0 bg-black/60 items-center justify-center">
-                                                <ActivityIndicator color="#D4AF37" size="small" />
-                                                <Text className="text-white text-xs mt-2">Yükleniyor...</Text>
-                                            </View>
-                                        )}
-                                        {!uploadingHero && heroImageUrl && (
-                                            <View className="absolute bottom-2 right-2 bg-green-500/90 px-2 py-1 rounded-lg">
-                                                <Text className="text-white text-[10px] font-bold">✓ Yüklendi</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                ) : (
-                                    <View className="flex-1 items-center justify-center gap-2">
-                                        <View className="w-10 h-10 bg-white/5 rounded-full items-center justify-center">
-                                            <ImageIcon color="#6b7280" size={20} />
+                                <View className="flex-row items-center justify-between mb-5">
+                                    <Text className="text-white font-bold text-xl">Yeni İlan Oluştur</Text>
+                                    <TouchableOpacity onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
+                                        <X color="white" size={18} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Banner Image Picker */}
+                                <TouchableOpacity
+                                    onPress={pickHeroImage}
+                                    disabled={uploadingHero}
+                                    className="rounded-2xl overflow-hidden border-2 border-dashed border-white/20 mb-5"
+                                    style={{ height: 140 }}
+                                >
+                                    {heroImage ? (
+                                        <View className="flex-1">
+                                            <Image source={{ uri: heroImage }} className="w-full h-full" resizeMode="cover" />
+                                            {uploadingHero && (
+                                                <View className="absolute inset-0 bg-black/60 items-center justify-center">
+                                                    <ActivityIndicator color="#D4AF37" size="small" />
+                                                    <Text className="text-white text-xs mt-2">Yükleniyor...</Text>
+                                                </View>
+                                            )}
+                                            {!uploadingHero && heroImageUrl && (
+                                                <View className="absolute bottom-2 right-2 bg-green-500/90 px-2 py-1 rounded-lg">
+                                                    <Text className="text-white text-[10px] font-bold">✓ Yüklendi</Text>
+                                                </View>
+                                            )}
                                         </View>
-                                        <Text className="text-gray-500 text-xs font-medium">İlan Banneri Ekle</Text>
-                                        <Text className="text-gray-600 text-[10px]">16:9 oranı önerilir</Text>
+                                    ) : (
+                                        <View className="flex-1 items-center justify-center gap-2">
+                                            <View className="w-10 h-10 bg-white/5 rounded-full items-center justify-center">
+                                                <ImageIcon color="#6b7280" size={20} />
+                                            </View>
+                                            <Text className="text-gray-500 text-xs font-medium">İlan Banneri Ekle</Text>
+                                            <Text className="text-gray-600 text-[10px]">16:9 oranı önerilir</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+
+                                <InputField label="İlan Başlığı *" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="Ör: Instagram Reel için Ortak" />
+                                <InputField label="Açıklama *" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Marka ve kampanya hakkında bilgi ver..." multiline />
+                                <View className="flex-row gap-3">
+                                    <View className="flex-1">
+                                        <InputField label="Bütçe (₺)" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} placeholder="0" keyboardType="numeric" />
                                     </View>
-                                )}
-                            </TouchableOpacity>
-
-                            <InputField label="İlan Başlığı *" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="Ör: Instagram Reel için Ortak" />
-                            <InputField label="Açıklama *" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Marka ve kampanya hakkında bilgi ver..." multiline />
-                            <View className="flex-row gap-3">
-                                <View className="flex-1">
-                                    <InputField label="Bütçe (₺)" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} placeholder="0" keyboardType="numeric" />
+                                    <View className="flex-1">
+                                        <InputField label="Kategori" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} placeholder="Moda, Teknoloji..." />
+                                    </View>
                                 </View>
-                                <View className="flex-1">
-                                    <InputField label="Kategori" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} placeholder="Moda, Teknoloji..." />
-                                </View>
-                            </View>
 
-                            <TouchableOpacity onPress={createProject} disabled={saving || uploadingHero}
-                                className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 ${(saving || uploadingHero) ? 'bg-soft-gold/50' : 'bg-soft-gold'}`}>
-                                {saving ? <ActivityIndicator color="black" /> : <Text className="text-midnight font-bold text-base">{uploadingHero ? 'Banner yükleniyor...' : 'İlanı Yayınla'}</Text>}
-                            </TouchableOpacity>
+                                <TouchableOpacity onPress={createProject} disabled={saving || uploadingHero}
+                                    className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mt-2 ${(saving || uploadingHero) ? 'bg-soft-gold/50' : 'bg-soft-gold'}`}>
+                                    {saving ? <ActivityIndicator color="black" /> : <Text className="text-midnight font-bold text-base">{uploadingHero ? 'Banner yükleniyor...' : 'İlanı Yayınla'}</Text>}
+                                </TouchableOpacity>
+                            </ScrollView>
                         </View>
                     </View>
                 </KeyboardAvoidingView>
