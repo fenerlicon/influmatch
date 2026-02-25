@@ -35,10 +35,10 @@ const FeedbackBanner = ({ navigation }) => {
             style={{ paddingTop: Platform.OS === 'ios' ? 50 : 35, paddingBottom: 8 }}
         >
             <AlertTriangle color="#60a5fa" size={13} style={{ marginRight: 6, flexShrink: 0 }} />
-            <Text className="text-blue-100 text-[10px] font-medium flex-1" numberOfLines={2}>
-                Bu bir <Text className="font-bold text-white">MVP</Text> sürümüdür.{' '}
+            <Text className="text-blue-100 text-[10px] font-medium flex-1">
+                Bu bir <Text className="font-bold text-white">MVP</Text> (Minimum Viable Product) sürümüdür.{" "}
                 <Text onPress={handlePress} className="text-white underline font-bold">
-                    Geri bildirim paylaşın.
+                    Hata ve geribildirimlerinizi bizimle paylaşın.
                 </Text>
             </Text>
             <TouchableOpacity

@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plus, Sparkles, TrendingUp } from 'lucide-react-native';
+import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plus, Sparkles, TrendingUp, X } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -40,6 +40,9 @@ export default function BrandDashboardScreen({ navigation }) {
     const [recentApplications, setRecentApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [notifModalVisible, setNotifModalVisible] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
     const fetchData = useCallback(async () => {
         try {
@@ -53,6 +56,17 @@ export default function BrandDashboardScreen({ navigation }) {
                 .eq('id', user.id)
                 .maybeSingle();
             setProfile(prof);
+
+            // Fetch notifications
+            const { data: notifs } = await supabase
+                .from('notifications')
+                .select('id, title, message, is_read, created_at')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+            const notifList = notifs || [];
+            setNotifications(notifList);
+            setUnreadNotifCount(notifList.filter(n => !n.is_read).length);
 
             // Fetch brand's projects
             const { data: projects } = await supabase
@@ -95,6 +109,17 @@ export default function BrandDashboardScreen({ navigation }) {
         }
     }, []);
 
+    const handleNotificationPress = useCallback(async () => {
+        setNotifModalVisible(true);
+        // Mark all as read
+        const unread = notifications.filter(n => !n.is_read).map(n => n.id);
+        if (unread.length > 0) {
+            await supabase.from('notifications').update({ is_read: true }).in('id', unread);
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setUnreadNotifCount(0);
+        }
+    }, [notifications]);
+
     useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
     const firstName = profile?.full_name?.split(' ')[0] || profile?.corporate_name || 'Hoş Geldiniz';
@@ -116,14 +141,64 @@ export default function BrandDashboardScreen({ navigation }) {
             <View className="absolute bottom-20 -left-20 w-80 h-80 bg-blue-600/8 rounded-full blur-[80px]" />
 
             <SafeAreaView className="flex-1" edges={['top']}>
+                {/* Notification Modal */}
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={notifModalVisible}
+                    onRequestClose={() => setNotifModalVisible(false)}
+                >
+                    <View className="flex-1 bg-black/80 justify-end">
+                        <TouchableOpacity className="flex-1" onPress={() => setNotifModalVisible(false)} />
+                        <View className="bg-[#0B0F19] rounded-t-[32px] border-t border-white/10 p-6 max-h-[70%]">
+                            <View className="flex-row justify-between items-center mb-4">
+                                <Text className="text-white font-bold text-xl">Bildirimler</Text>
+                                <TouchableOpacity onPress={() => setNotifModalVisible(false)}>
+                                    <X color="#6b7280" size={20} />
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {notifications.length === 0 ? (
+                                    <View className="items-center py-10">
+                                        <Bell color="#374151" size={40} />
+                                        <Text className="text-gray-500 mt-4 text-sm">Henüz bildiriminiz yok.</Text>
+                                    </View>
+                                ) : (
+                                    notifications.map(notif => (
+                                        <View
+                                            key={notif.id}
+                                            className={`mb-3 p-4 rounded-2xl border ${notif.is_read
+                                                    ? 'border-white/5 bg-white/[0.02]'
+                                                    : 'border-soft-gold/20 bg-soft-gold/5'
+                                                }`}
+                                        >
+                                            <Text className="text-white font-bold text-sm mb-1">{notif.title}</Text>
+                                            <Text className="text-gray-400 text-xs leading-4">{notif.message}</Text>
+                                            <Text className="text-gray-600 text-[10px] mt-2">
+                                                {new Date(notif.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                        </View>
+                                    ))
+                                )}
+                            </ScrollView>
+                        </View>
+                    </View>
+                </Modal>
+
                 {/* Header */}
                 <View className="px-6 pt-4 pb-2 flex-row justify-between items-center">
                     <View>
                         <Text className="text-gray-400 text-sm font-medium">Tekrar Hoş Geldin,</Text>
                         <Text className="text-white font-bold text-3xl tracking-tight">{firstName}</Text>
                     </View>
-                    <TouchableOpacity className="w-11 h-11 bg-white/5 rounded-2xl items-center justify-center border border-white/10">
+                    <TouchableOpacity
+                        onPress={handleNotificationPress}
+                        className="w-11 h-11 bg-white/5 rounded-2xl items-center justify-center border border-white/10 relative"
+                    >
                         <Bell color="white" size={20} />
+                        {unreadNotifCount > 0 && (
+                            <View className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+                        )}
                     </TouchableOpacity>
                 </View>
 

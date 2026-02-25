@@ -1,12 +1,14 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Alert, ActivityIndicator, TextInput, FlatList, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Alert, ActivityIndicator, TextInput, FlatList, Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     Plus, Briefcase, ChevronRight, Clock, CheckCircle2, XCircle,
     ArrowLeft, Users, Calendar, DollarSign, FileText, X, Sparkles,
-    Search, Filter, Bell
+    Search, Filter, Bell, Camera, ImageIcon
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -110,6 +112,9 @@ export default function BrandAdvertsScreen({ navigation }) {
     // Create modal
     const [createVisible, setCreateVisible] = useState(false);
     const [form, setForm] = useState({ title: '', description: '', budget: '', category: '', deadline: '' });
+    const [heroImage, setHeroImage] = useState(null);   // local URI for preview
+    const [heroImageUrl, setHeroImageUrl] = useState(null); // uploaded Supabase URL
+    const [uploadingHero, setUploadingHero] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // ── Fetch helpers ──────────────────────────────────────────────────────────
@@ -258,6 +263,47 @@ export default function BrandAdvertsScreen({ navigation }) {
         }
     };
 
+    // ── Banner image picker ────────────────────────────────────────────────────
+    const pickHeroImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [16, 9],
+                quality: 0.7,
+                base64: true,
+            });
+            if (!result.canceled && result.assets[0]) {
+                const asset = result.assets[0];
+                setHeroImage(asset.uri);
+                uploadHeroImage(asset.base64);
+            }
+        } catch (e) {
+            Alert.alert('Hata', 'Fotoğraf seçilemedi.');
+        }
+    };
+
+    const uploadHeroImage = async (base64Data) => {
+        if (!base64Data) return;
+        setUploadingHero(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const fileName = `${user.id}_${Date.now()}.jpg`;
+            const { error: uploadError } = await supabase.storage
+                .from('advert-hero-images')
+                .upload(fileName, decode(base64Data), { contentType: 'image/jpeg', upsert: true });
+            if (uploadError) throw uploadError;
+            const { data: urlData } = supabase.storage.from('advert-hero-images').getPublicUrl(fileName);
+            setHeroImageUrl(urlData.publicUrl);
+        } catch (e) {
+            Alert.alert('Hata', 'Banner yüklenemedi: ' + (e.message || ''));
+            setHeroImage(null);
+            setHeroImageUrl(null);
+        } finally {
+            setUploadingHero(false);
+        }
+    };
+
     const createProject = async () => {
         if (!form.title.trim() || !form.description.trim()) {
             return Alert.alert('Hata', 'Başlık ve açıklama alanları zorunlu.');
@@ -268,15 +314,19 @@ export default function BrandAdvertsScreen({ navigation }) {
             const { error } = await supabase.from('advert_projects').insert({
                 brand_user_id: user.id,
                 title: form.title.trim(),
-                description: form.description.trim(),
+                summary: form.description.trim(),      // web uses 'summary'
+                description: form.description.trim(),  // keep for mobile compat
                 budget_min: form.budget ? parseFloat(form.budget) : null,
                 category: form.category.trim() || null,
                 deadline: form.deadline.trim() || null,
+                hero_image: heroImageUrl || null,
                 status: 'open',
             });
             if (error) throw error;
             setCreateVisible(false);
             setForm({ title: '', description: '', budget: '', category: '', deadline: '' });
+            setHeroImage(null);
+            setHeroImageUrl(null);
             fetchMyProjects(currentUserId);
             setActiveTab('İlanlarım');
         } catch (e) {
@@ -639,34 +689,69 @@ export default function BrandAdvertsScreen({ navigation }) {
             </SafeAreaView>
 
             {/* ── Create Modal ──────────────────────────────────────────────── */}
-            <Modal animationType="slide" transparent visible={createVisible} onRequestClose={() => setCreateVisible(false)}>
-                <View className="flex-1 bg-black/80 justify-end">
-                    <TouchableOpacity className="flex-1" onPress={() => setCreateVisible(false)} />
-                    <View className="bg-[#0B0F19] rounded-t-[32px] border-t border-white/10 px-6 pt-6 pb-12">
-                        <View className="flex-row items-center justify-between mb-6">
-                            <Text className="text-white font-bold text-xl">Yeni İlan Oluştur</Text>
-                            <TouchableOpacity onPress={() => setCreateVisible(false)} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
-                                <X color="white" size={18} />
+            <Modal animationType="slide" transparent visible={createVisible} onRequestClose={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1" style={{ justifyContent: 'flex-end' }}>
+                    <View className="bg-black/80 flex-1 justify-end" >
+                        <TouchableOpacity className="flex-1" onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} />
+                        <View className="bg-[#0B0F19] rounded-t-[32px] border-t border-white/10 px-6 pt-6 pb-12">
+                            <View className="flex-row items-center justify-between mb-5">
+                                <Text className="text-white font-bold text-xl">Yeni İlan Oluştur</Text>
+                                <TouchableOpacity onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
+                                    <X color="white" size={18} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Banner Image Picker */}
+                            <TouchableOpacity
+                                onPress={pickHeroImage}
+                                disabled={uploadingHero}
+                                className="rounded-2xl overflow-hidden border-2 border-dashed border-white/20 mb-5"
+                                style={{ height: 140 }}
+                            >
+                                {heroImage ? (
+                                    <View className="flex-1">
+                                        <Image source={{ uri: heroImage }} className="w-full h-full" resizeMode="cover" />
+                                        {uploadingHero && (
+                                            <View className="absolute inset-0 bg-black/60 items-center justify-center">
+                                                <ActivityIndicator color="#D4AF37" size="small" />
+                                                <Text className="text-white text-xs mt-2">Yükleniyor...</Text>
+                                            </View>
+                                        )}
+                                        {!uploadingHero && heroImageUrl && (
+                                            <View className="absolute bottom-2 right-2 bg-green-500/90 px-2 py-1 rounded-lg">
+                                                <Text className="text-white text-[10px] font-bold">✓ Yüklendi</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                ) : (
+                                    <View className="flex-1 items-center justify-center gap-2">
+                                        <View className="w-10 h-10 bg-white/5 rounded-full items-center justify-center">
+                                            <ImageIcon color="#6b7280" size={20} />
+                                        </View>
+                                        <Text className="text-gray-500 text-xs font-medium">İlan Banneri Ekle</Text>
+                                        <Text className="text-gray-600 text-[10px]">16:9 oranı önerilir</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+
+                            <InputField label="İlan Başlığı *" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="Ör: Instagram Reel için Ortak" />
+                            <InputField label="Açıklama *" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Marka ve kampanya hakkında bilgi ver..." multiline />
+                            <View className="flex-row gap-3">
+                                <View className="flex-1">
+                                    <InputField label="Bütçe (₺)" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} placeholder="0" keyboardType="numeric" />
+                                </View>
+                                <View className="flex-1">
+                                    <InputField label="Kategori" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} placeholder="Moda, Teknoloji..." />
+                                </View>
+                            </View>
+
+                            <TouchableOpacity onPress={createProject} disabled={saving || uploadingHero}
+                                className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 ${(saving || uploadingHero) ? 'bg-soft-gold/50' : 'bg-soft-gold'}`}>
+                                {saving ? <ActivityIndicator color="black" /> : <Text className="text-midnight font-bold text-base">{uploadingHero ? 'Banner yükleniyor...' : 'İlanı Yayınla'}</Text>}
                             </TouchableOpacity>
                         </View>
-
-                        <InputField label="İlan Başlığı *" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="Ör: Instagram Reel için Ortak" />
-                        <InputField label="Açıklama *" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Marka ve kampanya hakkında bilgi ver..." multiline />
-                        <View className="flex-row gap-3">
-                            <View className="flex-1">
-                                <InputField label="Bütçe (₺)" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} placeholder="0" keyboardType="numeric" />
-                            </View>
-                            <View className="flex-1">
-                                <InputField label="Kategori" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} placeholder="Moda, Teknoloji..." />
-                            </View>
-                        </View>
-
-                        <TouchableOpacity onPress={createProject} disabled={saving}
-                            className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20">
-                            {saving ? <ActivityIndicator color="black" /> : <Text className="text-midnight font-bold text-base">İlanı Yayınla</Text>}
-                        </TouchableOpacity>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
