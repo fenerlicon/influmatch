@@ -33,7 +33,7 @@ const ADV_STATUS_CFG = {
     draft: { label: 'Taslak', color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
 };
 
-const TABS = ['Başvurular', 'Tüm İlanlar', 'İlanlarım'];
+const TABS = ['Tüm İlanlar', 'İlanlarım', 'Başvurular'];
 
 // ─── Tab Bar ─────────────────────────────────────────────────────────────────
 function TabBar({ activeTab, setActiveTab, pendingCount }) {
@@ -87,7 +87,7 @@ const InputField = ({ label, value, onChange, placeholder, multiline = false, ke
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function BrandAdvertsScreen({ navigation }) {
-    const [activeTab, setActiveTab] = useState('İlanlarım');
+    const [activeTab, setActiveTab] = useState('Tüm İlanlar');
     const [currentUserId, setCurrentUserId] = useState(null);
 
     // İlanlarım state

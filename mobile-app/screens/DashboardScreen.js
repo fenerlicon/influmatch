@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, Dimensions, Alert, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,23 +44,29 @@ const GlassCard = ({ children, className, style, onPress, activeOpacity = 0.9 })
     </TouchableOpacity>
 );
 
-const Header = ({ profile, unreadCount, onNotificationPress }) => (
-    <View className="px-6 pt-4 pb-6 flex-row justify-between items-center z-50">
-        <View>
-            <Text className="text-gray-300 text-sm font-medium mb-1 opacity-80">Tekrar Hoşgeldin,</Text>
-            <Text className="text-white font-bold text-3xl tracking-tight">{profile?.full_name?.split(' ')[0] || 'Kullanıcı'}</Text>
-        </View>
-        <GlassCard
-            onPress={onNotificationPress}
-            className="w-12 h-12 items-center justify-center rounded-full !border-white/30 bg-white/5"
+const Header = ({ profile, unreadCount, onNotificationPress }) => {
+    const insets = useSafeAreaInsets();
+    return (
+        <View
+            className="px-6 pb-4 flex-row justify-between items-center z-50"
+            style={{ paddingTop: Math.max(insets.top, 16) }}
         >
-            <Bell color="#fff" size={22} />
-            {unreadCount > 0 && (
-                <View className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-            )}
-        </GlassCard>
-    </View>
-);
+            <View>
+                <Text className="text-gray-300 text-sm font-medium mb-1 opacity-80">Tekrar Hoşgeldin,</Text>
+                <Text className="text-white font-bold text-3xl tracking-tight">{profile?.full_name?.split(' ')[0] || 'Kullanıcı'}</Text>
+            </View>
+            <GlassCard
+                onPress={onNotificationPress}
+                className="w-12 h-12 items-center justify-center rounded-full !border-white/30 bg-white/5"
+            >
+                <Bell color="#fff" size={22} />
+                {unreadCount > 0 && (
+                    <View className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                )}
+            </GlassCard>
+        </View>
+    );
+};
 
 const CircularProgress = ({ score }) => (
     <View className="items-center justify-center w-28 h-28 relative my-1">
@@ -348,8 +354,8 @@ export default function DashboardScreen({ navigation }) {
                                     <View
                                         key={notif.id}
                                         className={`mb-3 p-4 rounded-2xl border ${notif.is_read
-                                                ? 'border-white/5 bg-white/[0.02]'
-                                                : 'border-soft-gold/20 bg-soft-gold/5'
+                                            ? 'border-white/5 bg-white/[0.02]'
+                                            : 'border-soft-gold/20 bg-soft-gold/5'
                                             }`}
                                     >
                                         <Text className="text-white font-bold text-sm mb-1">{notif.title}</Text>
@@ -367,7 +373,7 @@ export default function DashboardScreen({ navigation }) {
 
             <ScoreInfoModal visible={scoreModalVisible} onClose={() => setScoreModalVisible(false)} />
 
-            <SafeAreaView className="flex-1">
+            <SafeAreaView className="flex-1" edges={['left', 'right', 'bottom']}>
                 <Header
                     profile={profile}
                     unreadCount={unreadNotifCount}
