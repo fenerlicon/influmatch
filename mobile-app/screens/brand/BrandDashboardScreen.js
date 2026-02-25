@@ -157,7 +157,7 @@ export default function BrandDashboardScreen({ navigation }) {
                                 </View>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                onPress={() => navigation.navigate('BrandDiscover')}
+                                onPress={() => navigation.navigate('Keşfet')}
                                 className="flex-1 bg-purple-500/10 border border-purple-500/25 rounded-2xl p-4 flex-row items-center gap-3"
                             >
                                 <View className="w-9 h-9 bg-purple-500/15 rounded-xl items-center justify-center">
