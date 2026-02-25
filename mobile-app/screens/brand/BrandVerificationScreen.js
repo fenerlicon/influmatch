@@ -16,11 +16,11 @@ const GlassCard = ({ children, className }) => (
 );
 
 const InputField = ({ label, value, onChange, placeholder, keyboardType = 'default', multiline = false }) => (
-    <View className="mb-5">
-        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">{label}</Text>
-        <View className={`bg-black/30 border border-white/10 rounded-2xl px-4 ${multiline ? 'py-3 min-h-[90px]' : 'h-13 justify-center'}`}>
+    <View className="mb-6">
+        <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-widest mb-2.5 ml-1">{label}</Text>
+        <View className={`bg-black/30 border border-white/10 rounded-2xl px-5 ${multiline ? 'py-4 min-h-[110px]' : 'h-14 justify-center'}`}>
             <TextInput
-                className="text-white text-sm"
+                className="text-white text-base"
                 value={value}
                 onChangeText={onChange}
                 placeholder={placeholder}
@@ -128,23 +128,23 @@ export default function BrandVerificationScreen({ navigation }) {
 
             <SafeAreaView className="flex-1">
                 {/* Header */}
-                <View className="px-5 py-4 flex-row items-center gap-3 border-b border-white/5">
+                <View className="px-6 py-5 flex-row items-center gap-4 border-b border-white/5">
                     <TouchableOpacity
                         onPress={() => navigation.goBack()}
-                        className="w-10 h-10 bg-white/5 rounded-2xl items-center justify-center border border-white/10"
+                        className="w-11 h-11 bg-white/5 rounded-2xl items-center justify-center border border-white/10"
                     >
                         <ArrowLeft color="white" size={20} />
                     </TouchableOpacity>
                     <View className="flex-1">
-                        <Text className="text-white font-bold text-base">İşletme Doğrulama</Text>
-                        <Text className="text-gray-500 text-xs">Resmi İşletme rozeti için başvur</Text>
+                        <Text className="text-white font-bold text-lg">İşletme Doğrulama</Text>
+                        <Text className="text-gray-500 text-xs mt-0.5">Resmi İşletme rozeti için başvur</Text>
                     </View>
-                    <View className="w-10 h-10 bg-amber-500/15 rounded-2xl border border-amber-500/25 items-center justify-center">
-                        <Shield color="#fbbf24" size={18} />
+                    <View className="w-11 h-11 bg-amber-500/15 rounded-2xl border border-amber-500/25 items-center justify-center">
+                        <Shield color="#fbbf24" size={20} />
                     </View>
                 </View>
 
-                <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60, paddingTop: 20 }}>
+                <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60, paddingTop: 24 }}>
 
                     {/* Status Banner */}
                     {isVerified && (
@@ -175,19 +175,26 @@ export default function BrandVerificationScreen({ navigation }) {
 
                     {/* Info Card */}
                     {!isVerified && !isPending && (
-                        <GlassCard className="p-5 mb-6 border-amber-500/15">
+                        <GlassCard className="p-6 mb-8 border-amber-500/15">
                             <LinearGradient colors={['rgba(245,158,11,0.06)', 'transparent']} className="absolute inset-0" />
-                            <View className="flex-row items-start gap-3">
+                            <View className="flex-row items-center gap-2 mb-4">
                                 <AlertCircle color="#fbbf24" size={20} />
-                                <View className="flex-1">
-                                    <Text className="text-amber-300 font-bold text-sm mb-2">Neden Doğrulayalım?</Text>
-                                    <Text className="text-gray-400 text-xs leading-5">
-                                        • <Text className="text-white font-medium">Resmi İşletme</Text> rozeti kazanırsınız{'\n'}
-                                        • Influencer'lar güvenilir marka olarak görür{'\n'}
-                                        • Başvurularınız öncelikli incelenir{'\n'}
-                                        • Platform'da öne çıkma fırsatı kazanırsınız
-                                    </Text>
-                                </View>
+                                <Text className="text-amber-300 font-bold text-base">Neden Doğrulayalim?</Text>
+                            </View>
+                            <View style={{ gap: 10 }}>
+                                {[
+                                    { bold: 'Resmi İşletme', rest: ' rozeti kazanırsınız' },
+                                    { bold: "Influencer'lar", rest: ' güvenilir marka olarak görür' },
+                                    { bold: 'Başvurularınız', rest: ' öncelikli incelenir' },
+                                    { bold: "Platform'da", rest: ' öne çıkma fırsatı kazanırsınız' },
+                                ].map((item, i) => (
+                                    <View key={i} className="flex-row items-center gap-3">
+                                        <View className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                        <Text className="text-gray-400 text-sm flex-1">
+                                            <Text className="text-white font-semibold">{item.bold}</Text>{item.rest}
+                                        </Text>
+                                    </View>
+                                ))}
                             </View>
                         </GlassCard>
                     )}
@@ -195,7 +202,7 @@ export default function BrandVerificationScreen({ navigation }) {
                     {/* Form */}
                     {!isVerified && (
                         <>
-                            <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest mb-4 ml-1">ŞİRKET BİLGİLERİ</Text>
+                            <Text className="text-soft-gold/70 text-[11px] font-bold tracking-widest mb-5 ml-1">ŞİRKET BİLGİLERİ</Text>
 
                             <InputField
                                 label="Şirket / Marka Adı *"
@@ -232,14 +239,15 @@ export default function BrandVerificationScreen({ navigation }) {
                                 multiline
                             />
 
-                            <Text className="text-gray-600 text-[10px] text-center mt-2 mb-6 leading-4">
+                            <Text className="text-gray-600 text-xs text-center mt-2 mb-6 leading-5">
                                 Gönderilen bilgiler gizli tutulur ve yalnızca doğrulama amacıyla kullanılır.
                             </Text>
 
                             <TouchableOpacity
                                 onPress={handleSubmit}
                                 disabled={saving || isPending}
-                                className={`h-14 rounded-2xl items-center justify-center shadow-lg ${isPending ? 'bg-gray-700' : 'bg-amber-500 shadow-amber-500/20'}`}
+                                className={`h-15 rounded-2xl items-center justify-center shadow-lg ${isPending ? 'bg-gray-700' : 'bg-amber-500 shadow-amber-500/20'}`}
+                                style={{ height: 56 }}
                             >
                                 {saving
                                     ? <ActivityIndicator color="black" />
