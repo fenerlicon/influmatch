@@ -168,8 +168,8 @@ export default function BrandDashboardScreen({ navigation }) {
                                         <View
                                             key={notif.id}
                                             className={`mb-3 p-4 rounded-2xl border ${notif.is_read
-                                                    ? 'border-white/5 bg-white/[0.02]'
-                                                    : 'border-soft-gold/20 bg-soft-gold/5'
+                                                ? 'border-white/5 bg-white/[0.02]'
+                                                : 'border-soft-gold/20 bg-soft-gold/5'
                                                 }`}
                                         >
                                             <Text className="text-white font-bold text-sm mb-1">{notif.title}</Text>
@@ -221,26 +221,26 @@ export default function BrandDashboardScreen({ navigation }) {
                         <View className="flex-row gap-3">
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('BrandAdverts')}
-                                className="flex-1 bg-soft-gold/10 border border-soft-gold/25 rounded-2xl p-4 flex-row items-center gap-3"
+                                className="flex-1 bg-soft-gold/10 border border-soft-gold/25 rounded-2xl py-3 px-3 flex-row items-center gap-2.5"
                             >
                                 <View className="w-9 h-9 bg-soft-gold/15 rounded-xl items-center justify-center">
                                     <Plus color="#D4AF37" size={18} />
                                 </View>
-                                <View>
-                                    <Text className="text-soft-gold font-bold text-sm">İlanlarım</Text>
-                                    <Text className="text-gray-500 text-xs">Yönet</Text>
+                                <View className="flex-1">
+                                    <Text className="text-soft-gold font-bold text-base leading-5">İlanlarım</Text>
+                                    <Text className="text-gray-400 text-[11px] leading-3 mt-0.5">Yönet</Text>
                                 </View>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('Keşfet')}
-                                className="flex-1 bg-purple-500/10 border border-purple-500/25 rounded-2xl p-4 flex-row items-center gap-3"
+                                className="flex-1 bg-purple-500/10 border border-purple-500/25 rounded-2xl py-3 px-3 flex-row items-center gap-2.5"
                             >
                                 <View className="w-9 h-9 bg-purple-500/15 rounded-xl items-center justify-center">
                                     <Sparkles color="#a855f7" size={18} />
                                 </View>
-                                <View>
-                                    <Text className="text-purple-300 font-bold text-sm">Keşfet</Text>
-                                    <Text className="text-gray-500 text-xs">Influencer bul</Text>
+                                <View className="flex-1">
+                                    <Text className="text-purple-300 font-bold text-base leading-5">Keşfet</Text>
+                                    <Text className="text-gray-400 text-[11px] leading-3 mt-0.5" numberOfLines={1}>Influencer bul</Text>
                                 </View>
                             </TouchableOpacity>
                         </View>
