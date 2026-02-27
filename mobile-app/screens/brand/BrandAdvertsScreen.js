@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     Plus, Briefcase, ChevronRight, Clock, CheckCircle2, XCircle,
-    ArrowLeft, Users, Calendar, DollarSign, FileText, X, Sparkles,
+    ArrowLeft, Users, Calendar, FileText, X, Sparkles,
     Search, Filter, Bell, Camera, ImageIcon, MoreVertical, Pause, Play, Trash2, Edit2
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
@@ -501,7 +501,6 @@ export default function BrandAdvertsScreen({ navigation }) {
 
                                         {app.budget_expectation && (
                                             <View className="flex-row items-center gap-2 mb-3">
-                                                <DollarSign color="#D4AF37" size={13} />
                                                 <Text className="text-soft-gold text-xs font-medium">
                                                     {app.payment_type === 'barter' ? 'Barter' : app.budget_expectation + ' ₺'}
                                                 </Text>
@@ -549,9 +548,9 @@ export default function BrandAdvertsScreen({ navigation }) {
                         <Text className="text-white text-3xl font-bold tracking-tight">İlanlar</Text>
                     </View>
                     <TouchableOpacity onPress={() => setCreateVisible(true)}
-                        className="flex-row items-center gap-1.5 bg-soft-gold/10 border border-soft-gold/30 px-3 py-1.5 rounded-xl">
+                        className="flex-row items-center gap-1 bg-soft-gold/10 border border-soft-gold/30 px-2.5 py-1 rounded-lg">
                         <Plus color="#D4AF37" size={14} />
-                        <Text className="text-soft-gold font-bold text-sm">Yeni İlan</Text>
+                        <Text className="text-soft-gold font-bold text-base">Yeni İlan</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -686,7 +685,6 @@ export default function BrandAdvertsScreen({ navigation }) {
                                             <View className="flex-row items-center justify-between pt-3 border-t border-white/5">
                                                 {proj.budget_min && (
                                                     <View className="flex-row items-center gap-1.5">
-                                                        <DollarSign color="#D4AF37" size={12} />
                                                         <Text className="text-soft-gold text-xs font-bold">{proj.budget_min.toLocaleString('tr-TR')} ₺'den başlayan</Text>
                                                     </View>
                                                 )}
@@ -765,7 +763,6 @@ export default function BrandAdvertsScreen({ navigation }) {
                                             <View className="flex-row items-center gap-4">
                                                 {proj.budget_min && (
                                                     <View className="flex-row items-center gap-1.5">
-                                                        <DollarSign color="#D4AF37" size={12} />
                                                         <Text className="text-soft-gold text-xs font-bold">{proj.budget_min} ₺</Text>
                                                     </View>
                                                 )}
