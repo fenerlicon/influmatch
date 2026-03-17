@@ -12,8 +12,8 @@ export default function CheckEmailPage() {
   const supabase = useSupabaseClient()
   const email = searchParams.get('email')
 
-  // Updated to 8 digits
-  const [code, setCode] = useState(['', '', '', '', '', '', '', ''])
+  // Updated to 6 digits (Supabase default OTP length)
+  const [code, setCode] = useState(['', '', '', '', '', ''])
   const [timeLeft, setTimeLeft] = useState(60)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -60,7 +60,7 @@ export default function CheckEmailPage() {
     }
   }
 
-  // Auto verify when code is full (8 chars) or 6 chars? Let's wait for user to click verify to be safe, or auto verify at 8.
+  // Auto verify when code is full (6 chars)
   useEffect(() => {
     if (code.every(digit => digit !== '')) {
       handleVerify()
@@ -75,8 +75,8 @@ export default function CheckEmailPage() {
     newCode[index] = value
     setCode(newCode)
 
-    // Auto focus next input (limit 7 because array is 0-7)
-    if (value && index < 7) {
+    // Auto focus next input (limit 5 because array is 0-5)
+    if (value && index < 5) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -90,14 +90,14 @@ export default function CheckEmailPage() {
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').slice(0, 8).split('') // Slice 8
+    const pastedData = e.clipboardData.getData('text').slice(0, 6).split('') // Slice 6
     if (pastedData.length > 0 && pastedData.every(char => !isNaN(Number(char)))) {
       const newCode = [...code]
       pastedData.forEach((char, index) => {
-        if (index < 8) newCode[index] = char
+        if (index < 6) newCode[index] = char
       })
       setCode(newCode)
-      inputRefs.current[Math.min(pastedData.length, 7)]?.focus()
+      inputRefs.current[Math.min(pastedData.length, 5)]?.focus()
     }
   }
 
@@ -159,20 +159,18 @@ export default function CheckEmailPage() {
             <span className="text-white font-semibold">{email}</span> adresine gönderilen doğrulama kodunu girin.
           </p>
 
-          {/* Wrapper to fit 8 boxes */}
-          <div className="flex justify-center flex-wrap gap-2 mb-8" onPaste={handlePaste}>
+          <div className="flex justify-center gap-3 mb-8" onPaste={handlePaste}>
             {code.map((digit, index) => (
               <input
                 key={index}
-                // Fix types for ref
                 ref={(el) => { inputRefs.current[index] = el }}
                 type="text"
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                // Smaller width for 8 params
-                className={`w-9 h-12 md:w-10 md:h-14 rounded-lg border bg-white/5 text-center text-lg font-bold text-white transition-all focus:outline-none focus:ring-2 focus:ring-soft-gold/50 ${digit ? 'border-soft-gold/50' : 'border-white/10'
+                // Larger width for 6 params
+                className={`w-11 h-14 md:w-14 md:h-16 rounded-xl border bg-white/5 text-center text-2xl font-bold text-white transition-all focus:outline-none focus:ring-2 focus:ring-soft-gold/50 ${digit ? 'border-soft-gold/50 shadow-glow-sm' : 'border-white/10'
                   }`}
               />
             ))}
