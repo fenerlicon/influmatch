@@ -117,7 +117,11 @@ export default function ProfileScreen({ navigation }) {
                     {/* ── Hero ── */}
                     <View className="items-center pt-8 pb-6">
                         {/* Avatar with glow */}
-                        <View className="relative mb-4">
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => navigation.navigate('MyProfile')}
+                            className="relative mb-4"
+                        >
                             <View className="absolute w-28 h-28 bg-soft-gold/15 rounded-full blur-[40px]" />
                             <View className={`w-24 h-24 rounded-full items-center justify-center border-[3px] overflow-hidden
                                 ${isSpotlight ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]' : 'border-soft-gold/50 shadow-[0_0_16px_rgba(212,175,55,0.2)]'}`}
@@ -133,7 +137,7 @@ export default function ProfileScreen({ navigation }) {
                                     <BadgeCheck color="white" size={14} />
                                 </View>
                             )}
-                        </View>
+                        </TouchableOpacity>
 
                         <Text className="text-white text-2xl font-black tracking-tight">{profile?.full_name || 'İsimsiz Kullanıcı'}</Text>
                         <Text className="text-gray-400 text-sm font-medium mt-0.5">

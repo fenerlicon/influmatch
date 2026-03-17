@@ -269,10 +269,10 @@ export default function InfluencerSpotlightPage() {
                             { text: "Temel Profil Analizi" },
                         ]}
                         variant="influencer"
-                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : (verificationStatus !== 'verified' ? "Hesap Onayı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"))}
+                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : "Yakında / İletişime Geç"}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'ibasic'}
-                        disabled={userRole === 'brand' || verificationStatus !== 'verified'}
-                        onSelect={() => handleSubscribe('ibasic')}
+                        disabled={true}
+                        onSelect={() => window.location.href = 'mailto:destek@influmatch.net'}
                         onCancel={handleCancel}
                     />
 
@@ -290,11 +290,11 @@ export default function InfluencerSpotlightPage() {
                         ]}
                         recommended
                         variant="influencer"
-                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : (verificationStatus !== 'verified' ? "Hesap Onayı Gerekli" : (loading ? "Yükleniyor..." : processing ? "İşleniyor..." : "Paketi Seç"))}
+                        buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : "Yakında / İletişime Geç"}
                         isUpgrade={spotlightActive && subscriptionTier === 'ibasic'}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'ipro'}
-                        disabled={userRole === 'brand' || verificationStatus !== 'verified'}
-                        onSelect={() => handleSubscribe('ipro')}
+                        disabled={true}
+                        onSelect={() => window.location.href = 'mailto:destek@influmatch.net'}
                         onCancel={handleCancel}
                     />
 

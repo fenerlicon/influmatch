@@ -440,7 +440,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                   name="username"
                   value={formState.username}
                   onChange={handleChange}
-                  disabled={(!isEditing || (initialData.username != null && initialData.username.trim() !== '')) || undefined}
+                   disabled={!isEditing || Boolean(initialData.username && initialData.username.trim() !== '')}
                   placeholder="@marka"
                   className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />

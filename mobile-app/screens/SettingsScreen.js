@@ -79,7 +79,7 @@ const PasswordSection = () => {
     };
 
     return (
-        <>
+        <View>
             <TouchableOpacity onPress={() => setOpen(v => !v)} activeOpacity={0.7}
                 className="flex-row items-center px-5 py-4 border-b border-white/[0.06]">
                 <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]"
@@ -128,7 +128,7 @@ const PasswordSection = () => {
                     </TouchableOpacity>
                 </View>
             )}
-        </>
+        </View>
     );
 };
 
@@ -235,7 +235,7 @@ const SupportSection = () => {
     };
 
     return (
-        <>
+        <View>
             <TouchableOpacity onPress={() => setOpen(v => !v)} activeOpacity={0.7}
                 className={`flex-row items-center px-5 py-4 border-b border-white/[0.06]`}>
                 <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]">
@@ -262,18 +262,32 @@ const SupportSection = () => {
                             placeholder="Sorunu açıkla..." placeholderTextColor="#4b5563" multiline textAlignVertical="top" />
                     </View>
                     <TouchableOpacity onPress={send} disabled={sending}
-                        className="bg-soft-gold h-11 rounded-xl items-center justify-center flex-row gap-2">
+                        className="bg-soft-gold h-11 rounded-xl items-center justify-center">
                         {sending ? <ActivityIndicator color="black" size="small" /> : (
-                            <><Send color="black" size={15} /><Text className="text-midnight font-bold text-sm">Talebi Gönder</Text></>
+                            <View className="flex-row items-center gap-2">
+                                <Send color="black" size={15} />
+                                <Text className="text-midnight font-bold text-sm">Talebi Gönder</Text>
+                            </View>
                         )}
                     </TouchableOpacity>
                 </View>
             )}
-        </>
+        </View>
     );
 };
 
 export default function SettingsScreen({ navigation }) {
+    const [role, setRole] = useState(null);
+
+    useFocusEffect(useCallback(() => {
+        (async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
+            if (data) setRole(data.role);
+        })();
+    }, []));
+
     const handleLogout = () => {
         Alert.alert('Çıkış Yap', 'Hesabından çıkış yapmak istediğine emin misin?', [
             { text: 'Vazgeç', style: 'cancel' },
@@ -304,12 +318,31 @@ export default function SettingsScreen({ navigation }) {
 
                     <SectionLabel title="HESAP" />
                     <GlassCard>
-                        <MenuItem icon={User} iconColor="#D4AF37" title="Profil Bilgileri"
-                            subtitle="Ad, biyografi, kategori..." onPress={() => navigation.navigate('MyProfile')} />
+                        <MenuItem
+                            icon={User}
+                            iconColor="#D4AF37"
+                            title="Profil Bilgileri"
+                            subtitle="Ad, biyografi, kategori..."
+                            onPress={() => {
+                                if (role === 'brand') {
+                                    navigation.navigate('BrandDashboard', { screen: 'Profil' });
+                                } else {
+                                    navigation.navigate('MyProfile');
+                                }
+                            }}
+                        />
                         <UsernameInfoSection />
                         <PasswordSection />
-                        <MenuItem icon={Smartphone} iconColor="#E1306C" title="Bağlı Hesaplar"
-                            subtitle="Instagram hesap bağlantısı" onPress={() => navigation.navigate('MyProfile')} last />
+                        {role !== 'brand' && (
+                            <MenuItem
+                                icon={Smartphone}
+                                iconColor="#E1306C"
+                                title="Bağlı Hesaplar"
+                                subtitle="Instagram hesap bağlantısı"
+                                onPress={() => navigation.navigate('MyProfile')}
+                                last
+                            />
+                        )}
                     </GlassCard>
 
                     <SectionLabel title="TERCİHLER" />
@@ -318,7 +351,7 @@ export default function SettingsScreen({ navigation }) {
                     </GlassCard>
 
                     <SectionLabel title="DESTEK" />
-                    <GlassCard>
+                    <GlassCard className="mb-4">
                         <SupportSection />
                         <MenuItem icon={Mail} iconColor="#4ade80" title="Bize Ulaşın"
                             subtitle="destek@influmatch.net"
@@ -327,15 +360,7 @@ export default function SettingsScreen({ navigation }) {
                             onPress={() => Linking.openURL('https://influmatch.net/legal?tab=terms')} last />
                     </GlassCard>
 
-                    <TouchableOpacity onPress={handleLogout}
-                        className="mt-7 bg-red-500/8 border border-red-500/20 p-4 rounded-[22px] flex-row items-center justify-center gap-3">
-                        <View className="w-9 h-9 bg-red-500/10 rounded-xl items-center justify-center border border-red-500/15">
-                            <LogOut color="#EF4444" size={17} />
-                        </View>
-                        <Text className="text-red-500 font-bold text-base">Çıkış Yap</Text>
-                    </TouchableOpacity>
-
-                    <Text className="text-gray-700 text-[11px] text-center mt-5">InfluMatch v1.0 • influmatch.net</Text>
+                    <Text className="text-gray-700 text-[10px] text-center mt-12 mb-4">InfluMatch v1.0 • influmatch.net</Text>
                 </ScrollView>
             </SafeAreaView>
         </View>

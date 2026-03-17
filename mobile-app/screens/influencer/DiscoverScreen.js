@@ -176,7 +176,7 @@ const CategorySection = memo(({ title, data, onProfilePress, onViewAll }) => {
 });
 
 
-export default function DiscoverScreen({ navigation }) {
+export default function DiscoverScreen({ navigation, route }) {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -195,11 +195,8 @@ export default function DiscoverScreen({ navigation }) {
     const [loadingDetails, setLoadingDetails] = useState(false);
 
     const openProfile = useCallback((influencer) => {
-        // If coming from category modal, keep category modal open beneath
-        setSelectedInfluencer(influencer);
-        setModalVisible(true);
-        fetchUserBadges(influencer.id);
-    }, []);
+        navigation.navigate('InfluencerDetail', { influencer });
+    }, [navigation]);
 
     const closeProfile = useCallback(() => {
         setModalVisible(false);
@@ -285,7 +282,14 @@ export default function DiscoverScreen({ navigation }) {
             }
         };
         fetchUserRole();
-    }, []);
+
+        // Handle initialInfluencer param
+        if (route.params?.initialInfluencer) {
+            openProfile(route.params.initialInfluencer);
+            // Clear params to avoid reopening on re-focus
+            navigation.setParams({ initialInfluencer: null });
+        }
+    }, [route.params?.initialInfluencer, navigation, openProfile]);
 
     const fetchInfluencers = async () => {
         try {

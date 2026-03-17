@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { v4 as uuidv4 } from 'uuid'
 
 const ADMIN_EMAIL = 'destek@influmatch.net'
@@ -10,9 +11,10 @@ const ADMIN_EMAIL = 'destek@influmatch.net'
  */
 export async function sendWelcomeMessage(userId: string, userRole: 'brand' | 'influencer') {
     const supabase = createSupabaseServerClient()
+    const adminSupabase = createSupabaseAdminClient() || supabase
 
     // 1. Find Admin User ID
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await adminSupabase
         .from('users')
         .select('id')
         .eq('email', ADMIN_EMAIL)
@@ -43,7 +45,7 @@ Herhangi bir sorun olursa veya desteğe ihtiyacın olursa buradan bize ulaşabil
 
     // 3. Create or Get Room
     // Check if room already exists (unlikely for new user, but good practice)
-    const { data: existingRoom } = await supabase
+    const { data: existingRoom } = await adminSupabase
         .from('rooms')
         .select('id')
         .or(`and(brand_id.eq.${adminId},influencer_id.eq.${userId}),and(brand_id.eq.${userId},influencer_id.eq.${adminId})`)
@@ -67,7 +69,7 @@ Herhangi bir sorun olursa veya desteğe ihtiyacın olursa buradan bize ulaşabil
         const brandId = isUserInfluencer ? adminId : userId
         const influencerId = isUserInfluencer ? userId : adminId
 
-        const { data: newRoom, error: roomError } = await supabase
+        const { data: newRoom, error: roomError } = await adminSupabase
             .from('rooms')
             .insert({
                 brand_id: brandId,
@@ -86,7 +88,7 @@ Herhangi bir sorun olursa veya desteğe ihtiyacın olursa buradan bize ulaşabil
 
     // 4. Send Message
     if (roomId) {
-        const { error: msgError } = await supabase
+        const { error: msgError } = await adminSupabase
             .from('messages')
             .insert({
                 room_id: roomId,
@@ -114,8 +116,22 @@ export async function sendNotification(
     link?: string
 ) {
     const supabase = createSupabaseServerClient()
+    const adminSupabase = createSupabaseAdminClient() || supabase
 
-    const { error } = await supabase
+    // Security Check: Only the user themselves OR an Admin can trigger a notification to this userId.
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return; // Prevent entirely unauthenticated requests
+    
+    const isTargetingSelf = authUser.id === userId;
+    const { data: adminCheck } = await supabase.from('users').select('role').eq('id', authUser.id).single();
+    const isAdmin = adminCheck?.role === 'admin';
+    
+    if (!isTargetingSelf && !isAdmin) {
+        console.warn(`[Security] Unauthorized notification attempt by ${authUser.id} to ${userId}`);
+        return; // Reject unauthorized notification requests
+    }
+
+    const { error } = await adminSupabase
         .from('notifications')
         .insert({
             user_id: userId,

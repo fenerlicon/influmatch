@@ -26,6 +26,7 @@ import AnalysisScreen from './screens/influencer/AnalysisScreen';
 import StatisticsScreen from './screens/influencer/StatisticsScreen';
 import VerificationScreen from './screens/influencer/VerificationScreen';
 import MyProfileScreen from './screens/influencer/MyProfileScreen';
+import InfluencerDetailScreen from './screens/influencer/InfluencerDetailScreen';
 
 // ─── Brand Screens ────────────────────────────────────────────────────────────
 import BrandDashboardScreen from './screens/brand/BrandDashboardScreen';
@@ -229,6 +230,7 @@ export default function App() {
           <Stack.Screen name="Verification" component={VerificationScreen} />
           <Stack.Screen name="Statistics" component={StatisticsScreen} />
           <Stack.Screen name="MyProfile" component={MyProfileScreen} />
+          <Stack.Screen name="InfluencerDetail" component={InfluencerDetailScreen} />
 
           {/* ── Shared Sub-screens ── */}
           <Stack.Screen name="Settings" component={SettingsScreen} />

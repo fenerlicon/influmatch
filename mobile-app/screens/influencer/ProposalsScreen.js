@@ -300,7 +300,7 @@ export default function ProposalsScreen({ route, navigation }) {
                                         <View className="flex-row justify-between items-center border-t border-white/5 pt-3">
                                             <View>
                                                 <Text className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">Teklifin</Text>
-                                                <Text className="text-soft-gold font-bold text-sm">₺{app.budget_expectation?.toLocaleString()}</Text>
+                                                <Text className="text-soft-gold font-bold text-sm">₺{app.budget_expectation?.toLocaleString() || '0'}</Text>
                                             </View>
                                             <View className="flex-row items-center opacity-60">
                                                 <Text className="text-white text-xs mr-1">Detay</Text>

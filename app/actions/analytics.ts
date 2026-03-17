@@ -13,21 +13,26 @@ export async function trackEvent(
     const supabase = createSupabaseServerClient()
 
     try {
+        // GÜVENLİK: Sadece oturum açmış kullanıcılar (özellikle Brand rolündekiler) veri basabilmeli.
+        // brandId dışarıdan gelse bile, bunu atan kişinin o brandId olduğundan emin olmalıyız? 
+        // Genellikle ANALYTICS brand tarafından tetiklenir (izleme).
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Unauthorized' }
+
         const { error } = await supabase.rpc('track_analytics_event', {
             p_event_type: eventType,
             p_target_id: targetId,
             p_brand_id: brandId,
-            p_meta: meta,
+            p_meta: { ...meta, trigger_user_id: user.id },
         })
 
         if (error) {
             console.error('Error tracking analytics event via RPC:', error)
-            // Fallback to direct insert if RPC fails or not found (though user applied migration)
             const { error: insertError } = await supabase.from('analytics_events').insert({
                 event_type: eventType,
                 target_id: targetId,
                 brand_id: brandId,
-                meta,
+                meta: { ...meta, trigger_user_id: user.id },
             })
 
             if (insertError) {
@@ -35,6 +40,7 @@ export async function trackEvent(
                 return { success: false, error: insertError.message }
             }
         }
+
 
         return { success: true }
     } catch (error) {
@@ -45,6 +51,13 @@ export async function trackEvent(
 
 export async function getAnalyticsStats(brandId: string, timeRange: '7d' | '30d' = '7d') {
     const supabase = createSupabaseServerClient()
+
+    // GÜVENLİK: Bir marka sadece KENDİ istatistiklerini görebilir. 
+    // Başkasının brandId'sini yollayarak onun verilerini çalmaya çalışanlara engel oluyoruz.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.id !== brandId) {
+        return { success: false, data: [], error: 'Sadece kendi istatistiklerinizi görüntüleyebilirsiniz.' }
+    }
 
     // Calculate date filter
     const date = new Date()

@@ -40,7 +40,7 @@ export default function BrandVerificationScreen({ navigation }) {
     const [saving, setSaving] = useState(false);
 
     const [form, setForm] = useState({
-        corporate_name: '',
+        company_legal_name: '',
         tax_id: '',
         phone: '',
         website: '',
@@ -52,17 +52,18 @@ export default function BrandVerificationScreen({ navigation }) {
         if (!user) return;
         const { data } = await supabase
             .from('users')
-            .select('corporate_name, tax_id, phone, website, verification_status')
+            .select('company_legal_name, tax_id, phone, social_links, verification_status')
             .eq('id', user.id)
             .maybeSingle();
         if (data) {
             setProfile(data);
             setForm(prev => ({
                 ...prev,
-                corporate_name: data.corporate_name || '',
+                company_legal_name: data.company_legal_name || '',
                 tax_id: data.tax_id || '',
                 phone: data.phone || '',
-                website: data.website || '',
+                website: data.social_links?.website || '',
+                social_links: data.social_links || {},
             }));
         }
         setLoading(false);
@@ -71,7 +72,7 @@ export default function BrandVerificationScreen({ navigation }) {
     useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
 
     const handleSubmit = async () => {
-        if (!form.corporate_name.trim()) {
+        if (!form.company_legal_name.trim()) {
             Alert.alert('Eksik Bilgi', 'Lütfen şirket / marka adınızı girin.');
             return;
         }
@@ -86,10 +87,10 @@ export default function BrandVerificationScreen({ navigation }) {
             const { error } = await supabase
                 .from('users')
                 .update({
-                    corporate_name: form.corporate_name.trim(),
+                    company_legal_name: form.company_legal_name.trim(),
                     tax_id: form.tax_id.trim(),
                     phone: form.phone.trim() || null,
-                    website: form.website.trim() || null,
+                    social_links: { ...(form.social_links || {}), website: form.website.trim() || null },
                     verification_status: 'pending',
                 })
                 .eq('id', user.id);
@@ -148,7 +149,7 @@ export default function BrandVerificationScreen({ navigation }) {
 
                     {/* Status Banner */}
                     {isVerified && (
-                        <GlassCard className="p-4 mb-6 border-green-500/20">
+                        <GlassCard className="p-4 mb-10 border-green-500/20">
                             <LinearGradient colors={['rgba(74,222,128,0.08)', 'transparent']} className="absolute inset-0" />
                             <View className="flex-row items-center gap-3">
                                 <CheckCircle2 color="#4ade80" size={22} />
@@ -161,7 +162,7 @@ export default function BrandVerificationScreen({ navigation }) {
                     )}
 
                     {isPending && (
-                        <GlassCard className="p-4 mb-6 border-amber-500/20">
+                        <GlassCard className="p-4 mb-10 border-amber-500/20">
                             <LinearGradient colors={['rgba(251,191,36,0.08)', 'transparent']} className="absolute inset-0" />
                             <View className="flex-row items-center gap-3">
                                 <Clock color="#fbbf24" size={22} />
@@ -175,17 +176,17 @@ export default function BrandVerificationScreen({ navigation }) {
 
                     {/* Info Card */}
                     {!isVerified && !isPending && (
-                        <GlassCard className="p-6 mb-10 border-amber-500/15">
+                        <GlassCard className="p-6 mb-24 border-amber-500/15">
                             <LinearGradient colors={['rgba(245,158,11,0.06)', 'transparent']} className="absolute inset-0" />
-                            <View className="flex-row items-start gap-3">
-                                <AlertCircle color="#fbbf24" size={20} />
+                            <View className="flex-row items-start gap-4">
+                                <AlertCircle color="#fbbf24" size={20} style={{ marginTop: 2 }} />
                                 <View className="flex-1">
-                                    <Text className="text-amber-300 font-bold text-sm mb-4">Neden Doğrulayalım?</Text>
-                                    <View className="gap-y-2">
-                                        <Text className="text-gray-400 text-xs"><Text className="text-white font-medium">• Resmi İşletme</Text> rozeti kazanırsınız</Text>
-                                        <Text className="text-gray-400 text-xs">• Influencer'lar güvenilir marka olarak görür</Text>
-                                        <Text className="text-gray-400 text-xs">• Başvurularınız öncelikli incelenir</Text>
-                                        <Text className="text-gray-400 text-xs">• Platform'da öne çıkma fırsatı kazanırsınız</Text>
+                                    <Text className="text-amber-300 font-bold text-sm mb-5">Neden Doğrulayalım?</Text>
+                                    <View className="gap-y-4">
+                                        <Text className="text-gray-400 text-xs leading-6"><Text className="text-white font-medium">• Resmi İşletme</Text> rozeti kazanırsınız</Text>
+                                        <Text className="text-gray-400 text-xs leading-6">• Influencer'lar güvenilir marka olarak görür</Text>
+                                        <Text className="text-gray-400 text-xs leading-6">• Başvurularınız öncelikli incelenir</Text>
+                                        <Text className="text-gray-400 text-xs leading-6">• Platform'da öne çıkma fırsatı kazanırsınız</Text>
                                     </View>
                                 </View>
                             </View>
@@ -195,12 +196,12 @@ export default function BrandVerificationScreen({ navigation }) {
                     {/* Form */}
                     {!isVerified && (
                         <>
-                            <Text className="text-soft-gold/70 text-[11px] font-bold tracking-widest mb-6 ml-1">ŞİRKET BİLGİLERİ</Text>
+                            <Text className="text-soft-gold/70 text-[11px] font-bold tracking-widest mb-8 mt-6 ml-1">ŞİRKET BİLGİLERİ</Text>
 
                             <InputField
                                 label="Şirket / Marka Adı *"
-                                value={form.corporate_name}
-                                onChange={v => setForm(f => ({ ...f, corporate_name: v }))}
+                                value={form.company_legal_name}
+                                onChange={v => setForm(f => ({ ...f, company_legal_name: v }))}
                                 placeholder="Şirket Adı A.Ş."
                             />
                             <InputField

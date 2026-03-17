@@ -121,7 +121,6 @@ export default function InfluencerStats({
             const result = await generateAIAnalysis(
                 { ...safeStats, followerCount, engagementRate },
                 mode,
-                subscriptionTier,
                 type
             )
 

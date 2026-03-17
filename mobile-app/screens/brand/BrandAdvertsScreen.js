@@ -182,18 +182,18 @@ export default function BrandAdvertsScreen({ navigation }) {
             if (brandUserIds.length > 0) {
                 const { data: brandUsers } = await supabase
                     .from('users')
-                    .select('id, full_name, corporate_name, avatar_url, verification_status')
+                    .select('id, full_name, company_legal_name, avatar_url, verification_status')
                     .in('id', brandUserIds);
                 brandUsers?.forEach(u => { brandMap[u.id] = u; });
             }
 
-            // Step 3: merge — use brand_name field first, then corporate_name, then full_name
+            // Step 3: merge — use brand_name field first, then company_legal_name, then full_name
             const merged = rows.map(row => {
                 const brandUser = row.brand_user_id ? brandMap[row.brand_user_id] : null;
                 return {
                     ...row,
                     brand: brandUser || null,
-                    displayBrandName: row.brand_name || brandUser?.corporate_name || brandUser?.full_name || 'Marka',
+                    displayBrandName: row.brand_name || brandUser?.company_legal_name || brandUser?.full_name || 'Marka',
                 };
             });
 
@@ -341,7 +341,7 @@ export default function BrandAdvertsScreen({ navigation }) {
 
     const toggleProjectStatus = async (proj) => {
         setActionSheetProject(null);
-        const newStatus = proj.status === 'open' ? 'paused' : 'open';
+        const newStatus = proj.status === 'open' ? 'closed' : 'open';
         const { error } = await supabase
             .from('advert_projects')
             .update({ status: newStatus })
@@ -385,6 +385,26 @@ export default function BrandAdvertsScreen({ navigation }) {
         setSaving(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
+
+            // Profil onay durumu ve rol bilgisi alınıyor
+            const { data: userProfile, error: profileError } = await supabase
+                .from('users')
+                .select('role, verification_status')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError || !userProfile) {
+                throw new Error('Kullanıcı bilgileri alınamadı.');
+            }
+
+            if (userProfile.role !== 'brand') {
+                throw new Error('Sadece MARKALAR ilan oluşturabilir.');
+            }
+
+            if (userProfile.verification_status !== 'verified') {
+                throw new Error('Hesabınız henüz onaylanmadı. İlan oluşturabilmek için hesabınızın onaylanması gerekmektedir.');
+            }
+
             const payload = {
                 title: form.title.trim(),
                 summary: form.description.trim(),
@@ -683,9 +703,9 @@ export default function BrandAdvertsScreen({ navigation }) {
                                                 <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{desc}</Text>
                                             ) : null}
                                             <View className="flex-row items-center justify-between pt-3 border-t border-white/5">
-                                                {proj.budget_min && (
+                                                {proj.budget_min != null && (
                                                     <View className="flex-row items-center gap-1.5">
-                                                        <Text className="text-soft-gold text-xs font-bold">{proj.budget_min.toLocaleString('tr-TR')} ₺'den başlayan</Text>
+                                                        <Text className="text-soft-gold text-xs font-bold">{(proj.budget_min).toLocaleString('tr-TR')} ₺'den başlayan</Text>
                                                     </View>
                                                 )}
                                                 <Text className="text-gray-600 text-[10px]">
@@ -803,16 +823,16 @@ export default function BrandAdvertsScreen({ navigation }) {
                                 <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>Düzenle</Text>
                             </TouchableOpacity>
 
-                            {/* Pause / Resume */}
+                            {/* Change Status */}
                             <TouchableOpacity onPress={() => toggleProjectStatus(actionSheetProject)}
                                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, marginBottom: 4 }}>
-                                <View style={{ width: 38, height: 38, backgroundColor: actionSheetProject?.status === 'open' ? 'rgba(251,191,36,0.12)' : 'rgba(74,222,128,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                                <View style={{ width: 38, height: 38, backgroundColor: actionSheetProject?.status === 'open' ? 'rgba(248,113,113,0.12)' : 'rgba(74,222,128,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
                                     {actionSheetProject?.status === 'open'
-                                        ? <Pause color="#fbbf24" size={17} />
+                                        ? <Pause color="#f87171" size={17} />
                                         : <Play color="#4ade80" size={17} />}
                                 </View>
-                                <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
-                                    {actionSheetProject?.status === 'open' ? 'Yayından Al' : 'Yayına Al'}
+                                <Text style={{ color: actionSheetProject?.status === 'open' ? '#f87171' : '#4ade80', fontWeight: '600', fontSize: 15 }}>
+                                    {actionSheetProject?.status === 'open' ? 'İlanı Kapat' : 'İlanı Aktifleştir'}
                                 </Text>
                             </TouchableOpacity>
 

@@ -8,6 +8,21 @@ export async function createList(name: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
+    // Check if user is a verified brand
+    const { data: profile } = await supabase
+        .from('users')
+        .select('role, verification_status')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || profile.role !== 'brand') {
+        return { error: 'Sadece markalar liste oluşturabilir.' }
+    }
+
+    if (profile.verification_status !== 'verified') {
+        return { error: 'Liste oluşturabilmek için hesabınızın doğrulanmış olması gerekmektedir.' }
+    }
+
     const { data, error } = await supabase
         .from('favorite_lists')
         .insert({ brand_id: user.id, name })
@@ -53,6 +68,21 @@ export async function toggleInList(listId: string, influencerId: string) {
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
+
+    // Check if user is a verified brand
+    const { data: profile } = await supabase
+        .from('users')
+        .select('role, verification_status')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || profile.role !== 'brand') {
+        return { error: 'Sadece markalar bu işlemi yapabilir.' }
+    }
+
+    if (profile.verification_status !== 'verified') {
+        return { error: 'Influencerları listeye eklemek için hesabınızın doğrulanmış olması gerekmektedir.' }
+    }
 
     // Check if exists
     const { data: existing } = await supabase

@@ -1,5 +1,7 @@
 'use server'
 
+import { createSupabaseServerClient } from '@/utils/supabase/server'
+
 // Define the response structure
 export interface AIAnalysisResponse {
     analysis: string[]
@@ -22,9 +24,28 @@ const TIER_PERMISSIONS: Record<SubscriptionTier, AnalysisType[]> = {
 export async function generateAIAnalysis(
     stats: any,
     mode: 'brand-view' | 'influencer-view',
-    userTier: SubscriptionTier = 'FREE',
     requestedType: AnalysisType = 'basic'
 ): Promise<AIAnalysisResponse> {
+    const supabase = createSupabaseServerClient()
+
+    // 0. GÜVENLİK: Kullanıcının gerçek üyelik seviyesini (Tier) veritabanından çek. 
+    // Client'tan (tarayıcıdan) gelen "ben proyum" beyanına güvenme!
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return { analysis: [], error: 'Oturum açmanız gerekiyor.' }
+
+    const { data: dbUser } = await supabase
+        .from('users')
+        .select('spotlight_active, spotlight_plan, role')
+        .eq('id', authUser.id)
+        .single()
+
+    // Tier belirleme mantığı
+    let userTier: SubscriptionTier = 'FREE'
+    if (dbUser?.role === 'brand') userTier = 'BRAND_PRO' // Şimdilik markalar full erişim, ilerde plan eklenebilir.
+    else if (dbUser?.spotlight_active) {
+        if (dbUser.spotlight_plan === 'ipro') userTier = 'SPOTLIGHT_PLUS'
+        else userTier = 'SPOTLIGHT'
+    }
 
     // 1. Check Permissions
     if (!TIER_PERMISSIONS[userTier].includes(requestedType)) {

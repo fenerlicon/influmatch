@@ -57,13 +57,6 @@ export default async function AdminPage() {
             <h1 className="mb-4 text-2xl font-bold text-red-400">Erişim Reddedildi</h1>
             <p className="mb-6 text-gray-300">Bu sayfayı görüntüleme yetkiniz bulunmuyor.</p>
 
-            <div className="mb-6 rounded-xl bg-black/50 p-4 text-left text-xs font-mono text-gray-400">
-              <p>User ID: {user.id}</p>
-              <p>Email: {user.email}</p>
-              <p>Role: {adminProfile?.role || 'null'}</p>
-
-            </div>
-
             <a
               href="/dashboard"
               className="rounded-xl bg-white/10 px-6 py-3 font-semibold transition hover:bg-white/20"
@@ -95,7 +88,7 @@ export default async function AdminPage() {
           result.error.message?.includes('429') ||
           result.error.code === 'PGRST116' ||
           result.error.message?.toLowerCase().includes('too many requests') ||
-          (result.error as any).status === 429
+          (result.error as unknown as { status?: number }).status === 429
 
         // If rate limit and not last attempt, retry
         if (isRateLimit && attempt < maxRetries) {

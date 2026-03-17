@@ -134,7 +134,7 @@ export default function OnboardingScreen({ navigation }) {
     async function pickImage() {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaType.Images,
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 0.5,
@@ -219,7 +219,7 @@ export default function OnboardingScreen({ navigation }) {
                 ...(role === 'influencer'
                     ? { category: formData.category.join(', ') }
                     : {
-                        corporate_name: formData.corporateName.trim() || null,
+                        company_legal_name: formData.corporateName.trim() || null,
                         tax_id: formData.taxId.trim() || null,
                     }
                 )
@@ -454,33 +454,35 @@ export default function OnboardingScreen({ navigation }) {
                                 </View>
                             </View>
 
-                            {/* Sosyal Medya Linkleri */}
-                            <View className="space-y-4 pt-4 border-t border-white/5">
-                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Sosyal Medya</Text>
-                                <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-12 px-4">
-                                    <Instagram color="#E1306C" size={18} />
-                                    <Text className="text-gray-500 ml-2 text-sm">instagram.com/</Text>
-                                    <TextInput className="flex-1 text-white text-sm ml-0.5" placeholder="username" placeholderTextColor="#4B5563" autoCapitalize="none" value={formData.instagram} onChangeText={(t) => updateField('instagram', t)} />
+                            {/* Sosyal Medya Linkleri (Sadece Influencer) */}
+                            {role === 'influencer' && (
+                                <View className="space-y-4 pt-4 border-t border-white/5">
+                                    <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Sosyal Medya</Text>
+                                    <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-12 px-4">
+                                        <Instagram color="#E1306C" size={18} />
+                                        <Text className="text-gray-500 ml-2 text-sm">instagram.com/</Text>
+                                        <TextInput className="flex-1 text-white text-sm ml-0.5" placeholder="username" placeholderTextColor="#4B5563" autoCapitalize="none" value={formData.instagram} onChangeText={(t) => updateField('instagram', t)} />
+                                    </View>
+                                    <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-12 px-4">
+                                        <Music2 color="#fff" size={18} fill="#000" />
+                                        <Text className="text-gray-500 ml-2 text-sm">tiktok.com/@</Text>
+                                        <TextInput className="flex-1 text-white text-sm ml-0.5" placeholder="username" placeholderTextColor="#4B5563" autoCapitalize="none" value={formData.tiktok} onChangeText={(t) => updateField('tiktok', t)} />
+                                    </View>
+                                    <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-12 px-4">
+                                        <Youtube color="#FF0000" size={18} />
+                                        <Text className="text-gray-500 ml-2 text-sm">youtube.com/</Text>
+                                        <TextInput className="flex-1 text-white text-sm ml-0.5" placeholder="channel" placeholderTextColor="#4B5563" autoCapitalize="none" value={formData.youtube} onChangeText={(t) => updateField('youtube', t)} />
+                                    </View>
+                                    <View className="flex-row items-center mt-2 bg-red-500/10 p-3 rounded-xl border border-red-500/30">
+                                        <AlertCircle size={18} color="#EF4444" style={{ marginRight: 8 }} />
+                                        <Text className="text-red-400 text-xs flex-1 font-medium leading-4">Hesabınızın doğrulanabilmesi için en az 1 sosyal medya hesabınızı eklemeniz gerekmektedir.</Text>
+                                    </View>
                                 </View>
-                                <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-12 px-4">
-                                    <Music2 color="#fff" size={18} fill="#000" />
-                                    <Text className="text-gray-500 ml-2 text-sm">tiktok.com/@</Text>
-                                    <TextInput className="flex-1 text-white text-sm ml-0.5" placeholder="username" placeholderTextColor="#4B5563" autoCapitalize="none" value={formData.tiktok} onChangeText={(t) => updateField('tiktok', t)} />
-                                </View>
-                                <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-12 px-4">
-                                    <Youtube color="#FF0000" size={18} />
-                                    <Text className="text-gray-500 ml-2 text-sm">youtube.com/</Text>
-                                    <TextInput className="flex-1 text-white text-sm ml-0.5" placeholder="channel" placeholderTextColor="#4B5563" autoCapitalize="none" value={formData.youtube} onChangeText={(t) => updateField('youtube', t)} />
-                                </View>
-                                <View className="flex-row items-center mt-2 bg-red-500/10 p-3 rounded-xl border border-red-500/30">
-                                    <AlertCircle size={18} color="#EF4444" style={{ marginRight: 8 }} />
-                                    <Text className="text-red-400 text-xs flex-1 font-medium leading-4">Hesabınızın doğrulanabilmesi için en az 1 sosyal medya hesabınızı eklemeniz gerekmektedir.</Text>
-                                </View>
-                            </View>
+                            )}
 
                             <TouchableOpacity activeOpacity={0.9} onPress={handleSubmit} disabled={loading} className="overflow-hidden rounded-2xl mt-4 shadow-lg shadow-soft-gold/20">
-                                <LinearGradient colors={['#D4AF37', '#b89428']} className="h-14 items-center justify-center flex-row space-x-2">
-                                    {loading ? <ActivityIndicator color="black" /> : <><Text className="text-[#0B0F19] font-bold text-lg">Kaydet ve Başla</Text><ChevronRight color="#0B0F19" size={20} strokeWidth={2.5} /></>}
+                                <LinearGradient colors={['#D4AF37', '#b89428']} className="h-14 items-center justify-center">
+                                    {loading ? <ActivityIndicator color="black" /> : <View className="flex-row items-center space-x-2"><Text className="text-[#0B0F19] font-bold text-lg">Kaydet ve Başla</Text><ChevronRight color="#0B0F19" size={20} strokeWidth={2.5} /></View>}
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>

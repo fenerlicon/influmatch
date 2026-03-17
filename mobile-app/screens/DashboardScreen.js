@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, Dimensions, Alert, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, Dimensions, Alert, Modal, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
@@ -121,7 +121,7 @@ const OpportunityCard = ({ project, onPress }) => (
                     <Text className="text-gray-200 text-xs font-medium">{project.platform || 'Instagram'}</Text>
                 </View>
                 <View className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/5">
-                    <Text className="text-soft-gold text-xs font-bold">₺{project.budget_min.toLocaleString()}</Text>
+                    <Text className="text-soft-gold text-xs font-bold">₺{project.budget_min?.toLocaleString() || '0'}</Text>
                 </View>
             </View>
 

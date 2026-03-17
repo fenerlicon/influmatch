@@ -1,33 +1,50 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { fetchInstagramData } from '@/utils/instagram-service'
 
 export async function generateVerificationCode(userId: string, username: string) {
     const supabase = createSupabaseServerClient()
+    const adminSupabase = createSupabaseAdminClient() || supabase
 
     try {
+        // 0. Security Check: Ensure the requester is exactly the user they claim to be
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser || authUser.id !== userId) {
+            return { success: false, error: 'Yetkisiz işlem.' }
+        }
+
         // Generate a random 6-digit code with prefix
         const code = `IM-${Math.floor(100000 + Math.random() * 900000)}`
 
-        // Check for duplicate account usage by OTHER users
+        // Check for duplicate account usage by OTHER users.
+        // IMPORTANT: We check by username but also by verification status.
+        // If the conflicting record is not verified (is_verified=false), the username may have been
+        // abandoned or transferred on Instagram — we allow claiming it.
+        // The real uniqueness enforcement happens at verify time via platform_user_id (immutable numeric ID).
         const { data: existingAccount } = await supabase
             .from('social_accounts')
-            .select('user_id')
+            .select('user_id, is_verified, platform_user_id')
             .eq('platform', 'instagram')
             .ilike('username', username)
             .maybeSingle()
 
         if (existingAccount && existingAccount.user_id !== userId) {
-            return {
-                success: false,
-                error: 'Bu Instagram hesabı sistemde başka bir kullanıcıya bağlı. Güvenlik nedeniyle aynı hesap birden fazla profile bağlanamaz.'
+            // Only block if the conflicting account is actually verified (confirmed ownership)
+            // An unverified record = abandoned username attempt → allow claiming
+            if (existingAccount.is_verified) {
+                return {
+                    success: false,
+                    error: 'Bu Instagram hesabı sistemde başka bir doğrulanmış kullanıcıya bağlı. Aynı hesap birden fazla profile bağlanamaz.'
+                }
             }
+            // Conflicting record exists but not verified → stale/abandoned, proceed
         }
 
-        // Upsert into social_accounts
-        const { error } = await supabase
+        // Upsert into social_accounts using admin client to bypass DB security lockdown for updates
+        const { error } = await adminSupabase
             .from('social_accounts')
             .upsert(
                 {
@@ -58,6 +75,7 @@ export async function generateVerificationCode(userId: string, username: string)
 
 export async function verifyInstagramAccount(userId: string) {
     const supabase = createSupabaseServerClient()
+    const adminSupabase = createSupabaseAdminClient() || supabase
 
     try {
         // 0. Security Check: Ensure the requester is the user they claim to be
@@ -164,37 +182,12 @@ export async function verifyInstagramAccount(userId: string) {
             return timeB - timeA
         })
 
-        const recentPosts = edges.slice(0, 6).map((edge: any) => edge.node)
-
         // STRATEGY: Prioritize "Last 30 Days". If < 3 posts, fallback to "Last 12 Posts".
         // 1. Get nodes sorted by date (already done above)
         const sortedNodes = edges.map((edge: any) => edge.node)
 
         const nowTimestamp = Math.floor(Date.now() / 1000)
         const thirtyDaysAgo = nowTimestamp - (30 * 24 * 60 * 60)
-
-        // 2. Filter for last 30 days
-        let targetPosts = sortedNodes.filter((node: any) => (node.taken_at_timestamp || 0) > thirtyDaysAgo)
-
-        // 3. Fallback Check
-        if (targetPosts.length < 3) {
-            console.log(`[verifyInstagramAccount] Only ${targetPosts.length} posts in last 30 days. Falling back to last 12 posts.`)
-            targetPosts = sortedNodes.slice(0, 12)
-        } else {
-            // If we have many posts in last 30 days (e.g. 50), limit to top 24 to avoid huge processing if API returned many
-            targetPosts = targetPosts.slice(0, 24)
-        }
-
-        // Use this new list for calculations
-        // Note: We need to update existing references to 'recentPosts' variable usage below
-        // or just re-assign recentPosts if it was let. It was const.
-        // So we will just use 'targetPosts' logic inside the calculation block or redefine calculation block.
-        // Wait, recentPosts was defined as const above in original code. I need to Replace that specific line.
-
-        /* 
-           The replace_tool replaces lines. 
-           I will replace the line `const recentPosts = ...` with :
-        */
 
         let analyzedPosts = sortedNodes.filter((node: any) => (node.taken_at_timestamp || 0) > thirtyDaysAgo)
 
@@ -204,21 +197,19 @@ export async function verifyInstagramAccount(userId: string) {
             analyzedPosts = analyzedPosts.slice(0, 24)
         }
 
-        // Duplicate declaration removed
-
-        if (recentPosts.length > 0) {
-            const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
-            const totalComments = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
-
+        if (analyzedPosts.length > 0) {
+            const totalLikes = analyzedPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
+            const totalComments = analyzedPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
+            
             // Calculate views for video posts
-            const videoPosts = recentPosts.filter((post: any) => post.is_video)
+            const videoPosts = analyzedPosts.filter((post: any) => post.is_video)
             if (videoPosts.length > 0) {
                 const totalViews = videoPosts.reduce((sum: number, post: any) => sum + (post.video_view_count || 0), 0)
                 avgViews = Math.round(totalViews / videoPosts.length)
             }
 
-            avgLikes = Math.round(totalLikes / recentPosts.length)
-            avgComments = Math.round(totalComments / recentPosts.length)
+            avgLikes = Math.round(totalLikes / analyzedPosts.length)
+            avgComments = Math.round(totalComments / analyzedPosts.length)
 
             if (followerCount > 0) {
                 // Calculate engagement rate and cap at 999.99 to avoid DB numeric overflow
@@ -227,8 +218,8 @@ export async function verifyInstagramAccount(userId: string) {
             }
 
             // Calculate Posting Frequency (Average days between posts)
-            if (recentPosts.length > 1) {
-                const sortedPosts = [...recentPosts].sort((a: any, b: any) => b.taken_at_timestamp - a.taken_at_timestamp)
+            if (analyzedPosts.length > 1) {
+                const sortedPosts = [...analyzedPosts].sort((a: any, b: any) => b.taken_at_timestamp - a.taken_at_timestamp)
                 const newestDate = sortedPosts[0].taken_at_timestamp
                 const oldestDate = sortedPosts[sortedPosts.length - 1].taken_at_timestamp
                 const diffSeconds = newestDate - oldestDate
@@ -269,7 +260,7 @@ export async function verifyInstagramAccount(userId: string) {
 
         const now = new Date().toISOString()
 
-        const { error: updateError } = await supabase
+        const { error: updateError } = await adminSupabase
             .from('social_accounts')
             .update({
                 is_verified: true,
@@ -289,7 +280,7 @@ export async function verifyInstagramAccount(userId: string) {
         }
 
         // 5. Insert into History
-        const { error: historyError } = await supabase
+        const { error: historyError } = await adminSupabase
             .from('social_account_history')
             .insert({
                 social_account_id: account.id,
@@ -307,7 +298,7 @@ export async function verifyInstagramAccount(userId: string) {
         }
 
         // 5. Award "Verified Account" (Blue Tick) Badge
-        const { error: badgeError } = await supabase
+        const { error: badgeError } = await adminSupabase
             .from('user_badges')
             .upsert(
                 {

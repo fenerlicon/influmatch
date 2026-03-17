@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal, Animated, Easing, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plus, Sparkles, TrendingUp, X } from 'lucide-react-native';
+import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plus, Sparkles, TrendingUp, X, Award, Zap, Star, Shield, Info, Lock } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
+import { calculateTrustScore } from '../../utils/calculation';
 
 // ─── Design system ────────────────────────────────────────────────────────────
 const GlassCard = ({ children, className, style, onPress }) => (
@@ -23,14 +24,69 @@ const STATUS_CONFIG = {
     rejected: { label: 'Reddedildi', color: '#f87171', bg: 'rgba(248,113,113,0.12)', Icon: XCircle },
 };
 
-const StatCard = ({ icon: Icon, color, value, label }) => (
-    <GlassCard className="flex-1 p-4">
-        <View className="w-9 h-9 rounded-xl items-center justify-center mb-3" style={{ backgroundColor: `${color}20` }}>
-            <Icon color={color} size={18} />
+const RotatingGlowCard = ({ children, className }) => {
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(rotateAnim, {
+                toValue: 1,
+                duration: 4000,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        ).start();
+    }, []);
+
+    const rotation = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
+    return (
+        <View className={`rounded-[28px] overflow-hidden border border-white/10 relative p-[1px] flex-1 ${className}`}>
+            <Animated.View
+                style={{
+                    position: 'absolute',
+                    width: '300%',
+                    height: '300%',
+                    top: '-100%',
+                    left: '-100%',
+                    transform: [{ rotate: rotation }],
+                }}
+            >
+                <LinearGradient
+                    colors={['transparent', '#a855f7', 'transparent', '#a855f7', 'transparent']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="flex-1"
+                />
+            </Animated.View>
+            <View className="bg-[#0f1117] rounded-[27px] flex-1 overflow-hidden">
+                <LinearGradient
+                    colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
+                    className="absolute inset-0"
+                />
+                {children}
+            </View>
         </View>
-        <Text className="text-white text-2xl font-black">{value}</Text>
-        <Text className="text-gray-500 text-[11px] mt-0.5 leading-4">{label}</Text>
-    </GlassCard>
+    );
+};
+
+const StatCard = ({ icon: Icon, color, value, label }) => (
+    <RotatingGlowCard className="flex-1" style={{ minHeight: 120 }}>
+        <View className="items-center justify-center py-6 px-1">
+            <View className="w-10 h-10 rounded-2xl items-center justify-center mb-3 border border-white/5" style={{ backgroundColor: `${color}15` }}>
+                <Icon color={color} size={20} />
+            </View>
+            <Text className="text-white text-3xl font-bold text-center tracking-tighter" style={{ textShadowColor: 'rgba(255,255,255,0.15)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10 }}>
+                {value}
+            </Text>
+            <Text className="text-gray-400 text-[9px] font-bold tracking-[1.5px] uppercase mt-2 text-center opacity-70">
+                {label.replace('\n', ' ')}
+            </Text>
+        </View>
+    </RotatingGlowCard>
 );
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -38,6 +94,7 @@ export default function BrandDashboardScreen({ navigation }) {
     const [profile, setProfile] = useState(null);
     const [stats, setStats] = useState({ projects: 0, applications: 0, accepted: 0 });
     const [recentApplications, setRecentApplications] = useState([]);
+    const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [notifModalVisible, setNotifModalVisible] = useState(false);
@@ -52,10 +109,33 @@ export default function BrandDashboardScreen({ navigation }) {
             // Fetch brand profile
             const { data: prof } = await supabase
                 .from('users')
-                .select('full_name, avatar_url, corporate_name, verification_status')
+                .select('full_name, avatar_url, company_legal_name, verification_status, spotlight_active, displayed_badges')
                 .eq('id', user.id)
                 .maybeSingle();
             setProfile(prof);
+
+            // Fetch Spotlight Influencers
+            const { data: spotlightInfs } = await supabase
+                .from('users')
+                .select('id, full_name, username, avatar_url, category, verification_status')
+                .eq('role', 'influencer')
+                .eq('is_showcase_visible', true)
+                .order('spotlight_active', { ascending: false })
+                .limit(10);
+
+            if (spotlightInfs && spotlightInfs.length > 0) {
+                const spotlightIds = spotlightInfs.map(si => si.id);
+                const { data: spotlightSocials } = await supabase
+                    .from('social_accounts')
+                    .select('*')
+                    .in('user_id', spotlightIds);
+
+                const recs = spotlightInfs.map(si => ({
+                    ...si,
+                    trustScore: calculateTrustScore(si, spotlightSocials?.find(s => s.user_id === si.id))
+                }));
+                setRecommendations(recs);
+            }
 
             // Fetch notifications
             const { data: notifs } = await supabase
@@ -68,16 +148,24 @@ export default function BrandDashboardScreen({ navigation }) {
             setNotifications(notifList);
             setUnreadNotifCount(notifList.filter(n => !n.is_read).length);
 
-            // Fetch brand's projects
+            // Fetch brand's projects (only active ones)
             const { data: projects } = await supabase
+                .from('advert_projects')
+                .select('id')
+                .eq('brand_user_id', user.id)
+                .eq('status', 'open');
+
+            // We still want to see applications for all projects of this brand,
+            // so we fetch all project IDs for the applications query.
+            const { data: allProjects } = await supabase
                 .from('advert_projects')
                 .select('id')
                 .eq('brand_user_id', user.id);
 
-            const projectIds = projects?.map(p => p.id) || [];
+            const allProjectIds = allProjects?.map(p => p.id) || [];
 
-            if (projectIds.length === 0) {
-                setStats({ projects: 0, applications: 0, accepted: 0 });
+            if (allProjectIds.length === 0) {
+                setStats({ projects: projects.length, applications: 0, accepted: 0 });
                 setRecentApplications([]);
                 return;
             }
@@ -90,9 +178,28 @@ export default function BrandDashboardScreen({ navigation }) {
                     advert_projects:advert_id(title),
                     influencer:influencer_id(id, full_name, username, avatar_url, verification_status)
                 `)
-                .in('advert_id', projectIds)
+                .in('advert_id', allProjectIds)
                 .order('created_at', { ascending: false })
                 .limit(20);
+
+            if (apps && apps.length > 0) {
+                const infIds = apps.map(a => a.influencer?.id).filter(Boolean);
+                const { data: socials } = await supabase
+                    .from('social_accounts')
+                    .select('*')
+                    .in('user_id', infIds);
+
+                const appsWithScores = apps.map(app => ({
+                    ...app,
+                    influencer: {
+                        ...app.influencer,
+                        trustScore: calculateTrustScore(app.influencer, socials?.find(s => s.user_id === app.influencer?.id))
+                    }
+                }));
+                setRecentApplications(appsWithScores.slice(0, 6));
+            } else {
+                setRecentApplications([]);
+            }
 
             const accepted = apps?.filter(a => a.status === 'accepted').length || 0;
             setStats({
@@ -100,7 +207,6 @@ export default function BrandDashboardScreen({ navigation }) {
                 applications: apps?.length || 0,
                 accepted,
             });
-            setRecentApplications(apps?.slice(0, 6) || []);
         } catch (e) {
             console.error('[BrandDashboard]', e);
         } finally {
@@ -122,7 +228,7 @@ export default function BrandDashboardScreen({ navigation }) {
 
     useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
-    const firstName = profile?.full_name?.split(' ')[0] || profile?.corporate_name || 'Hoş Geldiniz';
+    const firstName = profile?.full_name?.split(' ')[0] || profile?.company_legal_name || 'Hoş Geldiniz';
 
     if (loading) {
         return (
@@ -187,9 +293,21 @@ export default function BrandDashboardScreen({ navigation }) {
 
                 {/* Header */}
                 <View className="px-6 pt-4 pb-2 flex-row justify-between items-center">
-                    <View>
-                        <Text className="text-gray-400 text-sm font-medium">Tekrar Hoş Geldin,</Text>
-                        <Text className="text-white font-bold text-3xl tracking-tight">{firstName}</Text>
+                    <View className="flex-row items-center gap-3">
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('BrandDashboard', { screen: 'Profil' })}
+                            className="w-12 h-12 rounded-full bg-white/5 border border-white/10 items-center justify-center overflow-hidden"
+                        >
+                            {profile?.avatar_url ? (
+                                <Image source={{ uri: profile.avatar_url }} className="w-full h-full" resizeMode="cover" />
+                            ) : (
+                                <Text className="text-white font-bold text-lg">{(profile?.company_legal_name || profile?.full_name || '?').charAt(0).toUpperCase()}</Text>
+                            )}
+                        </TouchableOpacity>
+                        <View>
+                            <Text className="text-gray-400 text-xs font-medium">Hoş Geldin,</Text>
+                            <Text className="text-white font-bold text-xl tracking-tight">{firstName}</Text>
+                        </View>
                     </View>
                     <TouchableOpacity
                         onPress={handleNotificationPress}
@@ -215,32 +333,143 @@ export default function BrandDashboardScreen({ navigation }) {
                         <StatCard icon={CheckCircle2} color="#4ade80" value={stats.accepted} label={'Kabul\nEdilen'} />
                     </View>
 
+                    {/* Spotlight / AI Recommendations */}
+                    <View className="mb-10">
+                        <View className="flex-row items-center justify-between mb-5 pl-1">
+                            <View>
+                                <View className="flex-row items-center gap-2 mb-1.5">
+                                    <View className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                                    <Text className="text-purple-400 text-[11px] font-extrabold tracking-[2px] uppercase">Spotlight AI</Text>
+                                </View>
+                                <Text className="text-white font-bold text-2xl tracking-tight">Sizin İçin Seçtiklerimiz</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => navigation.navigate('Keşfet')}>
+                                <Text className="text-soft-gold text-xs font-bold tracking-widest opacity-80">TÜMÜ</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
+                            {recommendations.length > 0 ? (
+                                recommendations.map((inf) => (
+                                    <TouchableOpacity
+                                        key={inf.id}
+                                        activeOpacity={0.9}
+                                        className="mr-5 w-52"
+                                        onPress={() => navigation.navigate('InfluencerDetail', { influencer: inf })}
+                                    >
+                                        <View className="h-80 rounded-[32px] overflow-hidden border border-white/10 bg-[#15171e] relative shadow-2xl">
+                                            {/* Influencer Image */}
+                                            <Image source={{ uri: inf.avatar_url }} className="w-full h-full" resizeMode="cover" />
+
+
+                                            {/* Trust Score Pill - Centered precisely */}
+                                            <View className="absolute top-4 right-4 z-10">
+                                                <View
+                                                    className="bg-black/70 px-3 rounded-2xl border border-white/20 flex-row items-center justify-center backdrop-blur-md"
+                                                    style={{ height: 28, minWidth: 54 }}
+                                                >
+                                                    <Star color="#D4AF37" size={11} fill="#D4AF37" style={{ marginRight: 4 }} />
+                                                    <Text
+                                                        className="text-white text-[11px] font-black"
+                                                        style={{ includeFontPadding: false, textAlignVertical: 'center', marginBottom: Platform.OS === 'android' ? 1 : 0 }}
+                                                    >
+                                                        {inf.trustScore}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                            {/* Gradient Overlay - Darker and correctly positioned ENTIRELY behind text */}
+                                            <LinearGradient
+                                                colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)', '#000000']}
+                                                locations={[0, 0.4, 0.6, 0.85, 1]}
+                                                style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '70%' }}
+                                            />
+
+                                            {/* Info Content */}
+                                            <View className="absolute bottom-5 left-5 right-5">
+                                                <View className="bg-soft-gold/20 self-start px-2 py-0.5 rounded-lg mb-2 border border-soft-gold/30">
+                                                    <Text className="text-soft-gold text-[9px] font-bold uppercase tracking-wider">{inf.category || 'Lifestyle'}</Text>
+                                                </View>
+                                                <Text className="text-white font-bold text-lg tracking-tight" numberOfLines={1}>{inf.full_name}</Text>
+
+                                                {profile?.spotlight_active ? (
+                                                    <View className="flex-row items-center gap-1.5 mt-1">
+                                                        <TrendingUp color="#4ade80" size={12} />
+                                                        <Text className="text-green-400 text-[11px] font-bold">%94 Uyumlu</Text>
+                                                    </View>
+                                                ) : (
+                                                    <View className="flex-row items-center gap-1.5 mt-1 opacity-60">
+                                                        <Sparkles color="#a855f7" size={12} />
+                                                        <Text className="text-purple-300 text-[10px] font-bold italic">Eşleşme oranını gör</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            {!profile?.spotlight_active && (
+                                                <View className="absolute inset-0 bg-purple-900/10 backdrop-blur-[2px]" />
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                ))
+                            ) : (
+                                <View className="h-72 w-full items-center justify-center">
+                                    <ActivityIndicator color="#a855f7" />
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+
                     {/* Quick Actions */}
                     <View className="mb-6">
                         <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3">HIZLI ERİŞİM</Text>
                         <View className="flex-row gap-3">
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('BrandAdverts')}
-                                className="flex-1 bg-soft-gold/10 border border-soft-gold/25 rounded-2xl py-3 px-3 flex-row items-center gap-2.5"
+                                className="flex-1 bg-soft-gold/10 border border-soft-gold/30 rounded-[26px] py-6 px-3 items-center justify-center relative overflow-hidden"
+                                style={{
+                                    shadowColor: '#D4AF37',
+                                    shadowOffset: { width: 0, height: 0 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 15,
+                                    elevation: 5
+                                }}
                             >
-                                <View className="w-9 h-9 bg-soft-gold/15 rounded-xl items-center justify-center">
-                                    <Plus color="#D4AF37" size={18} />
+                                <LinearGradient
+                                    colors={['rgba(212,175,55,0.15)', 'transparent', 'rgba(212,175,55,0.05)']}
+                                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                                    className="absolute inset-0"
+                                />
+                                <View className="w-10 h-10 bg-soft-gold/20 rounded-xl items-center justify-center mb-4 mt-[-8px] shadow-sm shadow-soft-gold/40">
+                                    <Plus color="#D4AF37" size={20} />
                                 </View>
-                                <View className="flex-1">
-                                    <Text className="text-soft-gold font-bold text-base leading-5">İlanlarım</Text>
-                                    <Text className="text-gray-400 text-[11px] leading-3 mt-0.5">Yönet</Text>
+                                <View className="items-center">
+                                    <Text className="text-soft-gold font-bold text-[15px] text-center" style={{ textShadowColor: 'rgba(212,175,55,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 }}>İlanlarım</Text>
+                                    <Text className="text-gray-400 text-[11px] leading-3 mt-1 text-center font-medium">Yönet</Text>
                                 </View>
                             </TouchableOpacity>
+
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('Keşfet')}
-                                className="flex-1 bg-purple-500/10 border border-purple-500/25 rounded-2xl py-3 px-3 flex-row items-center gap-2.5"
+                                className="flex-1 bg-purple-500/10 border border-purple-500/30 rounded-[26px] py-6 px-3 items-center justify-center relative overflow-hidden"
+                                style={{
+                                    shadowColor: '#a855f7',
+                                    shadowOffset: { width: 0, height: 0 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 15,
+                                    elevation: 5
+                                }}
                             >
-                                <View className="w-9 h-9 bg-purple-500/15 rounded-xl items-center justify-center">
-                                    <Sparkles color="#a855f7" size={18} />
+                                <LinearGradient
+                                    colors={['rgba(168,85,247,0.15)', 'transparent', 'rgba(168,85,247,0.05)']}
+                                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                                    className="absolute inset-0"
+                                />
+                                <View className="w-10 h-10 bg-purple-500/20 rounded-xl items-center justify-center mb-4 mt-[-8px] shadow-sm shadow-purple-500/40">
+                                    <Sparkles color="#a855f7" size={20} />
                                 </View>
-                                <View className="flex-1">
-                                    <Text className="text-purple-300 font-bold text-base leading-5">Keşfet</Text>
-                                    <Text className="text-gray-400 text-[11px] leading-3 mt-0.5" numberOfLines={1}>Influencer bul</Text>
+                                <View className="items-center">
+                                    <Text className="text-purple-300 font-bold text-[15px] text-center" style={{ textShadowColor: 'rgba(168,85,247,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 }}>Keşfet</Text>
+                                    <Text className="text-gray-400 text-[11px] leading-3 mt-1 text-center font-medium">Influencer bul</Text>
                                 </View>
                             </TouchableOpacity>
                         </View>
@@ -271,7 +500,7 @@ export default function BrandDashboardScreen({ navigation }) {
                                 const statusCfg = STATUS_CONFIG[app.status] || STATUS_CONFIG.pending;
                                 const inf = app.influencer;
                                 return (
-                                    <GlassCard key={app.id} className="p-4 mb-3" onPress={() => navigation.navigate('BrandAdverts')}>
+                                    <GlassCard key={app.id} className="p-4 mb-3" onPress={() => navigation.navigate('InfluencerDetail', { influencer: inf })}>
                                         <View className="flex-row items-center">
                                             {/* Avatar */}
                                             <View className="w-12 h-12 rounded-2xl bg-[#15171e] border border-white/10 overflow-hidden mr-3">
@@ -283,9 +512,17 @@ export default function BrandDashboardScreen({ navigation }) {
                                             </View>
 
                                             <View className="flex-1">
-                                                <Text className="text-white font-bold text-sm" numberOfLines={1}>
-                                                    {inf?.full_name || inf?.username || 'Kullanıcı'}
-                                                </Text>
+                                                <View className="flex-row items-center gap-2">
+                                                    <Text className="text-white font-bold text-sm" numberOfLines={1}>
+                                                        {inf?.full_name || inf?.username || 'Kullanıcı'}
+                                                    </Text>
+                                                    {inf?.trustScore && (
+                                                        <View className="bg-soft-gold/10 px-1.5 py-0.5 rounded-md border border-soft-gold/20 flex-row items-center gap-1">
+                                                            <Star color="#D4AF37" size={8} fill="#D4AF37" />
+                                                            <Text className="text-soft-gold text-[9px] font-black">{inf.trustScore}</Text>
+                                                        </View>
+                                                    )}
+                                                </View>
                                                 <Text className="text-gray-500 text-xs mt-0.5" numberOfLines={1}>
                                                     {app.advert_projects?.title || 'İlan'}
                                                 </Text>

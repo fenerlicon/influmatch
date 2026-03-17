@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { DiscoverInfluencer } from '@/types/influencer'
 
 export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{ data: DiscoverInfluencer[], error: string | null }> {
@@ -113,49 +114,12 @@ export async function activateSpotlightPlan(
     planTier: 'ibasic' | 'ipro' | 'mbasic' | 'mpro',
     interval: 'mo' | 'yr'
 ): Promise<{ success: boolean; error: string | null }> {
-    const supabase = createSupabaseServerClient()
-
-    // Check verification status
-    const { data: user, error: fetchError } = await supabase
-        .from('users')
-        .select('verification_status')
-        .eq('id', userId)
-        .single()
-
-    if (fetchError || !user) {
-        return { success: false, error: 'Kullanıcı bulunamadı.' }
-    }
-
-    if (user.verification_status !== 'verified') {
-        return { success: false, error: 'Spotlight planını aktifleştirmek için hesabınızın admin tarafından onaylanması gerekmektedir.' }
-    }
-
-    // calculate expiration
-    const now = new Date()
-    let expiresAt = new Date(now)
-
-    if (interval === 'mo') {
-        expiresAt.setDate(expiresAt.getDate() + 30) // 30 days for monthly
-    } else {
-        expiresAt.setFullYear(expiresAt.getFullYear() + 1) // 1 year for yearly
-    }
-
-    // Update user
-    const { error } = await supabase
-        .from('users')
-        .update({
-            spotlight_active: true,
-            spotlight_plan: planTier,
-            spotlight_expires_at: expiresAt.toISOString()
-        })
-        .eq('id', userId)
-
-    if (error) {
-        console.error('Error activating spotlight:', error)
-        return { success: false, error: 'Üyelik aktifleştirilemedi.' }
-    }
-
-    return { success: true, error: null }
+    // GÜVENLİK MÜHRÜ: Ödeme altyapısı henüz hazır olmadığı için tüm otomatik alımlar kapatıldı.
+    // Bu sayede hiç kimse butona basarak bedavaya Premium/Spotlight üyeliği ÇALAMAZ.
+    return { 
+        success: false, 
+        error: 'Ödeme altyapısı güncellenmektedir. Üyelik işlemleri için lütfen destek@influmatch.net ile iletişime geçin.' 
+    };
 }
 
 export async function checkSpotlightStatus(userId: string): Promise<void> {
@@ -191,8 +155,12 @@ export async function checkSpotlightStatus(userId: string): Promise<void> {
 
 export async function cancelSpotlightPlan(userId: string): Promise<{ success: boolean; error: string | null }> {
     const supabase = createSupabaseServerClient()
+    const adminSupabase = createSupabaseAdminClient() || supabase
 
-    const { error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== userId) return { success: false, error: 'Yetkisiz erişim.' };
+
+    const { error } = await adminSupabase
         .from('users')
         .update({
             spotlight_active: false,
