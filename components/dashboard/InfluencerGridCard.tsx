@@ -69,9 +69,11 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
 
     const username = influencer.username || influencer.id
     const isSpotlight = influencer.spotlight_active === true
-    const hasStats = influencer.stats && influencer.stats.followers !== '0'
+    const hasStats = influencer.stats && influencer.stats.followers !== '0' && influencer.stats.followers !== null
     const showMatchDetails = (matchReasons && matchReasons.length > 0) && ((matchScore || 0) > 25)
 
+    // Verification Logic: Blue tick if admin verified OR has API data
+    const isVerified = influencer.displayed_badges?.includes('verified-account') || hasStats
 
     const isSpotlightUser = isSpotlightMember
 
@@ -142,7 +144,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                     </div>
                                 )}
 
-                                {/* Heart Icon */}
+                                {/* Favorite/Save Buttons */}
                                 <div className="absolute top-3 right-3 z-10 flex gap-2">
                                     {userRole === 'brand' && (
                                         <button
@@ -184,7 +186,6 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                     )}
                                 </div>
 
-                                {/* "Neden O?" Button (Only if we have reasons and match score > 25) */}
                                 {showMatchDetails && (
                                     <button
                                         onClick={(e) => {
@@ -206,29 +207,39 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5">
-                                            <h3 className="truncate text-lg font-bold text-white">
+                                            <h3 className="truncate text-lg font-bold text-white leading-tight">
                                                 {influencer.full_name}
                                             </h3>
-                                            {influencer.displayed_badges?.includes('verified-account') && (
+                                            {isVerified && (
                                                 <BadgeCheck className="h-4 w-4 flex-shrink-0 text-blue-500" />
                                             )}
                                         </div>
-                                        <p className="truncate text-sm font-medium text-soft-gold">
-                                            @{influencer.username}
-                                        </p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          <p className="truncate text-sm font-medium text-soft-gold/80">
+                                              @{influencer.username}
+                                          </p>
+                                          {/* Mini Badge Row right under name */}
+                                          {influencer.displayed_badges && Array.isArray(influencer.displayed_badges) && influencer.displayed_badges.length > 0 && (
+                                              <BadgeDisplay
+                                                  badgeIds={influencer.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)}
+                                                  userRole="influencer"
+                                                  size="small"
+                                                  maxDisplay={1} // Show 1 core badge here to keep it clean
+                                              />
+                                          )}
+                                        </div>
                                     </div>
 
                                     {influencer.category && (
-                                        <span className="flex-shrink-0 rounded-xl bg-[#25262E] px-3 py-1.5 text-[10px] font-medium text-gray-300">
+                                        <span className="flex-shrink-0 rounded-xl bg-[#25262E] px-2.5 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-wider">
                                             {getCategoryLabel(influencer.category)}
                                         </span>
                                     )}
                                 </div>
 
-                                {/* Trust Score & Badges Row */}
-                                <div className="mt-4 flex flex-col gap-3">
-                                    {/* Trust / Anti-Bot Score Display */}
-                                    {hasStats && (
+                                {/* Trust Score (Brands Only) */}
+                                <div className="mt-4 flex flex-col gap-2 min-h-[42px] justify-center">
+                                    {hasStats && userRole !== 'influencer' && (
                                         <div className="w-full">
                                             <div className="flex justify-between items-end mb-1">
                                                 <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Güven Skoru</span>
@@ -240,7 +251,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                                     {calculateTrustScore(influencer)}/100
                                                 </span>
                                             </div>
-                                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                                 <div
                                                     className={cn("h-full rounded-full transition-all duration-500",
                                                         calculateTrustScore(influencer) > 70 ? "bg-emerald-500" :
@@ -251,39 +262,42 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                             </div>
                                         </div>
                                     )}
-
-                                    {influencer.displayed_badges && Array.isArray(influencer.displayed_badges) && (
-                                        <BadgeDisplay
-                                            badgeIds={influencer.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)}
-                                            userRole="influencer"
-                                            size="small"
-                                            maxDisplay={2}
-                                        />
-                                    )}
-                                </div>
-
-                                {/* Stats Grid */}
-                                <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-[#111218] p-3">
-                                    {hasStats ? (
-                                        <>
-                                            <div className="text-center">
-                                                <p className="text-[10px] uppercase tracking-wider text-gray-500">Takipçi</p>
-                                                <p className="font-bold text-white">{influencer.stats?.followers}</p>
-                                            </div>
-                                            <div className="text-center border-l border-white/5">
-                                                <p className="text-[10px] uppercase tracking-wider text-gray-500">Etkileşim</p>
-                                                <p className="font-bold text-soft-gold">{influencer.stats?.engagement}</p>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="col-span-2 flex flex-col items-center justify-center py-4 text-center">
-                                            <Lock className="mb-2 h-5 w-5 text-gray-600" />
-                                            <p className="text-xs font-medium text-gray-500">Doğrulanmadı</p>
+                                    
+                                    {/* Additional Badges area if more are needed */}
+                                    {influencer.displayed_badges && influencer.displayed_badges.length > 1 && (
+                                        <div className="flex items-center">
+                                            <BadgeDisplay
+                                                badgeIds={influencer.displayed_badges.slice(1).filter((id): id is string => typeof id === 'string' && id.length > 0)}
+                                                userRole="influencer"
+                                                size="small"
+                                                maxDisplay={1}
+                                            />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Look-alike / Similar Profiles Button */}
+                                {/* Stats Grid - Stay aligned at bottom */}
+                                <div className="mt-auto pt-4 grid grid-cols-2 gap-3 rounded-2xl bg-[#111218]/50 p-3 border border-white/5">
+                                    {hasStats ? (
+                                        <>
+                                            <div className="text-center">
+                                                <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Takipçi</p>
+                                                <p className="text-sm font-bold text-white">{influencer.stats?.followers}</p>
+                                            </div>
+                                            <div className="text-center border-l border-white/10">
+                                                <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Etkileşim</p>
+                                                <p className="text-sm font-bold text-soft-gold">{influencer.stats?.engagement}</p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="col-span-2 flex items-center justify-center py-2 text-center gap-2">
+                                            <Lock className="h-3 w-3 text-gray-600" />
+                                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">Doğrulanmadı</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Look-alike Button */}
                                 <button
                                     onClick={handleSimilarProfilesClick}
                                     className="group/similar mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-semibold text-gray-300 transition-all hover:bg-white/10 hover:text-white"
