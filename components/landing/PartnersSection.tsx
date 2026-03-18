@@ -9,7 +9,7 @@ const PARTNERS = [
   },
   {
     name: 'Instagram',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Instagram_logo.svg',
   },
   {
     name: 'Meta',
