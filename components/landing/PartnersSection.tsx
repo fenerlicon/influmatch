@@ -53,8 +53,8 @@ export default function PartnersSection() {
                   />
                 </div>
                 {partner.isOfficial && (
-                  <span className="absolute -top-4 -right-2 rounded-full bg-soft-gold/10 border border-soft-gold/30 px-2 py-0.5 text-[7px] font-bold text-soft-gold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-1 group-hover:translate-y-0">
-                    Sistem Ortağı
+                  <span className="absolute -top-4 -right-2 rounded-full bg-soft-gold/10 border border-soft-gold/30 px-2 py-0.5 text-[7px] font-bold text-soft-gold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-1 group-hover:translate-y-0 text-center min-w-[80px]">
+                    RESMİ PARTNER
                   </span>
                 )}
               </div>
