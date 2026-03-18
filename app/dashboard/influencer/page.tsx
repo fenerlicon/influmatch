@@ -4,6 +4,7 @@ import OfferActivityCard from '@/components/dashboard/OfferActivityCard'
 import ProfileCompletionCard from '@/components/dashboard/ProfileCompletionCard'
 import SpotlightToggleCard from '@/components/dashboard/SpotlightToggleCard'
 import InstagramConnect from '@/components/dashboard/InstagramConnect'
+import TikTokConnect from '@/components/dashboard/TikTokConnect'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import type { ProfileRecord } from '@/utils/profileCompletion'
 import { calculateProfileCompletion } from '@/utils/profileCompletion'
@@ -35,13 +36,21 @@ export default async function InfluencerDashboardPage() {
     console.error('[InfluencerDashboardPage] profile load error', error.message)
   }
 
-  // Fetch social account stats
-  const { data: socialAccount } = await supabase
+  // Fetch social account stats (Instagram)
+  const { data: instagramAccount } = await supabase
     .from('social_accounts')
     .select('username, follower_count, engagement_rate, stats_payload, updated_at, has_stats')
     .eq('user_id', user.id)
     .eq('platform', 'instagram')
-    .single()
+    .maybeSingle()
+
+  // Fetch social account stats (TikTok)
+  const { data: tiktokAccount } = await supabase
+    .from('social_accounts')
+    .select('username, follower_count, stats_payload, updated_at, is_verified')
+    .eq('user_id', user.id)
+    .eq('platform', 'tiktok')
+    .maybeSingle()
 
   const rawSpotlightActive = profile?.spotlight_active ?? false
   const isShowcaseVisible = profile?.is_showcase_visible ?? true // Default to true if null
@@ -227,17 +236,16 @@ export default async function InfluencerDashboardPage() {
       </section>
 
       {/* Stats & Analysis Section - Influencer View */}
-      {/* Stats & Analysis Section - Influencer View */}
-      {!(socialAccount && socialAccount.has_stats && !showProfileCompletionCard) && socialAccount && socialAccount.has_stats ? (
+      {!(instagramAccount && instagramAccount.has_stats && !showProfileCompletionCard) && instagramAccount && instagramAccount.has_stats ? (
         <InfluencerStats
-          followerCount={socialAccount.follower_count || 0}
-          engagementRate={Number(socialAccount.engagement_rate) || 0}
-          statsPayload={socialAccount.stats_payload as any}
-          lastUpdated={socialAccount.updated_at}
+          followerCount={instagramAccount.follower_count || 0}
+          engagementRate={Number(instagramAccount.engagement_rate) || 0}
+          statsPayload={instagramAccount.stats_payload as any}
+          lastUpdated={instagramAccount.updated_at}
           mode="influencer-view"
           subscriptionTier={userTier}
         />
-      ) : !socialAccount?.has_stats ? (
+      ) : !instagramAccount?.has_stats ? (
         <VerificationWarningCard />
       ) : null}
 
@@ -246,15 +254,26 @@ export default async function InfluencerDashboardPage() {
         verificationStatus={verificationStatus}
       />
 
-      {/* Instagram Verification Component */}
-      <div id="verification-section" className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
+      {/* Social Connections Section */}
+      <div id="verification-section" className="grid gap-6 md:grid-cols-2">
+        {/* Instagram Verification Component */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
+          <InstagramConnect
+            userId={user.id}
+            isVerified={!!instagramAccount?.has_stats}
+            initialUsername={instagramAccount?.username}
+            lastUpdated={instagramAccount?.updated_at}
+          />
+        </div>
 
-        <InstagramConnect
-          userId={user.id}
-          isVerified={!!socialAccount?.has_stats}
-          initialUsername={socialAccount?.username}
-          lastUpdated={socialAccount?.updated_at}
-        />
+        {/* TikTok Verification Component */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
+          <TikTokConnect
+            userId={user.id}
+            isVerified={!!tiktokAccount?.is_verified}
+            username={tiktokAccount?.username}
+          />
+        </div>
       </div>
 
 
@@ -274,17 +293,17 @@ export default async function InfluencerDashboardPage() {
                   verification_status: verificationStatus as any,
                   category: profile?.category ?? null,
                   spotlight_active: rawSpotlightActive,
-                  stats: socialAccount ? {
-                    followers: socialAccount.follower_count?.toString() || '0',
-                    engagement: (Number(socialAccount.engagement_rate) || 0) + '%',
-                    avg_comments: (socialAccount.stats_payload as any)?.avg_comments?.toString()
+                  stats: instagramAccount ? {
+                    followers: instagramAccount.follower_count?.toString() || '0',
+                    engagement: (Number(instagramAccount.engagement_rate) || 0) + '%',
+                    avg_comments: (instagramAccount.stats_payload as any)?.avg_comments?.toString()
                   } : undefined
                 })}
                 details={{
                   spotlightActive: rawSpotlightActive,
-                  hasConnectedAccount: !!(socialAccount && socialAccount.has_stats),
+                  hasConnectedAccount: !!(instagramAccount && instagramAccount.has_stats),
                   profileComplete: isProfileComplete,
-                  engagementRate: Number(socialAccount?.engagement_rate) || 0
+                  engagementRate: Number(instagramAccount?.engagement_rate) || 0
                 }}
               />
             </div>
@@ -303,25 +322,25 @@ export default async function InfluencerDashboardPage() {
                   verification_status: verificationStatus as any,
                   category: profile?.category ?? null,
                   spotlight_active: rawSpotlightActive,
-                  stats: socialAccount ? {
-                    followers: socialAccount.follower_count?.toString() || '0',
-                    engagement: (Number(socialAccount.engagement_rate) || 0) + '%',
-                    avg_comments: (socialAccount.stats_payload as any)?.avg_comments?.toString()
+                  stats: instagramAccount ? {
+                    followers: instagramAccount.follower_count?.toString() || '0',
+                    engagement: (Number(instagramAccount.engagement_rate) || 0) + '%',
+                    avg_comments: (instagramAccount.stats_payload as any)?.avg_comments?.toString()
                   } : undefined
                 })}
                 details={{
                   spotlightActive: rawSpotlightActive,
-                  hasConnectedAccount: !!(socialAccount && socialAccount.has_stats),
+                  hasConnectedAccount: !!(instagramAccount && instagramAccount.has_stats),
                   profileComplete: isProfileComplete,
-                  engagementRate: Number(socialAccount?.engagement_rate) || 0
+                  engagementRate: Number(instagramAccount?.engagement_rate) || 0
                 }}
               />
-              {socialAccount && socialAccount.has_stats ? (
+              {instagramAccount && instagramAccount.has_stats ? (
                 <InfluencerStats
-                  followerCount={socialAccount.follower_count || 0}
-                  engagementRate={Number(socialAccount.engagement_rate) || 0}
-                  statsPayload={socialAccount.stats_payload as any}
-                  lastUpdated={socialAccount.updated_at}
+                  followerCount={instagramAccount.follower_count || 0}
+                  engagementRate={Number(instagramAccount.engagement_rate) || 0}
+                  statsPayload={instagramAccount.stats_payload as any}
+                  lastUpdated={instagramAccount.updated_at}
                   mode="influencer-view"
                   subscriptionTier={userTier}
                 />
