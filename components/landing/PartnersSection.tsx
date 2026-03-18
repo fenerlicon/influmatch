@@ -35,10 +35,10 @@ export default function PartnersSection() {
             <h3 className="mt-2 text-lg font-semibold text-white/80">Resmi Entegrasyon Ortaklarımız</h3>
           </div>
           
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 opacity-50 grayscale transition-all hover:opacity-100 hover:grayscale-0">
+          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-10 sm:gap-x-16">
             {PARTNERS.map((partner) => (
-              <div key={partner.name} className="relative group flex items-center justify-center">
-                <div className="relative h-8 w-24 sm:h-10 sm:w-32">
+              <div key={partner.name} className="relative group flex items-center justify-center transition-all duration-500">
+                <div className="relative h-8 w-24 sm:h-12 sm:w-36 transition-all duration-500 brightness-0 invert opacity-30 group-hover:opacity-100 group-hover:brightness-100 group-hover:invert-0 group-hover:scale-110">
                   <Image
                     src={partner.logo}
                     alt={partner.name}
@@ -47,8 +47,8 @@ export default function PartnersSection() {
                   />
                 </div>
                 {partner.isOfficial && (
-                  <span className="absolute -top-3 -right-2 rounded-full bg-soft-gold/20 border border-soft-gold/30 px-1.5 py-0.5 text-[8px] font-bold text-soft-gold uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
-                    Resmi
+                  <span className="absolute -top-4 -right-2 rounded-full bg-soft-gold/10 border border-soft-gold/30 px-2 py-0.5 text-[7px] font-bold text-soft-gold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-1 group-hover:translate-y-0">
+                    Sistem Ortağı
                   </span>
                 )}
               </div>
