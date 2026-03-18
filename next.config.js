@@ -8,6 +8,14 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/tiktokbqod9Dsb8AiJnWB3R7037aLZA191TBEP.txt/',
+        destination: '/tiktokbqod9Dsb8AiJnWB3R7037aLZA191TBEP.txt',
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig;
