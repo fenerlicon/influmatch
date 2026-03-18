@@ -26,9 +26,10 @@ interface ProfileFormProps {
     availableBadgeIds?: string[]
     socialLinksLastUpdated?: string | null
   }
+  connectedPlatforms?: string[]
 }
 
-export default function ProfileForm({ initialData }: ProfileFormProps) {
+export default function ProfileForm({ initialData, connectedPlatforms = [] }: ProfileFormProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
   const [userId, setUserId] = useState<string | undefined>(undefined)
@@ -109,6 +110,23 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
 
     return () => clearTimeout(timeoutId)
   }, [formState.username, checkUsername, initialData.username])
+
+  // Watch for TikTok Success/Error redirects
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('success') === 'tiktok_connected') {
+      setToast('TikTok hesabınız başarıyla bağlandı!')
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (params.get('error')) {
+      const error = params.get('error')
+      setErrorMsg(`Hata: ${error}`)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  const handleTikTokLogin = () => {
+    window.location.href = '/api/auth/tiktok/login'
+  }
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = event.target
@@ -524,13 +542,32 @@ export default function ProfileForm({ initialData }: ProfileFormProps) {
             )}
           </div>
           <div>
-            <label className="text-sm text-gray-300">TikTok</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-300">TikTok</label>
+              {connectedPlatforms.includes('tiktok') ? (
+                <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">
+                  <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                  Resmi Bağlı
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleTikTokLogin}
+                  className="group flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-soft-gold/80 hover:text-soft-gold transition"
+                >
+                  <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
+                  </svg>
+                  Resmi Hesabı Bağla
+                </button>
+              )}
+            </div>
             <input
               type="text"
               name="tiktok"
               value={formState.tiktok}
               onChange={handleChange}
-              disabled={!isEditing}
+              disabled={!isEditing || connectedPlatforms.includes('tiktok')}
               placeholder="@kullaniciadi veya https://tiktok.com/@..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.tiktok
                 ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'

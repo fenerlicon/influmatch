@@ -14,7 +14,7 @@ export default async function InfluencerProfileSettingsPage() {
     redirect('/login')
   }
 
-  const [{ data: profile, error }, { data: userBadges }] = await Promise.all([
+  const [{ data: profile, error }, { data: userBadges }, { data: socialAccounts }] = await Promise.all([
     supabase
       .from('users')
       .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role, social_links_last_updated')
@@ -23,6 +23,10 @@ export default async function InfluencerProfileSettingsPage() {
     supabase
       .from('user_badges')
       .select('badge_id')
+      .eq('user_id', user.id),
+    supabase
+      .from('social_accounts')
+      .select('platform, is_verified')
       .eq('user_id', user.id),
   ])
 
@@ -48,7 +52,10 @@ export default async function InfluencerProfileSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <ProfileForm initialData={initialData} />
+      <ProfileForm 
+        initialData={initialData} 
+        connectedPlatforms={socialAccounts?.filter(a => a.is_verified).map(a => a.platform) || []} 
+      />
     </div>
   )
 }
