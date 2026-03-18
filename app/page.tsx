@@ -11,6 +11,7 @@ import ValueProposition from '@/components/landing/ValueProposition'
 import BadgesSection from '@/components/landing/BadgesSection'
 import FAQSection from '@/components/landing/FAQSection'
 import Spotlight, { type SpotlightInfluencer } from '@/components/landing/Spotlight'
+import PartnersSection from '@/components/landing/PartnersSection'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
 interface HomeProps {
@@ -115,6 +116,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <div className="relative">
         <Hero />
+        <PartnersSection />
         {/* Influencer showcase — right after Hero so visitors see real users immediately */}
         {spotlightInfluencers.length > 0 && (
           <Spotlight influencers={spotlightInfluencers} />
