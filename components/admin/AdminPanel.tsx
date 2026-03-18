@@ -393,18 +393,24 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const handleVerify = async (userId: string) => {
     if (!confirm('Bu kullanıcıyı onaylamak istediğinizden emin misiniz?')) return
 
+    const loadingToast = toast.loading('Kullanıcı onaylanıyor...')
+
     startTransition(async () => {
       try {
         const result = await verifyUser(userId)
+        toast.dismiss(loadingToast)
+
         if (result.error) {
-          alert(result.error)
+          toast.error(result.error)
           console.error('Verify error:', result.error)
         } else {
+          toast.success('Kullanıcı başarıyla onaylandı!')
           console.log('User verified successfully:', userId)
         }
       } catch (error) {
+        toast.dismiss(loadingToast)
         console.error('Verify exception:', error)
-        alert('Bir hata oluştu. Lütfen tekrar deneyin.')
+        toast.error('Bir hata oluştu. Lütfen tekrar deneyin.')
       }
       // Real-time subscription will automatically update the state
     })
@@ -415,18 +421,24 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
       return
     }
 
+    const loadingToast = toast.loading('İşlem yapılıyor...')
+
     startTransition(async () => {
       try {
         const result = await rejectUser(userId)
+        toast.dismiss(loadingToast)
+
         if (result.error) {
-          alert(result.error)
+          toast.error(result.error)
           console.error('Reject error:', result.error)
         } else {
+          toast.success('Kullanıcı reddedildi.')
           console.log('User rejected successfully:', userId)
         }
       } catch (error) {
+        toast.dismiss(loadingToast)
         console.error('Reject exception:', error)
-        alert('Bir hata oluştu. Lütfen tekrar deneyin.')
+        toast.error('Bir hata oluştu. Lütfen tekrar deneyin.')
       }
       // Real-time subscription will automatically update the state
     })

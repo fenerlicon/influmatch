@@ -25,13 +25,21 @@ export async function verifyUser(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  const { error } = await supabase
+  // Use Admin Client to bypass RLS for updates in OTHER users' profiles
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı (Service Role Key eksik olabilir).' }
+  }
+
+  const { error } = await supabaseAdmin
     .from('users')
     .update({ verification_status: 'verified' })
     .eq('id', userId)
@@ -83,13 +91,21 @@ export async function rejectUser(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  const { error } = await supabase
+  // Use Admin Client to bypass RLS
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası.' }
+  }
+
+  const { error } = await supabaseAdmin
     .from('users')
     .update({ verification_status: 'rejected' })
     .eq('id', userId)
@@ -120,13 +136,21 @@ export async function updateAdminNotes(userId: string, notes: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  const { error } = await supabase
+  // Use Admin Client
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası.' }
+  }
+
+  const { error } = await supabaseAdmin
     .from('users')
     .update({ admin_notes: notes || null })
     .eq('id', userId)
