@@ -9,7 +9,7 @@ const PARTNERS = [
   },
   {
     name: 'Instagram',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Instagram_logo.svg',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg',
   },
   {
     name: 'Meta',
@@ -38,7 +38,11 @@ export default function PartnersSection() {
           <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-10 sm:gap-x-16">
             {PARTNERS.map((partner) => (
               <div key={partner.name} className="relative group flex items-center justify-center transition-all duration-500">
-                <div className="relative h-8 w-24 sm:h-12 sm:w-36 transition-all duration-500 brightness-0 invert opacity-30 group-hover:opacity-100 group-hover:brightness-100 group-hover:invert-0 group-hover:scale-110">
+                <div 
+                  className={`relative transition-all duration-500 brightness-0 invert opacity-30 group-hover:opacity-100 group-hover:brightness-100 group-hover:invert-0 group-hover:scale-110 ${
+                    partner.name === 'Instagram' ? 'h-8 w-8 sm:h-10 sm:w-10 group-hover:contrast-125' : 'h-8 w-24 sm:h-12 sm:w-36'
+                  }`}
+                >
                   <Image
                     src={partner.logo}
                     alt={partner.name}
