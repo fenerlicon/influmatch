@@ -39,7 +39,7 @@ export default function PartnersSection() {
             {PARTNERS.map((partner) => (
               <div key={partner.name} className="relative group flex items-center justify-center transition-all duration-500">
                 <div 
-                  className={`relative transition-all duration-500 brightness-0 invert opacity-30 group-hover:opacity-100 group-hover:brightness-100 group-hover:invert-0 group-hover:scale-110 ${
+                  className={`relative transition-all duration-500 grayscale opacity-40 group-hover:opacity-100 group-hover:grayscale-0 group-hover:scale-110 ${
                     partner.name === 'Instagram' ? 'h-8 w-8 sm:h-10 sm:w-10 group-hover:contrast-125' : 'h-8 w-24 sm:h-12 sm:w-36'
                   }`}
                 >
