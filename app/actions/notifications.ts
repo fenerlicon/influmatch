@@ -14,9 +14,19 @@ export async function sendNotification(
 ) {
     const supabase = createSupabaseServerClient()
 
-    // GÜVENLİK: Sadece oturum açmış kullanıcılar bildirim gönderebilir
+    // GÜVENLİK: Sadece adminler bildirim gönderebilir
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Yetkisiz erişim.' }
+
+    const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || profile.role !== 'admin') {
+        return { success: false, error: 'Sadece admin yetkisi olanlar bildirim gönderebilir.' }
+    }
 
     try {
         const notifications = userIds.map((userId) => ({

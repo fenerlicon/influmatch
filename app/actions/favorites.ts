@@ -11,6 +11,17 @@ export async function toggleFavorite(influencerId: string) {
         return { error: 'Unauthorized' }
     }
 
+    // Check if user is a brand (Security fix)
+    const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || profile.role !== 'brand') {
+        return { error: 'Sadece markalar favorilere ekleme yapabilir.' }
+    }
+
     // Check if already favorited
     const { data: existing, error: checkError } = await supabase
         .from('favorites')
