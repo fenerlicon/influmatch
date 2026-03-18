@@ -176,28 +176,34 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
 
     return (
         <div className="w-full">
-            {/* Header - Only show if not success to save space, or make it minimal */}
-            {step !== 'success' && (
-                <div className="mb-6">
-                    <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Hesap Doğrulama</p>
-                    <h3 className="mt-2 text-xl font-semibold text-white">Instagram Hesabını Bağla</h3>
-                    <p className="mt-1 text-sm text-gray-400">
-                        Analizli profiller vitrininde görünmek için hesabını doğrula.
-                    </p>
-                </div>
-            )}
+            {/* Header */}
+            <div className="mb-6">
+                <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Hesap Doğrulama</p>
+                <h3 className="mt-2 text-xl font-semibold text-white">Instagram Hesabını Bağla</h3>
+                <p className="mt-1 text-sm text-gray-400">
+                    Analizli profiller vitrininde görünmek ve markalara güven vermek için hesabını doğrula.
+                </p>
+            </div>
 
             {step === 'input' && (
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                <div className="flex flex-col gap-6">
+                    <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-sm text-gray-300">
+                        <ul className="list-inside list-disc space-y-1">
+                            <li>Profil istatistikleriniz anlık çekilir.</li>
+                            <li>Etkileşim oranınız otomatik hesaplanır.</li>
+                            <li>Marka aramalarında "Doğrulanmış" rozetiyle öne çıkarsınız.</li>
+                        </ul>
+                    </div>
+
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Instagram Kullanıcı Adı</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider text-[10px]">Instagram Kullanıcı Adı</label>
                         <div className="relative rounded-xl shadow-sm">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <span className="text-gray-500 sm:text-sm">@</span>
                             </div>
                             <input
                                 type="text"
-                                className="block w-full rounded-xl border-white/10 bg-white/5 pl-8 pr-4 py-3 text-white placeholder-gray-500 focus:border-soft-gold focus:ring-soft-gold sm:text-sm transition"
+                                className="block w-full rounded-xl border-white/10 bg-[#11121A] pl-9 pr-4 py-4 text-white placeholder-gray-500 focus:border-soft-gold focus:ring-1 focus:ring-soft-gold sm:text-sm transition"
                                 placeholder="kullaniciadi"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
@@ -208,10 +214,14 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                     <button
                         onClick={handleGenerateCode}
                         disabled={loading}
-                        className="rounded-xl bg-soft-gold px-6 py-3 text-sm font-semibold text-black transition hover:bg-soft-gold/90 disabled:opacity-50 whitespace-nowrap"
+                        className="w-full rounded-xl bg-white px-6 py-4 text-sm font-bold text-black transition hover:bg-gray-200 disabled:opacity-50 active:scale-95 transition-all"
                     >
-                        {loading ? '...' : 'Doğrulama Kodu Al'}
+                        {loading ? 'Lütfen Bekleyin...' : 'Doğrulama Kodu Al'}
                     </button>
+                    
+                    <p className="text-[10px] italic text-gray-500 text-center">
+                        Instagram şifreniz istenmez, güvenli yöntemle doğrulanır.
+                    </p>
                 </div>
             )}
 
