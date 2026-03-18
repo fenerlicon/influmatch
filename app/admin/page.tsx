@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import AdminPanel from '@/components/admin/AdminPanel'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@influmatch.net'
 
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient()

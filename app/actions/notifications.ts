@@ -14,6 +14,10 @@ export async function sendNotification(
 ) {
     const supabase = createSupabaseServerClient()
 
+    // GÜVENLİK: Sadece oturum açmış kullanıcılar bildirim gönderebilir
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Yetkisiz erişim.' }
+
     try {
         const notifications = userIds.map((userId) => ({
             user_id: userId,
@@ -41,6 +45,12 @@ export async function sendNotification(
 export async function getNotifications(userId: string) {
     const supabase = createSupabaseServerClient()
 
+    // GÜVENLİK: Kullanıcı sadece kendi bildirimlerini alabilir
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.id !== userId) {
+        return { success: false, error: 'Yetkisiz erişim.', data: [] }
+    }
+
     try {
         const { data, error } = await supabase
             .from('notifications')
@@ -64,11 +74,16 @@ export async function getNotifications(userId: string) {
 export async function markNotificationAsRead(notificationId: string) {
     const supabase = createSupabaseServerClient()
 
+    // GÜVENLİK: IDOR fix — sadece kendi bildirimine işlem yapabilir
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Yetkisiz erişim.' }
+
     try {
         const { error } = await supabase
             .from('notifications')
             .update({ is_read: true })
             .eq('id', notificationId)
+            .eq('user_id', user.id) // IDOR koruması
 
         if (error) {
             console.error('Error marking notification as read:', error)
@@ -85,6 +100,12 @@ export async function markNotificationAsRead(notificationId: string) {
 
 export async function markAllNotificationsAsRead(userId: string) {
     const supabase = createSupabaseServerClient()
+
+    // GÜVENLİK: Kullanıcı sadece kendi bildirimlerini okundu işaretleyebilir
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.id !== userId) {
+        return { success: false, error: 'Yetkisiz erişim.' }
+    }
 
     try {
         const { error } = await supabase
@@ -109,11 +130,16 @@ export async function markAllNotificationsAsRead(userId: string) {
 export async function deleteNotification(notificationId: string) {
     const supabase = createSupabaseServerClient()
 
+    // GÜVENLİK: IDOR fix — sadece kendi bildirimine işlem yapabilir
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Yetkisiz erişim.' }
+
     try {
         const { error } = await supabase
             .from('notifications')
             .delete()
             .eq('id', notificationId)
+            .eq('user_id', user.id) // IDOR koruması
 
         if (error) {
             console.error('Error deleting notification:', error)
@@ -130,6 +156,12 @@ export async function deleteNotification(notificationId: string) {
 
 export async function deleteAllNotifications(userId: string) {
     const supabase = createSupabaseServerClient()
+
+    // GÜVENLİK: Kullanıcı sadece kendi bildirimlerini silebilir
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.id !== userId) {
+        return { success: false, error: 'Yetkisiz erişim.' }
+    }
 
     try {
         const { error } = await supabase

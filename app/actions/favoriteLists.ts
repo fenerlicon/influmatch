@@ -145,6 +145,25 @@ export async function getInfluencerLists(influencerId: string) {
 
 export async function getListItems(listId: string) {
     const supabase = createSupabaseServerClient()
-    const { data } = await supabase.from('favorite_list_items').select('influencer_id').eq('list_id', listId)
+
+    // GÜVENLİK: Auth kontrolü ve sahiplik doğrulaması
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    // Listenin bu kullanıcıya ait olduğunu doğrula
+    const { data: list } = await supabase
+        .from('favorite_lists')
+        .select('id')
+        .eq('id', listId)
+        .eq('brand_id', user.id)
+        .maybeSingle()
+
+    if (!list) return [] // Liste mevcut değil ya da bu kullanıcıya ait değil
+
+    const { data } = await supabase
+        .from('favorite_list_items')
+        .select('influencer_id')
+        .eq('list_id', listId)
+
     return data?.map(d => d.influencer_id) || []
 }

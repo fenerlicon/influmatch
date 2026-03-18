@@ -6,7 +6,7 @@ import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { createClient } from '@supabase/supabase-js'
 import { fetchInstagramData } from '@/utils/instagram-service'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@influmatch.net'
 
 export async function verifyUser(userId: string) {
   const supabase = createSupabaseServerClient()

@@ -13,11 +13,15 @@ export async function trackEvent(
     const supabase = createSupabaseServerClient()
 
     try {
-        // GÜVENLİK: Sadece oturum açmış kullanıcılar (özellikle Brand rolündekiler) veri basabilmeli.
-        // brandId dışarıdan gelse bile, bunu atan kişinin o brandId olduğundan emin olmalıyız? 
-        // Genellikle ANALYTICS brand tarafından tetiklenir (izleme).
+        // GÜVENLİK: Sadece oturum açmış kullanıcılar event yazabilir.
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, error: 'Unauthorized' }
+
+        // GÜVENLİK: brandId dışarıdan geldiği için manipülasyona açıktı.
+        // Kullanıcı sadece kendi ID'si adına event yazabilir.
+        if (user.id !== brandId) {
+            return { success: false, error: 'Sadece kendi adınıza analytics eventi kaydedebilirsiniz.' }
+        }
 
         const { error } = await supabase.rpc('track_analytics_event', {
             p_event_type: eventType,
@@ -40,7 +44,6 @@ export async function trackEvent(
                 return { success: false, error: insertError.message }
             }
         }
-
 
         return { success: true }
     } catch (error) {
