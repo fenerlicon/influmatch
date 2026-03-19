@@ -13,6 +13,7 @@ import VerificationWarningCard from '@/components/dashboard/VerificationWarningC
 import { getFavoriteCount } from '@/app/actions/favorites'
 import TrustScoreCard from '@/components/dashboard/TrustScoreCard'
 import { calculateTrustScore } from '@/utils/matching'
+import { CheckCircle2, Heart, Mail, Sparkles, Calendar } from 'lucide-react'
 
 export const revalidate = 0
 
@@ -28,7 +29,7 @@ export default async function InfluencerDashboardPage() {
 
   const { data: profile, error } = await supabase
     .from('users')
-    .select('spotlight_active, spotlight_plan, is_showcase_visible, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
+    .select('spotlight_active, spotlight_plan, spotlight_expires_at, is_showcase_visible, full_name, username, city, bio, category, avatar_url, social_links, verification_status')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -131,20 +132,27 @@ export default async function InfluencerDashboardPage() {
   // Get favorite count
   const favoriteCount = await getFavoriteCount(user.id)
 
+  const spotlightExpiresAt = profile?.spotlight_expires_at ? new Date(profile.spotlight_expires_at) : null
+  const spotlightExpiryText = spotlightExpiresAt 
+    ? spotlightExpiresAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
+    : null
+
   const stats = [
     {
       label: 'Profil Doluluk',
       value: `${profileCompletion.percent}%`,
       badge: isProfileComplete ? 'Tamamlandı' : `${Math.max(profileCompletion.total - profileCompletion.completed, 0)} görev`,
       variant: isProfileComplete ? 'complete' : null,
+      icon: <CheckCircle2 className="h-5 w-5" />,
     },
     {
-      label: 'Sizi Favorileyen Marka Sayısı',
-      value: spotlightActive ? `${favoriteCount}` : null,
+      label: 'Favorileyen Markalar',
+      value: spotlightActive ? `${favoriteCount}` : '-',
       badge: spotlightActive ? 'Markalar sizi takip ediyor' : 'Vitrine çıkarak markalara ulaş',
       variant: null,
+      icon: <Heart className="h-5 w-5" />,
       action: !spotlightActive ? (
-        <a href="/dashboard/spotlight" className="inline-block rounded-lg bg-soft-gold/20 px-3 py-1 text-xs font-semibold text-soft-gold hover:bg-soft-gold/30 transition">
+        <a href="/dashboard/spotlight" className="inline-block rounded-lg bg-soft-gold/20 px-3 py-1 text-xs font-semibold text-soft-gold hover:bg-soft-gold/30 transition border border-soft-gold/30">
           Spotlight'ı Aç
         </a>
       ) : null
@@ -153,12 +161,14 @@ export default async function InfluencerDashboardPage() {
       label: 'Bekleyen Teklif',
       value: `${pendingOffersCount}`,
       badge: 'Cevap bekleyen',
+      icon: <Mail className="h-5 w-5" />,
     },
     {
       label: 'Spotlight Durumu',
       value: spotlightActive ? 'Aktif' : 'Pasif',
-      badge: spotlightActive ? 'Vitrine çıkıldı' : 'Kapalı',
+      badge: spotlightActive ? (spotlightExpiryText ? `${spotlightExpiryText}'e kadar` : 'Vitrine çıkıldı') : 'Kapalı',
       variant: spotlightActive ? 'spotlight-active' : null,
+      icon: <Sparkles className="h-5 w-5" />,
     },
   ]
 
@@ -184,51 +194,55 @@ export default async function InfluencerDashboardPage() {
           {stats.map((item) => (
             <div
               key={item.label}
-              className={`relative overflow-hidden rounded-2xl border p-4 text-sm ${item.variant === 'complete'
-                ? 'border-white/15 bg-gradient-to-br from-[#1a1b23] to-[#101118] text-gray-200'
+              className={`group relative overflow-hidden rounded-3xl border p-5 transition-all duration-300 hover:scale-[1.02] ${
+                item.variant === 'complete'
+                ? 'border-green-500/30 bg-gradient-to-br from-[#1a1b23] to-[#0a0b10] shadow-[0_0_15px_rgba(34,197,94,0.1)]'
                 : item.variant === 'spotlight-active'
-                  ? 'border-soft-gold/60 bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 text-gray-200 shadow-[0_0_22px_rgba(212,175,55,0.3)]'
-                  : 'border-white/10 bg-[#11121A] text-gray-300'
-                }`}
+                  ? 'border-soft-gold/60 bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 shadow-[0_0_22px_rgba(212,175,55,0.2)]'
+                  : 'border-white/10 bg-[#11121A] hover:border-white/20'
+              }`}
             >
               {item.variant === 'complete' ? (
                 <>
-                  <span className="pointer-events-none absolute inset-0 bg-white/5 opacity-30" />
-                  <span
-                    className="pointer-events-none absolute inset-0 opacity-15"
-                    style={{
-                      backgroundImage:
-                        'repeating-linear-gradient(135deg, rgba(212,175,55,0.15) 0, rgba(212,175,55,0.15) 2px, transparent 2px, transparent 12px)',
-                    }}
-                  />
+                  <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-green-500/10 blur-2xl" />
                 </>
               ) : item.variant === 'spotlight-active' ? (
                 <>
-                  <span className="pointer-events-none absolute inset-0 bg-soft-gold/10 opacity-50" />
-                  <span
-                    className="pointer-events-none absolute inset-0 opacity-20"
-                    style={{
-                      backgroundImage:
-                        'repeating-linear-gradient(135deg, rgba(212,175,55,0.3) 0, rgba(212,175,55,0.3) 2px, transparent 2px, transparent 12px)',
-                    }}
-                  />
+                  <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-soft-gold/20 blur-2xl" />
                 </>
-              ) : null}
-              <div className="relative z-10">
-                <p>{item.label}</p>
-                {item.action ? (
-                  <div className="mt-2 min-h-[32px] flex items-center">{item.action}</div>
-                ) : (
-                  <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
-                )}
-                <p
-                  className={`mt-4 text-xs uppercase tracking-[0.3em] ${item.variant === 'spotlight-active'
-                    ? 'font-bold text-soft-gold text-sm tracking-[0.4em]'
-                    : 'text-soft-gold'
-                    }`}
-                >
-                  {item.badge}
-                </p>
+              ) : (
+                <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/5 blur-2xl transition-all group-hover:bg-white/10" />
+              )}
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">{item.label}</p>
+                  <div className={`rounded-xl p-2 ${
+                    item.variant === 'complete' ? 'bg-green-500/20 text-green-400' :
+                    item.variant === 'spotlight-active' ? 'bg-soft-gold/20 text-soft-gold' :
+                    'bg-white/5 text-gray-400'
+                  }`}>
+                    {item.icon}
+                  </div>
+                </div>
+                
+                <div className="mt-4 flex-grow">
+                  {item.action ? (
+                    <div className="min-h-[40px] flex items-center">{item.action}</div>
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                       <p className="text-3xl font-bold text-white tracking-tight">{item.value}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className={`mt-4 flex items-center gap-1.5 py-1 px-3 rounded-lg w-fit ${
+                  item.variant === 'complete' ? 'bg-green-500/10 text-green-400' :
+                  item.variant === 'spotlight-active' ? 'bg-soft-gold/15 text-soft-gold font-semibold' :
+                  'bg-white/5 text-gray-500'
+                }`}>
+                  {item.variant === 'spotlight-active' && <Calendar className="h-3 w-3" />}
+                  <p className="text-[10px] uppercase tracking-[0.1em]">{item.badge}</p>
+                </div>
               </div>
             </div>
           ))}
