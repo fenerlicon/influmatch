@@ -29,6 +29,8 @@ interface User {
   tax_id?: string | null
   company_legal_name?: string | null
   spotlight_active?: boolean | null
+  spotlight_plan?: string | null
+  spotlight_expires_at?: string | null
   displayed_badges?: string[] | null
   tax_id_verified?: boolean | null
   email_verified_at?: string | null
@@ -143,7 +145,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // Fetch complete user data to ensure we have all fields
           const { data: completeUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, spotlight_plan, spotlight_expires_at, displayed_badges, tax_id_verified, email_verified_at')
             .eq('id', userId)
             .single()
 

@@ -181,7 +181,7 @@ export async function manuallyAwardBadges(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -226,7 +226,7 @@ export async function manuallyAwardSpecificBadge(userId: string, badgeId: string
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -266,32 +266,57 @@ export async function toggleUserSpotlight(
   plan: 'ibasic' | 'ipro' | 'mbasic' | 'mpro' | null = null,
   durationMonths: number = 0
 ) {
+  console.log('[toggleUserSpotlight] Request:', { userId, spotlightActive, plan, durationMonths })
+
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
+    error: authError
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    return { error: 'Oturum açmanız gerekiyor.' }
+  if (authError || !user) {
+    console.error('[toggleUserSpotlight] Auth error:', authError)
+    return { error: 'Oturum açmanız gerekiyor. (Auth hatası)' }
   }
 
+  console.log('[toggleUserSpotlight] Auth User:', user.email, user.id)
+
   // Check if user is admin
-  const { data: adminProfile } = await supabase
+  const { data: adminProfile, error: profileError } = await supabase
     .from('users')
     .select('role, email')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  if (profileError) {
+    console.error('[toggleUserSpotlight] Profile fetch error:', profileError)
+  }
+
+  console.log('[toggleUserSpotlight] Admin Profile:', adminProfile)
+
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+
+  console.log('[toggleUserSpotlight] isAdmin check:', { 
+    role: adminProfile?.role, 
+    email: user.email, 
+    expected: ADMIN_EMAIL,
+    isAdmin 
+  })
 
   if (!isAdmin) {
-    return { error: 'Bu işlem için yetkiniz yok.' }
+    console.warn('[toggleUserSpotlight] Unauthorized attempt by:', user.email, 'Target:', userId)
+    return { error: `Bu işlem için yetkiniz yok. (Sizin rolünüz: ${adminProfile?.role || 'null'}, E-posta: ${user.email})` }
+  }
+
+  if (spotlightActive && !plan) {
+    return { error: 'Spotlight aktifleştirmek için bir paket seçmelisiniz.' }
   }
 
   const updateData: any = { spotlight_active: spotlightActive }
 
   if (spotlightActive) {
     updateData.spotlight_plan = plan
+    updateData.verification_status = 'verified' // Auto-verify on spotlight activation
 
     // Set expiration
     if (durationMonths > 0) {
@@ -304,19 +329,47 @@ export async function toggleUserSpotlight(
     updateData.spotlight_expires_at = null
   }
 
-  const { error } = await supabase
+  // Use Admin Client to bypass RLS
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    console.error('[toggleUserSpotlight] Service Role Client initialization failed.')
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı (Service Role Key eksik olabilir).' }
+  }
+
+  console.log('[toggleUserSpotlight] Checking target user existence:', userId)
+  const { data: targetUser, error: fetchError } = await supabaseAdmin.from('users').select('id, email, full_name').eq('id', userId).maybeSingle()
+
+  if (fetchError) {
+    console.error('[toggleUserSpotlight] Target user fetch error:', fetchError)
+    return { error: `Hedef kullanıcı bilgisi alınamadı: ${fetchError.message}` }
+  }
+
+  if (!targetUser) {
+    console.error('[toggleUserSpotlight] Target user not found:', userId)
+    return { error: `Kullanıcı bulunamadı (ID: ${userId}). Veritabanında bu ID ile bir kayıt olmayabilir.` }
+  }
+
+  console.log('[toggleUserSpotlight] Updating user:', targetUser.email || targetUser.full_name || userId, 'with data:', updateData)
+
+  const { error } = await supabaseAdmin
     .from('users')
     .update(updateData)
     .eq('id', userId)
 
   if (error) {
-    console.error('[toggleUserSpotlight] Supabase error:', error)
-    return { error: `Spotlight güncelleme hatası: ${error.message}` }
+    console.error('[toggleUserSpotlight] Supabase update error:', error)
+    return { error: `Spotlight güncelleme hatası: ${error.message} (Kod: ${error.code})` }
   }
+
+  console.log('[toggleUserSpotlight] Successfully updated user:', userId)
 
   revalidatePath('/admin')
   revalidatePath('/dashboard/influencer')
-  revalidatePath('/vitrin')
+  revalidatePath('/dashboard/brand')
+  revalidatePath('/spotlight') // Corrected from /vitrin
+  revalidatePath('/discover')
 
   return { success: true, message: spotlightActive ? `Spotlight (${plan}, ${durationMonths} ay) aktif edildi.` : 'Spotlight deaktif edildi.' }
 }
@@ -339,7 +392,7 @@ export async function verifyTaxId(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -364,8 +417,16 @@ export async function verifyTaxId(userId: string) {
     return { error: 'Bu işlem sadece markalar için geçerlidir.' }
   }
 
+  // Use Admin Client to bypass RLS
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
+  }
+
   // Update tax_id_verified
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseAdmin
     .from('users')
     .update({ tax_id_verified: true })
     .eq('id', userId)
@@ -423,7 +484,7 @@ export async function resendVerificationEmail(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -488,7 +549,7 @@ export async function forceVerifyEmail(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -516,7 +577,7 @@ export async function forceVerifyEmail(userId: string) {
     }
 
     // Also update public.users if needed (though triggers usually handle it)
-    await supabase.from('users').update({ email_verified_at: new Date().toISOString() }).eq('id', userId)
+    await supabaseAdmin.from('users').update({ email_verified_at: new Date().toISOString() }).eq('id', userId)
 
     revalidatePath('/admin')
     return { success: true, message: 'Kullanıcı e-postası manuel olarak onaylandı.' }
@@ -544,7 +605,7 @@ export async function resetVerifiedBadges() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -603,7 +664,7 @@ export async function toggleBlueTick(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -632,12 +693,20 @@ export async function toggleBlueTick(userId: string) {
       .eq('badge_id', badgeId)
       .maybeSingle()
 
+    // Use Admin Client to bypass RLS
+    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+    const supabaseAdmin = createSupabaseAdminClient()
+
+    if (!supabaseAdmin) {
+      return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
+    }
+
     let action = ''
     let message = ''
 
     if (existingBadge) {
       // Remove badge
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await supabaseAdmin
         .from('user_badges')
         .delete()
         .eq('user_id', userId)
@@ -650,7 +719,7 @@ export async function toggleBlueTick(userId: string) {
       message = `${badgeName} kaldırıldı.`
     } else {
       // Add badge
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabaseAdmin
         .from('user_badges')
         .insert({
           user_id: userId,
@@ -667,6 +736,7 @@ export async function toggleBlueTick(userId: string) {
 
     // IMPORTANT: Sync displayed_badges in users table
     // Fetch all current badges for the user
+    // (Still using standard client for select is usually fine as SELECT policies are "true")
     const { data: allBadges } = await supabase
       .from('user_badges')
       .select('badge_id')
@@ -674,27 +744,14 @@ export async function toggleBlueTick(userId: string) {
 
     const badgeArray = allBadges?.map((b) => b.badge_id).filter(Boolean) || []
 
-    // Update users table using Admin Client to bypass RLS
-    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-    const supabaseAdmin = createSupabaseAdminClient()
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({ displayed_badges: badgeArray })
+      .eq('id', userId)
 
-    if (supabaseAdmin) {
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update({ displayed_badges: badgeArray })
-        .eq('id', userId)
-
-      if (updateError) {
-        console.error('[toggleBlueTick] Admin update error:', updateError)
-        // Fallback to normal client just in case
-        await supabase
-          .from('users')
-          .update({ displayed_badges: badgeArray })
-          .eq('id', userId)
-      }
-    } else {
-      // Fallback if admin client init fails
-      console.warn('[toggleBlueTick] Admin client init failed, using standard client')
+    if (updateError) {
+      console.error('[toggleBlueTick] Admin update error:', updateError)
+      // Fallback (redundant but safe if we are already here)
       await supabase
         .from('users')
         .update({ displayed_badges: badgeArray })
@@ -733,7 +790,7 @@ export async function deleteUser(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
 
   if (!isAdmin) {
     console.warn('[deleteUser] Unauthorized attempt by:', user.email)
