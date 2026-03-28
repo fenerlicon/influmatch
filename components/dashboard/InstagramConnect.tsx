@@ -189,13 +189,17 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                 <div className="flex flex-col gap-2">
                     <button
                         type="button"
-                        disabled={!agreedToTerms || !agreedToConsent}
                         onClick={() => {
+                            if (!agreedToTerms || !agreedToConsent) {
+                                alert('Lütfen devam etmeden önce sözleşmeleri kabul edin.');
+                                document.getElementById('legal-section')?.scrollIntoView({ behavior: 'smooth' });
+                                return;
+                            }
                             window.location.href = '/api/auth/instagram/login';
                         }}
                         className={`w-full flex items-center justify-center gap-3 rounded-xl px-6 py-4 text-sm font-bold text-white transition active:scale-95 mb-2 shadow-lg ${
                             (!agreedToTerms || !agreedToConsent) 
-                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5 opacity-50' 
+                            ? 'bg-gray-800 text-gray-400 border border-white/5 opacity-70 cursor-pointer' 
                             : 'bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-90 shadow-pink-500/10'
                         }`}
                     >
@@ -233,9 +237,21 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                     </div>
 
                     <button
-                        onClick={handleGenerateCode}
+                        type="button"
+                        onClick={() => {
+                            if (!agreedToTerms || !agreedToConsent) {
+                                alert('Lütfen devam etmeden önce sözleşmeleri kabul edin.');
+                                document.getElementById('legal-section')?.scrollIntoView({ behavior: 'smooth' });
+                                return;
+                            }
+                            handleGenerateCode();
+                        }}
                         disabled={loading}
-                        className="w-full rounded-xl bg-white px-6 py-4 text-sm font-bold text-black transition hover:bg-gray-200 disabled:opacity-50 active:scale-95 transition-all"
+                        className={`w-full rounded-xl px-6 py-4 text-sm font-bold transition active:scale-95 transition-all ${
+                            (!agreedToTerms || !agreedToConsent)
+                            ? 'bg-gray-800 text-gray-400 border border-white/5 opacity-70'
+                            : 'bg-white text-black hover:bg-gray-200'
+                        }`}
                     >
                         {loading ? 'Lütfen Bekleyin...' : 'Doğrulama Kodu Al'}
                     </button>
@@ -245,7 +261,7 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                     </p>
                     
                     {/* Legal Checkboxes move to bottom of input for API consent too */}
-                    <div className="mt-4 px-1">
+                    <div id="legal-section" className="mt-4 px-1 scroll-mt-20">
                         <div className="space-y-3">
                             <label className="flex items-start gap-3 cursor-pointer group">
                                 <div className="relative flex items-center">
