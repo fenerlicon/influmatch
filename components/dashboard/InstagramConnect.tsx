@@ -188,14 +188,16 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
             {step === 'input' && (
                 <div className="flex flex-col gap-2">
                     <button
+                        type="button"
+                        disabled={!agreedToTerms || !agreedToConsent}
                         onClick={() => {
-                            if (!agreedToTerms || !agreedToConsent) {
-                                setError('Lütfen önce sözleşmeleri kabul edin.');
-                                return;
-                            }
                             window.location.href = '/api/auth/instagram/login';
                         }}
-                        className="w-full flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] px-6 py-4 text-sm font-bold text-white transition hover:opacity-90 active:scale-95 mb-2 shadow-lg shadow-pink-500/10"
+                        className={`w-full flex items-center justify-center gap-3 rounded-xl px-6 py-4 text-sm font-bold text-white transition active:scale-95 mb-2 shadow-lg ${
+                            (!agreedToTerms || !agreedToConsent) 
+                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5 opacity-50' 
+                            : 'bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-90 shadow-pink-500/10'
+                        }`}
                     >
                         <Instagram className="h-5 w-5" />
                         Meta API ile Doğrudan Bağla (Yeni)
