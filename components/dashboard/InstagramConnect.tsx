@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { generateVerificationCode, verifyInstagramAccount } from '@/app/actions/social-verification';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, Instagram } from 'lucide-react';
 import { USER_AGREEMENT, PRIVACY_POLICY, EXPLICIT_CONSENT } from '@/lib/legal-constants';
 import LegalModal from '@/components/ui/LegalModal';
 
@@ -184,9 +184,28 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                     Analizli profiller vitrininde görünmek ve markalara güven vermek için hesabını doğrula.
                 </p>
             </div>
-
+                
             {step === 'input' && (
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={() => {
+                            if (!agreedToTerms || !agreedToConsent) {
+                                setError('Lütfen önce sözleşmeleri kabul edin.');
+                                return;
+                            }
+                            window.location.href = '/api/auth/instagram/login';
+                        }}
+                        className="w-full flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] px-6 py-4 text-sm font-bold text-white transition hover:opacity-90 active:scale-95 mb-2 shadow-lg shadow-pink-500/10"
+                    >
+                        <Instagram className="h-5 w-5" />
+                        Meta API ile Doğrudan Bağla (Yeni)
+                    </button>
+
+                    <div className="relative flex items-center gap-4 my-4 opacity-50">
+                        <div className="h-px flex-1 bg-white/10" />
+                        <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">veya manuel doğrula</span>
+                        <div className="h-px flex-1 bg-white/10" />
+                    </div>
                     <div className="rounded-xl border border-white/5 bg-white/5 p-4 text-sm text-gray-300">
                         <ul className="list-inside list-disc space-y-1">
                             <li>Profil istatistikleriniz anlık çekilir.</li>
@@ -220,21 +239,11 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                     </button>
                     
                     <p className="text-[10px] italic text-gray-500 text-center">
-                        Instagram şifreniz istenmez, güvenli yöntemle doğrulanır.
+                        Instagram şifreniz istenmez. API yöntemi için hesabınızın <strong>Business/Creator</strong> olması gerekmektedir.
                     </p>
-                </div>
-            )}
-
-            {step === 'code' && (
-                <div className="space-y-4">
-                    <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4">
-                        <p className="text-sm text-yellow-200">
-                            Aşağıdaki kodu Instagram profilindeki <strong>Biyografi (Bio)</strong> alanına ekle.
-                        </p>
-                    </div>
-
-                    {/* Legal Checkboxes & Disclaimer */}
-                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between px-1">
+                    
+                    {/* Legal Checkboxes move to bottom of input for API consent too */}
+                    <div className="mt-4 px-1">
                         <div className="space-y-3">
                             <label className="flex items-start gap-3 cursor-pointer group">
                                 <div className="relative flex items-center">
@@ -255,20 +264,9 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                                         }}
                                         className="text-soft-gold hover:underline"
                                     >
-                                        Kullanıcı Sözleşmesi'ni
+                                        Sözleşmeleri
                                     </button>
-                                    {' '}ve{' '}
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            openModal('Gizlilik Politikası', PRIVACY_POLICY);
-                                        }}
-                                        className="text-soft-gold hover:underline"
-                                    >
-                                        Gizlilik Politikasını
-                                    </button>
-                                    {' '}okudum, kabul ediyorum.
+                                    {' '}kabul ediyorum.
                                 </span>
                             </label>
 
@@ -283,27 +281,22 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                                     <BadgeCheck className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 transition-opacity peer-checked:opacity-100" />
                                 </div>
                                 <span className="text-xs text-gray-400 group-hover:text-gray-300">
-                                    Kişisel verilerimin{' '}
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            openModal('Açık Rıza Metni', EXPLICIT_CONSENT);
-                                        }}
-                                        className="text-soft-gold hover:underline"
-                                    >
-                                        Açık Rıza Metni
-                                    </button>
-                                    {' '}kapsamında analiz edilmesine izin veriyorum.
+                                    Verilerimin analiz edilmesine izin veriyorum.
                                 </span>
                             </label>
                         </div>
+                    </div>
+                </div>
+            )}
 
-                        {/* Disclaimer Text */}
-                        <p className="max-w-[200px] text-right text-[10px] italic text-gray-400 leading-relaxed hidden md:block">
-                            Influmatch sosyal medya hesap şifrelerinizi istemez. Sosyal mecralarda aldığınız etkileşimleri markalarla paylaşmak için sizden onay alır.
+            {step === 'code' && (
+                <div className="space-y-4">
+                    <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4">
+                        <p className="text-sm text-yellow-200">
+                            Aşağıdaki kodu Instagram profilindeki <strong>Biyografi (Bio)</strong> alanına ekle.
                         </p>
                     </div>
+
 
                     <div className="flex items-center gap-4">
                         <div className="flex-1 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">

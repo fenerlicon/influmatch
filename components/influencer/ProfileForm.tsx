@@ -117,6 +117,9 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
     if (params.get('success') === 'tiktok_connected') {
       setToast('TikTok hesabınız başarıyla bağlandı!')
       window.history.replaceState({}, '', window.location.pathname)
+    } else if (params.get('success') === 'instagram_connected') {
+      setToast('Instagram hesabınız Meta API ile başarıyla bağlandı!')
+      window.history.replaceState({}, '', window.location.pathname)
     } else if (params.get('error')) {
       const error = params.get('error')
       setErrorMsg(`Hata: ${error}`)
