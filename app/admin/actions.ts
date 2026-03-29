@@ -889,86 +889,14 @@ export async function adminUpdateInstagramData(userId: string) {
 
     const username = account.username
     const verificationCode = account.verification_code
-    // 2. FETCH DATA using Service (StarAPI -> RocketAPI Fallback)
-    // Strategy: try full data first; if all APIs fail for post content, fall back to
-    // profile-only update (saves follower_count etc., leaves stats empty).
-    let normalizedData: Awaited<ReturnType<typeof fetchInstagramData>> | null = null;
-    let apiWarning: string | null = null;
+    // 2. FETCH DATA using Apify Service
+    let normalizedData;
 
     try {
       normalizedData = await fetchInstagramData(username);
     } catch (apiError: any) {
       console.error('[adminUpdateInstagramData] Instagram Service Error:', apiError)
-
-      // Check if both APIs failed entirely (no profile data at all)
-      // We distinguish by checking if the error came from the very first step (profile fetch)
-      // vs the post-content step. If it's a restriction/post error, we still have profile data
-      // from StarAPI — so we can do a partial update.
-      const isRestrictionError = apiError.message?.includes('API Restriction')
-      const hasRocketKey = !!process.env.ROCKETAPI_KEY
-
-      // Last-resort: try to at least get follower count via a lightweight profile-only call
-      // so we can update the basic metrics even if post stats are unavailable.
-      let profileOnlyData: { follower_count?: number; following_count?: number; media_count?: number } = {}
-
-      try {
-        const rapidApiKey = process.env.RAPIDAPI_KEY
-        if (rapidApiKey) {
-          const profileRes = await fetch('https://starapi1.p.rapidapi.com/instagram/user/get_web_profile_info', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-rapidapi-key': rapidApiKey,
-              'x-rapidapi-host': 'starapi1.p.rapidapi.com'
-            },
-            body: JSON.stringify({ username })
-          })
-          if (profileRes.ok) {
-            const profileJson = await profileRes.json()
-            const u = profileJson?.response?.body?.data?.user
-            if (u) {
-              profileOnlyData = {
-                follower_count: u.edge_followed_by?.count || 0,
-                following_count: u.edge_follow?.count || 0,
-                media_count: u.edge_owner_to_timeline_media?.count || 0,
-              }
-            }
-          }
-        }
-      } catch (profileFetchErr) {
-        console.warn('[adminUpdateInstagramData] Profile-only fallback also failed:', profileFetchErr)
-      }
-
-      if (profileOnlyData.follower_count != null) {
-        // We have profile data — do a partial update (no post stats)
-        const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-        const supabaseAdmin = createSupabaseAdminClient()
-        if (supabaseAdmin) {
-          const now = new Date().toISOString()
-          await supabaseAdmin.from('social_accounts').update({
-            follower_count: profileOnlyData.follower_count,
-            is_verified: true,
-            updated_at: now,
-            stats_payload: {
-              ...(account.stats_payload || {}),
-              following_count: profileOnlyData.following_count ?? account.stats_payload?.following_count,
-              post_count: profileOnlyData.media_count ?? account.stats_payload?.post_count,
-              // Preserve existing avg stats — don't zero them out
-            }
-          }).eq('id', account.id)
-        }
-        const debugInfo = hasRocketKey ? 'RocketAPI Key: VAR' : 'RocketAPI Key: YOK'
-        return {
-          success: true,
-          warning: true,
-          message: `⚠️ Kısmi güncelleme yapıldı. Takipçi sayısı güncellendi (${profileOnlyData.follower_count?.toLocaleString('tr-TR')}), ancak gönderi içerikleri çekilemedi (Instagram kısıtlaması). Mevcut istatistikler korundu. (${debugInfo})`,
-          data: profileOnlyData
-        }
-      }
-
-      // Truly failed — no data at all
-      const debugInfo = hasRocketKey ? 'RocketAPI Key: VAR' : 'RocketAPI Key: YOK'
-      return { success: false, error: `Veri çekme hatası: ${apiError.message} (${debugInfo})` }
+      return { success: false, error: `Veri çekme hatası: ${apiError.message || 'Apify servis hatası'}` }
     }
 
     // normalizedData is guaranteed to be set here (all failure paths return early above)

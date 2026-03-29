@@ -98,22 +98,13 @@ export async function verifyInstagramAccount(userId: string) {
 
         const username = account.username
         const verificationCode = account.verification_code
-        // 2. FETCH DATA using Service (StarAPI -> RocketAPI Fallback)
+        // 2. FETCH DATA using Apify Service
         let normalizedData;
         try {
             normalizedData = await fetchInstagramData(username);
         } catch (apiError: any) {
             console.error('Instagram Service Error:', apiError)
-
-            // Special handling for the empty edges case from StarAPI which is rethrown by service
-            // We want to handle this gracefully here as we did before
-            if (apiError.message && apiError.message.includes('API Restriction')) {
-                // If it's a known restriction error, we proceed with partial data if possible
-                // OR we can just return the error to the user if it's a critical failure for verification
-                return { success: false, error: 'Instagram verileri çekilemedi. Lütfen daha sonra tekrar deneyin.' }
-            }
-
-            return { success: false, error: `Veri çekme hatası: ${apiError.message}` }
+            return { success: false, error: apiError.message || 'Instagram verileri çekilemedi. Lütfen daha sonra tekrar deneyin.' }
         }
 
         const user = normalizedData.user

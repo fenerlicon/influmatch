@@ -1,6 +1,4 @@
 
-
-
 // Interfaces for Internal Use (Normalized Data)
 export interface NormalizedInstagramData {
     user: {
@@ -18,21 +16,11 @@ export interface NormalizedInstagramData {
         category_name?: string;
         is_business_account?: boolean;
     };
-    recent_posts: any[]; // We will keep the 'node' structure or normalize it. 
-    // For minimum friction with existing code, let's try to return 'edges' structure if possible,
-    // or normalized posts that the caller can easily map.
-    // Existing code expects: edges[i].node.{edge_liked_by.count, is_video, etc.}
-    // So let's return it exactly as the existing code expects it: "Edge objects"
+    recent_posts: any[]; // We will keep the 'node' structure for compatibility.
 }
 
 /**
- * Fetches Instagram data using a Chain of Responsibility (StarAPI -> RocketAPI).
- * Throws an error only if ALL providers fail.
- */
-// Free Trial (until Feb. 5, 2026)
-/**
- * Fetches Instagram data using a Chain of Responsibility (RocketAPI -> StarAPI).
- * Throws an error only if ALL providers fail.
+ * Utility for retrying async operations.
  */
 async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number = 1000): Promise<T> {
     try {
@@ -45,260 +33,106 @@ async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number
     }
 }
 
+/**
+ * Fetches Instagram data exclusively via Apify (Most reliable source).
+ */
 export async function fetchInstagramData(username: string): Promise<NormalizedInstagramData> {
-    let starErrorMsg = '';
-
-    // 1. Try Primary Source: StarAPI (RapidAPI)
-    // User requested StarAPI as priority
-    try {
-        console.log('[InstagramService] Attempting Primary (StarAPI)...')
-        return await withRetry(() => fetchFromStarAPI(username), 2)
-    } catch (starError: any) {
-        console.warn(`[InstagramService] Primary (StarAPI) failed after retries: ${starError.message || starError}`)
-        starErrorMsg = starError.message || 'StarAPI Failed';
-        // Proceed to fallback (RocketAPI)
+    if (!process.env.APIFY_API_TOKEN) {
+        throw new Error('APIFY_API_TOKEN eksik. Lütfen sistem yöneticisi ile görüşün.');
     }
 
-    // 2. Try Secondary Source: RocketAPI
-    if (process.env.ROCKETAPI_KEY) {
-        try {
-            console.log('[InstagramService] Attempting Secondary (RocketAPI)...')
-            return await withRetry(() => fetchFromRocketAPI(username), 2)
-        } catch (rocketError: any) {
-            console.error(`[InstagramService] Secondary (RocketAPI) failed after retries: ${rocketError.message || rocketError}`)
-            throw new Error(`Veri kaynaklarına erişilemedi (StarAPI: ${starErrorMsg}, RocketAPI: ${rocketError.message}). Lütfen biraz bekleyip tekrar deneyin.`)
-        }
-    } else {
-        console.warn('[InstagramService] ROCKETAPI_KEY missing, skipping RocketAPI.')
-        throw new Error(`Veri kaynaklarına erişilemedi (StarAPI: ${starErrorMsg}, RocketAPI: API Key Exsik). Lütfen sistem yöneticisi ile görüşün.`)
+    try {
+        console.log(`[InstagramService] Fetching data for ${username} via Apify...`);
+        // Start process and wait for completion (2 retries max for network issues)
+        return await withRetry(() => fetchFromApify(username), 2);
+    } catch (error: any) {
+        console.error(`[InstagramService] Apify fetch failed: ${error.message || error}`);
+        // Preserve original message if it's already descriptive
+        const msg = error.message || 'Apify servis hatası';
+        throw new Error(msg.includes('Instagram') ? msg : `Instagram verileri alınamadı: ${msg}`);
     }
 }
 
-// implementation of StarAPI
-async function fetchFromStarAPI(username: string): Promise<NormalizedInstagramData> {
-    const rapidApiKey = process.env.RAPIDAPI_KEY
-    if (!rapidApiKey) throw new Error('RAPIDAPI_KEY is missing')
+/**
+ * Implementation of Apify (instagram-scraper)
+ */
+async function fetchFromApify(username: string): Promise<NormalizedInstagramData> {
+    const token = process.env.APIFY_API_TOKEN
+    if (!token) throw new Error('APIFY_API_TOKEN is missing')
 
-    const response = await fetch('https://starapi1.p.rapidapi.com/instagram/user/get_web_profile_info', {
+    // Clean @ from username if present
+    const cleanUsername = username.replace('@', '').trim();
+
+    // Using run-sync-get-dataset-items for maximum simplicity (one request)
+    const response = await fetch(`https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${token}`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'x-rapidapi-key': rapidApiKey,
-            'x-rapidapi-host': 'starapi1.p.rapidapi.com'
+            'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username })
+        body: JSON.stringify({
+            "directUrls": [`https://www.instagram.com/${cleanUsername}/`],
+            "resultsType": "details",
+            "resultsLimit": 1,
+            "searchLimit": 1,
+            "addParentData": true
+        }),
     })
 
     if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`StarAPI HTTP ${response.status}: ${errorText}`)
+        const errorText = await response.text();
+        if (response.status === 401) throw new Error('Apify API Token geçersiz.');
+        if (response.status === 402) throw new Error('Apify bakiye yetersiz.');
+        throw new Error(`Apify HTTP ${response.status}: ${errorText}`);
     }
 
-    const data = await response.json()
-    const user = data?.response?.body?.data?.user
-
-    if (!user) {
-        throw new Error('StarAPI: User object not found in response')
+    const items = await response.json()
+    if (!items || items.length === 0) {
+        throw new Error('Instagram profil verisi bulunamadı. Kullanıcı adının doğru olduğundan ve hesabın HERKESE AÇIK (Public) olduğundan emin olun.');
     }
 
-    // Check for critical data (edges)
-    // If StarAPI returns user but NO edges (API restriction), we should consider this a "failure" 
-    // so we can fallback to RocketAPI which might work.
-    const videoEdges = user.edge_felix_video_timeline?.edges || []
-    const timelineEdges = user.edge_owner_to_timeline_media?.edges || []
-    const totalEdges = videoEdges.length + timelineEdges.length
-    const postCount = user.edge_owner_to_timeline_media?.count || 0
-
-    if (postCount > 0 && totalEdges === 0) {
-        throw new Error(`StarAPI returned 0 edges for user with ${postCount} posts (API Restriction).`)
+    const data = items[0]
+    
+    // Check if the scraper returned error info
+    if (data.error || !data.id) {
+        if (data.message?.includes('found')) {
+            throw new Error(`Instagram hesabı (@${cleanUsername}) bulunamadı. Lütfen kullanıcı adını kontrol edin.`);
+        }
+        throw new Error(`Apify Scraper Hatası: ${data.message || 'Kullanıcı verisi alınamadı.'}`);
     }
 
-    let edges = videoEdges.length > 0 ? videoEdges : timelineEdges;
+    const latestPosts = data.latestPosts || []
 
-    // Normalize, Filter Pinned, and Sort StarAPI data
-    edges = edges.map((edge: any) => {
-        const node = edge.node || {};
-        return {
-            node: {
-                ...node,
-                // Ensure timestamp exists and is a number
-                taken_at_timestamp: Number(node.taken_at_timestamp || node.taken_at || 0),
-                is_pinned: (node.pinned_for_users && node.pinned_for_users.length > 0)
-            }
-        };
-    })
-        .filter((edge: any) => !edge.node.is_pinned) // STRICTLY Remove pinned posts
-        .sort((a: any, b: any) => b.node.taken_at_timestamp - a.node.taken_at_timestamp) // Sort by Date Descending
-        .slice(0, 36); // Keep top 36
+    // Map Apify structure to our internal NormalizedInstagramData (Compatible with existing stats calculation)
+    const edges = latestPosts.map((post: any) => ({
+        node: {
+            id: post.id,
+            shortcode: post.shortCode,
+            display_url: post.displayUrl,
+            // Simple video check for engagement calculation
+            is_video: post.type === 'Video' || (post.type === 'Sidecar' && (post.children?.some((c: any) => c.type === 'Video'))),
+            video_view_count: Number(post.videoViewCount || 0),
+            edge_media_to_comment: { count: post.commentsCount || 0 },
+            edge_liked_by: { count: post.likesCount || 0 },
+            taken_at_timestamp: Math.floor(new Date(post.timestamp).getTime() / 1000),
+            is_pinned: false // Apify details mode doesn't explicitly flag pinned
+        }
+    }))
 
     return {
         user: {
-            id: user.id,
-            username: user.username,
-            full_name: user.full_name,
-            biography: user.biography || '',
-            follower_count: user.edge_followed_by?.count || 0,
-            following_count: user.edge_follow?.count || 0,
-            media_count: user.edge_owner_to_timeline_media?.count || 0,
-            is_verified: user.is_verified || false,
-            is_private: user.is_private || false,
-            profile_pic_url: user.profile_pic_url_hd || user.profile_pic_url,
-            external_url: user.external_url,
-            category_name: user.category_name,
-            is_business_account: user.is_business_account
-        },
-        recent_posts: edges
-    }
-}
-
-// implementation of RocketAPI
-async function fetchFromRocketAPI(username: string): Promise<NormalizedInstagramData> {
-    const rocketApiKey = process.env.ROCKETAPI_KEY
-    if (!rocketApiKey) throw new Error('ROCKETAPI_KEY is missing')
-
-    // Step 1: Get User Info to get ID
-    const infoResponse = await fetch('https://v1.rocketapi.io/instagram/user/get_web_profile_info', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Token ${rocketApiKey}`
-        },
-        body: JSON.stringify({ username })
-    })
-
-    if (!infoResponse.ok) {
-        const errorText = await infoResponse.text()
-        throw new Error(`RocketAPI (Info) HTTP ${infoResponse.status}: ${errorText}`)
-    }
-
-    const infoData = await infoResponse.json()
-    const user = infoData?.response?.body?.data?.user
-
-    if (!user) {
-        throw new Error('RocketAPI: User object not found in info response')
-    }
-
-    const userId = user.id
-
-    // Step 2: Get Media (Posts) AND Reels (Clips)
-    // We fetch both because 'get_media' (Feed) often excludes generic headers but might miss Reels-only posts.
-    // 'get_clips' fetches specific Reels. We merge them to get a complete picture.
-
-    const [mediaResponse, clipsResponse] = await Promise.all([
-        fetch('https://v1.rocketapi.io/instagram/user/get_media', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Token ${rocketApiKey}`
-            },
-            body: JSON.stringify({ id: Number(userId), count: 36 })
-        }),
-        fetch('https://v1.rocketapi.io/instagram/user/get_clips', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Token ${rocketApiKey}`
-            },
-            body: JSON.stringify({ id: Number(userId), count: 36 })
-        })
-    ]);
-
-    let rawItems: any[] = []
-
-    // ... (rest of processing)
-
-    // Process Feed
-    if (mediaResponse.ok) {
-        const mediaData = await mediaResponse.json()
-        const items = mediaData?.response?.body?.items || []
-        rawItems = [...rawItems, ...items]
-    } else {
-        console.warn('[InstagramService] RocketAPI Feed fetch failed.')
-    }
-
-    if (clipsResponse.ok) {
-        const clipsData = await clipsResponse.json()
-        const items = clipsData?.response?.body?.items || []
-        const normalizedClips = items.map((item: any) => item.media ? item.media : item)
-        rawItems = [...rawItems, ...normalizedClips]
-    } else {
-        console.warn('[InstagramService] RocketAPI Clips fetch failed.')
-    }
-
-    // ...
-
-    // Deduplicate by ID
-    const uniqueItemsMap = new Map()
-    const getItemQuality = (rawItem: any) => {
-        const item = rawItem.media ? rawItem.media : rawItem;
-        const views = Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0;
-        return views;
-    }
-
-    rawItems.forEach(item => {
-        if (!item.id) return;
-        const existing = uniqueItemsMap.get(item.id);
-        if (!existing) {
-            uniqueItemsMap.set(item.id, item);
-        } else {
-            const newQuality = getItemQuality(item);
-            const oldQuality = getItemQuality(existing);
-            if (newQuality > oldQuality) {
-                uniqueItemsMap.set(item.id, item);
-            }
-        }
-    })
-    const uniqueItems = Array.from(uniqueItemsMap.values())
-
-
-    // Convert to Edges (Unified structure)
-    const getMediaObject = (item: any) => item.media ? item.media : item;
-
-    let edges = uniqueItems.map((rawItem: any) => {
-        const item = getMediaObject(rawItem);
-        const isPinned = (item.pinned_for_users && item.pinned_for_users.length > 0) || item.is_pinned === true;
-        return {
-            node: {
-                id: item.id,
-                shortcode: item.code,
-                display_url: item.image_versions2?.candidates?.[0]?.url,
-                is_video: item.media_type === 2,
-                // RocketAPI for Clips returns 'play_count', Feed returns 'view_count' or 'play_count'.
-                // We must catch all possibilities.
-                video_view_count: Number(item.play_count) || Number(item.view_count) || Number(item.video_view_count) || 0,
-                edge_media_to_comment: { count: item.comment_count || 0 },
-                edge_liked_by: { count: item.like_count || 0 },
-                taken_at_timestamp: Number(item.taken_at || item.device_timestamp || 0),
-                is_pinned: isPinned
-            }
-        }
-    })
-
-    // Filter out pinned posts
-    edges = edges.filter((e: any) => !e.node.is_pinned)
-
-    // SORTING: Sort by date descending
-    edges.sort((a, b) => (Number(b.node.taken_at_timestamp) || 0) - (Number(a.node.taken_at_timestamp) || 0))
-
-    // Slice top 12 (Service returns normalized list, caller can slice further)
-    edges = edges.slice(0, 12)
-
-
-    return {
-        user: {
-            id: user.id,
-            username: user.username,
-            full_name: user.full_name,
-            biography: user.biography || '',
-            follower_count: user.edge_followed_by?.count || 0,
-            following_count: user.edge_follow?.count || 0,
-            media_count: user.edge_owner_to_timeline_media?.count || 0,
-            is_verified: user.is_verified || false,
-            is_private: user.is_private || false,
-            profile_pic_url: user.profile_pic_url_hd || user.profile_pic_url,
-            external_url: user.external_url,
-            category_name: user.category_name,
-            is_business_account: user.is_business_account
+            id: data.id,
+            username: data.username,
+            full_name: data.fullName || data.username,
+            biography: data.biography || '',
+            follower_count: data.followersCount || 0,
+            following_count: data.followsCount || 0,
+            media_count: data.postsCount || 0,
+            is_verified: data.isVerified || false,
+            is_private: data.isPrivate || false,
+            profile_pic_url: data.profilePicUrl,
+            external_url: data.externalUrl,
+            category_name: data.categoryName,
+            is_business_account: data.isBusinessAccount
         },
         recent_posts: edges
     }
