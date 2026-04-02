@@ -102,8 +102,21 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
 
     const latestPosts = data.latestPosts || []
 
+    // Pre-calculate pinned status based on chronological inversion heuristic.
+    // A post at index 'i' in the grid is considered pinned if it's older than ANY post that appears AFTER it in the grid.
+    const timestamps = latestPosts.map((p: any) => new Date(p.timestamp || 0).getTime());
+    const isPinnedArray = latestPosts.map((_: any, i: number) => {
+        const currentTs = timestamps[i];
+        for (let j = i + 1; j < timestamps.length; j++) {
+            if (timestamps[j] > currentTs) {
+                return true; // Found a newer post after this one -> this must be a pinned old post
+            }
+        }
+        return false;
+    });
+
     // Map Apify structure to our internal NormalizedInstagramData (Compatible with existing stats calculation)
-    const edges = latestPosts.map((post: any) => ({
+    const edges = latestPosts.map((post: any, index: number) => ({
         node: {
             id: post.id,
             shortcode: post.shortCode,
@@ -114,7 +127,7 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
             edge_media_to_comment: { count: post.commentsCount || 0 },
             edge_liked_by: { count: post.likesCount || 0 },
             taken_at_timestamp: Math.floor(new Date(post.timestamp).getTime() / 1000),
-            is_pinned: false // Apify details mode doesn't explicitly flag pinned
+            is_pinned: post.isPinned === true || isPinnedArray[index] // Apify details mode sometimes misses this, we infer it
         }
     }))
 
