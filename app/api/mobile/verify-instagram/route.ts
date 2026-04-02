@@ -124,8 +124,16 @@ async function handleMobileVerify(adminClient: any, userId: string) {
     const now = new Date().toISOString()
 
     // Calculate stats from recent posts
-    const edges = normalizedData.recent_posts || []
-    const recentPosts = edges.slice(0, 6).map((e: any) => e.node)
+    let edges = normalizedData.recent_posts || []
+    if (edges) {
+        edges = edges.filter((edge: any) => {
+            const node = edge.node;
+            if (node.is_pinned === true) return false;
+            if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
+            return true;
+        });
+    }
+    const recentPosts = edges.slice(0, 12).map((e: any) => e.node)
     let avgLikes = 0, avgComments = 0, avgViews = 0, engagementRate = 0
 
     if (recentPosts.length > 0) {

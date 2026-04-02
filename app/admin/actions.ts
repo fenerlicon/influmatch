@@ -933,8 +933,20 @@ export async function adminUpdateInstagramData(userId: string) {
     let engagementRate = 0
     let averageIntervalDays = 0
 
+    // Filter out Pinned Posts explicitly
+    let filteredEdges = edges;
+    if (filteredEdges) {
+        filteredEdges = filteredEdges.filter((edge: any) => {
+            const node = edge.node;
+            if (node.is_pinned === true) return false;
+            if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
+            return true;
+        });
+    }
+
     // 3. Stats Calculation Logic
-    const recentPosts = edges.slice(0, 6).map((edge: any) => edge.node)
+    // We analyze up to 12 recent non-pinned posts (instead of just 6) for more accurate frequency tracking
+    const recentPosts = filteredEdges.slice(0, 12).map((edge: any) => edge.node)
 
 
     if (recentPosts.length > 0) {
