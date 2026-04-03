@@ -71,9 +71,8 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
         },
         body: JSON.stringify({
             "directUrls": [`https://www.instagram.com/${cleanUsername}/`],
-            "resultsType": "details",
-            "resultsLimit": 1,
-            "searchLimit": 1,
+            "resultsType": "reels",
+            "resultsLimit": 15, // Using 15 to get enough recent reels
             "addParentData": true
         }),
     })
@@ -87,20 +86,22 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
 
     const items = await response.json()
     if (!items || items.length === 0) {
-        throw new Error('Instagram profil verisi bulunamadı. Kullanıcı adının doğru olduğundan ve hesabın HERKESE AÇIK (Public) olduğundan emin olun.');
+        throw new Error('Instagram profil verisi veya Reels bulunamadı. Kullanıcı hiç reels paylaşmamış olabilir veya hesap GİZLİ olabilir.');
     }
 
-    const data = items[0]
-    
+    // Since resultsType="reels" and addParentData=true, items is an array of reels,
+    // and each item contains the parent profile details flatly.
+    const parentData = items[0];
+
     // Check if the scraper returned error info
-    if (data.error || !data.id) {
-        if (data.message?.includes('found')) {
+    if (parentData.error) {
+        if (parentData.message?.includes('found')) {
             throw new Error(`Instagram hesabı (@${cleanUsername}) bulunamadı. Lütfen kullanıcı adını kontrol edin.`);
         }
-        throw new Error(`Apify Scraper Hatası: ${data.message || 'Kullanıcı verisi alınamadı.'}`);
+        throw new Error(`Apify Scraper Hatası: ${parentData.message || 'Kullanıcı verisi alınamadı.'}`);
     }
 
-    const latestPosts = data.latestPosts || []
+    const latestPosts = items || []
 
     // Pre-calculate pinned status based on chronological inversion heuristic.
     // A post at index 'i' in the grid is considered pinned if it's older than ANY post that appears AFTER it in the grid.
@@ -118,12 +119,13 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
     // Map Apify structure to our internal NormalizedInstagramData (Compatible with existing stats calculation)
     const edges = latestPosts.map((post: any, index: number) => ({
         node: {
-            id: post.id,
+            // Note: reels might have ownerId instead of id, but post id itself is id
+            id: post.id, 
             shortcode: post.shortCode,
             display_url: post.displayUrl,
-            // Simple video check for engagement calculation
-            is_video: post.type === 'Video' || (post.type === 'Sidecar' && (post.children?.some((c: any) => c.type === 'Video'))),
-            video_view_count: Number(post.videoViewCount || 0),
+            // Reels are always video, but fallback check
+            is_video: post.type === 'Video' || true, 
+            video_view_count: Number(post.videoViewCount || post.videoPlayCount || 0),
             edge_media_to_comment: { count: post.commentsCount || 0 },
             edge_liked_by: { count: post.likesCount || 0 },
             taken_at_timestamp: Math.floor(new Date(post.timestamp).getTime() / 1000),
@@ -133,19 +135,19 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
 
     return {
         user: {
-            id: data.id,
-            username: data.username,
-            full_name: data.fullName || data.username,
-            biography: data.biography || '',
-            follower_count: data.followersCount || 0,
-            following_count: data.followsCount || 0,
-            media_count: data.postsCount || 0,
-            is_verified: data.isVerified || false,
-            is_private: data.isPrivate || false,
-            profile_pic_url: data.profilePicUrl,
-            external_url: data.externalUrl,
-            category_name: data.categoryName,
-            is_business_account: data.isBusinessAccount
+            id: String(parentData.ownerId || parentData.fbid || parentData.id),
+            username: parentData.username,
+            full_name: parentData.fullName || parentData.username,
+            biography: parentData.biography || '',
+            follower_count: parentData.followersCount || 0,
+            following_count: parentData.followsCount || 0,
+            media_count: parentData.postsCount || 0,
+            is_verified: parentData.verified || false,
+            is_private: parentData.private || false,
+            profile_pic_url: parentData.profilePicUrl,
+            external_url: parentData.externalUrl,
+            category_name: parentData.businessCategoryName || parentData.categoryName,
+            is_business_account: parentData.isBusinessAccount
         },
         recent_posts: edges
     }
