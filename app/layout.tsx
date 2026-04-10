@@ -1,6 +1,7 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import AuthProvider from '@/components/providers/AuthProvider'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
@@ -24,6 +25,7 @@ export default function RootLayout({
           <Toaster position="top-center" richColors />
           <SpeedInsights />
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
