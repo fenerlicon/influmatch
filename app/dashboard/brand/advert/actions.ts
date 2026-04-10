@@ -333,3 +333,62 @@ export async function getBrandApplicationsAdmin(projectIds: string[]) {
 
   return { applications: data || [] }
 }
+
+/**
+ * Updates an application status (rejected, shortlisted, accepted, pending)
+ */
+export async function updateApplicationStatus(applicationId: string, status: 'pending' | 'shortlisted' | 'rejected' | 'accepted') {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Verify ownership via a high-privilege check to bypass RLS issues
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
+
+  // Get application to find its advert
+  const { data: application, error: appError } = await supabaseAdmin
+    .from('advert_applications')
+    .select('id, advert_id')
+    .eq('id', applicationId)
+    .single()
+
+  if (appError || !application) {
+    return { error: 'Başvuru bulunamadı.' }
+  }
+
+  // Check if current user owns the advert
+  const { data: advert, error: advertError } = await supabaseAdmin
+    .from('advert_projects')
+    .select('id, brand_user_id')
+    .eq('id', application.advert_id)
+    .single()
+
+  if (advertError || !advert) {
+    return { error: 'İlan bulunamadı.' }
+  }
+
+  if (advert.brand_user_id !== user.id) {
+    return { error: 'Bu başvuruyu güncelleme yetkiniz yok.' }
+  }
+
+  // Update status
+  const { error: updateError } = await supabaseAdmin
+    .from('advert_applications')
+    .update({ status })
+    .eq('id', applicationId)
+
+  if (updateError) {
+    return { error: `Durum güncellenemedi: ${updateError.message}` }
+  }
+
+  revalidatePath('/dashboard/brand/advert')
+  return { success: true }
+}

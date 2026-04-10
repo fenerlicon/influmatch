@@ -6,7 +6,7 @@ import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck, 
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { cancelApplication } from '@/app/dashboard/influencer/advert/actions'
-import { getOrCreateAdvertApplicationRoom } from '@/app/dashboard/brand/advert/actions'
+import { getOrCreateAdvertApplicationRoom, updateApplicationStatus } from '@/app/dashboard/brand/advert/actions'
 import { toast } from 'sonner'
 
 const formatRelativeTime = (dateString: string) => {
@@ -442,6 +442,28 @@ export default function AdvertApplicationsList({
       }
     })
   }
+
+  const handleStatusUpdate = async (applicationId: string, status: 'pending' | 'shortlisted' | 'rejected' | 'accepted') => {
+    setChatLoadingId(applicationId) // Use chatLoadingId as a generic loading state for now
+    try {
+      const result = await updateApplicationStatus(applicationId, status)
+      if (result.success) {
+        toast.success(status === 'rejected' ? 'Başvuru reddedildi.' : 'Durum güncellendi.')
+        // Update local state
+        setLocalApplications((prev) => 
+          prev.map((app) => app.id === applicationId ? { ...app, status } : app)
+        )
+        router.refresh()
+      } else {
+        toast.error(result.error || 'İşlem başarısız.')
+      }
+    } catch (error) {
+      toast.error('Bir hata oluştu.')
+    } finally {
+      setChatLoadingId(null)
+    }
+  }
+
   if (localApplications.length === 0) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
@@ -462,7 +484,9 @@ export default function AdvertApplicationsList({
         return (
           <article
             key={application.id}
-            className="rounded-3xl border border-white/10 bg-[#0B0C10] p-5 text-white transition hover:border-soft-gold/40 hover:shadow-glow"
+            className={`rounded-3xl border border-white/10 bg-[#0B0C10] p-5 text-white transition hover:border-soft-gold/40 hover:shadow-glow ${
+              application.status === 'rejected' ? 'opacity-40 grayscale-[0.5]' : ''
+            }`}
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               {/* Left: Influencer/Brand Info */}
@@ -587,6 +611,29 @@ export default function AdvertApplicationsList({
                   </button>
                 )}
 
+                {/* Brand: Reddet button (only if not already rejected) */}
+                {!isInfluencerView && application.status !== 'rejected' && (
+                  <button
+                    type="button"
+                    onClick={() => handleStatusUpdate(application.id, 'rejected')}
+                    disabled={chatLoadingId === application.id || isPending}
+                    className="rounded-2xl border border-red-500/30 bg-red-500/5 px-4 py-2 text-xs font-semibold text-red-400 transition hover:border-red-500/60 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Reddet
+                  </button>
+                )}
+
+                {/* Brand: Reddedildi Label */}
+                {!isInfluencerView && application.status === 'rejected' && (
+                  <button
+                    type="button"
+                    onClick={() => handleStatusUpdate(application.id, 'pending')}
+                    className="text-xs text-gray-500 hover:text-white transition underline"
+                  >
+                    Reddi İptal Et
+                  </button>
+                )}
+
               </div>
             </div>
 
@@ -595,7 +642,9 @@ export default function AdvertApplicationsList({
               {application.cover_letter && (
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-400">Niyet Mesajı</p>
-                  <p className="mt-1 text-sm text-gray-300">{application.cover_letter}</p>
+                  <p className={`mt-1 text-sm text-gray-300 ${application.status === 'rejected' ? 'line-through opacity-50' : ''}`}>
+                    {application.cover_letter}
+                  </p>
                 </div>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
