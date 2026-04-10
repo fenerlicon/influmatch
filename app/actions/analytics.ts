@@ -17,11 +17,10 @@ export async function trackEvent(
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, error: 'Unauthorized' }
 
-        // GÜVENLİK: brandId dışarıdan geldiği için manipülasyona açıktı.
-        // Kullanıcı sadece kendi ID'si adına event yazabilir.
-        if (user.id !== brandId) {
-            return { success: false, error: 'Sadece kendi adınıza analytics eventi kaydedebilirsiniz.' }
-        }
+        // GÜVENLİK: Oturum açmış her kullanıcı bir ilanı görüntüleyebilir veya profili ziyaret edebilir.
+        // Bu veriler marka/influencer istatistiklerini oluşturur.
+        // Daha önce burada (user.id !== brandId) kontrolü vardı ve bu durum influencerların 
+        // marka ilanlarını görüntülemesinin kaydedilmesini engelliyordu.
 
         const { error } = await supabase.rpc('track_analytics_event', {
             p_event_type: eventType,
