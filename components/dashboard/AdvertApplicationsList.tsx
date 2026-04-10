@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck, Loader2, Trash2 } from 'lucide-react'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
-import { cancelApplication } from '@/app/dashboard/influencer/advert/actions'
 import { getOrCreateAdvertApplicationRoom, updateApplicationStatus } from '@/app/dashboard/brand/advert/actions'
 import { toast } from 'sonner'
 
@@ -107,7 +106,6 @@ export default function AdvertApplicationsList({
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
   const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
-  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   // Use local state for applications to handle real-time updates
@@ -403,21 +401,6 @@ export default function AdvertApplicationsList({
     }
   }, [applications, isInfluencerView, currentUserId, supabase])
 
-  const handleCancel = async (applicationId: string) => {
-    if (!confirm('Bu başvuruyu geri çekmek istediğinize emin misiniz?')) return
-    setCancellingId(applicationId)
-    const result = await cancelApplication(applicationId)
-    setCancellingId(null)
-    if (result?.error) {
-      toast.error(result.error)
-    } else {
-      toast.success('Başvurunuz geri çekildi.')
-      // Optimistic removal from list
-      setLocalApplications((prev) => prev.filter((a) => a.id !== applicationId))
-      router.refresh()
-    }
-  }
-
   const handleOpenChat = async (application: AdvertApplication) => {
     if (onOpenChat) {
       onOpenChat(application.id)
@@ -567,22 +550,6 @@ export default function AdvertApplicationsList({
                   <CalendarDays className="h-4 w-4" />
                   <span>{formatRelativeTime(application.created_at)}</span>
                 </div>
-                {/* Influencer: Geri Çek button (only for pending/shortlisted) */}
-                {isInfluencerView && ['pending', 'shortlisted'].includes(application.status) && (
-                  <button
-                    type="button"
-                    onClick={() => handleCancel(application.id)}
-                    disabled={cancellingId === application.id}
-                    className="flex items-center gap-1.5 rounded-2xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs font-medium text-red-400 transition hover:border-red-500/60 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {cancellingId === application.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                    Geri Çek
-                  </button>
-                )}
 
                 {/* Brand: İletişime Geç button */}
                 {!isInfluencerView && (
