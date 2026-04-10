@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import BadgeDetailList from '@/components/badges/BadgeDetailList'
 import { getCategoryLabel } from '@/utils/categories'
 import InfluencerStats from '@/components/profile/InfluencerStats'
+import { refreshIfStale } from '@/app/actions/social-verification'
 
 interface ProfilePageProps {
   params: { username: string }
@@ -42,6 +43,10 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
     .eq('user_id', profile.id)
     .eq('platform', 'instagram') // Assuming primary platform is Instagram for now
     .single()
+
+  if (profile && profile.role === 'influencer' && profile.username) {
+    refreshIfStale(profile.id, profile.username, 'instagram').catch((err: any) => console.error('AutoRefresh Error:', err))
+  }
 
   const { data: userBadges } = await supabase
     .from('user_badges')

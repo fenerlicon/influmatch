@@ -55,11 +55,12 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
     })
 
     result.sort((a, b) => {
-      // Prioritize Spotlight members first ONLY if sorting by recommended
-      if (sortBy === 'recommended' && a.spotlight_active !== b.spotlight_active) {
+      // 1. ALWAYS Prioritize Spotlight members first
+      if (a.spotlight_active !== b.spotlight_active) {
         return (b.spotlight_active ? 1 : 0) - (a.spotlight_active ? 1 : 0)
       }
 
+      // 2. Then apply the chosen sort criteria within those groups
       const parseStatsValue = (val: string | undefined): number => {
         if (!val) return 0
         const cleanVal = val.toString().toUpperCase().replace(/,/g, '.')

@@ -2,7 +2,17 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, TrendingUp, Users, MessageCircle, Heart, Zap, Lock, Sparkles, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react'
+import { Activity, TrendingUp, Users, MessageCircle, Heart, Zap, Lock, Sparkles, AlertCircle, ArrowUp, ArrowDown, Calendar } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { tr } from 'date-fns/locale'
+
+const formatDist = (dateStr: string) => {
+    try {
+        return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: tr })
+    } catch (e) {
+        return 'yakın zamanda'
+    }
+}
 import { generateAIAnalysis, type AnalysisType, type SubscriptionTier } from '@/app/actions/ai-analysis'
 import { toast } from 'sonner'
 
@@ -200,6 +210,19 @@ export default function InfluencerStats({
                         Website <TrendingUp className="h-3 w-3" />
                     </a>
                 )}
+            </div>
+
+            {/* Data Freshness Indicator */}
+            <div className="flex items-center gap-2 mb-6 rounded-2xl bg-white/5 border border-white/10 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-soft-gold/10 text-soft-gold">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Performans Verileri</p>
+                <p className="text-xs text-gray-400">
+                  Son {formatDist(lastUpdated)} güncellendi. <span className="text-soft-gold/80 font-medium">(GÜNCEL: Son 21 Gün ve Sabitsiz)</span>
+                </p>
+              </div>
             </div>
 
             {/* Detailed Stats Grid */}

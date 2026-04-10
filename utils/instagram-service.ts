@@ -129,7 +129,7 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
             edge_media_to_comment: { count: post.commentsCount || 0 },
             edge_liked_by: { count: post.likesCount || 0 },
             taken_at_timestamp: Math.floor(new Date(post.timestamp).getTime() / 1000),
-            is_pinned: post.isPinned === true || isPinnedArray[index] // Apify details mode sometimes misses this, we infer it
+            is_pinned: (post.isPinned === true) || (post.is_pinned === true) || isPinnedArray[index] 
         }
     }))
 

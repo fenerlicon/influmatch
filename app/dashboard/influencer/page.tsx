@@ -15,6 +15,8 @@ import TrustScoreCard from '@/components/dashboard/TrustScoreCard'
 import { calculateTrustScore } from '@/utils/matching'
 import { CheckCircle2, Heart, Mail, Sparkles, Calendar } from 'lucide-react'
 
+import { refreshIfStale } from '@/app/actions/social-verification'
+
 export const revalidate = 0
 
 export default async function InfluencerDashboardPage() {
@@ -54,11 +56,13 @@ export default async function InfluencerDashboardPage() {
     .maybeSingle()
 
   const rawSpotlightActive = profile?.spotlight_active ?? false
-  const isShowcaseVisible = profile?.is_showcase_visible ?? true // Default to true if null
+  const isShowcaseVisible = profile?.is_showcase_visible ?? true 
   const verificationStatus = profile?.verification_status ?? 'pending'
-
-  // Spotlight is active if user is verified AND spotlight_active is true
   const spotlightActive = rawSpotlightActive && verificationStatus === 'verified'
+
+  if (user && profile?.username) {
+    refreshIfStale(user.id, profile.username, 'instagram').catch((err: any) => console.error('AutoRefresh Error:', err))
+  }
 
   // Determine User Tier
   let userTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'

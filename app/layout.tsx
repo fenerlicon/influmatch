@@ -2,6 +2,7 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
 import AuthProvider from '@/components/providers/AuthProvider'
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,6 +22,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="top-center" richColors />
+          <SpeedInsights />
         </AuthProvider>
       </body>
     </html>

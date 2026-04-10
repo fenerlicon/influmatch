@@ -73,6 +73,34 @@ export async function generateVerificationCode(userId: string, username: string)
     }
 }
 
+/**
+ * Kontrol eder ve eğer veriler eskiyse (3 gün) güncellemeyi tetikler.
+ */
+export async function refreshIfStale(userId: string, username: string, platform: 'instagram' | 'tiktok') {
+    const supabase = await createSupabaseServerClient()
+    
+    const { data: account } = await supabase
+        .from('social_accounts')
+        .select('last_scraped_at')
+        .eq('user_id', userId)
+        .eq('platform', platform)
+        .maybeSingle()
+
+    if (!account) return { status: 'no_account' }
+
+    const lastScraped = account.last_scraped_at ? new Date(account.last_scraped_at) : new Date(0)
+    const threeDaysAgo = new Date()
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+
+    if (lastScraped < threeDaysAgo) {
+        console.log(`[AutoRefresh] ${username} verisi eski, güncelleniyor...`)
+        // Fix: verifyInstagramAccount basically just needs the userId string
+        return await verifyInstagramAccount(userId)
+    }
+
+    return { status: 'fresh' }
+}
+
 export async function verifyInstagramAccount(userId: string) {
     const supabase = createSupabaseServerClient()
     const adminSupabase = createSupabaseAdminClient() || supabase
@@ -140,53 +168,31 @@ export async function verifyInstagramAccount(userId: string) {
 
         // 3. Stats Calculation Logic
 
-        // SAFEGUARD: If user has posts but API returns 0 edges, it's an API failure.
-        // Preserve old stats instead of zeroing them out or returning error.
-        if (postCount > 0 && edges.length === 0) {
-            console.warn(`[verifyInstagramAccount] User ${username} has ${postCount} posts but API returned 0 edges. Preserving old stats.`)
+        const nowTimestamp = Math.floor(Date.now() / 1000)
+        const twentyOneDaysAgo = nowTimestamp - (21 * 24 * 60 * 60)
 
-            const oldStats = (account.stats_payload as any) || {}
-            avgLikes = oldStats.avg_likes || 0
-            avgComments = oldStats.avg_comments || 0
-            avgViews = oldStats.avg_views || 0
-            averageIntervalDays = oldStats.posting_frequency || 0
+        // 1. FILTER: We EXCLUDE all pinned posts and ANYTHING older than 21 days
+        let cleanEdges = (edges || []).filter((edge: any) => {
+            const node = edge.node;
+            // Exclude Pinned (Safety check for both naming conventions)
+            if (node.is_pinned === true || node.isPinned === true) return false;
+            if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
+            
+            // Exclude Old (> 21 Days) - STRICT
+            const ts = Number(node?.taken_at_timestamp) || 0;
+            if (ts < twentyOneDaysAgo) return false;
 
-            // Keep existing engagement rate column value
-            engagementRate = account.engagement_rate || 0
-        }
+            return true;
+        });
 
-        // Filter out Pinned Posts explicitly (Handle both API structures)
-        if (edges) {
-            edges = edges.filter((edge: any) => {
-                const node = edge.node;
-                if (node.is_pinned === true) return false;
-                if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
-                return true;
-            });
-        }
-
-        // Process edges: Sort by date descending (Newest first) to handle Pinned Posts
-        // This ensures subsequent calculations (Engagement, Frequency) are based on truly RECENT content.
-        edges.sort((a: any, b: any) => {
+        // 2. SORT & LIMIT to recent ones (max 24)
+        cleanEdges.sort((a: any, b: any) => {
             const timeA = Number(a.node?.taken_at_timestamp) || 0
             const timeB = Number(b.node?.taken_at_timestamp) || 0
             return timeB - timeA
         })
 
-        // STRATEGY: Prioritize "Last 30 Days". If < 3 posts, fallback to "Last 12 Posts".
-        // 1. Get nodes sorted by date (already done above)
-        const sortedNodes = edges.map((edge: any) => edge.node)
-
-        const nowTimestamp = Math.floor(Date.now() / 1000)
-        const thirtyDaysAgo = nowTimestamp - (30 * 24 * 60 * 60)
-
-        let analyzedPosts = sortedNodes.filter((node: any) => (node.taken_at_timestamp || 0) > thirtyDaysAgo)
-
-        if (analyzedPosts.length < 3) {
-            analyzedPosts = sortedNodes.slice(0, 12)
-        } else {
-            analyzedPosts = analyzedPosts.slice(0, 24)
-        }
+        const analyzedPosts = cleanEdges.map((e: any) => e.node).slice(0, 24)
 
         if (analyzedPosts.length > 0) {
             const totalLikes = analyzedPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
