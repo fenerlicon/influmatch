@@ -44,11 +44,19 @@ export default function SidebarLink({ href, label, isActive, variant = 'vertical
             )
             .subscribe()
 
-        // Backup Polling (every 60 seconds)
-        const interval = setInterval(fetchCount, 60000)
+        // Listen for auth changes (metadata updates for read status)
+        const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+                fetchCount()
+            }
+        })
+
+        // Backup Polling (every 30 seconds for better responsiveness)
+        const interval = setInterval(fetchCount, 30000)
 
         return () => {
             supabase.removeChannel(channel)
+            authSub.unsubscribe()
             clearInterval(interval)
         }
     }, [isMessages, supabase])

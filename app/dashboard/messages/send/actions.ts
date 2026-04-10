@@ -112,6 +112,18 @@ export async function sendMessage(roomId: string, content: string) {
     console.warn('[sendMessage] Message log function not available (run migration: create_message_log_function.sql):', logError)
   }
 
+  // Update last_read in user metadata to mark this room as seen by the sender
+  try {
+    const now = new Date().toISOString()
+    await supabase.auth.updateUser({
+      data: {
+        [`last_read_${roomId}`]: now
+      }
+    })
+  } catch (error) {
+    console.warn('[sendMessage] Failed to update last_read metadata:', error)
+  }
+
   revalidatePath('/dashboard/messages')
   return { success: true, data }
 }

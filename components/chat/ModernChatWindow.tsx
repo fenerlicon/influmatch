@@ -114,6 +114,22 @@ export default function ModernChatWindow({
         }
     }, [roomId, supabase, activeRoomIds])
 
+    // Mark as read when room changes or new messages arrive
+    useEffect(() => {
+        if (!roomId || !currentUserId) return
+
+        const markAsRead = async () => {
+            const now = new Date().toISOString()
+            await supabase.auth.updateUser({
+                data: {
+                    [`last_read_${roomId}`]: now
+                }
+            })
+        }
+
+        markAsRead()
+    }, [roomId, currentUserId, messages.length, supabase])
+
     // Scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
