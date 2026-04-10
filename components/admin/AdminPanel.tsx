@@ -60,7 +60,7 @@ interface AdminPanelProps {
   brandCount?: number
 }
 
-const TAB_KEYS = ['pending', 'verified', 'rejected', 'notifications', 'adverts'] as const
+const TAB_KEYS = ['pending', 'verified', 'rejected', 'notifications', 'adverts', 'applications'] as const
 type TabKey = (typeof TAB_KEYS)[number]
 
 export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0 }: AdminPanelProps) {
@@ -80,6 +80,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [spotlightForm, setSpotlightForm] = useState<{ plan: string, duration: number }>({ plan: 'ibasic', duration: 1 })
   const [advertsState, setAdvertsState] = useState<Advert[]>([])
   const [isLoadingAdverts, setIsLoadingAdverts] = useState(false)
+  const [applicationsState, setApplicationsState] = useState<any[]>([])
+  const [isLoadingApplications, setIsLoadingApplications] = useState(false)
 
   const [users, setUsers] = useState<User[]>(() => {
     switch (activeTab) {
@@ -100,6 +102,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     { key: 'rejected', label: 'Reddedilen', count: 0 },
     { key: 'notifications', label: 'Bildirimler', count: 0 },
     { key: 'adverts', label: 'İlanlar', count: 0 },
+    { key: 'applications', label: 'Başvurular', count: 0 },
   ] as const
 
   const tabsWithCounts = tabs.map((tab) => ({
@@ -113,7 +116,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             ? rejectedUsersState.length
             : tab.key === 'adverts'
               ? advertsState.length
-              : 0,
+              : tab.key === 'applications'
+                ? applicationsState.length
+                : 0,
   }))
 
   // Update users when tab changes
@@ -130,6 +135,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         break
       case 'adverts':
         if (advertsState.length === 0) fetchAdverts()
+        break
+      case 'applications':
+        if (applicationsState.length === 0) fetchApplications()
         break
     }
     // Clear selection when tab changes
@@ -237,6 +245,25 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
       supabase.removeChannel(channel)
     }
   }, [supabase])
+
+  const fetchApplications = async () => {
+    setIsLoadingApplications(true)
+    try {
+      const { getAllApplications } = await import('@/app/admin/actions')
+      const result = await getAllApplications()
+      if (result.success && result.applications) {
+        setApplicationsState(result.applications)
+      } else if (result.error) {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      console.error('Applications Fetch Error:', error)
+      toast.error('Giriş hatası veya yetki sorunu oluştu.')
+    } finally {
+      setIsLoadingApplications(true) // Actually set to false, wait!
+      setIsLoadingApplications(false)
+    }
+  }
 
   const fetchAdverts = async () => {
     setIsLoadingAdverts(true)
@@ -1048,7 +1075,74 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             </div>
           )}
 
-          {activeTab === 'notifications' ? (
+          {activeTab === 'applications' ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-white">Platform Genelindeki Tüm Başvurular</h3>
+                <button
+                  onClick={fetchApplications}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-400 hover:text-white"
+                >
+                  Yenile
+                </button>
+              </div>
+
+              {isLoadingApplications ? (
+                <div className="flex flex-col items-center justify-center p-20 text-gray-500">
+                  <Loader2 className="h-10 w-10 animate-spin mb-4" />
+                  Başvurular yükleniyor...
+                </div>
+              ) : applicationsState.length === 0 ? (
+                <div className="rounded-3xl border border-white/5 bg-white/2 p-20 text-center text-gray-500">
+                  Henüz hiç başvuru bulunamadı.
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {applicationsState.map((app) => (
+                    <div key={app.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-12 w-12 overflow-hidden rounded-xl border border-white/10">
+                            {app.influencer?.avatar_url ? (
+                              <Image src={app.influencer.avatar_url} alt="" width={48} height={48} className="object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-white/5 text-gray-500 uppercase">
+                                {app.influencer?.full_name?.charAt(0) || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-white">{app.influencer?.full_name || 'Bilinmeyen Influencer'}</h4>
+                            <p className="text-sm text-gray-400">@{app.influencer?.username || 'user'}</p>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-soft-gold">
+                              <span>Başvurduğu İlan:</span>
+                              <span className="font-medium text-white">{app.advert?.title || 'İlan Silinmiş'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="inline-block rounded-full border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 shadow-glow">
+                            {app.status}
+                          </div>
+                          <p className="mt-2 text-xs text-gray-500">
+                            {new Date(app.created_at).toLocaleString('tr-TR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 rounded-xl bg-black/40 p-3 text-sm text-gray-300">
+                        <p className="font-semibold text-xs uppercase text-gray-500 mb-1">Niyet Mesajı:</p>
+                        {app.cover_letter || 'Mesaj yok.'}
+                      </div>
+                      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                        <span>İlan ID: <code className="text-[10px] text-gray-400">{app.advert_id}</code></span>
+                        <span>Influencer ID: <code className="text-[10px] text-gray-400">{app.influencer_id}</code></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : activeTab === 'notifications' ? (
             <div className="mt-8">
               <NotificationsPanel users={[...pendingUsers, ...verifiedUsers, ...rejectedUsers]} />
             </div>

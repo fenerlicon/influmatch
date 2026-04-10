@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation'
+import { getBrandApplicationsAdmin } from './actions'
 import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
 import { type AdvertApplication } from '@/components/dashboard/AdvertApplicationsList'
 import BrandAdvertTabs from '@/components/dashboard/BrandAdvertTabs'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 export default async function BrandAdvertPage() {
   const supabase = createSupabaseServerClient()
@@ -50,37 +52,10 @@ export default async function BrandAdvertPage() {
   let applicationsError: any = null
 
   if (myProjectIdsForFilter.length > 0) {
-    const result = await supabase
-      .from('advert_applications')
-      .select(`
-        id, 
-        advert_id, 
-        influencer_id, 
-        cover_letter, 
-        deliverable_idea, 
-        budget_expectation, 
-        status, 
-        created_at,
-        room_id,
-        has_messages,
-        influencer:influencer_user_id (
-          id,
-          full_name,
-          username,
-          avatar_url,
-          verification_status
-        ),
-        advert:advert_id (
-          title,
-          category
-        )
-      `)
-      .in('advert_id', myProjectIdsForFilter)
-      .order('created_at', { ascending: false })
-    applicationRows = result.data
+    const result = await getBrandApplicationsAdmin(myProjectIdsForFilter)
+    applicationRows = result.applications ?? []
     applicationsError = result.error
   } else {
-    // No projects, so no applications
     applicationRows = []
   }
 
@@ -180,8 +155,6 @@ export default async function BrandAdvertPage() {
     budget_expectation: row.budget_expectation,
     status: row.status,
     created_at: row.created_at,
-    room_id: row.room_id,
-    has_messages: row.has_messages
   }))
   // actually, look at line 4 imports: `import BrandAdvertTabs from '@/components/dashboard/BrandAdvertTabs'`
 

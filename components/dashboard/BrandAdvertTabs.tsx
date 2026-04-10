@@ -62,15 +62,24 @@ export default function BrandAdvertTabs({ myProjects, communityProjects, applica
         <div className="flex gap-2 rounded-2xl border border-white/10 bg-[#0c0d13] p-1">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key
+            const count = tab.key === 'mine' 
+              ? myProjects.length 
+              : tab.key === 'applications' 
+                ? applications.length 
+                : communityProjects.length
+            
             return (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${isActive ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]' : 'text-gray-400 hover:text-white'
+                className={`flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition ${isActive ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]' : 'text-gray-400 hover:text-white'
                   }`}
               >
                 {tab.label}
+                <span className={`rounded-lg px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-soft-gold text-background' : 'bg-white/10 text-gray-400'}`}>
+                  {count}
+                </span>
               </button>
             )
           })}

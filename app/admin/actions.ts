@@ -1374,3 +1374,33 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     analyzed_posts: recentPosts.map((p: any) => `https://www.instagram.com/p/${p.shortcode}/`)
   }
 }
+
+export async function getAllApplications() {
+  const { data: { user } } = await createSupabaseServerClient().auth.getUser()
+  if (!user) return { error: 'Oturum açmanız gerekiyor.' }
+
+  const { data: adminProfile } = await createSupabaseServerClient()
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  if (!isAdmin) return { error: 'Yetkisiz erişim.' }
+
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) return { error: 'Admin yetkisi alınamadı.' }
+
+  const { data, error } = await supabaseAdmin
+    .from('advert_applications')
+    .select(`
+      *,
+      influencer:influencer_user_id (id, full_name, email, username),
+      advert:advert_id (id, title, brand_user_id)
+    `)
+    .order('created_at', { ascending: false })
+
+  if (error) return { error: error.message }
+  return { success: true, applications: data }
+}
