@@ -8,7 +8,7 @@ export const revalidate = 0
 export default async function DashboardMessagesPage({
   searchParams,
 }: {
-  searchParams: { userId?: string }
+  searchParams: { userId?: string, roomId?: string }
 }) {
   const supabase = createSupabaseServerClient()
   const {
@@ -189,5 +189,5 @@ export default async function DashboardMessagesPage({
       return timeB - timeA
     })
 
-  return <MessagesPage currentUserId={user.id} role={role} initialConversations={conversations} initialUserId={searchParams.userId} currentUserVerificationStatus={userProfile?.verification_status as 'pending' | 'verified' | 'rejected' | undefined} />
+  return <MessagesPage currentUserId={user.id} role={role} initialConversations={conversations} initialUserId={searchParams.userId} initialRoomId={searchParams.roomId} currentUserVerificationStatus={userProfile?.verification_status as 'pending' | 'verified' | 'rejected' | undefined} />
 }

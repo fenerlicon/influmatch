@@ -36,10 +36,11 @@ interface MessagesPageProps {
   role: 'influencer' | 'brand'
   initialConversations: Conversation[]
   initialUserId?: string // User ID to open conversation with
+  initialRoomId?: string // Room ID to open specific conversation
   currentUserVerificationStatus?: 'pending' | 'verified' | 'rejected'
 }
 
-export default function MessagesPage({ currentUserId, role, initialConversations, initialUserId, currentUserVerificationStatus }: MessagesPageProps) {
+export default function MessagesPage({ currentUserId, role, initialConversations, initialUserId, initialRoomId, currentUserVerificationStatus }: MessagesPageProps) {
   const router = useRouter()
 
   const supabase = useSupabaseClient()
@@ -92,6 +93,13 @@ export default function MessagesPage({ currentUserId, role, initialConversations
 
     loadAllRooms()
   }, [supabase, currentUserId])
+
+  // Handle initialRoomId - open specific conversation room
+  useEffect(() => {
+    if (initialRoomId) {
+      setSelectedRoomId(initialRoomId)
+    }
+  }, [initialRoomId])
 
   // Handle initialUserId - open conversation with specific user
   useEffect(() => {

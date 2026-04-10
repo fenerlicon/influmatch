@@ -6,6 +6,7 @@ import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck, 
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { cancelApplication } from '@/app/dashboard/influencer/advert/actions'
+import { getOrCreateAdvertApplicationRoom } from '@/app/dashboard/brand/advert/actions'
 import { toast } from 'sonner'
 
 const formatRelativeTime = (dateString: string) => {
@@ -426,18 +427,16 @@ export default function AdvertApplicationsList({
     setChatLoadingId(application.id)
     startTransition(async () => {
       try {
-        // If brand view: navigate to influencer's profile
-        // If influencer view: navigate to brand's profile
-        const targetUserId = isInfluencerView ? application.brand?.id : application.influencer.id
-
-        if (!targetUserId) {
-          console.error('Target user ID not found for application')
-          return
+        const result = await getOrCreateAdvertApplicationRoom(application.id)
+        
+        if (result.success && result.roomId) {
+          router.push(`/dashboard/messages?roomId=${result.roomId}`)
+        } else if (result.error) {
+          toast.error(result.error)
         }
-
-        // Navigate to messages page with target user ID
-        // Messages page will automatically find existing room or create a new one
-        router.push(`/dashboard/messages?userId=${targetUserId}`)
+      } catch (error) {
+        console.error('Chat Open Error:', error)
+        toast.error('Sohbet penceresi açılırken bir hata oluştu.')
       } finally {
         setChatLoadingId(null)
       }
