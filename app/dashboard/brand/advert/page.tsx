@@ -63,7 +63,7 @@ export default async function BrandAdvertPage() {
         created_at,
         room_id,
         has_messages,
-        influencer:influencer_id (
+        influencer:influencer_user_id (
           id,
           full_name,
           username,
