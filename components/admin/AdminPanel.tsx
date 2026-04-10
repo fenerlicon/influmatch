@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData } from '@/app/admin/actions'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -36,6 +36,21 @@ interface User {
   email_verified_at?: string | null
 }
 
+interface Advert {
+  id: string
+  title: string
+  summary: string
+  status: 'open' | 'paused' | 'closed'
+  created_at: string
+  brand_user_id: string
+  brand?: {
+    full_name: string | null
+    email: string | null
+    avatar_url: string | null
+    username: string | null
+  }
+}
+
 interface AdminPanelProps {
   pendingUsers: User[]
   verifiedUsers: User[]
@@ -45,7 +60,7 @@ interface AdminPanelProps {
   brandCount?: number
 }
 
-const TAB_KEYS = ['pending', 'verified', 'rejected', 'notifications'] as const
+const TAB_KEYS = ['pending', 'verified', 'rejected', 'notifications', 'adverts'] as const
 type TabKey = (typeof TAB_KEYS)[number]
 
 export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0 }: AdminPanelProps) {
@@ -63,6 +78,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [isResettingBadges, setIsResettingBadges] = useState(false)
   const [spotlightModalData, setSpotlightModalData] = useState<{ userId: string, role: string } | null>(null)
   const [spotlightForm, setSpotlightForm] = useState<{ plan: string, duration: number }>({ plan: 'ibasic', duration: 1 })
+  const [advertsState, setAdvertsState] = useState<Advert[]>([])
+  const [isLoadingAdverts, setIsLoadingAdverts] = useState(false)
 
   const [users, setUsers] = useState<User[]>(() => {
     switch (activeTab) {
@@ -82,6 +99,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     { key: 'verified', label: 'Onaylı', count: 0 },
     { key: 'rejected', label: 'Reddedilen', count: 0 },
     { key: 'notifications', label: 'Bildirimler', count: 0 },
+    { key: 'adverts', label: 'İlanlar', count: 0 },
   ] as const
 
   const tabsWithCounts = tabs.map((tab) => ({
@@ -93,7 +111,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           ? verifiedUsersState.length
           : tab.key === 'rejected'
             ? rejectedUsersState.length
-            : 0,
+            : tab.key === 'adverts'
+              ? advertsState.length
+              : 0,
   }))
 
   // Update users when tab changes
@@ -107,6 +127,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         break
       case 'rejected':
         setUsers(rejectedUsersState)
+        break
+      case 'adverts':
+        if (advertsState.length === 0) fetchAdverts()
         break
     }
     // Clear selection when tab changes
@@ -214,6 +237,45 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
       supabase.removeChannel(channel)
     }
   }, [supabase])
+
+  const fetchAdverts = async () => {
+    setIsLoadingAdverts(true)
+    try {
+      const result = await getAllAdverts()
+      if (result.success && result.adverts) {
+        setAdvertsState(result.adverts as Advert[])
+      } else if (result.error) {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      console.error('Fetch Adverts Error:', error)
+      toast.error('İlanlar yüklenirken bir hata oluştu.')
+    } finally {
+      setIsLoadingAdverts(false)
+    }
+  }
+
+  const handleDeleteAdvert = async (advertId: string) => {
+    if (!confirm('Bu ilanı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return
+
+    const loadingToast = toast.loading('İlan siliniyor...')
+
+    try {
+      const result = await deleteAdvertAdmin(advertId)
+      toast.dismiss(loadingToast)
+
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(result.message || 'İlan silindi.')
+        setAdvertsState(prev => prev.filter(a => a.id !== advertId))
+      }
+    } catch (error: any) {
+      console.error('Delete Advert Error:', error)
+      toast.dismiss(loadingToast)
+      toast.error(`Hata: ${error.message}`)
+    }
+  }
 
   // Filter users based on search query (only for verified tab)
   const getFilteredUsers = () => {
@@ -986,10 +1048,82 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             </div>
           )}
 
-          {/* Notifications Panel */}
           {activeTab === 'notifications' ? (
             <div className="mt-8">
               <NotificationsPanel users={[...pendingUsers, ...verifiedUsers, ...rejectedUsers]} />
+            </div>
+          ) : activeTab === 'adverts' ? (
+            <div className="mt-8">
+              {isLoadingAdverts ? (
+                <div className="flex items-center justify-center p-20">
+                  <Loader2 className="h-10 w-10 animate-spin text-soft-gold" />
+                </div>
+              ) : advertsState.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-20 text-center text-gray-400">
+                  Yayınlanmış ilan bulunmamaktadır.
+                </div>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {advertsState.map((advert) => (
+                    <div
+                      key={advert.id}
+                      className="group rounded-3xl border border-white/10 bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${advert.status === 'open' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
+                          {advert.status === 'open' ? 'AÇIK' : advert.status === 'paused' ? 'DURDURULDU' : 'KAPALI'}
+                        </span>
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/discover/advert/${advert.id}`}
+                            target="_blank"
+                            className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white transition"
+                            title="İlanı Görüntüle"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteAdvert(advert.id)}
+                            className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
+                            title="İlanı Sil"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1">{advert.title}</h3>
+                      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{advert.summary}</p>
+
+                      <div className="mt-auto pt-4 border-t border-white/10 space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <div className="relative h-6 w-6 rounded-lg overflow-hidden border border-white/10 bg-white/5">
+                            {advert.brand?.avatar_url ? (
+                              <Image src={advert.brand.avatar_url} alt="" fill className="object-cover" />
+                            ) : (
+                              <div className="flex items-center justify-center h-full w-full bg-soft-gold/20 text-soft-gold font-bold">
+                                {advert.brand?.full_name?.[0] || 'B'}
+                              </div>
+                            )}
+                          </div>
+                          <span className="truncate">{advert.brand?.full_name || 'Marka Adı Yok'}</span>
+                          {advert.brand?.username && <span className="text-gray-600">(@{advert.brand.username})</span>}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            {new Date(advert.created_at).toLocaleDateString('tr-TR', {
+                              day: '2-digit',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             /* User Grid */

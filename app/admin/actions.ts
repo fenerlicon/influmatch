@@ -850,6 +850,107 @@ export async function deleteUser(userId: string) {
   }
 }
 
+// Get all adverts for admin management
+export async function getAllAdverts() {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  const { data: adverts, error } = await supabase
+    .from('advert_projects')
+    .select('*, brand:brand_user_id(full_name, email, avatar_url, username)')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('[getAllAdverts] Supabase error:', error)
+    return { error: `İlanlar alınamadı: ${error.message}` }
+  }
+
+  return { success: true, adverts: adverts || [] }
+}
+
+// Delete any advert (Admin only)
+export async function deleteAdvertAdmin(advertId: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.' }
+  }
+
+  // Check if user is admin
+  const { data: adminProfile } = await supabase
+    .from('users')
+    .select('role, email')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+
+  if (!isAdmin) {
+    return { error: 'Bu işlem için yetkiniz yok.' }
+  }
+
+  // Use Admin Client to bypass RLS
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
+  }
+
+  // Get hero image to delete from storage
+  const { data: advert } = await supabase
+    .from('advert_projects')
+    .select('hero_image')
+    .eq('id', advertId)
+    .single()
+
+  if (advert?.hero_image) {
+    try {
+      const imagePath = advert.hero_image.split('/').pop()
+      if (imagePath) {
+        await supabaseAdmin.storage.from('advert-hero-images').remove([imagePath])
+      }
+    } catch (e) {
+      console.warn('[deleteAdvertAdmin] Hero image deletion failed:', e)
+    }
+  }
+
+  const { error } = await supabaseAdmin
+    .from('advert_projects')
+    .delete()
+    .eq('id', advertId)
+
+  if (error) {
+    console.error('[deleteAdvertAdmin] Supabase error:', error)
+    return { error: `İlan silme hatası: ${error.message}` }
+  }
+
+  revalidatePath('/admin')
+  return { success: true, message: 'İlan başarıyla silindi.' }
+}
+
 // Update Instagram data (Admin only)
 export async function adminUpdateInstagramData(userId: string) {
   const supabase = createSupabaseServerClient()

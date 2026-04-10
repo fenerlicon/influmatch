@@ -37,6 +37,9 @@
   ],
   "exclude": [
     "node_modules",
-    "mobile-app"
+    "mobile-app",
+    "scratch",
+    "*.ts",
+    "*.js"
   ]
 }

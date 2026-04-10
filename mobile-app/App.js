@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, ShoppingBag, Send, MessageCircle, User, Briefcase, Search } from 'lucide-react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Home, ShoppingBag, Send, MessageCircle, User, Briefcase, Search, Instagram, Music, Sparkles } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from './lib/supabase';
 
 // ─── Auth Screens ─────────────────────────────────────────────────────────────
@@ -13,6 +14,10 @@ import RegisterRoleScreen from './screens/RegisterRoleScreen';
 import RegisterFormScreen from './screens/RegisterFormScreen';
 import VerifyEmailScreen from './screens/VerifyEmailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import { registerForPushNotificationsAsync, savePushTokenToDb } from './utils/notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 // ─── Influencer Screens ───────────────────────────────────────────────────────
 import DashboardScreen from './screens/DashboardScreen';
@@ -62,22 +67,35 @@ const MyDarkTheme = {
 // ─── Tab bar shared options ───────────────────────────────────────────────────
 const TAB_BAR_STYLE = {
   headerShown: false,
+  tabBarShowLabel: false, // Image doesn't show labels
   tabBarStyle: {
-    backgroundColor: '#020617',
+    backgroundColor: 'transparent',
     borderTopWidth: 0,
-    height: Platform.OS === 'ios' ? 90 : 70,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+    height: 70,
     position: 'absolute',
-    bottom: 0, left: 0, right: 0,
+    bottom: 25, 
+    left: 20, 
+    right: 20,
     elevation: 0,
+    borderRadius: 30,
+    overflow: 'hidden',
   },
   tabBarBackground: () => (
-    <View style={{ flex: 1, backgroundColor: 'rgba(2, 6, 23, 0.92)' }} />
+    <View style={{ 
+      flex: 1, 
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      borderRadius: 30,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+    }}>
+      <LinearGradient
+        colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.02)']}
+        style={{ position: 'absolute', inset: 0, borderRadius: 30 }}
+      />
+    </View>
   ),
-  tabBarActiveTintColor: '#D4AF37',
-  tabBarInactiveTintColor: '#94a3b8',
-  tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 4 },
+  tabBarActiveTintColor: '#fbbf24',
+  tabBarInactiveTintColor: '#64748b',
 };
 
 const Stack = createNativeStackNavigator();
@@ -156,30 +174,63 @@ function BrandTabs() {
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [initialRoute, setInitialRoute] = useState('Login');
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
-    checkUserSession();
-  }, []);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        handlePushRegistration(session.user.id);
+        checkUserSession(session);
+      } else {
+        setLoading(false);
+      }
+    });
 
-  async function checkUserSession() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        // Fetch user role to determine correct tab navigator
-        const { data: userData } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (userData?.role === 'brand') {
-          setInitialRoute('BrandDashboard');
-        } else {
-          setInitialRoute('Dashboard');
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        handlePushRegistration(session.user.id);
+        checkUserSession(session);
       } else {
         setInitialRoute('Login');
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
+  }, []);
+
+  const handlePushRegistration = async (userId) => {
+    const token = await registerForPushNotificationsAsync();
+    if (token) {
+      await savePushTokenToDb(userId, token);
+    }
+  };
+
+  async function checkUserSession(session) {
+    if (!session?.user) {
+      setInitialRoute('Login');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch user role to determine correct tab navigator
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (userData?.role === 'brand') {
+        setInitialRoute('BrandDashboard');
+      } else {
+        setInitialRoute('Dashboard');
       }
     } catch (e) {
       console.warn('Session check error:', e);

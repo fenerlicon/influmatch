@@ -7,6 +7,7 @@ import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plu
 import { supabase } from '../../lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import { calculateTrustScore } from '../../utils/calculation';
+import { getThumbnailUrl } from '../../utils/image';
 
 // ─── Design system ────────────────────────────────────────────────────────────
 const GlassCard = ({ children, className, style, onPress }) => (
@@ -338,8 +339,7 @@ export default function BrandDashboardScreen({ navigation }) {
                         <View className="flex-row items-center justify-between mb-5 pl-1">
                             <View>
                                 <View className="flex-row items-center gap-2 mb-1.5">
-                                    <View className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                                    <Text className="text-purple-400 text-[11px] font-extrabold tracking-[2px] uppercase">Spotlight AI</Text>
+                                    <Text className="text-purple-400 text-[11px] font-extrabold tracking-widest uppercase">Spotlight AI</Text>
                                 </View>
                                 <Text className="text-white font-bold text-2xl tracking-tight">Sizin İçin Seçtiklerimiz</Text>
                             </View>
@@ -359,7 +359,7 @@ export default function BrandDashboardScreen({ navigation }) {
                                     >
                                         <View className="h-80 rounded-[32px] overflow-hidden border border-white/10 bg-[#15171e] relative shadow-2xl">
                                             {/* Influencer Image */}
-                                            <Image source={{ uri: inf.avatar_url }} className="w-full h-full" resizeMode="cover" />
+                                            <Image source={{ uri: getThumbnailUrl(inf.avatar_url) }} className="w-full h-full" resizeMode="cover" fadeDuration={0} />
 
 
                                             {/* Trust Score Pill - Centered precisely */}
@@ -421,56 +421,38 @@ export default function BrandDashboardScreen({ navigation }) {
 
                     {/* Quick Actions */}
                     <View className="mb-6">
-                        <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3">HIZLI ERİŞİM</Text>
-                        <View className="flex-row gap-3">
+                        <Text className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-4 ml-1">Hızlı Erişim</Text>
+                        <View className="flex-row gap-4">
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('BrandAdverts')}
-                                className="flex-1 bg-soft-gold/10 border border-soft-gold/30 rounded-[26px] py-6 px-3 items-center justify-center relative overflow-hidden"
-                                style={{
-                                    shadowColor: '#D4AF37',
-                                    shadowOffset: { width: 0, height: 0 },
-                                    shadowOpacity: 0.3,
-                                    shadowRadius: 15,
-                                    elevation: 5
-                                }}
+                                className="flex-1 bg-amber-500/10 border border-amber-500/20 rounded-[30px] py-7 items-center justify-center relative overflow-hidden"
                             >
                                 <LinearGradient
-                                    colors={['rgba(212,175,55,0.15)', 'transparent', 'rgba(212,175,55,0.05)']}
+                                    colors={['rgba(251, 191, 36, 0.15)', 'rgba(251, 191, 36, 0.05)']}
                                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                                     className="absolute inset-0"
                                 />
-                                <View className="w-10 h-10 bg-soft-gold/20 rounded-xl items-center justify-center mb-4 mt-[-8px] shadow-sm shadow-soft-gold/40">
-                                    <Plus color="#D4AF37" size={20} />
+                                <View className="w-12 h-12 bg-amber-500 rounded-2xl items-center justify-center mb-3 shadow-lg shadow-amber-500/30">
+                                    <Plus color="#000" size={24} strokeWidth={3} />
                                 </View>
-                                <View className="items-center">
-                                    <Text className="text-soft-gold font-bold text-[15px] text-center" style={{ textShadowColor: 'rgba(212,175,55,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 }}>İlanlarım</Text>
-                                    <Text className="text-gray-400 text-[11px] leading-3 mt-1 text-center font-medium">Yönet</Text>
-                                </View>
+                                <Text className="text-white font-bold text-base">İlanlarım</Text>
+                                <Text className="text-amber-500/60 text-[10px] font-bold uppercase tracking-widest mt-1">Yönet</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('Keşfet')}
-                                className="flex-1 bg-purple-500/10 border border-purple-500/30 rounded-[26px] py-6 px-3 items-center justify-center relative overflow-hidden"
-                                style={{
-                                    shadowColor: '#a855f7',
-                                    shadowOffset: { width: 0, height: 0 },
-                                    shadowOpacity: 0.3,
-                                    shadowRadius: 15,
-                                    elevation: 5
-                                }}
+                                className="flex-1 bg-purple-500/10 border border-purple-500/20 rounded-[30px] py-7 items-center justify-center relative overflow-hidden"
                             >
                                 <LinearGradient
-                                    colors={['rgba(168,85,247,0.15)', 'transparent', 'rgba(168,85,247,0.05)']}
+                                    colors={['rgba(168, 85, 247, 0.15)', 'rgba(168, 85, 247, 0.05)']}
                                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                                     className="absolute inset-0"
                                 />
-                                <View className="w-10 h-10 bg-purple-500/20 rounded-xl items-center justify-center mb-4 mt-[-8px] shadow-sm shadow-purple-500/40">
-                                    <Sparkles color="#a855f7" size={20} />
+                                <View className="w-12 h-12 bg-purple-500 rounded-2xl items-center justify-center mb-3 shadow-lg shadow-purple-500/30">
+                                    <Sparkles color="#fff" size={24} />
                                 </View>
-                                <View className="items-center">
-                                    <Text className="text-purple-300 font-bold text-[15px] text-center" style={{ textShadowColor: 'rgba(168,85,247,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 }}>Keşfet</Text>
-                                    <Text className="text-gray-400 text-[11px] leading-3 mt-1 text-center font-medium">Influencer bul</Text>
-                                </View>
+                                <Text className="text-white font-bold text-base">Keşfet</Text>
+                                <Text className="text-purple-400/60 text-[10px] font-bold uppercase tracking-widest mt-1">Influencer Bul</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -505,7 +487,7 @@ export default function BrandDashboardScreen({ navigation }) {
                                             {/* Avatar */}
                                             <View className="w-12 h-12 rounded-2xl bg-[#15171e] border border-white/10 overflow-hidden mr-3">
                                                 {inf?.avatar_url
-                                                    ? <Image source={{ uri: inf.avatar_url }} className="w-full h-full" resizeMode="cover" />
+                                                    ? <Image source={{ uri: getThumbnailUrl(inf.avatar_url) }} className="w-full h-full" resizeMode="cover" fadeDuration={0} />
                                                     : <View className="flex-1 items-center justify-center">
                                                         <Text className="text-white font-bold text-lg">{(inf?.full_name || inf?.username || '?').charAt(0).toUpperCase()}</Text>
                                                     </View>}

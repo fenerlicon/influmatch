@@ -73,9 +73,11 @@ export async function saveBrandAdvert(payload: SaveAdvertPayload) {
     brand_user_id: user.id,
     brand_id: user.id,
     description: description?.trim() || '',
-    payment_type: payment_type || 'cash',
-    custom_questions: custom_questions || [],
   }
+
+  // Only add these columns if they are provided (to avoid errors on older schemas)
+  if (payment_type) row.payment_type = payment_type
+  if (custom_questions && custom_questions.length > 0) row.custom_questions = custom_questions
 
   if (status) {
     row.status = status

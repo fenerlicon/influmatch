@@ -57,6 +57,7 @@ export default function MyProfileScreen({ navigation }) {
         full_name: '', username: '', bio: '', website: '', category: '', avatar_url: null,
     });
     const [igAccount, setIgAccount] = useState(null);
+    const [portfolio, setPortfolio] = useState([]);
 
     // Modal state
     const [modalVisible, setModalVisible] = useState(false);
@@ -79,15 +80,18 @@ export default function MyProfileScreen({ navigation }) {
                     .eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
             ]);
 
-            if (prof) setProfile({
-                full_name: prof.full_name || '',
-                username: prof.username || '',
-                bio: prof.bio || '',
-                website: prof.social_links?.website || '',
-                social_links: prof.social_links || {},
-                category: prof.category || '',
-                avatar_url: prof.avatar_url || null,
-            });
+            if (prof) {
+                setProfile({
+                    full_name: prof.full_name || '',
+                    username: prof.username || '',
+                    bio: prof.bio || '',
+                    website: prof.social_links?.website || '',
+                    social_links: prof.social_links || {},
+                    category: prof.category || '',
+                    avatar_url: prof.avatar_url || null,
+                });
+                setPortfolio(prof.portfolio_urls || []);
+            }
             setIgAccount(social || null);
         } catch (e) {
             console.error('[MyProfile]', e);
@@ -110,6 +114,7 @@ export default function MyProfileScreen({ navigation }) {
                 bio: profile.bio.trim(),
                 social_links: { ...(profile.social_links || {}), website: profile.website.trim() },
                 category: profile.category.trim(),
+                portfolio_urls: portfolio,
             }).eq('id', user.id);
             if (error) throw error;
             Alert.alert('Başarılı ✓', 'Profil bilgilerin güncellendi.');
@@ -146,6 +151,53 @@ export default function MyProfileScreen({ navigation }) {
             Alert.alert('Hata', e.message || 'Fotoğraf yüklenemedi.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    // ── Portfolio Upload ──────────────────────────────────────────────────────
+    const addPortfolioImage = async () => {
+        if (portfolio.length >= 6) return Alert.alert('Limit', 'En fazla 6 adet portfolyo fotoğrafı ekleyebilirsin.');
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) return Alert.alert('İzin Gerekli', 'Galeri erişim izni gerekiyor.');
+        
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 0.7,
+        });
+        
+        if (result.canceled) return;
+        
+        try {
+            setSaving(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            const uri = result.assets[0].uri;
+            const blob = await (await fetch(uri)).blob();
+            const ext = uri.split('.').pop() || 'jpg';
+            const fileName = `portfolio_${Date.now()}.${ext}`;
+            const path = `${user.id}/portfolio/${fileName}`;
+            
+            const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, { contentType: `image/${ext}` });
+            if (upErr) throw upErr;
+            
+            const { data: urlD } = supabase.storage.from('avatars').getPublicUrl(path);
+            const newPortfolio = [...portfolio, urlD.publicUrl];
+            
+            setPortfolio(newPortfolio);
+        } catch (e) {
+            Alert.alert('Hata', 'Fotoğraf yüklenemedi.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const removePortfolioImage = async (index) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const newPortfolio = portfolio.filter((_, i) => i !== index);
+            await supabase.from('users').update({ portfolio_urls: newPortfolio }).eq('id', user.id);
+            setPortfolio(newPortfolio);
+        } catch (e) {
+            Alert.alert('Hata', 'Fotoğraf silinemedi.');
         }
     };
 
@@ -228,9 +280,6 @@ export default function MyProfileScreen({ navigation }) {
     }
 
     const initials = (profile.full_name || profile.username || '?').substring(0, 2).toUpperCase();
-    const followerText = igAccount?.follower_count
-        ? igAccount.follower_count >= 1000 ? (igAccount.follower_count / 1000).toFixed(1) + 'K' : String(igAccount.follower_count)
-        : null;
 
     return (
         <View className="flex-1 bg-[#020617]">
@@ -285,6 +334,30 @@ export default function MyProfileScreen({ navigation }) {
                     <Field label="Kategori" icon={Briefcase} value={profile.category} onChange={v => setProfile(p => ({ ...p, category: v }))} placeholder="Ör: Teknoloji, Moda, Spor..." />
                     <Field label="Website" icon={LinkIcon} value={profile.website} onChange={v => setProfile(p => ({ ...p, website: v }))} placeholder="https://..." />
                     <Field label="Biyografi" icon={Edit2} value={profile.bio} onChange={v => setProfile(p => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." multiline />
+
+                    {/* ── Portfolio ── */}
+                    <View className="mb-8">
+                        <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3 ml-1">PORTFOLYO (MAX 6)</Text>
+                        <View className="flex-row flex-wrap gap-2">
+                            {portfolio.map((url, i) => (
+                                <View key={i} className="w-[31%] aspect-square rounded-xl bg-white/5 overflow-hidden border border-white/10 relative">
+                                    <Image source={{ uri: url }} className="w-full h-full" />
+                                    <TouchableOpacity 
+                                        onPress={() => removePortfolioImage(i)}
+                                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full items-center justify-center">
+                                        <X color="white" size={12} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                            {portfolio.length < 6 && (
+                                <TouchableOpacity 
+                                    onPress={addPortfolioImage}
+                                    className="w-[31%] aspect-square rounded-xl bg-white/5 border border-dashed border-white/20 items-center justify-center">
+                                    <Camera color="#4b5563" size={24} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
 
                     {/* Save */}
                     <TouchableOpacity onPress={handleSave} disabled={saving}

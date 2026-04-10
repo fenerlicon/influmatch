@@ -1,139 +1,97 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, TextInput, ActivityIndicator, Modal, Dimensions, Alert, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Image, TextInput, ActivityIndicator, Modal, Dimensions, Alert, RefreshControl, ScrollView, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Search, Filter, BadgeCheck, X, MapPin, Briefcase, Sparkles, TrendingUp, Smartphone, ChevronRight, Award, Check, ArrowLeft } from 'lucide-react-native';
+import { Search, Sliders, BadgeCheck, Heart, MapPin, ChevronRight, ArrowLeft, X, Instagram, Music, Zap, BarChart3, Users, TrendingUp, ShieldCheck } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Svg, Path } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
+import { getThumbnailUrl } from '../../utils/image';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.42;
+const COLUMN_WIDTH = (width - 48 - 12) / 2;
 
-// Genişletilmiş Rozet İsimleri (Türkçe)
-const BADGE_NAMES = {
-    'verified-account': 'Doğrulanmış Hesap',
-    'founder-member': 'Kurucu Üye',
-    'profile-expert': 'Profil Uzmanı',
-    'rising-star': 'Yükselen Yıldız',
-    'high-engagement': 'Yüksek Etkileşim',
-    'creative-mind': 'Yaratıcı Zihin',
-    'trend-setter': 'Trend Belirleyici',
-    'community-leader': 'Topluluk Lideri',
-    'early-adopter': 'Erken Üye',
-    'pro-member': 'Pro Üye',
-    'content-creator': 'İçerik Üreticisi',
-    'super-seller': 'Süper Satıcı',
-    'brand-favorite': 'Marka Favorisi',
-    'consistent-poster': 'İstikrarlı Paylaşım',
-    'elite-influencer': 'Elit Influencer'
-};
-
-// Kategori Çevirileri ve Normalizasyon
-const CATEGORY_MAP = {
-    'lifestyle': 'Yaşam Tarzı',
-    'Lifestyle': 'Yaşam Tarzı',
-    'food': 'Yeme & İçme',
-    'Food': 'Yeme & İçme',
-    'technology': 'Teknoloji',
-    'Technology': 'Teknoloji',
-    'tech': 'Teknoloji',
-    'fashion': 'Moda',
-    'Fashion': 'Moda',
-    'travel': 'Seyahat',
-    'Travel': 'Seyahat',
-    'beauty': 'Güzellik',
-    'Beauty': 'Güzellik',
-    'fitness': 'Spor & Fitness',
-    'Fitness': 'Spor & Fitness',
-    'gaming': 'Oyun',
-    'Gaming': 'Oyun',
-    'music': 'Müzik',
-    'art': 'Sanat',
-    'finance': 'Finans',
-    'education': 'Eğitim',
-    'health': 'Sağlık',
-    'business': 'İş Dünyası'
-};
-
-// Custom Verified Badge Component
-const VerifiedBadge = ({ size = 14 }) => (
-    <View className="relative items-center justify-center ml-1" style={{ width: size, height: size }}>
-        <BadgeCheck color="#3b82f6" fill="#3b82f6" size={size} className="absolute" />
-        <Check color="white" size={size * 0.6} strokeWidth={4} />
+const WavyBackground = () => (
+    <View className="absolute top-[-50px] left-0 right-0 h-[200px] opacity-20">
+        <Svg height="100%" width="100%" viewBox="0 0 1440 320">
+            <Path
+                fill="#ec4899"
+                d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,133.3C672,117,768,139,864,165.3C960,192,1056,224,1152,218.7C1248,213,1344,171,1392,149.3L1440,128L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
+            />
+        </Svg>
     </View>
 );
 
-// --- COMPONENTS ---
+const MiniMetric = ({ icon: Icon, value, label, color = '#fbbf24' }) => (
+    <View className="flex-1 bg-white/5 rounded-2xl p-2 border border-white/5 items-center justify-center">
+        <Icon color={color} size={10} />
+        <Text className="text-white font-black text-[9px] mt-1">{value}</Text>
+        <Text className="text-white/30 text-[7px] uppercase font-bold tracking-tighter">{label}</Text>
+    </View>
+);
 
-// Horizontal Influencer Card
-const InfluencerCard = memo(({ item, onPress, width: customWidth }) => {
-    const instagram = item.social_accounts?.[0];
-    const isVerified = item.verification_status === 'verified';
-    const isSpotlight = item.spotlight_active;
+const MiniBadge = ({ text, color = '#3b82f6' }) => (
+    <View className="mr-1.5 mb-1.5 px-2 py-0.5 rounded-md border border-white/10 bg-white/5 flex-row items-center">
+        <View className="w-1 h-1 rounded-full mr-1" style={{ backgroundColor: color }} />
+        <Text className="text-white text-[7px] font-black uppercase tracking-widest">{text}</Text>
+    </View>
+);
+
+const InfluencerCard = memo(({ item, onPress, horizontal = false }) => {
+    const isVerified = item.isVerified;
+    const [isFav, setIsFav] = useState(item.isFavorited);
+    
+    const currentWidth = horizontal ? width * 0.45 : COLUMN_WIDTH;
+    const cardHeight = horizontal ? 300 : (item.id.charCodeAt(0) % 2 === 0 ? 320 : 360);
+    const firstName = (item.full_name || item.username || 'Influencer').split(' ')[0];
+    const trustScore = Math.floor(75 + (item.id.charCodeAt(0) % 22));
+
+    const toggleFavorite = async (e) => {
+        e.stopPropagation();
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return Alert.alert('Hata', 'Favorilere eklemek için giriş yapmalısınız.');
+            if (isFav) {
+                await supabase.from('favorites').delete().eq('user_id', user.id).eq('influencer_id', item.id);
+                setIsFav(false);
+            } else {
+                await supabase.from('favorites').insert({ user_id: user.id, influencer_id: item.id });
+                setIsFav(true);
+            }
+        } catch (err) { console.error(err); }
+    };
 
     return (
         <TouchableOpacity
             activeOpacity={0.9}
-            onPress={onPress}
-            style={{ width: customWidth || CARD_WIDTH }}
-            className={`mr-4 relative ${customWidth ? 'mb-4 mr-0' : ''}`}
+            onPress={() => onPress(item)}
+            style={{ width: currentWidth, marginBottom: 16 }}
+            className={horizontal ? "mr-4" : ""}
         >
-            <View className={`h-64 rounded-2xl overflow-hidden bg-[#15171e] border ${isSpotlight ? 'border-purple-500 border-2 shadow-sm shadow-purple-500/30' : 'border-white/5'}`}>
-                <View className="h-40 w-full relative">
-                    {item.avatar_url ? (
-                        <Image
-                            source={{ uri: item.avatar_url?.includes('?') ? item.avatar_url : `${item.avatar_url}?w=400&q=80` }}
-                            className="w-full h-full"
-                            resizeMode="cover"
-                            fadeDuration={0}
-                        />
-                    ) : (
-                        <View className="w-full h-full items-center justify-center bg-[#1F2128]">
-                            <Text className="text-white font-bold text-2xl opacity-50">{item.username?.charAt(0).toUpperCase()}</Text>
-                        </View>
-                    )}
-
-                    <LinearGradient
-                        colors={['transparent', 'rgba(21, 23, 30, 1)']}
-                        className="absolute bottom-0 left-0 right-0 h-20"
-                    />
-
-                    {isSpotlight && (
-                        <LinearGradient
-                            colors={['rgba(168, 85, 247, 0.9)', 'rgba(168, 85, 247, 0.5)']}
-                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                            className="absolute top-2 right-2 px-2 py-0.5 rounded-md"
-                        >
-                            <Text className="text-white text-[9px] font-black tracking-widest">ÖNE ÇIKAN</Text>
-                        </LinearGradient>
-                    )}
-                </View>
-
-                <View className="flex-1 px-3 py-2 justify-between pb-3">
-                    <View>
-                        <View className="flex-row items-center space-x-1 mb-0.5">
-                            <Text className="text-white font-bold text-sm leading-5" numberOfLines={1}>
-                                {item.full_name || item.username}
-                            </Text>
-                            {isVerified && instagram && <VerifiedBadge size={14} />}
-                        </View>
-                        <Text className="text-gray-500 text-[10px]" numberOfLines={1}>@{item.username}</Text>
+            <View style={{ height: cardHeight, width: currentWidth }} className="rounded-[32px] overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
+                {item.avatar_url ? (
+                    <Image source={{ uri: getThumbnailUrl(item.avatar_url) }} className="absolute inset-0 w-full h-full" resizeMode="cover" fadeDuration={0} />
+                ) : (
+                    <View className="absolute inset-0 items-center justify-center bg-slate-800">
+                        <Text className="text-white/20 font-bold text-4xl">{item.username?.charAt(0).toUpperCase()}</Text>
                     </View>
+                )}
+                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.9)']} className="absolute inset-0" />
+                
+                {/* Favorite */}
+                <TouchableOpacity onPress={toggleFavorite} className="z-50 absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 items-center justify-center border border-white/10 backdrop-blur-md">
+                    <Heart color={isFav ? "#ef4444" : "white"} fill={isFav ? "#ef4444" : "transparent"} size={16} />
+                </TouchableOpacity>
 
-                    <View className="flex-row items-center space-x-3">
-                        <View>
-                            <Text className="text-white font-bold text-xs">
-                                {instagram?.follower_count ? (instagram.follower_count > 1000 ? (instagram.follower_count / 1000).toFixed(1) + 'K' : instagram.follower_count) : '-'}
-                            </Text>
-                            <Text className="text-gray-600 text-[8px] uppercase">Takipçi</Text>
-                        </View>
-                        <View className="w-[1px] h-4 bg-white/10" />
-                        <View>
-                            <Text className="text-soft-gold font-bold text-xs">
-                                {instagram?.engagement_rate ? instagram.engagement_rate + '%' : '-'}
-                            </Text>
-                            <Text className="text-gray-600 text-[8px] uppercase">Etkileşim</Text>
-                        </View>
+                <View className="absolute bottom-5 left-5 right-5">
+                    <View className="flex-row items-center gap-1.5 mb-1.5">
+                        <Text className="text-white font-black text-xl tracking-tight" numberOfLines={1}>{firstName}</Text>
+                        {isVerified && <BadgeCheck color="white" size={20} fill="#3b82f6" />}
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                        <Text className="text-pink-500 text-[8px] font-black uppercase tracking-[3px]">
+                            {item.category?.toUpperCase() || 'MODA'}
+                        </Text>
                     </View>
                 </View>
             </View>
@@ -141,241 +99,110 @@ const InfluencerCard = memo(({ item, onPress, width: customWidth }) => {
     );
 });
 
-const CategorySection = memo(({ title, data, onProfilePress, onViewAll }) => {
-    if (!data || data.length === 0) return null;
-
-    return (
-        <View className="mb-8">
-            <View className="flex-row items-center justify-between px-6 mb-4">
-                <Text className="text-white font-bold text-lg tracking-tight">{title}</Text>
-                <TouchableOpacity onPress={() => onViewAll(title, data)} className="flex-row items-center p-1">
-                    <Text className="text-gray-500 text-xs font-medium mr-1">Tümü</Text>
-                    <ChevronRight color="#6b7280" size={14} />
-                </TouchableOpacity>
-            </View>
-
-            <FlatList
-                horizontal
-                data={data}
-                renderItem={({ item }) => <InfluencerCard item={item} onPress={() => onProfilePress(item)} />}
-                keyExtractor={item => item.id}
-                contentContainerStyle={{ paddingHorizontal: 24 }}
-                showsHorizontalScrollIndicator={false}
-                initialNumToRender={2}
-                maxToRenderPerBatch={2}
-                windowSize={3}
-                removeClippedSubviews={true}
-                getItemLayout={(data, index) => ({
-                    length: CARD_WIDTH + 16, // Card width + margin (mr-4 = 16px)
-                    offset: (CARD_WIDTH + 16) * index,
-                    index,
-                })}
-            />
+const CategorySection = memo(({ title, data, onProfilePress }) => (
+    <View className="mb-10">
+        <View className="flex-row items-center justify-between px-6 mb-5">
+            <Text className="text-white font-black text-xl tracking-tight uppercase" style={{ letterSpacing: 1 }}>
+                {title === 'Featured' ? 'Öne Çıkanlar' : title}
+            </Text>
+            <TouchableOpacity className="bg-white/5 px-4 py-2 rounded-full border border-white/10">
+                <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Tümünü Gör</Text>
+            </TouchableOpacity>
         </View>
-    );
-});
+        <FlatList
+            horizontal
+            data={data}
+            renderItem={({ item }) => <InfluencerCard item={item} onPress={() => onProfilePress(item)} horizontal={true} />}
+            keyExtractor={item => item.id}
+            contentContainerStyle={{ paddingHorizontal: 24 }}
+            showsHorizontalScrollIndicator={false}
+        />
+    </View>
+));
 
-
-export default function DiscoverScreen({ navigation, route }) {
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(false);
+export default function DiscoverScreen({ navigation }) {
+    const [sections, setSections] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Modal & Selection
-    const [selectedInfluencer, setSelectedInfluencer] = useState(null);
-    const [modalVisible, setModalVisible] = useState(false);
-
-    // Category Detail Modal
-    const [selectedCategoryData, setSelectedCategoryData] = useState(null);
-    const [categoryModalVisible, setCategoryModalVisible] = useState(false);
-
-    const [currentUserRole, setCurrentUserRole] = useState(null);
-    const [detailedBadges, setDetailedBadges] = useState([]);
-    const [loadingDetails, setLoadingDetails] = useState(false);
-
-    const openProfile = useCallback((influencer) => {
-        navigation.navigate('InfluencerDetail', { influencer });
-    }, [navigation]);
-
-    const closeProfile = useCallback(() => {
-        setModalVisible(false);
-        setSelectedInfluencer(null);
-        setDetailedBadges([]);
-    }, []);
-
-    const startConversation = useCallback(async (influencer) => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            // Find or create a room between this brand and influencer
-            let { data: existingRoom } = await supabase
-                .from('rooms')
-                .select('id')
-                .eq('brand_id', user.id)
-                .eq('influencer_id', influencer.id)
-                .maybeSingle();
-
-            if (!existingRoom) {
-                const { data: newRoom, error } = await supabase
-                    .from('rooms')
-                    .insert({ brand_id: user.id, influencer_id: influencer.id })
-                    .select('id')
-                    .single();
-                if (error) throw error;
-                existingRoom = newRoom;
-            }
-
-            // Close profile modal then navigate to messages
-            setModalVisible(false);
-            setSelectedInfluencer(null);
-            setDetailedBadges([]);
-
-            // Navigate to Brand's Mesajlar tab and open the specific chat
-            setTimeout(() => {
-                navigation.navigate('Mesajlar', { openRoomId: existingRoom.id, partnerName: influencer.full_name || influencer.username, partnerAvatar: influencer.avatar_url });
-            }, 300);
-        } catch (e) {
-            Alert.alert('Hata', 'Mesajlaşma başlatılamadı: ' + (e.message || ''));
-        }
-    }, [navigation]);
-
-    const openCategory = useCallback((title, data) => {
-        setSelectedCategoryData({ title, data });
-        setCategoryModalVisible(true);
-    }, []);
-
-    const closeCategory = useCallback(() => {
-        setCategoryModalVisible(false);
-        setSelectedCategoryData(null);
-    }, []);
-
-    const fetchUserBadges = async (userId) => {
-        setLoadingDetails(true);
-        try {
-            const { data, error } = await supabase
-                .from('user_badges')
-                .select('badge_id')
-                .eq('user_id', userId);
-
-            if (data) {
-                setDetailedBadges(data.map(b => b.badge_id));
-            }
-        } catch (e) {
-            console.log("Badge fetch error", e);
-        } finally {
-            setLoadingDetails(false);
-        }
-    };
-
-    useEffect(() => {
-        const fetchUserRole = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single();
-                if (userData) setCurrentUserRole(userData.role);
-            }
-        };
-        fetchUserRole();
-
-        // Handle initialInfluencer param
-        if (route.params?.initialInfluencer) {
-            openProfile(route.params.initialInfluencer);
-            // Clear params to avoid reopening on re-focus
-            navigation.setParams({ initialInfluencer: null });
-        }
-    }, [route.params?.initialInfluencer, navigation, openProfile]);
-
     const fetchInfluencers = async () => {
         try {
-            const { data: users, error: userError } = await supabase
+            const { data: { user } } = await supabase.auth.getUser();
+            const myId = user?.id;
+
+            const { data: users, error } = await supabase
                 .from('users')
-                .select('id, full_name, username, avatar_url, category, city, spotlight_active, is_showcase_visible, verification_status')
+                .select('id, full_name, username, avatar_url, category, bio, spotlight_active, verification_status, is_showcase_visible, displayed_badges')
                 .eq('role', 'influencer')
-                .is('is_showcase_visible', true)  // Vitrin görünürlüğü AKTİF
-                // .eq('verification_status', 'verified') // (İsteğe bağlı: Doğrulanmış hesap şartı kapalı)
-                .neq('verification_status', 'pending') // Bekleyen hesaplar GİZLİ
-                .neq('verification_status', 'rejected') // Reddedilenler GİZLİ
-                .order('spotlight_active', { ascending: false });
+                .eq('verification_status', 'verified')
+                .eq('is_showcase_visible', true);
+            
+            if (error) throw error;
 
-            if (userError) {
-                console.log("User fetch error:", userError.message);
-                return;
-            }
-            console.log("Fetched users count:", users ? users.length : 0);
-
-            if (!users || users.length === 0) {
-                console.log("No users found with role='influencer'");
-                setCategories([]);
-                return;
-            }
-
-            const userIds = users.map(u => u.id);
+            // Fetch Real Stats (Instagram)
             const { data: socialAccounts } = await supabase
                 .from('social_accounts')
-                .select('user_id, platform, follower_count, engagement_rate')
-                .in('user_id', userIds)
-                .eq('platform', 'instagram');
+                .select('user_id, platform, follower_count, engagement_rate, stats_payload')
+                .in('user_id', users.map(u => u.id));
 
-            const allInfluencers = users.map(user => {
-                const account = socialAccounts?.find(a => a.user_id === user.id);
-                // Kategori Normalizasyonu
-                let cat = user.category || 'Diğer';
-                if (CATEGORY_MAP[cat]) {
-                    cat = CATEGORY_MAP[cat];
-                } else {
-                    cat = cat.charAt(0).toUpperCase() + cat.slice(1);
-                }
+            // Fetch Favorites
+            const { data: myFavs } = myId ? await supabase
+                .from('favorites')
+                .select('influencer_id')
+                .eq('user_id', myId) : { data: [] };
 
+            const favIds = new Set(myFavs?.map(f => f.influencer_id));
+
+            const usersWithStats = users.map(u => {
+                const ig = socialAccounts?.find(s => s.user_id === u.id && s.platform === 'instagram');
+                const tt = socialAccounts?.find(s => s.user_id === u.id && s.platform === 'tiktok');
+                const isVerified = Array.isArray(u.displayed_badges) && u.displayed_badges.includes('verified-account');
+                
                 return {
-                    ...user,
-                    displayCategory: cat,
-                    social_accounts: account ? [account] : []
-                };
-            });
-
-            const grouped = [];
-
-            // Spotlight
-            // Verisi olmayan (Instagram bağlamamış) kullanıcılar öne çıkanlarda görünmesin
-            const spotlightUsers = allInfluencers.filter(u => u.spotlight_active && u.social_accounts && u.social_accounts.length > 0);
-            if (spotlightUsers.length > 0) {
-                grouped.push({ title: '🔥 Öne Çıkanlar', data: spotlightUsers });
-            }
-
-            // Categories
-            const categoryMap = {};
-            allInfluencers.forEach(user => {
-                const cat = user.displayCategory;
-                if (!categoryMap[cat]) categoryMap[cat] = [];
-                categoryMap[cat].push(user);
-            });
-
-            Object.keys(categoryMap).forEach(catTitle => {
-                if (categoryMap[catTitle].length > 0) {
-                    grouped.push({ title: catTitle, data: categoryMap[catTitle] });
+                    ...u,
+                    isVerified,
+                    instagram: ig,
+                    tiktok: tt,
+                    isFavorited: favIds.has(u.id)
                 }
             });
 
-            setCategories(grouped);
+            // Client-side search filter
+            const filtered = searchQuery 
+                ? usersWithStats.filter(u => 
+                    (u.full_name || u.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (u.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                : usersWithStats;
 
-        } catch (error) {
-            console.log('Error:', error);
-            Alert.alert("Hata", "Veriler yüklenirken bir sorun oluştu.");
+            // Group by Categories
+            const spotlight = filtered.filter(u => u.spotlight_active);
+            const others = filtered.filter(u => !u.spotlight_active);
+            
+            const categoryGroups = others.reduce((acc, user) => {
+                const cat = user.category || 'Lifestyle';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(user);
+                return acc;
+            }, {});
+
+            const results = [];
+            if (spotlight.length > 0) results.push({ title: 'Featured', data: spotlight });
+            
+            Object.keys(categoryGroups).forEach(cat => {
+                results.push({ title: cat, data: categoryGroups[cat] });
+            });
+
+            setSections(results);
+        } catch (e) {
+            console.error(e);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        setLoading(true);
-        fetchInfluencers();
-    }, []);
+    useEffect(() => { fetchInfluencers(); }, [searchQuery]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -383,249 +210,54 @@ export default function DiscoverScreen({ navigation, route }) {
         setRefreshing(false);
     }, []);
 
-    if (loading && !refreshing) {
-        return (
-            <View className="flex-1 bg-[#020617] items-center justify-center">
-                <ActivityIndicator color="#D4AF37" size="large" />
-            </View>
-        );
-    }
-
     return (
-        <View className="flex-1 bg-[#020617]">
+        <View className="flex-1 bg-black">
             <StatusBar style="light" />
-            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
+            <WavyBackground />
 
             <SafeAreaView className="flex-1" edges={['top']}>
-                <View className="px-6 pb-2 pt-2">
-                    <Text className="text-soft-gold text-xs font-bold uppercase tracking-widest mb-1">KEŞFET</Text>
-                    <Text className="text-white text-3xl font-bold mb-4 tracking-tight">Vitrin</Text>
+                <View className="px-6 pt-6 pb-2">
+                    <Text className="text-orange-200 text-3xl font-black leading-[42px] mb-8 w-[90%] tracking-tighter">
+                        Best Influencers for your marketing campaigns
+                    </Text>
 
-                    <View className="bg-white/5 border border-white/10 rounded-2xl flex-row items-center px-4 h-12 mb-4">
-                        <Search color="#6B7280" size={18} />
-                        <TextInput
-                            placeholder="Influencer ara..."
-                            placeholderTextColor="#6B7280"
-                            className="flex-1 ml-3 text-white font-medium text-sm"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
-                </View>
-
-                <FlatList
-                    data={categories}
-                    keyExtractor={(item) => item.title}
-                    renderItem={({ item }) => (
-                        <CategorySection
-                            title={item.title}
-                            data={item.data}
-                            onProfilePress={openProfile}
-                            onViewAll={openCategory}
-                        />
-                    )}
-                    contentContainerStyle={{ paddingBottom: 100 }}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4AF37" />
-                    }
-                    ListEmptyComponent={
-                        !loading && <Text className="text-gray-500 text-center mt-10">Kriterlere uygun influencer bulunamadı.</Text>
-                    }
-                />
-            </SafeAreaView>
-
-            {/* --- CATEGORY DETAIL MODAL (FULL SCREEN) --- */}
-            <Modal
-                animationType="slide"
-                transparent={false}
-                visible={categoryModalVisible}
-                onRequestClose={closeCategory}
-            >
-                <View className="flex-1 bg-[#020617]">
-                    <StatusBar style="light" />
-                    <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
-
-                    <SafeAreaView className="flex-1" edges={['top']}>
-                        {/* Header */}
-                        <View className="px-6 py-4 flex-row items-center space-x-4 border-b border-white/5">
-                            <TouchableOpacity onPress={closeCategory} className="w-10 h-10 bg-white/5 rounded-full items-center justify-center border border-white/10">
-                                <ArrowLeft color="white" size={24} />
-                            </TouchableOpacity>
-                            <Text className="text-white text-xl font-bold flex-1" numberOfLines={1}>{selectedCategoryData?.title}</Text>
-                        </View>
-
-                        {/* Grid List */}
-                        <FlatList
-                            data={selectedCategoryData?.data}
-                            keyExtractor={item => item.id}
-                            numColumns={2}
-                            columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 24 }}
-                            contentContainerStyle={{ paddingVertical: 20, paddingBottom: 100 }}
-                            renderItem={({ item }) => (
-                                <InfluencerCard
-                                    item={item}
-                                    onPress={() => openProfile(item)}
-                                    width={(width - 48 - 16) / 2} // (Screen - Padding - Gap) / 2
-                                />
-                            )}
-                        />
-                    </SafeAreaView>
-                </View>
-            </Modal>
-
-
-            {/* --- PROFILE DETAIL MODAL (BOTTOM SHEET) --- */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={closeProfile}
-            >
-                {selectedInfluencer && (
-                    <View className="flex-1 bg-black/90 justify-end">
-                        <TouchableOpacity className="flex-1" onPress={closeProfile} />
-
-                        <View className="h-[90%] bg-[#0B0F19] rounded-t-[32px] overflow-hidden relative shadow-2xl border-t border-white/10">
-                            <View className="absolute top-0 left-0 right-0 z-50 flex-row justify-between items-center px-6 pt-5 pb-2">
-                                <View />
-                                <TouchableOpacity onPress={closeProfile} className="w-9 h-9 bg-black/40 rounded-full items-center justify-center border border-white/10 backdrop-blur-md">
-                                    <X color="white" size={18} />
-                                </TouchableOpacity>
-                            </View>
-
-                            <FlatList
-                                data={[selectedInfluencer]}
-                                keyExtractor={item => item.id}
-                                contentContainerStyle={{ paddingBottom: 100 }}
-                                renderItem={({ item }) => {
-                                    const instagram = item.social_accounts?.[0];
-                                    const hasInstagram = !!instagram;
-                                    const updateDate = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-                                    const isVerified = item.verification_status === 'verified';
-
-                                    return (
-                                        <View>
-                                            {/* Header */}
-                                            <View className="items-center pt-16 pb-6 px-6 bg-[#0F1119] border-b border-dashed border-white/5 relative">
-                                                <LinearGradient colors={['rgba(168, 85, 247, 0.05)', 'transparent']} className="absolute inset-0" />
-
-                                                <View className={`w-28 h-28 rounded-full border-4 items-center justify-center overflow-hidden bg-[#15171e] mb-4 shadow-xl ${item.spotlight_active ? 'border-purple-500 shadow-purple-500/20' : 'border-[#2A2D35]'}`}>
-                                                    {item.avatar_url ? (
-                                                        <Image source={{ uri: item.avatar_url }} className="w-full h-full" resizeMode="cover" />
-                                                    ) : (
-                                                        <Text className="text-white text-3xl font-bold opacity-50">{item.username?.charAt(0).toUpperCase()}</Text>
-                                                    )}
-                                                </View>
-
-                                                <View className="flex-row items-center space-x-2 mb-1">
-                                                    <Text className="text-white text-2xl font-bold tracking-tight text-center">{item.full_name || item.username}</Text>
-                                                    {isVerified && hasInstagram && <VerifiedBadge size={22} />}
-                                                </View>
-                                                <Text className="text-gray-400 text-sm font-medium mb-3">@{item.username}</Text>
-
-                                                <View className="flex-row items-center space-x-2">
-                                                    {item.displayCategory && (
-                                                        <View className="bg-white/5 px-3 py-1 rounded-full border border-white/10">
-                                                            <Text className="text-white/80 text-[10px] font-bold uppercase tracking-wider">{item.displayCategory}</Text>
-                                                        </View>
-                                                    )}
-                                                    <View className="bg-white/5 px-3 py-1 rounded-full border border-white/10 flex-row items-center">
-                                                        <MapPin size={10} color="#9ca3af" className="mr-1" />
-                                                        <Text className="text-white/80 text-[10px] font-bold uppercase tracking-wider">{item.city || 'Türkiye'}</Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-
-                                            <View className="px-6 py-6">
-                                                {/* Stats */}
-                                                <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">PERFORMANS</Text>
-
-                                                {hasInstagram ? (
-                                                    <View className="flex-row space-x-3 mb-4">
-                                                        <View className="flex-1 bg-[#15171e] rounded-2xl p-4 border border-white/5 relative overflow-hidden">
-                                                            <LinearGradient colors={['rgba(255,255,255,0.03)', 'transparent']} className="absolute inset-0" />
-                                                            <Text className="text-gray-400 text-[10px] uppercase font-bold mb-1">Takipçi</Text>
-                                                            <Text className="text-white text-2xl font-black">
-                                                                {instagram.follower_count > 1000 ? (instagram.follower_count / 1000).toFixed(1) + 'K' : instagram.follower_count}
-                                                            </Text>
-                                                        </View>
-                                                        <View className="flex-1 bg-[#15171e] rounded-2xl p-4 border border-white/5 relative overflow-hidden">
-                                                            <LinearGradient colors={['rgba(168, 85, 247, 0.05)', 'transparent']} className="absolute inset-0" />
-                                                            <Text className="text-purple-400 text-[10px] uppercase font-bold mb-1">Etkileşim</Text>
-                                                            <Text className="text-white text-2xl font-black">%{instagram.engagement_rate}</Text>
-                                                        </View>
-                                                    </View>
-                                                ) : (
-                                                    <View className="w-full bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-4">
-                                                        <Text className="text-red-200 text-xs font-medium">Veriler henüz doğrulanmadı.</Text>
-                                                    </View>
-                                                )}
-
-                                                {/* AI Summary */}
-                                                <View className="mb-8 mt-4">
-                                                    <View className="flex-row items-center justify-between mb-3">
-                                                        <View className="flex-row items-center">
-                                                            <Sparkles color="#a855f7" size={14} className="mr-2" />
-                                                            <Text className="text-white font-bold text-sm">Yapay Zeka Özeti</Text>
-                                                        </View>
-                                                        <View className="bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                                                            <Text className="text-purple-300 text-[9px] font-bold">INFLU AI</Text>
-                                                        </View>
-                                                    </View>
-                                                    <View className="bg-[#15171e] p-4 rounded-2xl border border-white/5">
-                                                        <Text className="text-gray-300 text-xs leading-5 font-light">
-                                                            Bu profil, özellikle <Text className="text-purple-300 font-bold">{item.displayCategory}</Text> alanında tutarlı bir büyüme sergiliyor.
-                                                            {hasInstagram && instagram.engagement_rate > 3 && " Marka işbirlikleri için yüksek potansiyel."}
-                                                        </Text>
-                                                    </View>
-                                                </View>
-
-                                                {/* BADGES (Fetched Full List) */}
-                                                <View className="mb-8">
-                                                    <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">ROZETLER</Text>
-                                                    <View className="flex-row flex-wrap">
-                                                        {detailedBadges.length > 0 ? (
-                                                            detailedBadges.map((badge, index) => (
-                                                                <View key={index} className="bg-[#15171e] border border-white/5 px-3 py-2 rounded-xl mr-2 mb-2 flex-row items-center">
-                                                                    <Award size={14} color="#D4AF37" className="mr-2" />
-                                                                    <Text className="text-gray-300 text-[11px] font-medium">
-                                                                        {BADGE_NAMES[badge] || badge.replace(/[-_]/g, ' ')}
-                                                                    </Text>
-                                                                </View>
-                                                            ))
-                                                        ) : (
-                                                            <Text className="text-gray-600 text-xs italic ml-1">Henüz rozet kazanılmamış.</Text>
-                                                        )}
-                                                    </View>
-                                                </View>
-
-                                                {/* About */}
-                                                <View className="mb-24">
-                                                    <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">HAKKINDA</Text>
-                                                    <Text className="text-gray-300 text-sm leading-6 font-light">
-                                                        {item.bio || 'Merhaba! Influmatch topluluğunun bir parçasıyım.'}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                        </View>
-                                    );
-                                }}
+                    {/* Search Section */}
+                    <View className="flex-row items-center gap-2 mb-8">
+                        <View className="flex-1 bg-white/10 rounded-[24px] h-14 flex-row items-center px-4 border border-white/5 backdrop-blur-xl">
+                            <Search color="#64748b" size={20} />
+                            <TextInput
+                                placeholder="Search Influencer"
+                                placeholderTextColor="#475569"
+                                className="flex-1 ml-3 text-white font-bold text-sm"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
                             />
-
-                            {currentUserRole === 'brand' && (
-                                <View className="absolute bottom-0 left-0 right-0 p-6 bg-[#0B0F19] border-t border-white/5">
-                                    <TouchableOpacity
-                                        onPress={() => startConversation(selectedInfluencer)}
-                                        className="w-full bg-soft-gold h-14 rounded-2xl items-center justify-center flex-row shadow-lg shadow-soft-gold/20"
-                                    >
-                                        <Text className="text-black font-extrabold text-base tracking-wide uppercase">İLETİŞİME GEÇ</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
                         </View>
+                        <TouchableOpacity className="w-14 h-14 rounded-[24px] bg-white/10 items-center justify-center border border-white/5 backdrop-blur-xl">
+                            <Sliders color="white" size={20} />
+                        </TouchableOpacity>
                     </View>
+                </View>
+
+                {loading ? (
+                    <ActivityIndicator color="#ec4899" className="mt-10" />
+                ) : (
+                    <FlatList
+                        data={sections}
+                        keyExtractor={item => item.title}
+                        renderItem={({ item }) => (
+                            <CategorySection 
+                                title={item.title} 
+                                data={item.data} 
+                                onProfilePress={(inf) => navigation.navigate('InfluencerDetail', { influencer: inf })} 
+                            />
+                        )}
+                        contentContainerStyle={{ paddingBottom: 100 }}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ec4899" />}
+                        ListEmptyComponent={<Text className="text-gray-600 text-center mt-10">No influencers found.</Text>}
+                    />
                 )}
-            </Modal>
+            </SafeAreaView>
         </View>
     );
 }

@@ -333,7 +333,8 @@ export default function SettingsScreen({ navigation }) {
                         />
                         <UsernameInfoSection />
                         <PasswordSection />
-                        {role !== 'brand' && (
+                        {/* Only show Connected Accounts for non-brands once role is loaded */}
+                        {role && role !== 'brand' && (
                             <MenuItem
                                 icon={Smartphone}
                                 iconColor="#E1306C"

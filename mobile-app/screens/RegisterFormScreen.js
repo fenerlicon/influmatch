@@ -124,16 +124,16 @@ export default function RegisterFormScreen({ route, navigation }) {
 
                     <View className="space-y-5">
 
-                        {/* Ad Soyad / Marka Adı */}
+                        {/* Ad Soyad / Person in charge */}
                         <View className="space-y-2">
                             <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider ml-1">
-                                {role === 'brand' ? 'Marka Adı' : 'Ad Soyad'}
+                                Ad Soyad
                             </Text>
                             <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
                                 {role === 'brand' ? <Briefcase color="#6B7280" size={18} /> : <User color="#6B7280" size={18} />}
                                 <TextInput
                                     className="flex-1 text-white font-medium"
-                                    placeholder={role === 'brand' ? 'Markanızın Adı' : 'Adınız Soyadınız'}
+                                    placeholder="Adınız Soyadınız"
                                     placeholderTextColor="#4B5563"
                                     value={formData.fullName}
                                     onChangeText={(t) => updateField('fullName', t)}
