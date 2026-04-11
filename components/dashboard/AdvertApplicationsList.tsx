@@ -2,7 +2,8 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck, Loader2, Trash2 } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, XCircle, MessageCircle, BadgeCheck, Loader2, Trash2, Filter } from 'lucide-react'
+import { AdvertProject } from './AdvertProjectsList'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { getOrCreateAdvertApplicationRoom, updateApplicationStatus } from '@/app/dashboard/brand/advert/actions'
@@ -94,6 +95,7 @@ interface AdvertApplicationsListProps {
   currentUserId?: string
   onOpenChat?: (applicationId: string) => void
   myProjectIds?: string[]
+  projects?: AdvertProject[]
 }
 
 export default function AdvertApplicationsList({
@@ -101,12 +103,14 @@ export default function AdvertApplicationsList({
   isInfluencerView = false,
   currentUserId,
   onOpenChat,
-  myProjectIds
+  myProjectIds,
+  projects = []
 }: AdvertApplicationsListProps) {
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
   const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [selectedAdvertId, setSelectedAdvertId] = useState<string>('all')
 
   // Use local state for applications to handle real-time updates
   const [localApplications, setLocalApplications] = useState<AdvertApplication[]>(applications)
@@ -447,6 +451,10 @@ export default function AdvertApplicationsList({
     }
   }
 
+  const filteredApplications = selectedAdvertId === 'all' 
+    ? localApplications 
+    : localApplications.filter(app => app.advert_id === selectedAdvertId)
+
   if (localApplications.length === 0) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
@@ -462,7 +470,37 @@ export default function AdvertApplicationsList({
 
   return (
     <div className="space-y-4">
-      {localApplications.map((application) => {
+      {/* Filter Section */}
+      {!isInfluencerView && projects.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-gray-300">
+            <Filter className="h-4 w-4 text-soft-gold" />
+            <span>İlanlara Göre Filtrele:</span>
+          </div>
+          <select
+            value={selectedAdvertId}
+            onChange={(e) => setSelectedAdvertId(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-[#0E0F15] px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-soft-gold sm:w-64"
+          >
+            <option value="all">Tüm İlanlar ({localApplications.length})</option>
+            {projects.map((project) => {
+              const count = localApplications.filter(app => app.advert_id === project.id).length
+              return (
+                <option key={project.id} value={project.id}>
+                  {project.title} ({count})
+                </option>
+              )
+            })}
+          </select>
+        </div>
+      )}
+
+      {filteredApplications.length === 0 ? (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
+          Bu ilan için henüz başvuru yok.
+        </div>
+      ) : (
+        filteredApplications.map((application) => {
         const StatusIcon = STATUS_ICONS[application.status] || Clock
         return (
           <article
@@ -631,7 +669,7 @@ export default function AdvertApplicationsList({
             </div>
           </article>
         )
-      })}
+      )})}
     </div>
   )
 }
