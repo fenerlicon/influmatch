@@ -669,7 +669,8 @@ export default function AdvertApplicationsList({
             </div>
           </article>
         )
-      )})}
+      })
+      )}
     </div>
   )
 }
