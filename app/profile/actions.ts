@@ -20,11 +20,11 @@ export async function createOffer(payload: CreateOfferPayload) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    throw new Error('Oturum bulunamadı. Lütfen yeniden giriş yapın.')
+    return { error: 'Oturum bulunamadı. Lütfen yeniden giriş yapın.' }
   }
 
   if (user.user_metadata?.role !== 'brand') {
-    throw new Error('Sadece marka hesapları teklif gönderebilir.')
+    return { error: 'Sadece marka hesapları teklif gönderebilir.' }
   }
 
   // Check verification status
@@ -35,7 +35,7 @@ export async function createOffer(payload: CreateOfferPayload) {
     .maybeSingle()
 
   if (userProfile?.verification_status !== 'verified') {
-    throw new Error('Hesabınız henüz onaylanmadı. Teklif gönderebilmek için hesabınızın onaylanması gerekmektedir.')
+    return { error: 'Hesabınız henüz onaylanmadı. Teklif gönderebilmek için hesabınızın onaylanması gerekmektedir.' }
   }
 
   const budgetValue = payload.budget ? Number(payload.budget) : null
@@ -52,7 +52,7 @@ export async function createOffer(payload: CreateOfferPayload) {
   })
 
   if (error) {
-    throw new Error(error.message)
+    return { error: error.message }
   }
 
   return { success: true }

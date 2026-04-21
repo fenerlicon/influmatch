@@ -57,7 +57,7 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified 
     event.preventDefault()
     startTransition(async () => {
       try {
-        await createOffer({
+        const result = await createOffer({
           receiverId,
           campaignName: formState.campaignName,
           campaignType: formState.campaignType,
@@ -65,6 +65,12 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified 
           message: formState.message,
           paymentType: formState.paymentType,
         })
+
+        if (result?.error) {
+          setToast({ type: 'error', message: result.error })
+          return
+        }
+
         setFormState(initialFormState)
         setIsOpen(false)
         setToast({ type: 'success', message: 'Teklifiniz gönderildi!' })
