@@ -10,6 +10,7 @@ import VerificationCTA from '@/components/landing/VerificationCTA'
 import ValueProposition from '@/components/landing/ValueProposition'
 import BadgesSection from '@/components/landing/BadgesSection'
 import FAQSection from '@/components/landing/FAQSection'
+import Footer from '@/components/landing/Footer'
 import Spotlight, { type SpotlightInfluencer } from '@/components/landing/Spotlight'
 import PartnersSection from '@/components/landing/PartnersSection'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
@@ -127,6 +128,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <ValueProposition />
         <FAQSection />
         <BadgesSection />
+        <Footer />
       </div>
     </main>
   )
