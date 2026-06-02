@@ -28,6 +28,10 @@ const faqs = [
     {
         question: "Üye olmak ücretli mi?",
         answer: "Influmatch'e üye olmak ve profil oluşturmak tamamen ücretsizdir. Influencerlar için kampanyalara başvurmak, markalar için ise temel kampanya oluşturmak ücretsizdir. Sadece gelişmiş özellikler ve daha fazla görünürlük için Spotlight paketlerini tercih edebilirsiniz."
+    },
+    {
+        question: "Influmatch'in arkasında kim var ve Social Art Medya ile bağı nedir?",
+        answer: "Influmatch, İstanbul'un öncü 360° dijital pazarlama, kreatif prodüksiyon ve reklam ajansı olan Social Art Medya tarafından geliştirilmiş ve desteklenen bir platformdur. Influmatch ekosisteminin arkasındaki tüm teknolojik altyapı, yapay zeka entegrasyonları ve kreatif vizyon, Social Art Medya'nın uzman ekibinin gücünü taşımaktadır."
     }
 ]
 
