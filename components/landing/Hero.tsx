@@ -82,11 +82,11 @@ export default function Hero() {
             YENİ NESİL İŞBİRLİĞİ
           </p>
           <h1 className="mt-6 text-4xl font-semibold leading-tight text-white md:text-5xl lg:text-6xl">
-            Influencer Marketing'in{' '}
-            <span className="text-soft-gold">Geleceği</span>
+            Ücretsiz Influencer{' '}
+            <span className="text-soft-gold">Bulma Platformu</span>
           </h1>
           <p className="mt-6 text-lg text-gray-300 leading-relaxed">
-            Markalar ve influencerlar için en şeffaf, güvenilir ve etkili işbirliği platformu. Aracı yok, komisyon yok, doğrudan iletişim var.
+            İstanbul, Ankara, İzmir başta olmak üzere Türkiye'nin her şehrindeki influencer ve UGC içerik üreticilerini ücretsiz keşfedin. Aracı yok, komisyon yok, doğrudan iletişim var.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
