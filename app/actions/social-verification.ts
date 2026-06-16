@@ -154,8 +154,10 @@ export async function verifyInstagramAccount(userId: string) {
         // If the user is already verified and just updating, we trust the link (unless we want to force re-verification periodically)
         // For now, let's relax the check for updates to allow easy refresh
         if (!account.is_verified) {
-            if (!biography.includes(verificationCode)) {
-                return { success: false, error: 'Doğrulama kodu biyografide bulunamadı.' }
+            const cleanBio = (biography || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const cleanCode = (verificationCode || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!cleanBio.includes(cleanCode)) {
+                return { success: false, error: `Doğrulama kodu (${verificationCode}) biyografinizde bulunamadı. Lütfen kodu değiştirmeden (büyük/küçük harf veya aradaki çizgiye dikkat ederek) biyografinize eklediğinizden emin olun.` }
             }
         }
 
