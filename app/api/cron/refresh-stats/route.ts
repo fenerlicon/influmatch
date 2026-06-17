@@ -42,7 +42,7 @@ export async function GET(req: Request) {
     for (const account of staleAccounts) {
         try {
             // Mevcut verifyInstagramAccount fonksiyonumuzu çağırıyoruz.
-            // Bu fonksiyon zaten 21 gün kuralına göre güncellendi!
+            // Bu fonksiyon zaten 30 gün kuralına göre güncellendi!
             const result = await verifyInstagramAccount(account.user_id)
             results.push({ username: account.username, status: result.success ? 'success' : 'failed' })
         } catch (err) {

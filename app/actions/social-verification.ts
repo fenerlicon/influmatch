@@ -175,18 +175,18 @@ export async function verifyInstagramAccount(userId: string) {
         // 3. Stats Calculation Logic
 
         const nowTimestamp = Math.floor(Date.now() / 1000)
-        const twentyOneDaysAgo = nowTimestamp - (21 * 24 * 60 * 60)
+        const thirtyDaysAgo = nowTimestamp - (30 * 24 * 60 * 60)
 
-        // 1. FILTER: We EXCLUDE all pinned posts and ANYTHING older than 21 days
+        // 1. FILTER: We EXCLUDE all pinned posts and ANYTHING older than 30 days
         let cleanEdges = (edges || []).filter((edge: any) => {
             const node = edge.node;
             // Exclude Pinned (Safety check for both naming conventions)
             if (node.is_pinned === true || node.isPinned === true) return false;
             if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
             
-            // Exclude Old (> 21 Days) - STRICT
+            // Exclude Old (> 30 Days) - STRICT
             const ts = Number(node?.taken_at_timestamp) || 0;
-            if (ts < twentyOneDaysAgo) return false;
+            if (ts < thirtyDaysAgo) return false;
 
             return true;
         });

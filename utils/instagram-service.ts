@@ -71,8 +71,8 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
         },
         body: JSON.stringify({
             "directUrls": [`https://www.instagram.com/${cleanUsername}/`],
-            "resultsType": "reels",
-            "resultsLimit": 15, // Using 15 to get enough recent reels
+            "resultsType": "posts",
+            "resultsLimit": 15, // Using 15 to get enough recent posts
             "addParentData": true
         }),
     })
@@ -86,10 +86,10 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
 
     const items = await response.json()
     if (!items || items.length === 0) {
-        throw new Error('Instagram profil verisi veya Reels bulunamadı. Kullanıcı hiç reels paylaşmamış olabilir veya hesap GİZLİ olabilir.');
+        throw new Error('Instagram profil verisi veya gönderi bulunamadı. Kullanıcı hiç gönderi paylaşmamış olabilir veya hesap GİZLİ olabilir.');
     }
 
-    // Since resultsType="reels" and addParentData=true, items is an array of reels,
+    // Since resultsType="posts" and addParentData=true, items is an array of posts,
     // and each item contains the parent profile details flatly.
     const parentData = items[0];
 
@@ -107,6 +107,7 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
     // A post at index 'i' in the grid is considered pinned if it's older than ANY post that appears AFTER it in the grid.
     const timestamps = latestPosts.map((p: any) => new Date(p.timestamp || 0).getTime());
     const isPinnedArray = latestPosts.map((_: any, i: number) => {
+        if (i >= 3) return false; // Only the first 3 posts can be pinned on Instagram
         const currentTs = timestamps[i];
         for (let j = i + 1; j < timestamps.length; j++) {
             if (timestamps[j] > currentTs) {
@@ -123,8 +124,7 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
             id: post.id, 
             shortcode: post.shortCode,
             display_url: post.displayUrl,
-            // Reels are always video, but fallback check
-            is_video: post.type === 'Video' || true, 
+            is_video: post.type === 'Video' || post.isVideo === true, 
             video_view_count: Number(post.videoViewCount || post.videoPlayCount || 0),
             edge_media_to_comment: { count: post.commentsCount || 0 },
             edge_liked_by: { count: post.likesCount || 0 },
