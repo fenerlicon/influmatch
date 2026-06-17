@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import type { DiscoverInfluencer } from '@/types/influencer'
@@ -12,6 +13,33 @@ export default async function InfluencerDiscoverPage() {
   if (!user) {
     redirect('/login')
   }
+
+  // Fetch Current User Spotlight/Plan Status
+  const { data: currentUserData } = await supabase
+    .from('users')
+    .select('spotlight_active, spotlight_plan')
+    .eq('id', user.id)
+    .single()
+
+  // Fetch current user's social accounts stats to check if they have connected accounts
+  const { data: instagramAccount } = await supabase
+    .from('social_accounts')
+    .select('has_stats')
+    .eq('user_id', user.id)
+    .eq('platform', 'instagram')
+    .maybeSingle()
+
+  const { data: tiktokAccount } = await supabase
+    .from('social_accounts')
+    .select('is_verified, has_stats')
+    .eq('user_id', user.id)
+    .eq('platform', 'tiktok')
+    .maybeSingle()
+
+  const hasConnectedAccounts = !!(
+    (instagramAccount && instagramAccount.has_stats) ||
+    (tiktokAccount && (tiktokAccount.has_stats || tiktokAccount.is_verified))
+  )
 
   // 1. Fetch Users
   const { data, error } = await supabase
@@ -96,13 +124,6 @@ export default async function InfluencerDiscoverPage() {
     }
   })
 
-  // Fetch Current User Spotlight Status
-  const { data: currentUserData } = await supabase
-    .from('users')
-    .select('spotlight_active, spotlight_plan')
-    .eq('id', user.id)
-    .single()
-
   return (
     <div className="space-y-6">
       <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
@@ -113,6 +134,28 @@ export default async function InfluencerDiscoverPage() {
           etmek için ilham al.
         </p>
       </header>
+
+      {!hasConnectedAccounts && (
+        <div className="rounded-3xl border border-yellow-500/30 bg-yellow-500/10 p-6 text-white shadow-glow flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-yellow-500/20 text-yellow-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold text-yellow-500">Vitrinde Görünmüyorsun</h3>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Hiçbir resmi hesabını bağlamadığın için bu vitrinde (keşfet sayfasında) diğer markalara listelenmiyorsun. Lütfen önce bir sosyal medya hesabı bağla.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/influencer#verification-section"
+            className="shrink-0 rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+          >
+            Hesap Bağla
+          </Link>
+        </div>
+      )}
 
       {error ? (
         <div className="rounded-3xl border border-red-400/30 bg-red-950/30 p-6 text-sm text-red-200">

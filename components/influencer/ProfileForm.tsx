@@ -22,6 +22,7 @@ interface ProfileFormProps {
     category: string
     avatarUrl: string | null
     socialLinks: Record<string, string | null>
+    creatorType?: 'influencer' | 'ugc' | 'both'
     displayedBadges?: string[]
     availableBadgeIds?: string[]
     socialLinksLastUpdated?: string | null
@@ -46,6 +47,7 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
     city: initialData.city ?? '',
     bio: initialData.bio ?? '',
     category: initialData.category ?? INFLUENCER_CATEGORY_KEYS[0],
+    creatorType: initialData.creatorType ?? 'influencer',
     instagram: initialData.socialLinks?.instagram ?? '',
     tiktok: initialData.socialLinks?.tiktok ?? '',
     youtube: initialData.socialLinks?.youtube ?? '',
@@ -133,6 +135,10 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
 
   const handleInstagramLogin = () => {
     window.location.href = '/api/auth/instagram/login'
+  }
+
+  const handleCreatorTypeChange = (value: 'influencer' | 'ugc' | 'both') => {
+    setFormState((prev) => ({ ...prev, creatorType: value }))
   }
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -319,6 +325,7 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
           bio: formState.bio.trim(),
           category: formState.category,
           avatarUrl,
+          creatorType: formState.creatorType as any,
           socialLinks: {
             instagram: instagramResult.normalizedUrl || null,
             tiktok: tiktokResult.normalizedUrl || null,
@@ -482,6 +489,32 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
                 ))}
               </select>
             </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm text-gray-300">İçerik Üretici Türü</label>
+          <div className="mt-2 grid grid-cols-3 gap-4">
+            {[
+              { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
+              { value: 'ugc', label: 'UGC Kreatörü', desc: 'Markalara özel' },
+              { value: 'both', label: 'Her İkisi De', desc: 'Hem kitle hem üretim' }
+            ].map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                disabled={!isEditing}
+                onClick={() => handleCreatorTypeChange(type.value as any)}
+                className={`flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all duration-300 ${
+                  formState.creatorType === type.value
+                    ? 'border-soft-gold bg-soft-gold/10 text-white shadow-glow-sm'
+                    : 'border-white/10 bg-[#11121A] text-gray-400 hover:bg-white/5 hover:text-white'
+                } disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                <span className="text-sm font-bold">{type.label}</span>
+                <span className="text-[10px] opacity-70 mt-1">{type.desc}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -693,6 +726,7 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
                   city: initialData.city ?? '',
                   bio: initialData.bio ?? '',
                   category: initialData.category ?? INFLUENCER_CATEGORY_KEYS[0],
+                  creatorType: initialData.creatorType ?? 'influencer',
                   instagram: initialData.socialLinks?.instagram ?? '',
                   tiktok: initialData.socialLinks?.tiktok ?? '',
                   youtube: initialData.socialLinks?.youtube ?? '',

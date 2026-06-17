@@ -10,6 +10,7 @@ interface SignUpPayload {
   password: string
   fullName: string
   role: UserRole
+  creatorType?: string
 }
 
 interface SignInPayload {
@@ -80,7 +81,7 @@ export const useSupabaseAuth = () => {
   }, [])
 
   const signUpWithEmail = useCallback(
-    async ({ email, password, fullName, role }: SignUpPayload): Promise<AuthResponse> => {
+    async ({ email, password, fullName, role, creatorType }: SignUpPayload): Promise<AuthResponse> => {
       setIsSubmitting(true)
       try {
         const response = await supabaseClient.auth.signUp({
@@ -91,6 +92,7 @@ export const useSupabaseAuth = () => {
             data: {
               role,
               full_name: fullName,
+              creator_type: creatorType || null,
             },
           },
         })

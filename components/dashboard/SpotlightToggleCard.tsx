@@ -6,22 +6,24 @@ import { toggleShowcaseVisibility } from '@/app/dashboard/influencer/actions'
 interface SpotlightToggleCardProps {
   initialActive: boolean
   verificationStatus?: 'pending' | 'verified' | 'rejected'
+  hasConnectedAccounts?: boolean
 }
 
 export default function SpotlightToggleCard({
   initialActive,
-  verificationStatus = 'pending'
+  verificationStatus = 'pending',
+  hasConnectedAccounts = false
 }: SpotlightToggleCardProps) {
-  // If user is not verified, always show as inactive
-  const effectiveActive = verificationStatus === 'verified' ? initialActive : false
+  // If user is not verified or has no connected accounts, always show as inactive
+  const effectiveActive = (verificationStatus === 'verified' && hasConnectedAccounts) ? initialActive : false
   const [isActive, setIsActive] = useState(effectiveActive)
   const [isPending, startTransition] = useTransition()
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
-    // If user is not verified, always show as inactive
-    setIsActive(verificationStatus === 'verified' ? initialActive : false)
-  }, [initialActive, verificationStatus])
+    // If user is not verified or has no connected accounts, always show as inactive
+    setIsActive((verificationStatus === 'verified' && hasConnectedAccounts) ? initialActive : false)
+  }, [initialActive, verificationStatus, hasConnectedAccounts])
 
   useEffect(() => {
     if (!toast) return
@@ -30,6 +32,13 @@ export default function SpotlightToggleCard({
   }, [toast])
 
   const handleToggle = () => {
+    // Check if user has connected accounts
+    if (!hasConnectedAccounts) {
+      setToast('Hiçbir hesabını resmi olarak bağlamadığın için vitrin modunu açamazsın!')
+      setIsActive(false)
+      return
+    }
+
     // Check if user is verified
     if (verificationStatus !== 'verified') {
       setToast('HESABINIZ ONAYLANANA KADAR VİTRİNE ÇIKAMAZSINIZ')
@@ -53,7 +62,7 @@ export default function SpotlightToggleCard({
     })
   }
 
-  const isDisabled = verificationStatus !== 'verified'
+  const isDisabled = verificationStatus !== 'verified' || !hasConnectedAccounts
 
   return (
     <>
@@ -68,30 +77,32 @@ export default function SpotlightToggleCard({
             type="button"
             onClick={handleToggle}
             disabled={isPending || isDisabled}
-            className={`relative h-10 w-20 rounded-full border transition ${isActive && verificationStatus === 'verified'
+            className={`relative h-10 w-20 rounded-full border transition ${isActive && verificationStatus === 'verified' && hasConnectedAccounts
                 ? 'border-soft-gold bg-soft-gold/30'
                 : 'border-white/15 bg-white/10'
               } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''} disabled:cursor-not-allowed disabled:opacity-60`}
           >
             <span
-              className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-white transition ${isActive && verificationStatus === 'verified' ? 'right-2 shadow-glow bg-soft-gold text-background' : 'left-2 bg-white/90'
+              className={`absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-white transition ${isActive && verificationStatus === 'verified' && hasConnectedAccounts ? 'right-2 shadow-glow bg-soft-gold text-background' : 'left-2 bg-white/90'
                 }`}
             />
           </button>
         </div>
         <div className="mt-5 flex items-center gap-3 text-sm">
           <span
-            className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.3em] ${isActive && verificationStatus === 'verified' ? 'bg-soft-gold/20 text-soft-gold' : 'bg-white/10 text-gray-300'
+            className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.3em] ${isActive && verificationStatus === 'verified' && hasConnectedAccounts ? 'bg-soft-gold/20 text-soft-gold' : 'bg-white/10 text-gray-300'
               }`}
           >
-            {isActive && verificationStatus === 'verified' ? 'Aktif' : 'Pasif'}
+            {isActive && verificationStatus === 'verified' && hasConnectedAccounts ? 'Aktif' : 'Pasif'}
           </span>
-          <span className="text-gray-400">
-            {isActive && verificationStatus === 'verified'
-              ? 'Profilin vitrin sayfasında görünüyor.'
-              : verificationStatus !== 'verified'
-                ? 'Hesabın onaylanana kadar vitrine çıkamazsın.'
-                : 'Vitrin sayfasında görünmek için aktif et.'}
+          <span className={!hasConnectedAccounts ? 'text-yellow-500 font-medium animate-pulse' : 'text-gray-400'}>
+            {!hasConnectedAccounts
+              ? '⚠️ Hiçbir sosyal medya hesabını (Instagram veya TikTok) resmi olarak bağlamadığın için vitrinde çıkmıyorsun. Vitrin modunu aktif edebilmek için lütfen önce bir sosyal medya hesabı bağla.'
+              : isActive && verificationStatus === 'verified'
+                ? 'Profilin vitrin sayfasında görünüyor.'
+                : verificationStatus !== 'verified'
+                  ? 'Hesabın onaylanana kadar vitrine çıkamazsın.'
+                  : 'Vitrin sayfasında görünmek için aktif et.'}
           </span>
         </div>
       </div>

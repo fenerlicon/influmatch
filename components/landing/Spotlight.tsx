@@ -17,6 +17,12 @@ export interface SpotlightInfluencer {
   follower_count: number | null
   engagement_rate: number | null
   has_verified_badge: boolean
+  platform?: string | null
+  platforms_data?: {
+    platform: string
+    follower_count: number | null
+    engagement_rate: number | null
+  }[]
 }
 
 interface SpotlightProps {
@@ -81,7 +87,7 @@ export default function Spotlight({ influencers }: SpotlightProps) {
               <span className="text-soft-gold">Gerçek</span> influencerlar
             </h2>
             <p className="mt-3 max-w-2xl text-base text-gray-300">
-              Platforma kayıtlı ve Instagram verileri doğrulanmış influencerlardan bir kesit.
+              Platforma kayıtlı ve sosyal medya verileri doğrulanmış influencerlardan bir kesit.
             </p>
           </div>
 
@@ -138,6 +144,27 @@ export default function Spotlight({ influencers }: SpotlightProps) {
                     : 'border-white/5 hover:border-soft-gold/40'
                 }`}
               >
+                {/* Platform badge */}
+                {influencer.platform && (
+                  <div className="absolute -top-2.5 right-4 z-10">
+                    {influencer.platform === 'tiktok' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-black border border-[#25F4EE]/30 px-2.5 py-0.5 text-[10px] font-bold text-[#25F4EE] uppercase tracking-wider shadow-[0_0_10px_rgba(37,244,238,0.2)]">
+                        <svg className="h-2.5 w-2.5 fill-current text-[#FE2C55]" viewBox="0 0 24 24">
+                          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
+                        </svg>
+                        TikTok
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-black border border-soft-gold/30 px-2.5 py-0.5 text-[10px] font-bold text-soft-gold uppercase tracking-wider shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+                        <svg className="h-2.5 w-2.5 fill-current text-pink-500" viewBox="0 0 24 24">
+                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                        Instagram
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Spotlight badge */}
                 {influencer.spotlight_active && (
                   <div className="absolute -top-2.5 left-4 z-10">
@@ -157,6 +184,8 @@ export default function Spotlight({ influencers }: SpotlightProps) {
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 45vw, 25vw"
                       className="object-cover transition duration-500 group-hover:scale-105"
+                      unoptimized
+                      style={{ imageOrientation: 'from-image' }}
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-4xl font-bold text-soft-gold/30">
@@ -182,7 +211,23 @@ export default function Spotlight({ influencers }: SpotlightProps) {
                       )}
                     </div>
                     {displayUsername && (
-                      <p className="truncate text-sm text-soft-gold/80">{displayUsername}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="truncate text-sm text-soft-gold/80">{displayUsername}</p>
+                        {influencer.platform === 'instagram' && (
+                          <span className="p-0.5 rounded bg-white/5 text-pink-500" title="Instagram">
+                            <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                          </span>
+                        )}
+                        {influencer.platform === 'tiktok' && (
+                          <span className="p-0.5 rounded bg-white/5 text-[#25F4EE]" title="TikTok">
+                            <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                              <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
+                            </svg>
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                   {influencer.category && (
@@ -193,25 +238,79 @@ export default function Spotlight({ influencers }: SpotlightProps) {
                 </div>
 
                 {/* Stats Row */}
-                {(followers || engagementStr || influencer.city) && (
-                  <div className="mt-3 rounded-2xl bg-black/20 px-4 py-3">
-                    <div className="flex items-center justify-between gap-2 text-xs text-gray-400">
-                      {followers && (
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          <span className="font-medium text-white">{followers}</span>
-                        </div>
-                      )}
-                      {engagementStr && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-500">Etkileşim</span>
-                          <span className="font-semibold text-soft-gold">{engagementStr}</span>
-                        </div>
-                      )}
-                      {influencer.city && (
-                        <span className="truncate text-gray-500">📍 {influencer.city}</span>
-                      )}
-                    </div>
+                {(((influencer.platforms_data && influencer.platforms_data.length > 0) || followers || engagementStr) || influencer.city) && (
+                  <div className="mt-3 rounded-2xl bg-black/20 px-4 py-3 space-y-2">
+                    {influencer.platforms_data && influencer.platforms_data.length > 0 ? (
+                      influencer.platforms_data.map((plat) => {
+                        const platFollowers = plat.follower_count
+                          ? plat.follower_count >= 1000000
+                            ? `${(plat.follower_count / 1000000).toFixed(1)}M`
+                            : plat.follower_count >= 1000
+                              ? `${(plat.follower_count / 1000).toFixed(0)}K`
+                              : String(plat.follower_count)
+                          : '0'
+                        const platEngagement = plat.engagement_rate
+                          ? `%${Number(plat.engagement_rate).toFixed(1)}`
+                          : '-%'
+                        const isTikTok = plat.platform === 'tiktok'
+
+                        return (
+                          <div key={plat.platform} className="flex items-center justify-between text-xs border-b border-white/5 last:border-0 pb-1.5 last:pb-0">
+                            <div className="flex items-center gap-1.5">
+                              {isTikTok ? (
+                                <span className="p-1 rounded bg-[#25F4EE]/10 text-[#25F4EE]" title="TikTok">
+                                  <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
+                                  </svg>
+                                </span>
+                              ) : (
+                                <span className="p-1 rounded bg-pink-500/10 text-pink-500" title="Instagram">
+                                  <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                  </svg>
+                                </span>
+                              )}
+                              <span className="font-semibold text-white">{platFollowers}</span>
+                              <span className="text-[10px] text-gray-500 uppercase tracking-widest">Takipçi</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-gray-500">Etkileşim:</span>
+                              <span className={`font-semibold ${isTikTok ? 'text-[#25F4EE]' : 'text-soft-gold'}`}>{platEngagement}</span>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        {followers && (
+                          <div className="flex items-center gap-1.5">
+                            {influencer.platform === 'tiktok' ? (
+                              <svg className="h-3 w-3 fill-current text-[#25F4EE]" viewBox="0 0 24 24">
+                                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
+                              </svg>
+                            ) : influencer.platform === 'instagram' ? (
+                              <svg className="h-3 w-3 fill-current text-pink-500" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                              </svg>
+                            ) : (
+                              <Users className="h-3 w-3" />
+                            )}
+                            <span className="font-medium text-white">{followers}</span>
+                          </div>
+                        )}
+                        {engagementStr && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">Etkileşim</span>
+                            <span className="font-semibold text-soft-gold">{engagementStr}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {influencer.city && (
+                      <div className="text-right pt-1.5 text-[10px] text-gray-500 border-t border-white/5">
+                        📍 {influencer.city}
+                      </div>
+                    )}
                   </div>
                 )}
               </Link>

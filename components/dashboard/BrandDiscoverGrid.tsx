@@ -37,6 +37,8 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
   const [sortBy, setSortBy] = useState<string>(isSpotlightMember ? 'recommended' : 'followers_desc')
   const [categorySearchQuery, setCategorySearchQuery] = useState('')
   const [isFiltersOpen, setIsFiltersOpen] = useState(true)
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['instagram', 'tiktok'])
+  const [creatorTypeFilter, setCreatorTypeFilter] = useState<'all' | 'influencer' | 'ugc'>('all')
 
   const isPro = spotlightPlan === 'pro' || spotlightPlan === 'mpro' || spotlightPlan === 'ipro' || spotlightPlan === 'elite'
 
@@ -51,7 +53,16 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       const hasStats = influencer.stats && influencer.stats.followers !== '0'
       const matchesVerifiedData = !verifiedOnly || hasStats
       const matchesVerifiedAccount = !verifiedAccountsOnly || (influencer.displayed_badges?.includes('verified-account') ?? false)
-      return matchesCategory && matchesSearch && matchesVerifiedData && matchesVerifiedAccount
+      
+      const matchesPlatforms = selectedPlatforms.length === 0 ||
+        (influencer.platforms && influencer.platforms.some((p) => selectedPlatforms.includes(p))) ||
+        (influencer.platform && selectedPlatforms.includes(influencer.platform))
+
+      const matchesCreatorType = creatorTypeFilter === 'all' ||
+        (creatorTypeFilter === 'influencer' && (influencer.creator_type === 'influencer' || influencer.creator_type === 'both' || !influencer.creator_type)) ||
+        (creatorTypeFilter === 'ugc' && (influencer.creator_type === 'ugc' || influencer.creator_type === 'both'))
+
+      return matchesCategory && matchesSearch && matchesVerifiedData && matchesVerifiedAccount && matchesPlatforms && matchesCreatorType
     })
 
     result.sort((a, b) => {
@@ -84,7 +95,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       }
     })
     return result
-  }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, isSpotlightMember])
+  }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, isSpotlightMember, selectedPlatforms, defaultCategory, creatorTypeFilter])
 
   const filteredCategories = useMemo(() => {
     return CATEGORY_OPTIONS.filter(cat =>
@@ -132,6 +143,47 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
+
+                    {/* Platform Filter */}
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-wider text-gray-400">Sosyal Medya Platformu</label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            if (selectedPlatforms.includes('instagram')) {
+                              setSelectedPlatforms(selectedPlatforms.filter(p => p !== 'instagram'))
+                            } else {
+                              setSelectedPlatforms([...selectedPlatforms, 'instagram'])
+                            }
+                          }}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all ${
+                            selectedPlatforms.includes('instagram')
+                              ? 'bg-gradient-to-r from-yellow-500/10 to-red-500/10 border-red-500/20 text-white shadow-glow-sm'
+                              : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
+                          }`}
+                        >
+                          Instagram
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (selectedPlatforms.includes('tiktok')) {
+                              setSelectedPlatforms(selectedPlatforms.filter(p => p !== 'tiktok'))
+                            } else {
+                              setSelectedPlatforms([...selectedPlatforms, 'tiktok'])
+                            }
+                          }}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all ${
+                            selectedPlatforms.includes('tiktok')
+                              ? 'bg-[#25F4EE]/10 border-[#FE2C55]/20 text-white'
+                              : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
+                          }`}
+                        >
+                          TikTok
+                        </button>
+                      </div>
+                    </div>
+
+
 
                     {/* Toggles */}
                     <div className="space-y-3">
@@ -216,6 +268,48 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
+        {/* Creator Type Filter Tabs */}
+        <div className="flex border-b border-white/10 gap-8 mb-2">
+          <button
+            onClick={() => setCreatorTypeFilter('all')}
+            className={`pb-4 text-sm font-semibold transition-all relative ${
+              creatorTypeFilter === 'all' 
+                ? 'text-soft-gold' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Tümü
+            {creatorTypeFilter === 'all' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-soft-gold rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setCreatorTypeFilter('influencer')}
+            className={`pb-4 text-sm font-semibold transition-all relative ${
+              creatorTypeFilter === 'influencer' 
+                ? 'text-blue-400' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Influencer
+            {creatorTypeFilter === 'influencer' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setCreatorTypeFilter('ugc')}
+            className={`pb-4 text-sm font-semibold transition-all relative ${
+              creatorTypeFilter === 'ugc' 
+                ? 'text-emerald-400' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            UGC Kreatörü
+            {creatorTypeFilter === 'ugc' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-full" />
+            )}
+          </button>
+        </div>
         {/* ... */}
         {/* ... */}
         {filteredInfluencers.length === 0 ? (

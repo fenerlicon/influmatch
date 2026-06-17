@@ -59,22 +59,32 @@ export default async function Home({ searchParams }: HomeProps) {
       } else if (influencers && influencers.length > 0) {
         console.log(`[Home] Found ${influencers.length} influencers`)
 
-        // Step 2: Fetch social accounts for these users
+        // Step 2: Fetch social accounts for these users (Instagram & TikTok)
         const userIds = influencers.map((u: any) => u.id)
 
         const { data: socialAccounts } = await supabase
           .from('social_accounts')
-          .select('user_id, follower_count, engagement_rate')
+          .select('user_id, platform, follower_count, engagement_rate')
           .in('user_id', userIds)
-          .eq('platform', 'instagram')
+          .in('platform', ['instagram', 'tiktok'])
 
         const { data: userBadges } = await supabase
           .from('user_badges')
           .select('user_id, badge_id')
           .in('user_id', userIds)
 
-        const socialMap = new Map<string, { follower_count: number | null; engagement_rate: number | null }>()
-        socialAccounts?.forEach((sa: any) => socialMap.set(sa.user_id, sa))
+        // Map social accounts, gathering all platforms for each user
+        const socialMap = new Map<string, { platform: string; follower_count: number | null; engagement_rate: number | null }[]>()
+        socialAccounts?.forEach((sa: any) => {
+          if (!socialMap.has(sa.user_id)) {
+            socialMap.set(sa.user_id, [])
+          }
+          socialMap.get(sa.user_id)!.push({
+            platform: sa.platform,
+            follower_count: sa.follower_count,
+            engagement_rate: sa.engagement_rate
+          })
+        })
 
         const badgeMap = new Map<string, string[]>()
         userBadges?.forEach((ub: any) => {
@@ -82,18 +92,35 @@ export default async function Home({ searchParams }: HomeProps) {
           badgeMap.get(ub.user_id)!.push(ub.badge_id)
         })
 
-        spotlightInfluencers = influencers.map((u: any) => ({
-          id: u.id,
-          full_name: u.full_name,
-          username: u.username,
-          category: u.category,
-          city: u.city,
-          avatar_url: u.avatar_url,
-          spotlight_active: u.spotlight_active ?? false,
-          follower_count: socialMap.get(u.id)?.follower_count ?? null,
-          engagement_rate: socialMap.get(u.id)?.engagement_rate ?? null,
-          has_verified_badge: badgeMap.get(u.id)?.includes('verified-account') ?? false,
-        } satisfies SpotlightInfluencer))
+        spotlightInfluencers = influencers.map((u: any) => {
+          const platformsData = socialMap.get(u.id) || []
+          
+          // Sort so Instagram is always first for consistent display, then TikTok
+          const sortedPlatformsData = [...platformsData].sort((a, b) => {
+            if (a.platform === 'instagram') return -1
+            if (b.platform === 'instagram') return 1
+            return 0
+          })
+
+          const primary = sortedPlatformsData.reduce((prev, current) => 
+            ((current.follower_count || 0) > (prev.follower_count || 0)) ? current : prev
+          , sortedPlatformsData[0] || { platform: null, follower_count: null, engagement_rate: null })
+
+          return {
+            id: u.id,
+            full_name: u.full_name,
+            username: u.username,
+            category: u.category,
+            city: u.city,
+            avatar_url: u.avatar_url,
+            spotlight_active: u.spotlight_active ?? false,
+            follower_count: primary.follower_count,
+            engagement_rate: primary.engagement_rate,
+            has_verified_badge: badgeMap.get(u.id)?.includes('verified-account') ?? false,
+            platform: primary.platform,
+            platforms_data: sortedPlatformsData
+          } satisfies SpotlightInfluencer
+        })
       } else {
         console.log('[Home] No influencers found with current filters')
       }

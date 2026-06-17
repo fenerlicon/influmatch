@@ -13,6 +13,7 @@ interface SaveOnboardingPayload {
   category: string
   avatarUrl: string | null
   taxId?: string | null
+  creatorType?: 'influencer' | 'ugc' | 'both'
   socialLinks: {
     instagram?: string | null
     tiktok?: string | null
@@ -62,6 +63,7 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
       avatar_url: payload.avatarUrl,
       tax_id: payload.taxId?.trim() || null,
       social_links: payload.socialLinks,
+      creator_type: payload.creatorType || null,
     })
     .select()
     .single()

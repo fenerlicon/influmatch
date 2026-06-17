@@ -131,3 +131,133 @@ export async function saveTikTokAccount(userId: string, tiktokData: TikTokUser, 
 
   return { success: true }
 }
+
+export interface NormalizedTikTokData {
+  username: string
+  display_name: string
+  follower_count: number
+  following_count: number
+  likes_count: number
+  video_count: number
+  avatar_url: string | null
+  signature: string
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number = 1000): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries <= 0) throw error;
+    console.warn(`[TikTokService] Retrying operation... Attempts left: ${retries}`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return withRetry(fn, retries - 1, delay * 1.5);
+  }
+}
+
+export async function fetchTikTokPublicProfile(username: string): Promise<NormalizedTikTokData> {
+  if (!process.env.APIFY_API_TOKEN) {
+    throw new Error('APIFY_API_TOKEN eksik. Lütfen sistem yöneticisi ile görüşün.');
+  }
+
+  try {
+    console.log(`[TikTokService] Fetching TikTok data for ${username} via Apify...`);
+    return await withRetry(() => fetchTikTokFromApify(username), 2);
+  } catch (error: any) {
+    console.error(`[TikTokService] Apify fetch failed: ${error.message || error}`);
+    const msg = error.message || 'Apify servis hatası';
+    throw new Error(msg.includes('TikTok') ? msg : `TikTok verileri alınamadı: ${msg}`);
+  }
+}
+
+async function fetchTikTokFromApify(username: string): Promise<NormalizedTikTokData> {
+  const token = process.env.APIFY_API_TOKEN;
+  const cleanUsername = username.replace('@', '').trim();
+
+  // Call official Clockworks TikTok Profile Scraper
+  const response = await fetch(`https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items?token=${token}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      "profiles": [cleanUsername],
+      "resultsPerPage": 1
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    if (response.status === 401) throw new Error('Apify API Token geçersiz.');
+    if (response.status === 402) throw new Error('Apify bakiye yetersiz.');
+    throw new Error(`Apify HTTP ${response.status}: ${errorText}`);
+  }
+
+  const items = await response.json();
+  if (!items || items.length === 0) {
+    throw new Error('TikTok profil verisi bulunamadı. Kullanıcı adı hatalı olabilir veya hesap gizli olabilir.');
+  }
+
+  const profile = items[0];
+
+  // Support both clockworks/tiktok-profile-scraper flat structure and nested authorMeta structures
+  const authorMeta = profile.authorMeta || {};
+  const followerCount = Number(
+    profile.followerCount ??
+    profile.followers ?? 
+    profile.followersCount ?? 
+    authorMeta.fans ?? 
+    authorMeta.followerCount ?? 
+    0
+  );
+  const followingCount = Number(
+    profile.followingCount ?? 
+    profile.following ?? 
+    authorMeta.following ?? 
+    authorMeta.followingCount ?? 
+    0
+  );
+  const likesCount = Number(
+    profile.heartCount ?? 
+    profile.likes ?? 
+    profile.hearts ?? 
+    authorMeta.heart ?? 
+    authorMeta.heartCount ?? 
+    0
+  );
+  const videoCount = Number(
+    profile.videoCount ?? 
+    profile.videos ?? 
+    profile.video ?? 
+    authorMeta.video ?? 
+    authorMeta.videoCount ?? 
+    0
+  );
+  const avatarUrl = 
+    profile.avatarLarger ?? 
+    profile.avatar ?? 
+    profile.avatarUrl ?? 
+    authorMeta.avatar ?? 
+    null;
+  const signature = 
+    profile.signature ?? 
+    profile.bio ?? 
+    authorMeta.signature ?? 
+    '';
+  const displayName = 
+    profile.nickname ?? 
+    profile.displayName ?? 
+    authorMeta.nickName ?? 
+    authorMeta.nickname ?? 
+    cleanUsername;
+
+  return {
+    username: cleanUsername,
+    display_name: displayName,
+    follower_count: followerCount,
+    following_count: followingCount,
+    likes_count: likesCount,
+    video_count: videoCount,
+    avatar_url: avatarUrl,
+    signature: signature
+  };
+}

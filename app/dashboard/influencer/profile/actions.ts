@@ -14,6 +14,7 @@ interface UpdateProfilePayload {
   bio: string
   category: string
   avatarUrl: string | null
+  creatorType?: 'influencer' | 'ugc' | 'both'
   socialLinks: {
     instagram?: string | null
     tiktok?: string | null
@@ -195,6 +196,7 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     bio: normalizedBio,
     category: payload.category || null,
     avatar_url: payload.avatarUrl,
+    creator_type: payload.creatorType || null,
     social_links: {
       instagram: instagramResult.normalizedUrl || null,
       tiktok: tiktokResult.normalizedUrl || null,

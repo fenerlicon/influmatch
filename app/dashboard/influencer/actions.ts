@@ -30,6 +30,24 @@ export async function toggleShowcaseVisibility(nextValue: boolean) {
     throw new Error('HESABINIZ ONAYLANANA KADAR VİTRİNE ÇIKAMAZSINIZ')
   }
 
+  // Check if user has connected accounts
+  const { data: socialAccounts, error: socialError } = await supabase
+    .from('social_accounts')
+    .select('platform, has_stats, is_verified')
+    .eq('user_id', user.id)
+
+  if (socialError) {
+    throw new Error(socialError.message)
+  }
+
+  const hasConnected = !!(socialAccounts && socialAccounts.some(acc => 
+    acc.has_stats || (acc.platform === 'tiktok' && acc.is_verified)
+  ))
+
+  if (nextValue && !hasConnected) {
+    throw new Error('Hiçbir resmi sosyal medya hesabınızı bağlamadığınız için vitrin modunu aktif edemezsiniz.')
+  }
+
   const { data: existing, error: fetchError } = await supabase
     .from('users')
     .select('id')

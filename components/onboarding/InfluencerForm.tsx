@@ -17,6 +17,7 @@ export interface InfluencerFormState {
   instagram: string
   tiktok: string
   youtube: string
+  creatorType: 'influencer' | 'ugc' | 'both'
 }
 
 interface InfluencerFormProps {
@@ -196,6 +197,33 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
           placeholder="Kendinizden kısaca bahsedin..."
           className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
         />
+      </div>
+
+      <div>
+        <label className="text-sm text-gray-300">
+          İçerik Üretici Türü
+        </label>
+        <div className="mt-2 grid grid-cols-3 gap-4">
+          {[
+            { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
+            { value: 'ugc', label: 'UGC Kreatörü', desc: 'Markalara özel' },
+            { value: 'both', label: 'Her İkisi De', desc: 'Hem kitle hem üretim' }
+          ].map((type) => (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => onChange('creatorType', type.value as any)}
+              className={`flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all duration-300 ${
+                form.creatorType === type.value
+                  ? 'border-soft-gold bg-soft-gold/10 text-white shadow-glow-sm'
+                  : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <span className="text-sm font-bold">{type.label}</span>
+              <span className="text-[10px] opacity-70 mt-1">{type.desc}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

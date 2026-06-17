@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { BadgeDollarSign, Eye, MousePointerClick, Star } from 'lucide-react'
@@ -39,6 +40,27 @@ export default async function InfluencerSpotlightPage() {
     console.error('[InfluencerSpotlightPage] profile load error', error.message)
   }
 
+  // Fetch social account stats (Instagram)
+  const { data: instagramAccount } = await supabase
+    .from('social_accounts')
+    .select('has_stats')
+    .eq('user_id', user.id)
+    .eq('platform', 'instagram')
+    .maybeSingle()
+
+  // Fetch social account stats (TikTok)
+  const { data: tiktokAccount } = await supabase
+    .from('social_accounts')
+    .select('is_verified, has_stats')
+    .eq('user_id', user.id)
+    .eq('platform', 'tiktok')
+    .maybeSingle()
+
+  const hasConnectedAccounts = !!(
+    (instagramAccount && instagramAccount.has_stats) ||
+    (tiktokAccount && (tiktokAccount.has_stats || tiktokAccount.is_verified))
+  )
+
   const spotlightActive = profile?.spotlight_active ?? false
   const isShowcaseVisible = profile?.is_showcase_visible ?? true // Default to true
 
@@ -61,11 +83,34 @@ export default async function InfluencerSpotlightPage() {
         </p>
       </header>
 
+      {!hasConnectedAccounts && (
+        <div className="rounded-3xl border border-yellow-500/30 bg-yellow-500/10 p-6 text-white shadow-glow flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-yellow-500/20 text-yellow-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold text-yellow-500">Vitrin Modu Devre Dışı</h3>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Hiçbir sosyal medya hesabını resmi olarak bağlamadığın için vitrinde çıkmıyorsun. Vitrin modunu aktif edebilmek için lütfen önce bir sosyal medya hesabı bağla.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/influencer#verification-section"
+            className="shrink-0 rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+          >
+            Hesap Bağla
+          </Link>
+        </div>
+      )}
+
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
           <SpotlightToggleCard
             initialActive={isShowcaseVisible}
             verificationStatus={verificationStatus}
+            hasConnectedAccounts={hasConnectedAccounts}
           />
 
           <div className="rounded-3xl border border-white/10 bg-[#0F1014] p-5">

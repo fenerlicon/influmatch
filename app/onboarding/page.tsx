@@ -28,6 +28,7 @@ interface UserProfile {
   city: string | null
   avatar_url: string | null
   social_links: SocialLinks | null
+  creator_type?: string | null
 }
 
 const defaultInfluencerForm: InfluencerFormState = {
@@ -39,6 +40,7 @@ const defaultInfluencerForm: InfluencerFormState = {
   instagram: '',
   tiktok: '',
   youtube: '',
+  creatorType: 'influencer',
 }
 
 const defaultBrandForm: BrandFormState = {
@@ -134,6 +136,7 @@ export default function OnboardingPage() {
             instagram: socialLinks.instagram ?? '',
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
+            creatorType: (data.creator_type as any) ?? (session?.user?.user_metadata?.creator_type as any) ?? 'influencer',
           }
 
           newBrandForm = {
@@ -384,6 +387,7 @@ export default function OnboardingPage() {
       category: role === 'influencer' ? influencerForm.category : 'tech', // Default category for brands
       avatarUrl: avatarUrl,
       socialLinks: socialLinks,
+      creatorType: role === 'influencer' ? influencerForm.creatorType : undefined,
     })
 
     if (!result.success) {

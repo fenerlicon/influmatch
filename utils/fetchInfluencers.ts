@@ -6,7 +6,7 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
 
     let query = supabase
         .from('users')
-        .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status, user_badges(badge_id)')
+        .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status, creator_type, user_badges(badge_id)')
         .eq('role', 'influencer')
         .eq('verification_status', 'verified')
         .eq('is_showcase_visible', true)
@@ -71,15 +71,39 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
         }
 
         const userAccounts = socialAccountsMap[user.id] || []
-        const socialAccount = userAccounts.length > 0 ? userAccounts[0] : null
+        const platforms = userAccounts.map(a => a.platform as any)
+        const primaryAccount = userAccounts.find(a => a.platform === 'instagram') || userAccounts.find(a => a.platform === 'tiktok') || (userAccounts.length > 0 ? userAccounts[0] : null)
+
+        const sortedAccounts = [...userAccounts].sort((a, b) => {
+            if (a.platform === 'instagram') return -1
+            if (b.platform === 'instagram') return 1
+            return 0
+        })
+
+        const platforms_data = sortedAccounts.map((sa) => {
+            const followersNum = sa.follower_count
+            const followersStr = followersNum
+                ? followersNum >= 1000000
+                    ? `${(followersNum / 1000000).toFixed(1)}M`
+                    : followersNum >= 1000
+                        ? `${(followersNum / 1000).toFixed(0)}K`
+                        : String(followersNum)
+                : '0'
+            return {
+                platform: sa.platform as any,
+                follower_count: followersNum,
+                followers: followersStr,
+                engagement: sa.engagement_rate ? `%${Number(sa.engagement_rate).toFixed(1)}` : '0%'
+            }
+        })
 
         let stats = undefined
-        if (socialAccount) {
-            const payload = socialAccount.stats_payload as any
+        if (primaryAccount) {
+            const payload = primaryAccount.stats_payload as any
             stats = {
-                followers: socialAccount.follower_count ? `${socialAccount.follower_count}` : '0',
-                engagement: socialAccount.engagement_rate ? `${socialAccount.engagement_rate}%` : '0%',
-                avg_likes: payload?.avg_likes ? `${payload.avg_likes}` : undefined,
+                followers: primaryAccount.follower_count ? `${primaryAccount.follower_count}` : '0',
+                engagement: primaryAccount.engagement_rate ? `${primaryAccount.engagement_rate}%` : '0%',
+                avg_likes: payload?.avg_likes || payload?.total_likes ? `${payload.avg_likes || payload.total_likes}` : undefined,
                 avg_views: payload?.avg_views ? `${payload.avg_views}` : undefined,
                 avg_comments: payload?.avg_comments ? `${payload.avg_comments}` : undefined,
             }
@@ -94,8 +118,11 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
             spotlight_active: user.spotlight_active,
             displayed_badges: displayedBadges,
             verification_status: user.verification_status as 'pending' | 'verified' | 'rejected' | null,
-            platform: socialAccount?.platform as any,
-            stats: stats
+            platform: primaryAccount?.platform as any,
+            platforms: platforms,
+            platforms_data: platforms_data,
+            stats: stats,
+            creator_type: user.creator_type as any
         }
     })
 

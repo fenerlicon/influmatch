@@ -69,7 +69,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
 
     const username = influencer.username || influencer.id
     const isSpotlight = influencer.spotlight_active === true
-    const hasStats = influencer.stats && influencer.stats.followers !== '0' && influencer.stats.followers !== null
+    const hasStats = !!(influencer.platforms_data && influencer.platforms_data.length > 0) || !!(influencer.stats && influencer.stats.followers !== '0' && influencer.stats.followers !== null)
     const showMatchDetails = (matchReasons && matchReasons.length > 0) && ((matchScore || 0) > 25)
 
     // Verification Logic: Blue tick if admin verified OR has API data
@@ -131,6 +131,8 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                         src={influencer.avatar_url}
                                         alt={influencer.full_name ?? 'Influencer'}
                                         className="object-cover transition duration-500 group-hover/card:scale-105"
+                                        unoptimized
+                                        style={{ imageOrientation: 'from-image' }}
                                     />
                                 ) : (
                                     <div className="flex h-full items-center justify-center text-sm text-gray-500">
@@ -214,10 +216,27 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                                 <BadgeCheck className="h-4 w-4 flex-shrink-0 text-blue-500" />
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 mt-0.5">
+                                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                           <p className="truncate text-sm font-medium text-soft-gold/80">
                                               @{influencer.username}
                                           </p>
+                                          {/* Platform Icons */}
+                                          <div className="flex items-center gap-1">
+                                            {(influencer.platforms?.includes('instagram') || influencer.platform === 'instagram') && (
+                                              <span className="p-0.5 rounded bg-white/5 text-pink-500 hover:text-pink-400" title="Instagram">
+                                                <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                                                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                                </svg>
+                                              </span>
+                                            )}
+                                            {(influencer.platforms?.includes('tiktok') || influencer.platform === 'tiktok') && (
+                                              <span className="p-0.5 rounded bg-white/5 text-[#25F4EE] hover:text-[#25F4EE]/80" title="TikTok">
+                                                <svg className="h-3 w-3 fill-current" viewBox="0 0 24 24">
+                                                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
+                                                </svg>
+                                              </span>
+                                            )}
+                                          </div>
                                           {/* Mini Badge Row right under name */}
                                           {influencer.displayed_badges && Array.isArray(influencer.displayed_badges) && influencer.displayed_badges.length > 0 && (
                                               <BadgeDisplay
@@ -230,11 +249,27 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                         </div>
                                     </div>
 
-                                    {influencer.category && (
-                                        <span className="flex-shrink-0 rounded-xl bg-[#25262E] px-2.5 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-wider">
-                                            {getCategoryLabel(influencer.category)}
+                                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                        {influencer.category && (
+                                            <span className="rounded-xl bg-[#25262E] px-2.5 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                                                {getCategoryLabel(influencer.category)}
+                                            </span>
+                                        )}
+                                        <span className={cn(
+                                            "rounded-xl px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider border",
+                                            influencer.creator_type === 'ugc'
+                                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                                : influencer.creator_type === 'both'
+                                                    ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                                                    : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                        )}>
+                                            {influencer.creator_type === 'ugc'
+                                                ? 'UGC'
+                                                : influencer.creator_type === 'both'
+                                                    ? 'UGC & INF'
+                                                    : 'Influencer'}
                                         </span>
-                                    )}
+                                    </div>
                                 </div>
 
                                 {/* Trust Score (Brands Only) */}
@@ -277,9 +312,40 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                 </div>
 
                                 {/* Stats Grid - Stay aligned at bottom */}
-                                <div className="mt-auto pt-4 grid grid-cols-2 gap-3 rounded-2xl bg-[#111218]/50 p-3 border border-white/5">
-                                    {hasStats ? (
-                                        <>
+                                <div className="mt-auto pt-2 space-y-2">
+                                    {influencer.platforms_data && influencer.platforms_data.length > 0 ? (
+                                        influencer.platforms_data.map((plat) => {
+                                            const isTikTok = plat.platform === 'tiktok'
+                                            return (
+                                                <div key={plat.platform} className="grid grid-cols-2 gap-3 rounded-2xl bg-[#111218]/50 p-2 border border-white/5">
+                                                    <div className="flex items-center gap-1.5 pl-2">
+                                                        {isTikTok ? (
+                                                            <span className="p-1 rounded bg-[#25F4EE]/10 text-[#25F4EE]" title="TikTok">
+                                                                <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                                                                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
+                                                                </svg>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="p-1 rounded bg-pink-500/10 text-pink-500" title="Instagram">
+                                                                <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                                                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                                                </svg>
+                                                            </span>
+                                                        )}
+                                                        <div>
+                                                            <p className="text-[9px] uppercase tracking-wider text-gray-500 leading-none mb-0.5">Takipçi</p>
+                                                            <p className="text-xs font-bold text-white leading-none">{plat.followers}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-left border-l border-white/10 pl-3">
+                                                        <p className="text-[9px] uppercase tracking-wider text-gray-500 leading-none mb-0.5">Etkileşim</p>
+                                                        <p className={`text-xs font-bold leading-none ${isTikTok ? 'text-[#25F4EE]' : 'text-soft-gold'}`}>{plat.engagement}</p>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    ) : influencer.stats && influencer.stats.followers !== '0' && influencer.stats.followers !== null ? (
+                                        <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#111218]/50 p-2.5 border border-white/5">
                                             <div className="text-center">
                                                 <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Takipçi</p>
                                                 <p className="text-sm font-bold text-white">{influencer.stats?.followers}</p>
@@ -288,9 +354,9 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                                 <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Etkileşim</p>
                                                 <p className="text-sm font-bold text-soft-gold">{influencer.stats?.engagement}</p>
                                             </div>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <div className="col-span-2 flex items-center justify-center py-2 text-center gap-2">
+                                        <div className="flex items-center justify-center py-2.5 text-center gap-2 rounded-2xl bg-[#111218]/50 border border-white/5">
                                             <Lock className="h-3 w-3 text-gray-600" />
                                             <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">Doğrulanmadı</p>
                                         </div>

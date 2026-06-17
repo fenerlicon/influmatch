@@ -50,10 +50,26 @@ export default async function InfluencerDashboardPage() {
   // Fetch social account stats (TikTok)
   const { data: tiktokAccount } = await supabase
     .from('social_accounts')
-    .select('username, follower_count, stats_payload, updated_at, is_verified')
+    .select('username, follower_count, engagement_rate, stats_payload, updated_at, is_verified, has_stats')
     .eq('user_id', user.id)
     .eq('platform', 'tiktok')
     .maybeSingle()
+
+  const instagramData = instagramAccount && instagramAccount.has_stats ? {
+    username: instagramAccount.username,
+    followerCount: instagramAccount.follower_count || 0,
+    engagementRate: Number(instagramAccount.engagement_rate) || 0,
+    statsPayload: instagramAccount.stats_payload as any,
+    lastUpdated: instagramAccount.updated_at || new Date().toISOString()
+  } : undefined
+
+  const tiktokData = tiktokAccount && (tiktokAccount.has_stats || tiktokAccount.is_verified) ? {
+    username: tiktokAccount.username,
+    followerCount: tiktokAccount.follower_count || 0,
+    engagementRate: Number(tiktokAccount.engagement_rate) || 4.8,
+    statsPayload: tiktokAccount.stats_payload as any,
+    lastUpdated: tiktokAccount.updated_at || new Date().toISOString()
+  } : undefined
 
   const rawSpotlightActive = profile?.spotlight_active ?? false
   const isShowcaseVisible = profile?.is_showcase_visible ?? true 
@@ -61,7 +77,10 @@ export default async function InfluencerDashboardPage() {
   const spotlightActive = rawSpotlightActive && verificationStatus === 'verified'
 
   if (user && profile?.username) {
-    refreshIfStale(user.id, profile.username, 'instagram').catch((err: any) => console.error('AutoRefresh Error:', err))
+    refreshIfStale(user.id, profile.username, 'instagram').catch((err: any) => console.error('AutoRefresh Instagram Error:', err))
+    if (tiktokAccount) {
+      refreshIfStale(user.id, profile.username, 'tiktok').catch((err: any) => console.error('AutoRefresh TikTok Error:', err))
+    }
   }
 
   // Determine User Tier
@@ -195,81 +214,93 @@ export default async function InfluencerDashboardPage() {
           </Link>
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((item) => (
-            <div
-              key={item.label}
-              className={`group relative overflow-hidden rounded-3xl border p-5 transition-all duration-300 hover:scale-[1.02] ${
-                item.variant === 'complete'
-                ? 'border-green-500/30 bg-gradient-to-br from-[#1a1b23] to-[#0a0b10] shadow-[0_0_15px_rgba(34,197,94,0.1)]'
-                : item.variant === 'spotlight-active'
-                  ? 'border-soft-gold/60 bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 shadow-[0_0_22px_rgba(212,175,55,0.2)]'
-                  : 'border-white/10 bg-[#11121A] hover:border-white/20'
-              }`}
-            >
-              {item.variant === 'complete' ? (
-                <>
-                  <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-green-500/10 blur-2xl" />
-                </>
-              ) : item.variant === 'spotlight-active' ? (
-                <>
-                  <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-soft-gold/20 blur-2xl" />
-                </>
-              ) : (
-                <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/5 blur-2xl transition-all group-hover:bg-white/10" />
-              )}
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">{item.label}</p>
-                  <div className={`rounded-xl p-2 ${
-                    item.variant === 'complete' ? 'bg-green-500/20 text-green-400' :
-                    item.variant === 'spotlight-active' ? 'bg-soft-gold/20 text-soft-gold' :
-                    'bg-white/5 text-gray-400'
+          {stats.map((item) => {
+            const cardContent = (
+              <div
+                className={`group relative overflow-hidden rounded-3xl border p-5 transition-all duration-300 hover:scale-[1.02] h-full ${
+                  item.variant === 'complete'
+                  ? 'border-green-500/30 bg-gradient-to-br from-[#1a1b23] to-[#0a0b10] shadow-[0_0_15px_rgba(34,197,94,0.1)]'
+                  : item.variant === 'spotlight-active'
+                    ? 'border-soft-gold/60 bg-gradient-to-br from-soft-gold/20 to-soft-gold/5 shadow-[0_0_22px_rgba(212,175,55,0.2)]'
+                    : 'border-white/10 bg-[#11121A] hover:border-white/20'
+                }`}
+              >
+                {item.variant === 'complete' ? (
+                  <>
+                    <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-green-500/10 blur-2xl" />
+                  </>
+                ) : item.variant === 'spotlight-active' ? (
+                  <>
+                    <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-soft-gold/20 blur-2xl" />
+                  </>
+                ) : (
+                  <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/5 blur-2xl transition-all group-hover:bg-white/10" />
+                )}
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">{item.label}</p>
+                      <div className={`rounded-xl p-2 ${
+                        item.variant === 'complete' ? 'bg-green-500/20 text-green-400' :
+                        item.variant === 'spotlight-active' ? 'bg-soft-gold/20 text-soft-gold' :
+                        'bg-white/5 text-gray-400'
+                      }`}>
+                        {item.icon}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      {item.action ? (
+                        <div className="min-h-[40px] flex items-center">{item.action}</div>
+                      ) : (
+                        <div className="flex items-baseline gap-2">
+                           <p className="text-3xl font-bold text-white tracking-tight">{item.value}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`mt-4 flex items-center gap-1.5 py-1 px-3 rounded-lg w-fit ${
+                    item.variant === 'complete' ? 'bg-green-500/10 text-green-400' :
+                    item.variant === 'spotlight-active' ? 'bg-soft-gold/15 text-soft-gold font-semibold' :
+                    'bg-white/5 text-gray-500'
                   }`}>
-                    {item.icon}
+                    {item.variant === 'spotlight-active' && <Calendar className="h-3 w-3" />}
+                    <p className="text-[10px] uppercase tracking-[0.1em]">{item.badge}</p>
                   </div>
                 </div>
-                
-                <div className="mt-4 flex-grow">
-                  {item.action ? (
-                    <div className="min-h-[40px] flex items-center">{item.action}</div>
-                  ) : (
-                    <div className="flex items-baseline gap-2">
-                       <p className="text-3xl font-bold text-white tracking-tight">{item.value}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className={`mt-4 flex items-center gap-1.5 py-1 px-3 rounded-lg w-fit ${
-                  item.variant === 'complete' ? 'bg-green-500/10 text-green-400' :
-                  item.variant === 'spotlight-active' ? 'bg-soft-gold/15 text-soft-gold font-semibold' :
-                  'bg-white/5 text-gray-500'
-                }`}>
-                  {item.variant === 'spotlight-active' && <Calendar className="h-3 w-3" />}
-                  <p className="text-[10px] uppercase tracking-[0.1em]">{item.badge}</p>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+
+            if (item.label === 'Profil Doluluk') {
+              return (
+                <a href="#profile-completion-section" key={item.label} className="block cursor-pointer">
+                  {cardContent}
+                </a>
+              );
+            }
+
+            return <div key={item.label}>{cardContent}</div>;
+          })}
         </div>
       </section>
 
       {/* Stats & Analysis Section - Influencer View */}
-      {!(instagramAccount && instagramAccount.has_stats && !showProfileCompletionCard) && instagramAccount && instagramAccount.has_stats ? (
+      {showProfileCompletionCard && (instagramData || tiktokData) ? (
         <InfluencerStats
-          followerCount={instagramAccount.follower_count || 0}
-          engagementRate={Number(instagramAccount.engagement_rate) || 0}
-          statsPayload={instagramAccount.stats_payload as any}
-          lastUpdated={instagramAccount.updated_at}
+          instagramData={instagramData}
+          tiktokData={tiktokData}
           mode="influencer-view"
           subscriptionTier={userTier}
         />
-      ) : !instagramAccount?.has_stats ? (
+      ) : !(instagramData || tiktokData) ? (
         <VerificationWarningCard />
       ) : null}
 
       <SpotlightToggleCard
         initialActive={isShowcaseVisible}
         verificationStatus={verificationStatus}
+        hasConnectedAccounts={!!(instagramData || tiktokData)}
       />
 
       {/* Social Connections Section */}
@@ -299,7 +330,7 @@ export default async function InfluencerDashboardPage() {
       <section className={`grid gap-6 ${showProfileCompletionCard ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
         {showProfileCompletionCard ? (
           <>
-            <div className="lg:col-span-2 space-y-6">
+            <div id="profile-completion-section" className="lg:col-span-2 space-y-6">
               <ProfileCompletionCard userId={user.id} initialProfile={profileData} />
               {/* Trust Score Card for Profile Incomplete Users */}
               <TrustScoreCard
@@ -353,12 +384,10 @@ export default async function InfluencerDashboardPage() {
                   engagementRate: Number(instagramAccount?.engagement_rate) || 0
                 }}
               />
-              {instagramAccount && instagramAccount.has_stats ? (
+              {instagramData || tiktokData ? (
                 <InfluencerStats
-                  followerCount={instagramAccount.follower_count || 0}
-                  engagementRate={Number(instagramAccount.engagement_rate) || 0}
-                  statsPayload={instagramAccount.stats_payload as any}
-                  lastUpdated={instagramAccount.updated_at}
+                  instagramData={instagramData}
+                  tiktokData={tiktokData}
                   mode="influencer-view"
                   subscriptionTier={userTier}
                 />

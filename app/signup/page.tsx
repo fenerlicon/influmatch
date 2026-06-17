@@ -62,11 +62,13 @@ export default function SignupPage() {
     setSuccessMessage(null)
 
     try {
+      const creatorType = searchParams.get('creator_type') || undefined
       const response = await signUpWithEmail({
         email,
         password,
         fullName,
         role,
+        creatorType,
       })
 
       console.log('[Signup] Response:', {
