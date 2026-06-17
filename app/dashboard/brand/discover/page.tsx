@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
+import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 
 export const revalidate = 0
 
@@ -8,6 +9,18 @@ export default async function BrandDiscoverPage() {
   const supabase = createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
+  // Get user profile for spotlight status & verification status
+  const { data: userData } = await supabase
+    .from('users')
+    .select('spotlight_active, spotlight_plan, category, verification_status')
+    .eq('id', user.id)
+    .single()
+
+  const verificationStatus = (userData?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
+  if (verificationStatus !== 'verified') {
+    return <BrandLockScreen status={verificationStatus} />
+  }
 
   const influencers = await getEnrichedInfluencers()
 
@@ -21,13 +34,6 @@ export default async function BrandDiscoverPage() {
   const favoritedIds = new Set(favorites?.map((f: { influencer_id: string }) => f.influencer_id) || [])
 
   const userRole = user.user_metadata?.role || 'brand' // fallback or fetch from DB if metadata is unreliable
-
-  // Get user profile for spotlight status
-  const { data: userData } = await supabase
-    .from('users')
-    .select('spotlight_active, spotlight_plan, category')
-    .eq('id', user.id)
-    .single()
 
   return (
     <div className="space-y-6">

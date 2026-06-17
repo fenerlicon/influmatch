@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
 import type { DiscoverInfluencer } from '@/types/influencer'
+import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 
 export const revalidate = 0
 
@@ -9,6 +10,18 @@ export default async function BrandFavoritesPage() {
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
+
+    // Fetch user profile verification status
+    const { data: userData } = await supabase
+        .from('users')
+        .select('verification_status')
+        .eq('id', user.id)
+        .single()
+
+    const verificationStatus = (userData?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
+    if (verificationStatus !== 'verified') {
+        return <BrandLockScreen status={verificationStatus} />
+    }
 
     // 1. Fetch Favorite IDs
     const { data: favorites } = await supabase

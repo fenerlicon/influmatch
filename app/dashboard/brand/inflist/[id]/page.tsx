@@ -5,6 +5,7 @@ import { getListItems } from '@/app/actions/favoriteLists'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Layers } from 'lucide-react'
+import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 
 export const revalidate = 0
 
@@ -18,6 +19,18 @@ export default async function InflistDetailsPage({ params }: InflistDetailsPageP
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
+
+    // Fetch user profile verification status
+    const { data: userData } = await supabase
+        .from('users')
+        .select('verification_status')
+        .eq('id', user.id)
+        .single()
+
+    const verificationStatus = (userData?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
+    if (verificationStatus !== 'verified') {
+        return <BrandLockScreen status={verificationStatus} />
+    }
 
     // 1. Get List Details
     const { data: list, error: listError } = await supabase

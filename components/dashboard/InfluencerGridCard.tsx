@@ -84,8 +84,8 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
     
     const showMatchDetails = (matchReasons && matchReasons.length > 0) && ((matchScore || 0) > 25)
 
-    // Verification Logic: Blue tick if admin verified OR has API data
-    const isVerified = influencer.displayed_badges?.includes('verified-account') || hasStats
+    // Verification Logic: Blue tick ONLY if they have the verified-account badge (completed bio check)
+    const isVerified = influencer.displayed_badges?.includes('verified-account')
 
     const isSpotlightUser = isSpotlightMember
 

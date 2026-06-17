@@ -266,6 +266,7 @@ export async function verifyInstagramAccount(userId: string) {
         const { error: updateError } = await adminSupabase
             .from('social_accounts')
             .update({
+                username: user.username, // Clean username
                 is_verified: true,
                 platform_user_id: String(platformUserId),
                 follower_count: followerCount,
@@ -280,6 +281,33 @@ export async function verifyInstagramAccount(userId: string) {
         if (updateError) {
             console.error('Error updating verification status:', updateError)
             return { success: false, error: `Güncelleme hatası: ${updateError.message}` }
+        }
+
+        // Sync verified Instagram link to users table social_links
+        try {
+            const { data: userProfile } = await adminSupabase
+                .from('users')
+                .select('social_links, avatar_url')
+                .eq('id', userId)
+                .single()
+
+            const currentLinks = (userProfile?.social_links as Record<string, string | null> | null) ?? {}
+            const updatedLinks = {
+                ...currentLinks,
+                instagram: `https://instagram.com/${user.username}`
+            }
+
+            const updateFields: any = { social_links: updatedLinks }
+            if (!userProfile?.avatar_url && user.profile_pic_url) {
+                updateFields.avatar_url = user.profile_pic_url
+            }
+
+            await adminSupabase
+                .from('users')
+                .update(updateFields)
+                .eq('id', userId)
+        } catch (syncError) {
+            console.error('Error syncing Instagram social_links to users:', syncError)
         }
 
         // 5. Insert into History
@@ -457,11 +485,21 @@ export async function verifyTikTokAccount(userId: string) {
             avatar_url: tiktokData.avatar_url,
         }
 
+        // Clean tiktok username from account
+        let cleanTTOUsername = username.replace(/İ/g, 'i').replace(/I/g, 'i').toLowerCase().replace('@', '').trim();
+        if (cleanTTOUsername.includes('tiktok.com/')) {
+            const parts = cleanTTOUsername.split('tiktok.com/');
+            if (parts.length > 1) {
+                cleanTTOUsername = parts[1].split('?')[0].split('/')[0].replace('@', '').trim();
+            }
+        }
+
         const { error: updateError } = await adminSupabase
             .from('social_accounts')
             .update({
+                username: cleanTTOUsername, // Clean username
                 is_verified: true,
-                platform_user_id: `tt-${username}`,
+                platform_user_id: `tt-${cleanTTOUsername}`,
                 follower_count: followerCount,
                 engagement_rate: boundedEngagement,
                 has_stats: true,
@@ -475,19 +513,31 @@ export async function verifyTikTokAccount(userId: string) {
             return { success: false, error: `Güncelleme hatası: ${updateError.message}` }
         }
 
-        // Update user's avatar_url in the users table too if they don't have one!
-        if (tiktokData.avatar_url) {
-            const { data: userProfile } = await supabase
+        // Sync verified TikTok link to users table social_links
+        try {
+            const { data: userProfile } = await adminSupabase
                 .from('users')
-                .select('avatar_url')
+                .select('social_links, avatar_url')
                 .eq('id', userId)
                 .single()
-            if (!userProfile?.avatar_url) {
-                await adminSupabase
-                    .from('users')
-                    .update({ avatar_url: tiktokData.avatar_url })
-                    .eq('id', userId)
+
+            const currentLinks = (userProfile?.social_links as Record<string, string | null> | null) ?? {}
+            const updatedLinks = {
+                ...currentLinks,
+                tiktok: `https://tiktok.com/@${cleanTTOUsername}`
             }
+
+            const updateFields: any = { social_links: updatedLinks }
+            if (!userProfile?.avatar_url && tiktokData.avatar_url) {
+                updateFields.avatar_url = tiktokData.avatar_url
+            }
+
+            await adminSupabase
+                .from('users')
+                .update(updateFields)
+                .eq('id', userId)
+        } catch (syncError) {
+            console.error('Error syncing TikTok social_links to users:', syncError)
         }
 
         // Award badge

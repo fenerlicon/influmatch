@@ -30,20 +30,22 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
 
     if (!data || data.length === 0) return []
 
-    // 2. Fetch Social Accounts
+    // 2. Fetch Social Accounts (Only return verified ones)
     const userIds = data.map(u => u.id)
     const { data: socialData } = await supabase
         .from('social_accounts')
-        .select('user_id, platform, follower_count, engagement_rate, stats_payload')
+        .select('user_id, platform, follower_count, engagement_rate, stats_payload, is_verified')
         .in('user_id', userIds)
 
     const socialAccountsMap: Record<string, any[]> = {}
     if (socialData) {
         socialData.forEach((account) => {
-            if (!socialAccountsMap[account.user_id]) {
-                socialAccountsMap[account.user_id] = []
+            if (account.is_verified === true) {
+                if (!socialAccountsMap[account.user_id]) {
+                    socialAccountsMap[account.user_id] = []
+                }
+                socialAccountsMap[account.user_id].push(account)
             }
-            socialAccountsMap[account.user_id].push(account)
         })
     }
 

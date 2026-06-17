@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAIRecommendations } from '@/utils/fetchInfluencers'
 import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import { Sparkles, ArrowLeft, Zap } from 'lucide-react'
+import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 
 export default async function AIRecommendationsPage() {
     const supabase = createSupabaseServerClient()
@@ -13,12 +14,17 @@ export default async function AIRecommendationsPage() {
         redirect('/login')
     }
 
-    // Get user profile for category and spotlight status
+    // Get user profile for category, spotlight status, and verification status
     const { data: profile } = await supabase
         .from('users')
-        .select('category, spotlight_active, spotlight_plan')
+        .select('category, spotlight_active, spotlight_plan, verification_status')
         .eq('id', user.id)
         .single()
+
+    const verificationStatus = (profile?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
+    if (verificationStatus !== 'verified') {
+        return <BrandLockScreen status={verificationStatus} />
+    }
 
     const userRole = user.user_metadata?.role || 'brand'
     const category = profile?.category

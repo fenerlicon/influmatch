@@ -60,8 +60,14 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
     const token = process.env.APIFY_API_TOKEN
     if (!token) throw new Error('APIFY_API_TOKEN is missing')
 
-    // Clean @ from username if present
-    const cleanUsername = username.replace('@', '').trim();
+    // Clean @ or full URL and normalize Turkish characters / case
+    let cleanUsername = username.replace(/İ/g, 'i').replace(/I/g, 'i').toLowerCase().replace('@', '').trim();
+    if (cleanUsername.includes('instagram.com/')) {
+        const parts = cleanUsername.split('instagram.com/');
+        if (parts.length > 1) {
+            cleanUsername = parts[1].split('?')[0].split('/')[0].trim();
+        }
+    }
 
     // Using run-sync-get-dataset-items for maximum simplicity (one request)
     const response = await fetch(`https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${token}`, {

@@ -152,20 +152,29 @@ export default async function BrandDashboardPage() {
         <p className="mt-2 max-w-2xl text-gray-300">
           Briefini tamamla, filtreli keşif ile doğru influencer’ları listele ve tek tıkla teklif gönder.
         </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/dashboard/brand/discover"
-            className="rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold shadow-[0_0_25px_rgba(212,175,55,0.35)] transition hover:border-soft-gold hover:bg-soft-gold/20"
-          >
-            Keşfet
-          </Link>
-          <Link
-            href="/dashboard/brand/advert?tab=mine"
-            className="rounded-2xl border border-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30"
-          >
-            Brief Hazırla
-          </Link>
-        </div>
+        {verificationStatus === 'verified' ? (
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/dashboard/brand/discover"
+              className="rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold shadow-[0_0_25px_rgba(212,175,55,0.35)] transition hover:border-soft-gold hover:bg-soft-gold/20"
+            >
+              Keşfet
+            </Link>
+            <Link
+              href="/dashboard/brand/advert?tab=mine"
+              className="rounded-2xl border border-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30"
+            >
+              Brief Hazırla
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-6">
+            <span className="inline-flex items-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-2.5 text-sm font-semibold text-yellow-200">
+              <Lock className="h-4 w-4 text-yellow-400" />
+              <span>Hesabınız Onay Bekliyor — Keşif ve Brief oluşturma özellikleri onay sonrasında açılacaktır.</span>
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">
@@ -180,7 +189,7 @@ export default async function BrandDashboardPage() {
       </section>
 
       {/* Recent Favorites Section */}
-      {favoriteInfluencers.length > 0 && (
+      {verificationStatus === 'verified' && favoriteInfluencers.length > 0 && (
         <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -206,13 +215,15 @@ export default async function BrandDashboardPage() {
       )}
 
       {/* Inflist (User Lists) Section - always visible */}
-      <InflistManager
-        initialLists={(userLists ?? []) as { id: string; name: string }[]}
-        isSpotlight={isSpotlight}
-      />
+      {verificationStatus === 'verified' && (
+        <InflistManager
+          initialLists={(userLists ?? []) as { id: string; name: string }[]}
+          isSpotlight={isSpotlight}
+        />
+      )}
 
       {/* AI Recommendations Section */}
-      {recommendations.length > 0 && (
+      {verificationStatus === 'verified' && recommendations.length > 0 && (
         <section className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6 shadow-glow relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none">
             <Sparkles className="h-32 w-32 text-blue-500" />
@@ -270,7 +281,7 @@ export default async function BrandDashboardPage() {
       {/* ... */}
 
       {/* Campaign Flow List */}
-      {offersWithRoom.length > 0 && (
+      {verificationStatus === 'verified' && offersWithRoom.length > 0 && (
         <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
           <div className="mb-6 flex items-center justify-between">
             <div>

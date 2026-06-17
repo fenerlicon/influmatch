@@ -64,7 +64,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
         const { data: socialAccounts } = await supabase
           .from('social_accounts')
-          .select('user_id, platform, follower_count, engagement_rate')
+          .select('user_id, platform, follower_count, engagement_rate, is_verified')
           .in('user_id', userIds)
           .in('platform', ['instagram', 'tiktok'])
 
@@ -73,17 +73,19 @@ export default async function Home({ searchParams }: HomeProps) {
           .select('user_id, badge_id')
           .in('user_id', userIds)
 
-        // Map social accounts, gathering all platforms for each user
+        // Map social accounts, gathering all platforms for each user (only verified ones)
         const socialMap = new Map<string, { platform: string; follower_count: number | null; engagement_rate: number | null }[]>()
         socialAccounts?.forEach((sa: any) => {
-          if (!socialMap.has(sa.user_id)) {
-            socialMap.set(sa.user_id, [])
+          if (sa.is_verified === true) {
+            if (!socialMap.has(sa.user_id)) {
+              socialMap.set(sa.user_id, [])
+            }
+            socialMap.get(sa.user_id)!.push({
+              platform: sa.platform,
+              follower_count: sa.follower_count,
+              engagement_rate: sa.engagement_rate
+            })
           }
-          socialMap.get(sa.user_id)!.push({
-            platform: sa.platform,
-            follower_count: sa.follower_count,
-            engagement_rate: sa.engagement_rate
-          })
         })
 
         const badgeMap = new Map<string, string[]>()

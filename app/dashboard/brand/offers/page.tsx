@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import BrandOffersList from '@/components/dashboard/BrandOffersList'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 
 export const revalidate = 0
 
@@ -30,6 +31,18 @@ export default async function BrandOffersPage() {
 
   if (!user) {
     redirect('/login')
+  }
+
+  // Fetch user profile verification status
+  const { data: userData } = await supabase
+    .from('users')
+    .select('verification_status')
+    .eq('id', user.id)
+    .single()
+
+  const verificationStatus = (userData?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
+  if (verificationStatus !== 'verified') {
+    return <BrandLockScreen status={verificationStatus} />
   }
 
   // Fetch offers sent by this brand

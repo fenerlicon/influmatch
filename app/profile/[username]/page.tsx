@@ -8,6 +8,7 @@ import BadgeDetailList from '@/components/badges/BadgeDetailList'
 import { getCategoryLabel } from '@/utils/categories'
 import InfluencerStats from '@/components/profile/InfluencerStats'
 import { refreshIfStale } from '@/app/actions/social-verification'
+import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 
 interface ProfilePageProps {
   params: { username: string }
@@ -84,11 +85,27 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   const rawSocialLinks = (profile.social_links as Record<string, string> | null) ?? {}
   const enrichedSocialLinks = { ...rawSocialLinks }
 
-  if (instagramAccount && instagramAccount.username && !enrichedSocialLinks.instagram) {
-    enrichedSocialLinks.instagram = `https://instagram.com/${instagramAccount.username}`
+  if (instagramAccount && instagramAccount.username && (instagramAccount.is_verified || !enrichedSocialLinks.instagram)) {
+    // Clean username in case it was stored with URL parameters
+    let cleanInsta = instagramAccount.username.replace(/İ/g, 'i').replace(/I/g, 'i').toLowerCase().replace('@', '').trim();
+    if (cleanInsta.includes('instagram.com/')) {
+      const parts = cleanInsta.split('instagram.com/');
+      if (parts.length > 1) {
+        cleanInsta = parts[1].split('?')[0].split('/')[0].trim();
+      }
+    }
+    enrichedSocialLinks.instagram = `https://instagram.com/${cleanInsta}`
   }
-  if (tiktokAccount && tiktokAccount.username && !enrichedSocialLinks.tiktok) {
-    enrichedSocialLinks.tiktok = `https://tiktok.com/@${tiktokAccount.username}`
+  if (tiktokAccount && tiktokAccount.username && (tiktokAccount.is_verified || !enrichedSocialLinks.tiktok)) {
+    // Clean username in case it was stored with URL parameters
+    let cleanTT = tiktokAccount.username.replace(/İ/g, 'i').replace(/I/g, 'i').toLowerCase().replace('@', '').trim();
+    if (cleanTT.includes('tiktok.com/')) {
+      const parts = cleanTT.split('tiktok.com/');
+      if (parts.length > 1) {
+        cleanTT = parts[1].split('?')[0].split('/')[0].replace('@', '').trim();
+      }
+    }
+    enrichedSocialLinks.tiktok = `https://tiktok.com/@${cleanTT}`
   }
 
   const socialLinksEntries = Object.entries(enrichedSocialLinks).filter(
@@ -98,6 +115,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   // Determine Viewer's Tier and Verification Status
   let viewerTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'
   let isViewerVerified = false
+  let viewerVerificationStatus: 'pending' | 'verified' | 'rejected' = 'pending'
 
   if (viewer) {
     // Fetch viewer profile details (including verification status and spotlight)
@@ -108,6 +126,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
       .single()
 
     const verificationStatus = viewerData?.verification_status ?? 'pending'
+    viewerVerificationStatus = verificationStatus as 'pending' | 'verified' | 'rejected'
     isViewerVerified = verificationStatus === 'verified'
 
     if (viewerRole === 'brand') {
@@ -118,6 +137,25 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
         viewerTier = 'SPOTLIGHT'
       }
     }
+  }
+
+  // Block unverified brands from viewing influencer profiles
+  if (viewerRole === 'brand' && !isViewerVerified) {
+    return (
+      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div className="relative">
+            <Link
+              href="/dashboard/brand/discover"
+              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
+            >
+              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
+            </Link>
+          </div>
+          <BrandLockScreen status={viewerVerificationStatus === 'rejected' ? 'rejected' : 'pending'} />
+        </div>
+      </main>
+    )
   }
 
   // Get all badge IDs for this user (only pass IDs, not badge objects)
