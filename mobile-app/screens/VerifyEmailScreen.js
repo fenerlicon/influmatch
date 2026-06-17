@@ -8,11 +8,14 @@ import { ArrowLeft, MailOpen } from 'lucide-react-native';
 import { CustomToast } from '../components/CustomToast';
 import { getTurkishErrorMessage } from '../lib/errorUtils';
 
+import * as Clipboard from 'expo-clipboard';
+
 export default function VerifyEmailScreen({ route, navigation }) {
     const { email } = route.params;
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60); // 60 saniye sayaç
+    const [clipboardCode, setClipboardCode] = useState('');
     const inputRef = useRef(null);
 
     // Toast State
@@ -35,6 +38,34 @@ export default function VerifyEmailScreen({ route, navigation }) {
             return () => clearTimeout(timerId);
         }
     }, [timeLeft]);
+
+    // Clipboard Kontrolü
+    useEffect(() => {
+        checkClipboard();
+        const interval = setInterval(checkClipboard, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const checkClipboard = async () => {
+        try {
+            const text = await Clipboard.getStringAsync();
+            const cleaned = text.trim();
+            if (/^\d{6}$/.test(cleaned)) {
+                setClipboardCode(cleaned);
+            } else {
+                setClipboardCode('');
+            }
+        } catch (e) {
+            // silent fail
+        }
+    };
+
+    const pasteFromClipboard = () => {
+        if (clipboardCode) {
+            setCode(clipboardCode);
+            showToast('Kod panodan yapıştırıldı!', 'success');
+        }
+    };
 
     // Kod girildiğinde otomatik doğrulama için
     useEffect(() => {
@@ -130,14 +161,27 @@ export default function VerifyEmailScreen({ route, navigation }) {
                             </Text>
 
                             {/* Code Input UI */}
-                            <View className="relative mb-8 w-full items-center">
+                            <TouchableOpacity
+                                activeOpacity={1}
+                                onPress={() => inputRef.current?.focus()}
+                                className="relative mb-6 w-full items-center"
+                            >
                                 <TextInput
                                     ref={inputRef}
                                     value={code}
                                     onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').substr(0, 6))}
                                     keyboardType="number-pad"
-                                    className="absolute w-full h-16 opacity-0" // Gizli input
+                                    style={{
+                                        position: 'absolute',
+                                        left: 0,
+                                        right: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        opacity: 0.01,
+                                        zIndex: 10,
+                                    }}
                                     autoFocus={true}
+                                    caretHidden={true}
                                 />
 
                                 {/* Görsel Kutular */}
@@ -160,7 +204,20 @@ export default function VerifyEmailScreen({ route, navigation }) {
                                         );
                                     })}
                                 </View>
-                            </View>
+                            </TouchableOpacity>
+
+                            {/* Clipboard Helper */}
+                            {clipboardCode ? (
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    onPress={pasteFromClipboard}
+                                    className="mb-8 px-4 py-2.5 rounded-2xl bg-soft-gold/15 border border-soft-gold/30 flex-row items-center gap-2"
+                                >
+                                    <Text className="text-soft-gold text-sm font-semibold">
+                                        📋 Panodan Kodu Yapıştır: {clipboardCode}
+                                    </Text>
+                                </TouchableOpacity>
+                            ) : null}
 
                             {/* Buton */}
                             <TouchableOpacity

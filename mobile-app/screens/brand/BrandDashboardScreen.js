@@ -421,7 +421,7 @@ export default function BrandDashboardScreen({ navigation }) {
 
                     {/* Quick Actions */}
                     <View className="mb-6">
-                        <Text className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-4 ml-1">Hızlı Erişim</Text>
+                        <Text className="text-gray-400 text-[10px] font-bold tracking-widest uppercase mb-4 ml-1">Hızlı Erişim</Text>
                         <View className="flex-row gap-4">
                             <TouchableOpacity
                                 onPress={() => navigation.navigate('BrandAdverts')}
@@ -463,7 +463,7 @@ export default function BrandDashboardScreen({ navigation }) {
                             <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase">SON BAŞVURULAR</Text>
                             {recentApplications.length > 0 && (
                                 <TouchableOpacity onPress={() => navigation.navigate('BrandAdverts')} className="flex-row items-center gap-1">
-                                    <Text className="text-gray-500 text-xs">Tümü</Text>
+                                    <Text className="text-gray-400 text-xs">Tümü</Text>
                                     <ChevronRight color="#6b7280" size={14} />
                                 </TouchableOpacity>
                             )}
@@ -475,7 +475,7 @@ export default function BrandDashboardScreen({ navigation }) {
                                     <Users color="#4b5563" size={26} />
                                 </View>
                                 <Text className="text-white font-bold text-base mb-1">Henüz başvuru yok</Text>
-                                <Text className="text-gray-500 text-sm text-center">İlan oluşturduğunda başvurular burada görünür.</Text>
+                                <Text className="text-gray-400 text-sm text-center">İlan oluşturduğunda başvurular burada görünür.</Text>
                             </GlassCard>
                         ) : (
                             recentApplications.map((app) => {
@@ -505,7 +505,7 @@ export default function BrandDashboardScreen({ navigation }) {
                                                         </View>
                                                     )}
                                                 </View>
-                                                <Text className="text-gray-500 text-xs mt-0.5" numberOfLines={1}>
+                                                <Text className="text-gray-400 text-xs mt-0.5" numberOfLines={1}>
                                                     {app.advert_projects?.title || 'İlan'}
                                                 </Text>
                                             </View>

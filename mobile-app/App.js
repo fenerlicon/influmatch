@@ -95,7 +95,7 @@ const TAB_BAR_STYLE = {
     </View>
   ),
   tabBarActiveTintColor: '#fbbf24',
-  tabBarInactiveTintColor: '#64748b',
+  tabBarInactiveTintColor: '#94a3b8',
 };
 
 const Stack = createNativeStackNavigator();

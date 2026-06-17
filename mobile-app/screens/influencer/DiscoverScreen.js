@@ -11,6 +11,26 @@ import { getThumbnailUrl } from '../../utils/image';
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48 - 12) / 2;
 
+const getCategoryLabel = (cat) => {
+    if (!cat) return 'Genel';
+    const mapping = {
+        'lifestyle': 'Yaşam Tarzı',
+        'fashion': 'Moda & Tasarım',
+        'beauty': 'Güzellik & Bakım',
+        'tech': 'Teknoloji & Bilim',
+        'gaming': 'Oyun',
+        'food': 'Yemek & Mutfak',
+        'travel': 'Seyahat & Gezi',
+        'fitness': 'Spor & Sağlık',
+        'education': 'Eğitim',
+        'entertainment': 'Eğlence & Mizah',
+        'business': 'İş & Finans',
+        'featured': 'Öne Çıkanlar',
+        'Featured': 'Öne Çıkanlar'
+    };
+    return mapping[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1);
+};
+
 const WavyBackground = () => (
     <View className="absolute top-[-50px] left-0 right-0 h-[200px] opacity-20">
         <Svg height="100%" width="100%" viewBox="0 0 1440 320">
@@ -90,7 +110,7 @@ const InfluencerCard = memo(({ item, onPress, horizontal = false }) => {
                     </View>
                     <View className="flex-row items-center gap-2">
                         <Text className="text-pink-500 text-[8px] font-black uppercase tracking-[3px]">
-                            {item.category?.toUpperCase() || 'MODA'}
+                            {getCategoryLabel(item.category).toUpperCase()}
                         </Text>
                     </View>
                 </View>
@@ -103,7 +123,7 @@ const CategorySection = memo(({ title, data, onProfilePress }) => (
     <View className="mb-10">
         <View className="flex-row items-center justify-between px-6 mb-5">
             <Text className="text-white font-black text-xl tracking-tight uppercase" style={{ letterSpacing: 1 }}>
-                {title === 'Featured' ? 'Öne Çıkanlar' : title}
+                {getCategoryLabel(title)}
             </Text>
             <TouchableOpacity className="bg-white/5 px-4 py-2 rounded-full border border-white/10">
                 <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Tümünü Gör</Text>
@@ -226,7 +246,7 @@ export default function DiscoverScreen({ navigation }) {
                         <View className="flex-1 bg-white/10 rounded-[24px] h-14 flex-row items-center px-4 border border-white/5 backdrop-blur-xl">
                             <Search color="#64748b" size={20} />
                             <TextInput
-                                placeholder="Search Influencer"
+                                placeholder="Influencer Ara"
                                 placeholderTextColor="#475569"
                                 className="flex-1 ml-3 text-white font-bold text-sm"
                                 value={searchQuery}
@@ -254,7 +274,7 @@ export default function DiscoverScreen({ navigation }) {
                         )}
                         contentContainerStyle={{ paddingBottom: 100 }}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ec4899" />}
-                        ListEmptyComponent={<Text className="text-gray-600 text-center mt-10">No influencers found.</Text>}
+                        ListEmptyComponent={<Text className="text-gray-600 text-center mt-10">Hiçbir influencer bulunamadı.</Text>}
                     />
                 )}
             </SafeAreaView>

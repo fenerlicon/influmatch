@@ -8,7 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     ChevronLeft, Camera, Save, User, Briefcase,
-    Link as LinkIcon, Edit2, Instagram, CheckCircle2, X, Copy, AtSign, Info
+    Link as LinkIcon, Edit2, Instagram, CheckCircle2, X, Copy, AtSign, Info, Music
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -57,6 +57,8 @@ export default function MyProfileScreen({ navigation }) {
         full_name: '', username: '', bio: '', website: '', category: '', avatar_url: null,
     });
     const [igAccount, setIgAccount] = useState(null);
+    const [tiktokAccount, setTiktokAccount] = useState(null);
+    const [platformToVerify, setPlatformToVerify] = useState('instagram');
     const [portfolio, setPortfolio] = useState([]);
 
     // Modal state
@@ -73,11 +75,14 @@ export default function MyProfileScreen({ navigation }) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const [{ data: prof }, { data: social }] = await Promise.all([
+            const [{ data: prof }, { data: social }, { data: tiktok }] = await Promise.all([
                 supabase.from('users').select('*').eq('id', user.id).maybeSingle(),
                 supabase.from('social_accounts')
                     .select('username, follower_count, engagement_rate, is_verified')
                     .eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
+                supabase.from('social_accounts')
+                    .select('username, follower_count, engagement_rate, is_verified')
+                    .eq('user_id', user.id).eq('platform', 'tiktok').maybeSingle(),
             ]);
 
             if (prof) {
@@ -93,6 +98,7 @@ export default function MyProfileScreen({ navigation }) {
                 setPortfolio(prof.portfolio_urls || []);
             }
             setIgAccount(social || null);
+            setTiktokAccount(tiktok || null);
         } catch (e) {
             console.error('[MyProfile]', e);
         } finally {
@@ -211,7 +217,8 @@ export default function MyProfileScreen({ navigation }) {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Oturum bulunamadı.');
 
-            const res = await fetch(`${API_BASE}/api/mobile/verify-instagram`, {
+            const endpoint = platformToVerify === 'tiktok' ? 'verify-tiktok' : 'verify-instagram';
+            const res = await fetch(`${API_BASE}/api/mobile/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                 body: JSON.stringify({ action: 'generate', userId: session.user.id, username: clean }),
@@ -234,7 +241,8 @@ export default function MyProfileScreen({ navigation }) {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Oturum bulunamadı.');
 
-            const res = await fetch(`${API_BASE}/api/mobile/verify-instagram`, {
+            const endpoint = platformToVerify === 'tiktok' ? 'verify-tiktok' : 'verify-instagram';
+            const res = await fetch(`${API_BASE}/api/mobile/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                 body: JSON.stringify({ action: 'verify', userId: session.user.id }),
@@ -243,12 +251,21 @@ export default function MyProfileScreen({ navigation }) {
             if (!data.success) throw new Error(data.error || 'Doğrulama başarısız.');
 
             setVerifiedData(data.data);
-            setIgAccount({
-                username: data.data?.username || igUsername.replace(/^@/, ''),
-                follower_count: data.data?.follower_count,
-                engagement_rate: data.data?.engagement_rate,
-                is_verified: true,
-            });
+            if (platformToVerify === 'tiktok') {
+                setTiktokAccount({
+                    username: data.data?.username || igUsername.replace(/^@/, ''),
+                    follower_count: data.data?.follower_count,
+                    engagement_rate: data.data?.engagement_rate,
+                    is_verified: true,
+                });
+            } else {
+                setIgAccount({
+                    username: data.data?.username || igUsername.replace(/^@/, ''),
+                    follower_count: data.data?.follower_count,
+                    engagement_rate: data.data?.engagement_rate,
+                    is_verified: true,
+                });
+            }
             setStep(3);
         } catch (e) {
             Alert.alert('Hata', e.message);
@@ -359,14 +376,181 @@ export default function MyProfileScreen({ navigation }) {
                         </View>
                     </View>
 
+                    {/* ── Social Connections ── */}
+                    <View className="mb-8 mt-4">
+                        <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3 ml-1">SOSYAL MEDYA HESAPLARI</Text>
+                        
+                        {/* Instagram Card */}
+                        <View className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 mb-3 flex-row items-center justify-between">
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mr-3">
+                                    <Instagram color="#a855f7" size={20} />
+                                </View>
+                                <View>
+                                    <Text className="text-white font-bold text-sm">Instagram</Text>
+                                    <Text className="text-gray-500 text-xs mt-0.5">
+                                        {igAccount ? `@${igAccount.username}` : 'Bağlı değil'}
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity 
+                                onPress={() => {
+                                    setPlatformToVerify('instagram');
+                                    setIgUsername(igAccount?.username || '');
+                                    setModalVisible(true);
+                                    setStep(igAccount ? 3 : 1);
+                                }}
+                                className={`px-4 py-2 rounded-xl ${igAccount ? 'bg-white/5 border border-white/10' : 'bg-purple-600'}`}
+                            >
+                                <Text className={`text-xs font-bold ${igAccount ? 'text-gray-400' : 'text-white'}`}>
+                                    {igAccount ? 'Yeniden Bağla' : 'Bağla'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* TikTok Card */}
+                        <View className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 mb-3 flex-row items-center justify-between">
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 items-center justify-center mr-3">
+                                    <Music color="#22d3ee" size={20} />
+                                </View>
+                                <View>
+                                    <Text className="text-white font-bold text-sm">TikTok</Text>
+                                    <Text className="text-gray-500 text-xs mt-0.5">
+                                        {tiktokAccount ? `@${tiktokAccount.username}` : 'Bağlı değil'}
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity 
+                                onPress={() => {
+                                    setPlatformToVerify('tiktok');
+                                    setIgUsername(tiktokAccount?.username || '');
+                                    setModalVisible(true);
+                                    setStep(tiktokAccount ? 3 : 1);
+                                }}
+                                className={`px-4 py-2 rounded-xl ${tiktokAccount ? 'bg-white/5 border border-white/10' : 'bg-cyan-600'}`}
+                            >
+                                <Text className={`text-xs font-bold ${tiktokAccount ? 'text-gray-400' : 'text-white'}`}>
+                                    {tiktokAccount ? 'Yeniden Bağla' : 'Bağla'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
                     {/* Save */}
                     <TouchableOpacity onPress={handleSave} disabled={saving}
-                        className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mt-2">
+                        className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mt-2 mb-10">
                         {saving ? <ActivityIndicator color="black" /> : <View className="flex-row items-center gap-2"><Save color="black" size={18} /><Text className="text-black font-bold text-base">Kaydet</Text></View>}
                     </TouchableOpacity>
                 </ScrollView>
             </SafeAreaView>
 
+            {/* ── INSTAGRAM & TIKTOK VERIFICATION MODAL ── */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={closeModal}
+            >
+                <View className="flex-1 bg-black/80 justify-center px-6">
+                    <View className="bg-[#15171e] rounded-3xl border border-white/10 p-6">
+                        <View className="flex-row justify-between items-center mb-6">
+                            <Text className="text-white text-xl font-bold">
+                                {platformToVerify === 'tiktok' ? 'TikTok Hesabını Bağla' : 'Instagram Hesabını Bağla'}
+                            </Text>
+                            <TouchableOpacity onPress={closeModal}>
+                                <X color="gray" size={24} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* ── STEP 1: Enter username ── */}
+                        {step === 1 && (
+                            <>
+                                <Text className="text-gray-400 text-sm leading-5 mb-5">
+                                    {platformToVerify === 'tiktok' 
+                                        ? 'TikTok kullanıcı adını gir. Sahipliğini doğrulamak için biyografine bir kod eklemeni isteyeceğiz.'
+                                        : 'Instagram kullanıcı adını gir. Sahipliğini doğrulamak için biyografine bir kod eklemeni isteyeceğiz.'}
+                                </Text>
+                                <View className="flex-row items-center bg-black/30 h-14 rounded-xl border border-white/10 px-4 mb-5">
+                                    {platformToVerify === 'tiktok' ? (
+                                        <Music size={20} color="#22d3ee" className="mr-3" />
+                                    ) : (
+                                        <Instagram size={20} color="#a855f7" className="mr-3" />
+                                    )}
+                                    <Text className="text-gray-500 text-base mr-1">@</Text>
+                                    <TextInput
+                                        className="flex-1 text-white text-base font-medium"
+                                        placeholder="kullaniciadi"
+                                        placeholderTextColor="#6b7280"
+                                        value={igUsername}
+                                        onChangeText={setIgUsername}
+                                        autoCapitalize="none"
+                                    />
+                                </View>
+                                <TouchableOpacity 
+                                    onPress={handleGenerate} 
+                                    disabled={busy}
+                                    className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20"
+                                >
+                                    {busy ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold text-base">Kod Al</Text>}
+                                </TouchableOpacity>
+                            </>
+                        )}
+
+                        {/* ── STEP 2: Bio code ── */}
+                        {step === 2 && (
+                            <>
+                                <View className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 mb-5 flex-row items-start gap-3">
+                                    <Info color="#60a5fa" size={16} style={{ marginTop: 1 }} />
+                                    <Text className="text-blue-300 text-xs leading-5 flex-1">
+                                        Bu kod, hesabın gerçekten sana ait olduğunu kanıtlar. Doğrulama sonrası kaldırabilirsin.
+                                    </Text>
+                                </View>
+
+                                <Text className="text-gray-400 text-sm mb-3">
+                                    Aşağıdaki kodu <Text className="text-white font-bold">@{igUsername.replace(/^@/, '')}</Text> hesabının{' '}
+                                    <Text className="text-soft-gold font-bold">biyografisine</Text> ekle:
+                                </Text>
+
+                                <TouchableOpacity onPress={copyCode}
+                                    className="bg-white/5 border border-white/10 rounded-2xl p-4 flex-row items-center justify-between mb-2 active:opacity-75">
+                                    <Text className="text-white font-mono text-xl font-black tracking-widest">{verificationCode}</Text>
+                                    <View className="flex-row items-center gap-2 bg-soft-gold/15 px-3 py-2 rounded-xl">
+                                        <Copy size={14} color="#D4AF37" />
+                                        <Text className="text-soft-gold text-xs font-bold">Kopyala</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <Text className="text-gray-600 text-xs mb-5 ml-1">Koda dokunarak kopyalayabilirsin</Text>
+
+                                <TouchableOpacity onPress={handleVerify} disabled={busy}
+                                    className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mb-3">
+                                    {busy ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold text-base">Biyografime Ekledim, Doğrula ✓</Text>}
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setStep(1)} className="items-center py-2">
+                                    <Text className="text-gray-500 text-xs">Geri Dön</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+
+                        {/* ── STEP 3: Success ── */}
+                        {step === 3 && (
+                            <View className="items-center py-4">
+                                <View className="w-16 h-16 bg-green-500/15 border border-green-500/30 rounded-full items-center justify-center mb-4">
+                                    <CheckCircle2 color="#4ade80" size={32} />
+                                </View>
+                                <Text className="text-white font-bold text-xl mb-1">Hesap Doğrulandı!</Text>
+                                <Text className="text-gray-400 text-sm text-center mb-5">
+                                    @{platformToVerify === 'tiktok' ? tiktokAccount?.username : igAccount?.username} hesabın başarıyla bağlandı.
+                                </Text>
+                                <TouchableOpacity onPress={closeModal}
+                                    className="bg-soft-gold h-13 w-full rounded-2xl items-center justify-center px-6 py-4">
+                                    <Text className="text-black font-bold text-base">Harika, Tamam!</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }

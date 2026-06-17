@@ -8,7 +8,7 @@ import {
     Bell, Zap, ChevronRight,
     TrendingUp, Instagram, BarChart3,
     Eye, Info, X, CheckCircle2, Sparkles,
-    ArrowUpRight, Wallet
+    ArrowUpRight, Wallet, Music, Star
 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { calculateTrustScore, calculateProfileCompletion } from '../utils/calculation';
@@ -219,8 +219,11 @@ export default function DashboardScreen({ navigation }) {
     const [stats, setStats] = useState({ trustScore: 0, profileCompletion: 0 });
     const [projects, setProjects] = useState([]);
     const [socialStats, setSocialStats] = useState(null);
+    const [tiktokStats, setTiktokStats] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+    const isSpotlightActive = !!profile?.spotlight_active && !(profile?.spotlight_expires_at && new Date(profile?.spotlight_expires_at) < new Date());
 
     useFocusEffect(
         useCallback(() => {
@@ -233,10 +236,11 @@ export default function DashboardScreen({ navigation }) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const [{ data: profileData }, { data: projectsData }, { data: socialData }, { data: notifData }] = await Promise.all([
+            const [{ data: profileData }, { data: projectsData }, { data: socialData }, { data: tiktokData }, { data: notifData }] = await Promise.all([
                 supabase.from('users').select('*').eq('id', user.id).single(),
                 supabase.from('advert_projects').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(5),
                 supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
+                supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'tiktok').maybeSingle(),
                 supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
             ]);
 
@@ -249,14 +253,15 @@ export default function DashboardScreen({ navigation }) {
             setProfile(profileData);
             setProjects(projectsData || []);
             setSocialStats(socialData || null);
+            setTiktokStats(tiktokData || null);
 
             const notifs = notifData || [];
             setNotifications(notifs);
             setUnreadNotifCount(notifs.filter(n => !n.is_read).length);
 
             setStats({
-                trustScore: calculateTrustScore(profileData, socialData),
-                profileCompletion: calculateProfileCompletion(profileData, socialData),
+                trustScore: calculateTrustScore(profileData, socialData || tiktokData),
+                profileCompletion: calculateProfileCompletion(profileData, socialData || tiktokData),
             });
 
         } catch (e) {
@@ -378,24 +383,34 @@ export default function DashboardScreen({ navigation }) {
                             </View>
                         </GlassCard>
 
-                        {/* Earnings */}
-                        <GlassCard style={{ flex: 1 }} className="p-5 justify-between bg-white/[0.04]">
+                        {/* Spotlight */}
+                        <GlassCard 
+                            style={{ flex: 1 }} 
+                            className="p-5 justify-between bg-white/[0.04]"
+                            onPress={() => navigation.navigate('Spotlight')}
+                        >
                             <View>
                                 <View className="flex-row items-center gap-2 mb-4">
-                                    <View className="w-8 h-8 rounded-full bg-white/10 items-center justify-center">
-                                        <Wallet size={16} color="#fbbf24" />
+                                    <View className="w-8 h-8 rounded-full bg-purple-500/20 items-center justify-center">
+                                        <Star size={16} color="#a855f7" fill={isSpotlightActive ? "#a855f7" : "transparent"} />
                                     </View>
-                                    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-tight">Active Earnings</Text>
+                                    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-tight">Spotlight</Text>
                                 </View>
-                                <Text className="text-white text-2xl font-bold mb-1">₺14.250,00</Text>
-                                <Text className="text-gray-500 text-[10px] font-medium uppercase tracking-widest">Total Active</Text>
+                                <Text className={`text-2xl font-bold mb-1 ${isSpotlightActive ? 'text-purple-400' : 'text-gray-400'}`}>
+                                    {isSpotlightActive ? 'Aktif' : 'Pasif'}
+                                </Text>
+                                <Text className="text-gray-500 text-[10px] font-medium uppercase tracking-widest">
+                                    {isSpotlightActive ? 'ÖNE ÇIKARILIYORSUN' : 'ÖNE ÇIK'}
+                                </Text>
                             </View>
                             
                             <TouchableOpacity 
-                                className="bg-amber-400 py-3 rounded-2xl items-center shadow-lg shadow-amber-400/20 active:scale-95"
-                                onPress={() => Alert.alert("Cüzdan", "Cüzdan yönetimi özelliği çok yakında aktifleştirilecektir.")}
+                                className="bg-purple-600 py-3 rounded-2xl items-center shadow-lg shadow-purple-600/20 active:scale-95"
+                                onPress={() => navigation.navigate('Spotlight')}
                             >
-                                <Text className="text-black font-bold text-xs">Withdraw Funds</Text>
+                                <Text className="text-white font-bold text-xs">
+                                    {isSpotlightActive ? 'Yönet' : 'Aktifleştir'}
+                                </Text>
                             </TouchableOpacity>
                         </GlassCard>
                     </View>
@@ -454,18 +469,39 @@ export default function DashboardScreen({ navigation }) {
                         >
                             <View className="flex-row items-center">
                                 <View className="w-12 h-12 rounded-2xl bg-white/[0.05] items-center justify-center mr-4">
-                                    <Instagram color={socialStats ? "#fbbf24" : "#64748b"} size={26} />
+                                    <Instagram color={socialStats ? "#fbbf24" : "#94a3b8"} size={26} />
                                 </View>
                                 <View>
                                     <Text className="text-white font-bold text-base">
                                         {socialStats ? 'Instagram Bağlı' : 'Instagram Bağla'}
                                     </Text>
-                                    <Text className="text-gray-500 text-xs mt-0.5">
+                                    <Text className="text-gray-400 text-xs mt-0.5">
                                         {socialStats ? `@${socialStats.username}` : 'Pro özellikleri ve analizi aç'}
                                     </Text>
                                 </View>
                             </View>
-                            <ChevronRight size={20} color="#334155" />
+                            <ChevronRight size={20} color="#94a3b8" />
+                        </GlassCard>
+
+                        {/* TikTok Link */}
+                        <GlassCard
+                            className={`flex-row items-center p-5 justify-between border-white/[0.05] ${tiktokStats ? 'bg-cyan-900/10' : 'bg-white/[0.02]'} mt-3`}
+                            onPress={() => navigation.navigate('MyProfile')}
+                        >
+                            <View className="flex-row items-center">
+                                <View className="w-12 h-12 rounded-2xl bg-white/[0.05] items-center justify-center mr-4">
+                                    <Music color={tiktokStats ? "#22d3ee" : "#94a3b8"} size={26} />
+                                </View>
+                                <View>
+                                    <Text className="text-white font-bold text-base">
+                                        {tiktokStats ? 'TikTok Bağlı' : 'TikTok Bağla'}
+                                    </Text>
+                                    <Text className="text-gray-400 text-xs mt-0.5">
+                                        {tiktokStats ? `@${tiktokStats.username}` : 'Resmi istatistiklerini doğrula'}
+                                    </Text>
+                                </View>
+                            </View>
+                            <ChevronRight size={20} color="#94a3b8" />
                         </GlassCard>
 
                         {/* Stats Info */}
