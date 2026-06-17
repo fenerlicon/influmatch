@@ -69,7 +69,19 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
 
     const username = influencer.username || influencer.id
     const isSpotlight = influencer.spotlight_active === true
-    const hasStats = !!(influencer.platforms_data && influencer.platforms_data.length > 0) || !!(influencer.stats && influencer.stats.followers !== '0' && influencer.stats.followers !== null)
+    
+    // Robust check if the influencer actually has scraped stats (followers > 0)
+    const hasStats = !!(
+        influencer.platforms_data && 
+        influencer.platforms_data.length > 0 && 
+        influencer.platforms_data.some(p => p.follower_count !== null && p.follower_count > 0)
+    ) || !!(
+        influencer.stats && 
+        influencer.stats.followers !== '0' && 
+        influencer.stats.followers !== '0%' && 
+        influencer.stats.followers !== null
+    )
+    
     const showMatchDetails = (matchReasons && matchReasons.length > 0) && ((matchScore || 0) > 25)
 
     // Verification Logic: Blue tick if admin verified OR has API data
@@ -313,7 +325,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
 
                                 {/* Stats Grid - Stay aligned at bottom */}
                                 <div className="mt-auto pt-2 space-y-2">
-                                    {influencer.platforms_data && influencer.platforms_data.length > 0 ? (
+                                    {hasStats && influencer.platforms_data && influencer.platforms_data.length > 0 ? (
                                         influencer.platforms_data.map((plat) => {
                                             const isTikTok = plat.platform === 'tiktok'
                                             return (
@@ -344,7 +356,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                                 </div>
                                             )
                                         })
-                                    ) : influencer.stats && influencer.stats.followers !== '0' && influencer.stats.followers !== null ? (
+                                    ) : hasStats && influencer.stats && influencer.stats.followers !== '0' && influencer.stats.followers !== null ? (
                                         <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#111218]/50 p-2.5 border border-white/5">
                                             <div className="text-center">
                                                 <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Takipçi</p>

@@ -50,7 +50,16 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       const matchesSearch = searchQuery === '' ||
         (influencer.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
         (influencer.username?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-      const hasStats = influencer.stats && influencer.stats.followers !== '0'
+      const hasStats = !!(
+        influencer.platforms_data && 
+        influencer.platforms_data.length > 0 && 
+        influencer.platforms_data.some(p => p.follower_count !== null && p.follower_count > 0)
+      ) || !!(
+        influencer.stats && 
+        influencer.stats.followers !== '0' && 
+        influencer.stats.followers !== '0%' && 
+        influencer.stats.followers !== null
+      )
       const matchesVerifiedData = !verifiedOnly || hasStats
       const matchesVerifiedAccount = !verifiedAccountsOnly || (influencer.displayed_badges?.includes('verified-account') ?? false)
       
