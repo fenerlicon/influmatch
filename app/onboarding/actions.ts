@@ -13,6 +13,8 @@ interface SaveOnboardingPayload {
   category: string
   avatarUrl: string | null
   taxId?: string | null
+  taxOffice?: string | null
+  taxOfficeCity?: string | null
   creatorType?: 'influencer' | 'ugc' | 'both'
   socialLinks: {
     instagram?: string | null
@@ -42,6 +44,16 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
 
   console.log('[saveOnboardingProfile] Attempting to save profile:', payload)
 
+  // Validate tax details if taxId is provided
+  if (payload.taxId && payload.taxId.trim()) {
+    if (!payload.taxOffice || !payload.taxOffice.trim()) {
+      return { success: false, error: 'Vergi numarası girildiğinde vergi dairesi girmek zorunludur.' }
+    }
+    if (!payload.taxOfficeCity || !payload.taxOfficeCity.trim()) {
+      return { success: false, error: 'Vergi numarası girildiğinde şirketin bağlı olduğu il seçilmelidir.' }
+    }
+  }
+
   // Normalize data
   const normalizedUsername = payload.username?.trim() || null
   const normalizedCity = payload.city?.trim() || null
@@ -62,6 +74,8 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
       category: payload.category || null,
       avatar_url: payload.avatarUrl,
       tax_id: payload.taxId?.trim() || null,
+      tax_office: payload.taxOffice?.trim() || null,
+      tax_office_city: payload.taxOfficeCity?.trim() || null,
       social_links: payload.socialLinks,
       creator_type: payload.creatorType || null,
     })

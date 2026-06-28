@@ -33,6 +33,8 @@ interface BrandProfileFormProps {
     taxId?: string
     taxIdVerified?: boolean | null
     socialLinksLastUpdated?: string | null
+    taxOffice?: string
+    taxOfficeCity?: string
   }
 }
 
@@ -61,6 +63,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     twitch: initialData.twitch ?? '',
     companyLegalName: initialData.companyLegalName ?? '',
     taxId: initialData.taxId ?? '',
+    taxOffice: initialData.taxOffice ?? '',
+    taxOfficeCity: initialData.taxOfficeCity ?? '',
   })
   const [logoUrl, setLogoUrl] = useState<string | null>(initialData.logoUrl ?? null)
   const [isUploading, setIsUploading] = useState(false)
@@ -350,7 +354,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     </label>
   )
 
-  const renderCitySelect = (label: string, name: string, value: string, icon: ReactNode) => (
+  const renderCitySelect = (label: string, name: string, value: string, icon: ReactNode, customDisabled?: boolean) => (
     <label className="space-y-2 text-sm text-gray-300">
       <span>{label}</span>
       <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
@@ -359,7 +363,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           name={name}
           value={value}
           onChange={handleChange}
-          disabled={!isEditing}
+          disabled={customDisabled !== undefined ? customDisabled : !isEditing}
           className="w-full bg-transparent text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">Şehir Seçin</option>
@@ -605,6 +609,23 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           !isEditingCorporate ? true : undefined
         )}
 
+        {renderInput(
+          'Vergi Dairesi',
+          'taxOffice',
+          formState.taxOffice,
+          <FileText className="h-4 w-4" />,
+          'Vergi dairesini girin',
+          !isEditingCorporate ? true : undefined
+        )}
+
+        {renderCitySelect(
+          'Şirketin Bağlı Olduğu İl (Vergi Levhası İli)',
+          'taxOfficeCity',
+          formState.taxOfficeCity,
+          <MapPin className="h-4 w-4" />,
+          !isEditingCorporate
+        )}
+
         {/* Vergi Numarası Durumu */}
         {formState.taxId && formState.taxId.trim() && (
           <div className={`mt-2 rounded-xl border p-3 ${initialData.taxIdVerified
@@ -638,6 +659,16 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               type="button"
               onClick={async () => {
                 setErrorMsg(null)
+                if (formState.taxId.trim()) {
+                  if (!formState.taxOffice.trim()) {
+                    setErrorMsg('Vergi numarası girildiğinde vergi dairesi girmek zorunludur.')
+                    return
+                  }
+                  if (!formState.taxOfficeCity.trim()) {
+                    setErrorMsg('Vergi numarası girildiğinde şirketin bağlı olduğu il seçilmelidir.')
+                    return
+                  }
+                }
                 startTransition(async () => {
                   try {
                     await updateBrandProfile({
@@ -656,6 +687,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                       displayedBadges: selectedBadges,
                       companyLegalName: formState.companyLegalName.trim() || null,
                       taxId: formState.taxId.trim() || null,
+                      taxOffice: formState.taxOffice.trim() || null,
+                      taxOfficeCity: formState.taxOfficeCity.trim() || null,
                     })
                     setToast('Kurumsal bilgiler güncellendi!')
                     setIsEditingCorporate(false)
@@ -679,6 +712,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                   ...prev,
                   companyLegalName: initialData.companyLegalName ?? '',
                   taxId: initialData.taxId ?? '',
+                  taxOffice: initialData.taxOffice ?? '',
+                  taxOfficeCity: initialData.taxOfficeCity ?? '',
                 }))
                 setErrorMsg(null)
               }}
@@ -736,6 +771,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 twitch: initialData.twitch ?? '',
                 companyLegalName: initialData.companyLegalName ?? '',
                 taxId: initialData.taxId ?? '',
+                taxOffice: initialData.taxOffice ?? '',
+                taxOfficeCity: initialData.taxOfficeCity ?? '',
               })
               setLogoUrl(initialData.logoUrl ?? null)
               setSelectedBadges(initialData.displayedBadges ?? [])

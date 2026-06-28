@@ -52,6 +52,8 @@ const defaultBrandForm: BrandFormState = {
   tiktok: '',
   youtube: '',
   taxId: '',
+  taxOffice: '',
+  taxOfficeCity: '',
 }
 
 export default function OnboardingPage() {
@@ -148,6 +150,8 @@ export default function OnboardingPage() {
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
             taxId: data.tax_id ?? '',
+            taxOffice: (data as any).tax_office ?? '',
+            taxOfficeCity: (data as any).tax_office_city ?? '',
           }
         }
 
@@ -384,6 +388,8 @@ export default function OnboardingPage() {
       city: role === 'influencer' ? influencerForm.city : brandForm.city,
       bio: role === 'influencer' ? influencerForm.bio : '', // Brands don't have bio in form
       taxId: role === 'brand' ? brandForm.taxId : null,
+      taxOffice: role === 'brand' ? brandForm.taxOffice : null,
+      taxOfficeCity: role === 'brand' ? brandForm.taxOfficeCity : null,
       category: role === 'influencer' ? influencerForm.category : 'tech', // Default category for brands
       avatarUrl: avatarUrl,
       socialLinks: socialLinks,

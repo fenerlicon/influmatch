@@ -22,6 +22,8 @@ interface UpdateBrandProfilePayload {
   displayedBadges?: string[]
   companyLegalName?: string | null
   taxId?: string | null
+  taxOffice?: string | null
+  taxOfficeCity?: string | null
 }
 
 export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
@@ -183,6 +185,16 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     throw new Error(twitchResult.error || 'Geçersiz Twitch linki.')
   }
 
+  // Validate tax details if taxId is provided
+  if (payload.taxId && payload.taxId.trim()) {
+    if (!payload.taxOffice || !payload.taxOffice.trim()) {
+      throw new Error('Vergi numarası girildiğinde vergi dairesi girmek zorunludur.')
+    }
+    if (!payload.taxOfficeCity || !payload.taxOfficeCity.trim()) {
+      throw new Error('Vergi numarası girildiğinde şirketin bağlı olduğu il seçilmelidir.')
+    }
+  }
+
   // Normalize values: empty strings become null to satisfy constraints
   // Ensure username is set (either from payload or keep existing)
   const finalUsername = payload.username?.trim() || currentUsername || null
@@ -200,6 +212,8 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     avatar_url: payload.logoUrl,
     company_legal_name: payload.companyLegalName?.trim() || null,
     tax_id: payload.taxId?.trim() || null,
+    tax_office: payload.taxOffice?.trim() || null,
+    tax_office_city: payload.taxOfficeCity?.trim() || null,
     social_links: {
       website: websiteResult.normalizedUrl || null,
       linkedin: linkedinResult.normalizedUrl || null,

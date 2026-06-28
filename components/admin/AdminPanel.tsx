@@ -28,6 +28,8 @@ interface User {
   city: string | null
   tax_id?: string | null
   company_legal_name?: string | null
+  tax_office?: string | null
+  tax_office_city?: string | null
   spotlight_active?: boolean | null
   spotlight_plan?: string | null
   spotlight_expires_at?: string | null
@@ -60,7 +62,7 @@ interface AdminPanelProps {
   brandCount?: number
 }
 
-const TAB_KEYS = ['pending', 'verified', 'rejected', 'notifications', 'adverts', 'applications'] as const
+const TAB_KEYS = ['pending', 'verified_influencer', 'verified_brand', 'rejected', 'notifications', 'adverts', 'applications'] as const
 type TabKey = (typeof TAB_KEYS)[number]
 
 export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0 }: AdminPanelProps) {
@@ -75,6 +77,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [selectedBadgeId, setSelectedBadgeId] = useState<string>('')
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'influencer' | 'brand'>('all')
   const [isResettingBadges, setIsResettingBadges] = useState(false)
   const [spotlightModalData, setSpotlightModalData] = useState<{ userId: string, role: string } | null>(null)
   const [spotlightForm, setSpotlightForm] = useState<{ plan: string, duration: number }>({ plan: 'ibasic', duration: 1 })
@@ -87,8 +90,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     switch (activeTab) {
       case 'pending':
         return pendingUsers
-      case 'verified':
-        return verifiedUsers
+      case 'verified_influencer':
+        return verifiedUsers.filter(u => u.role === 'influencer')
+      case 'verified_brand':
+        return verifiedUsers.filter(u => u.role === 'brand')
       case 'rejected':
         return rejectedUsers
       default:
@@ -98,7 +103,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
   const tabs = [
     { key: 'pending', label: 'Bekleyen', count: 0 },
-    { key: 'verified', label: 'Onaylı', count: 0 },
+    { key: 'verified_influencer', label: 'Onaylı Influencer', count: 0 },
+    { key: 'verified_brand', label: 'Onaylı Marka', count: 0 },
     { key: 'rejected', label: 'Reddedilen', count: 0 },
     { key: 'notifications', label: 'Bildirimler', count: 0 },
     { key: 'adverts', label: 'İlanlar', count: 0 },
@@ -110,15 +116,17 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     count:
       tab.key === 'pending'
         ? pendingUsersState.length
-        : tab.key === 'verified'
-          ? verifiedUsersState.length
-          : tab.key === 'rejected'
-            ? rejectedUsersState.length
-            : tab.key === 'adverts'
-              ? advertsState.length
-              : tab.key === 'applications'
-                ? applicationsState.length
-                : 0,
+        : tab.key === 'verified_influencer'
+          ? verifiedUsersState.filter(u => u.role === 'influencer').length
+          : tab.key === 'verified_brand'
+            ? verifiedUsersState.filter(u => u.role === 'brand').length
+            : tab.key === 'rejected'
+              ? rejectedUsersState.length
+              : tab.key === 'adverts'
+                ? advertsState.length
+                : tab.key === 'applications'
+                  ? applicationsState.length
+                  : 0,
   }))
 
   // Update users when tab changes
@@ -127,8 +135,11 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
       case 'pending':
         setUsers(pendingUsersState)
         break
-      case 'verified':
-        setUsers(verifiedUsersState)
+      case 'verified_influencer':
+        setUsers(verifiedUsersState.filter(u => u.role === 'influencer'))
+        break
+      case 'verified_brand':
+        setUsers(verifiedUsersState.filter(u => u.role === 'brand'))
         break
       case 'rejected':
         setUsers(rejectedUsersState)
@@ -143,6 +154,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     // Clear selection when tab changes
     setSelectedUserIds(new Set())
     setSearchQuery('')
+    setRoleFilter('all')
   }, [activeTab, pendingUsersState, verifiedUsersState, rejectedUsersState])
 
   // Sync with initial data
@@ -176,7 +188,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // Fetch complete user data to ensure we have all fields
           const { data: completeUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, spotlight_plan, spotlight_expires_at, displayed_badges, tax_id_verified, email_verified_at')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, spotlight_plan, spotlight_expires_at, displayed_badges, tax_id_verified, email_verified_at')
             .eq('id', userId)
             .single()
 
@@ -304,18 +316,21 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     }
   }
 
-  // Filter users based on search query (only for verified tab)
+  // Filter users based on search query
   const getFilteredUsers = () => {
-    if (activeTab === 'verified' && searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase()
-      return users.filter((user) => {
-        const fullName = user.full_name?.toLowerCase() || ''
-        const email = user.email?.toLowerCase() || ''
-        const username = user.username?.toLowerCase() || ''
-        return fullName.includes(query) || email.includes(query) || username.includes(query)
-      })
+    let filtered = users
+    if (activeTab === 'verified_influencer' || activeTab === 'verified_brand') {
+      if (searchQuery.trim()) {
+        const query = searchQuery.trim().toLowerCase()
+        filtered = filtered.filter((user) => {
+          const fullName = user.full_name?.toLowerCase() || ''
+          const email = user.email?.toLowerCase() || ''
+          const username = user.username?.toLowerCase() || ''
+          return fullName.includes(query) || email.includes(query) || username.includes(query)
+        })
+      }
     }
-    return users
+    return filtered
   }
 
   const getCurrentUsers = () => getFilteredUsers()
@@ -553,7 +568,20 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           }
           // Update local state
           const updateUserInState = (users: User[]) =>
-            users.map((u) => (u.id === userId ? { ...u, tax_id_verified: true } : u))
+            users.map((u) => {
+              if (u.id === userId) {
+                const currentBadges = u.displayed_badges || []
+                const newBadges = currentBadges.includes('official-business')
+                  ? currentBadges
+                  : [...currentBadges, 'official-business']
+                return {
+                  ...u,
+                  tax_id_verified: true,
+                  displayed_badges: newBadges
+                }
+              }
+              return u
+            })
 
           setPendingUsersState(updateUserInState)
           setVerifiedUsersState(updateUserInState)
@@ -651,7 +679,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // Fetch updated user data to get the new displayed_badges
           const { data: updatedUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
             .eq('id', userId)
             .single()
 
@@ -722,7 +750,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           // though realtime subscription should handle it
           const { data: updatedUser } = await supabase
             .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
+            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
             .eq('id', userId)
             .single()
 
@@ -987,10 +1015,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             </div>
           </div>
 
-          {/* Search Bar - Only for verified tab */}
-          {activeTab === 'verified' && (
-            <div className="mt-6">
-              <div className="relative">
+          {/* Search bar - Only for verified influencer and brand tabs */}
+          {(activeTab === 'verified_influencer' || activeTab === 'verified_brand') && (
+            <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
                 <input
                   type="text"
                   placeholder="İsim, e-posta veya kullanıcı adı ara..."
@@ -1225,7 +1253,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
               {currentUsers.length === 0 ? (
                 <div className="col-span-full rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-gray-400">
                   {activeTab === 'pending' && 'Bekleyen kullanıcı bulunmamaktadır.'}
-                  {activeTab === 'verified' && 'Onaylı kullanıcı bulunmamaktadır.'}
+                  {activeTab === 'verified_influencer' && 'Onaylı influencer bulunmamaktadır.'}
+                  {activeTab === 'verified_brand' && 'Onaylı marka bulunmamaktadır.'}
                   {activeTab === 'rejected' && 'Reddedilen kullanıcı bulunmamaktadır.'}
                 </div>
               ) : (
@@ -1512,6 +1541,24 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               </div>
                             )}
 
+                            {/* Tax Office & City */}
+                            {(user.tax_office || user.tax_office_city) && (
+                              <div className="grid grid-cols-2 gap-4 mt-2">
+                                {user.tax_office && (
+                                  <div className="space-y-1">
+                                    <span className="text-xs text-gray-400">Vergi Dairesi:</span>
+                                    <p className="text-sm text-white">{user.tax_office}</p>
+                                  </div>
+                                )}
+                                {user.tax_office_city && (
+                                  <div className="space-y-1">
+                                    <span className="text-xs text-gray-400">Bağlı Olduğu İl:</span>
+                                    <p className="text-sm text-white">{user.tax_office_city}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {/* Email Domain Check */}
                             {user.email && websiteLink && (() => {
                               const emailDomain = user.email.split('@')[1]?.toLowerCase()
@@ -1656,7 +1703,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
                       {/* User Badges - Only for verified users */}
                       {
-                        activeTab === 'verified' && user.displayed_badges && Array.isArray(user.displayed_badges) && user.displayed_badges.length > 0 && (() => {
+                        (activeTab === 'verified_influencer' || activeTab === 'verified_brand') && user.displayed_badges && Array.isArray(user.displayed_badges) && user.displayed_badges.length > 0 && (() => {
                           const badgeIds = user.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)
                           const availableBadges = getAvailableBadges(user.role)
                           const userBadges = badgeIds
@@ -1711,7 +1758,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             </button>
                           </>
                         )}
-                        {activeTab === 'verified' && (
+                        {(activeTab === 'verified_influencer' || activeTab === 'verified_brand') && (
                           <>
                             <button
                               type="button"

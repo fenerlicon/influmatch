@@ -86,14 +86,8 @@ export async function awardBadgesForUser(userId: string) {
       badgesToAward.push('showcase-brand')
     }
 
-    // 3. Pioneer Brand Badge (First 100 brands by created_at)
-    const { count: earlierBrands } = await supabase
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'brand')
-      .lt('created_at', user.created_at || new Date().toISOString())
-
-    if (earlierBrands !== null && earlierBrands < 100 && !existingBadgeIds.includes('pioneer-brand')) {
+    // 3. Pioneer Brand Badge (Every approved brand)
+    if (user.verification_status === 'verified' && !existingBadgeIds.includes('pioneer-brand')) {
       badgesToAward.push('pioneer-brand')
     }
   }

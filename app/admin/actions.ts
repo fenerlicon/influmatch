@@ -459,6 +459,26 @@ export async function verifyTaxId(userId: string) {
     }
   }
 
+  // Sync displayed_badges in users table to show the yellow tick
+  try {
+    const { data: allBadges } = await supabaseAdmin
+      .from('user_badges')
+      .select('badge_id')
+      .eq('user_id', userId)
+
+    const badgeArray = allBadges?.map((b) => b.badge_id).filter(Boolean) || []
+    if (!badgeArray.includes('official-business')) {
+      badgeArray.push('official-business')
+    }
+
+    await supabaseAdmin
+      .from('users')
+      .update({ displayed_badges: badgeArray })
+      .eq('id', userId)
+  } catch (syncErr) {
+    console.error('[verifyTaxId] Displayed badges sync error:', syncErr)
+  }
+
   revalidatePath('/admin')
   revalidatePath('/dashboard/brand/badges')
   revalidatePath('/dashboard/brand')

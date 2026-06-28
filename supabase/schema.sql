@@ -22,6 +22,8 @@ create table if not exists public.users (
   spotlight_active boolean default false,
   tax_id text,
   company_legal_name text,
+  tax_office text,
+  tax_office_city text,
   created_at timestamptz not null default timezone('utc'::text, now())
 );
 

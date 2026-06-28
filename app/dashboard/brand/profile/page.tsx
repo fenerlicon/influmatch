@@ -17,7 +17,7 @@ export default async function BrandProfileSettingsPage() {
   const [{ data: profile, error }, { data: userBadges }] = await Promise.all([
     supabase
       .from('users')
-      .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role, company_legal_name, tax_id, tax_id_verified, social_links_last_updated')
+      .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role, company_legal_name, tax_id, tax_id_verified, social_links_last_updated, tax_office, tax_office_city')
       .eq('id', user.id)
       .maybeSingle(),
     supabase
@@ -50,6 +50,8 @@ export default async function BrandProfileSettingsPage() {
     taxId: profile?.tax_id ?? '',
     taxIdVerified: profile?.tax_id_verified ?? false,
     socialLinksLastUpdated: profile?.social_links_last_updated ?? null,
+    taxOffice: (profile as any)?.tax_office ?? '',
+    taxOfficeCity: (profile as any)?.tax_office_city ?? '',
   }
 
   return (

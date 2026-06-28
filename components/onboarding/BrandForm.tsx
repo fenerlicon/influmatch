@@ -16,6 +16,8 @@ export interface BrandFormState {
   tiktok: string
   youtube: string
   taxId: string
+  taxOffice?: string
+  taxOfficeCity?: string
 }
 
 interface BrandFormProps {
@@ -249,6 +251,42 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
           Kurumsal fatura için gereklidir.
         </p>
       </div>
+
+      {form.taxId && form.taxId.trim() && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <label htmlFor="taxOffice" className="text-sm text-gray-300">
+              Vergi Dairesi <span className="text-red-400">*</span>
+            </label>
+            <input
+              id="taxOffice"
+              type="text"
+              value={form.taxOffice || ''}
+              onChange={handleInput('taxOffice')}
+              placeholder="Kadıköy Vergi Dairesi"
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="taxOfficeCity" className="text-sm text-gray-300">
+              Şirketin Bağlı Olduğu İl <span className="text-red-400">*</span>
+            </label>
+            <select
+              id="taxOfficeCity"
+              value={form.taxOfficeCity || ''}
+              onChange={handleInput('taxOfficeCity')}
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
+            >
+              <option value="">Şehir Seçin</option>
+              {TURKISH_CITIES.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         <div>

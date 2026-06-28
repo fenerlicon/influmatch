@@ -37,6 +37,10 @@ export async function saveBrandAdvert(payload: SaveAdvertPayload) {
     return { error: 'İlan özeti gereklidir.' }
   }
 
+  if (!hero_image || !hero_image.trim()) {
+    return { error: 'İlan kapak fotoğrafı yüklenmesi zorunludur.' }
+  }
+
   const supabase = createSupabaseServerClient()
   const {
     data: { user },

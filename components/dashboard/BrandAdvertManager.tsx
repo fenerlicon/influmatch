@@ -169,6 +169,10 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
+    if (!formValues.heroImage) {
+      setError('Kapak fotoğrafı yüklemek zorunludur.')
+      return
+    }
     startTransition(async () => {
       const payload = {
         id: formValues.id || undefined,
