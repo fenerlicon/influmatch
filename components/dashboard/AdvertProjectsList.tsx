@@ -241,6 +241,23 @@ export default function AdvertProjectsList({
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                       className="object-cover transition duration-300 group-hover:scale-105"
                     />
+                  ) : project.brandAvatar ? (
+                    <div className="relative h-full w-full bg-[#111217] flex items-center justify-center">
+                      <Image
+                        src={project.brandAvatar}
+                        alt=""
+                        fill
+                        className="object-cover opacity-20 blur-md"
+                      />
+                      <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg">
+                        <Image
+                          src={project.brandAvatar}
+                          alt={project.brandName}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex h-full items-center justify-center bg-gradient-to-br from-white/5 to-transparent text-sm text-gray-400">
                       Kapak görseli yok
@@ -333,15 +350,34 @@ export default function AdvertProjectsList({
               <X className="h-6 w-6" />
             </button>
 
-            {selectedProject.heroImage && (
-              <div className="relative h-64 w-full overflow-hidden rounded-2xl border border-white/10 mb-6">
-                <Image
-                  src={selectedProject.heroImage}
-                  alt={selectedProject.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 800px"
-                  className="object-cover"
-                />
+            {(selectedProject.heroImage || selectedProject.brandAvatar) && (
+              <div className="relative h-64 w-full overflow-hidden rounded-2xl border border-white/10 mb-6 bg-[#111217]">
+                {selectedProject.heroImage ? (
+                  <Image
+                    src={selectedProject.heroImage}
+                    alt={selectedProject.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 800px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="relative h-full w-full flex items-center justify-center">
+                    <Image
+                      src={selectedProject.brandAvatar!}
+                      alt=""
+                      fill
+                      className="object-cover opacity-20 blur-md"
+                    />
+                    <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-2xl">
+                      <Image
+                        src={selectedProject.brandAvatar!}
+                        alt={selectedProject.brandName}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
