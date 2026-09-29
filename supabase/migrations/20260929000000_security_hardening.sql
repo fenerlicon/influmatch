@@ -87,31 +87,24 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  editable text[] := ARRAY[
-    'full_name', 'username', 'avatar_url', 'bio', 'category', 'city',
-    'social_links', 'social_links_last_updated', 'displayed_badges',
-    'tax_id', 'tax_office', 'tax_office_city', 'company_legal_name', 'phone',
-    'creator_type', 'is_showcase_visible', 'email_notifications',
-    'push_notifications_enabled', 'portfolio_urls', 'website', 'updated_at'
-  ];
-  new_json jsonb := to_jsonb(NEW);
-  merged jsonb := to_jsonb(OLD);
-  k text;
 BEGIN
   IF coalesce(auth.role(), '') <> 'authenticated' OR public.is_admin() THEN
     RETURN NEW;
   END IF;
 
-  FOREACH k IN ARRAY editable LOOP
-    -- Anahtar varsa (değeri JSON null olsa bile) -> SQL NULL dönmez.
-    -- Not: jsonb soru işareti operatörü Supabase SQL Editor ile uyumsuz olduğu için kullanılmıyor.
-    IF (new_json -> k) IS NOT NULL THEN
-      merged := jsonb_set(merged, ARRAY[k], new_json -> k);
-    END IF;
-  END LOOP;
-
-  NEW := jsonb_populate_record(NEW, merged);
+  -- Beyaz liste: satırın eski hali alınır, üzerine sadece izin verilen kolonların yeni değerleri yazılır.
+  -- Not: Supabase SQL Editor ile uyum için fonksiyonda yerel değişken tanımlanmıyor.
+  NEW := jsonb_populate_record(NEW, to_jsonb(OLD) || (
+    SELECT coalesce(jsonb_object_agg(e.key, e.value), '{}'::jsonb)
+    FROM jsonb_each(to_jsonb(NEW)) AS e
+    WHERE e.key = ANY (ARRAY[
+      'full_name', 'username', 'avatar_url', 'bio', 'category', 'city',
+      'social_links', 'social_links_last_updated', 'displayed_badges',
+      'tax_id', 'tax_office', 'tax_office_city', 'company_legal_name', 'phone',
+      'creator_type', 'is_showcase_visible', 'email_notifications',
+      'push_notifications_enabled', 'portfolio_urls', 'website', 'updated_at'
+    ])
+  ));
 
   -- Onaylı marka yasal bilgilerini değiştirirse onayı düşer.
   IF OLD.role = 'brand' AND OLD.verification_status = 'verified' AND (
@@ -174,20 +167,18 @@ DROP POLICY IF EXISTS "Users can delete their own social accounts" ON public.soc
 REVOKE INSERT, UPDATE, DELETE ON public.social_accounts FROM anon, authenticated;
 
 -- Tokenlar hiçbir yerde okunmuyordu ve herkese açıktı: temizle.
--- Kolonlar canlı şemada yoksa hata vermemesi için dinamik.
+-- Kolonlar canlı şemada yoksa hata vermemesi için dinamik (sadece var olan kolonlar temizlenir).
 DO $$
-DECLARE
-  col text;
 BEGIN
-  FOREACH col IN ARRAY ARRAY['access_token', 'refresh_token', 'token_expires_at'] LOOP
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'social_accounts' AND column_name = col
-    ) THEN
-      EXECUTE format('UPDATE public.social_accounts SET %I = NULL WHERE %I IS NOT NULL', col, col);
-    END IF;
-  END LOOP;
-END;
+  EXECUTE coalesce((
+    SELECT 'UPDATE public.social_accounts SET '
+      || string_agg(format('%I = NULL', column_name), ', ')
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'social_accounts'
+      AND column_name IN ('access_token', 'refresh_token', 'token_expires_at')
+  ), 'SELECT 1');
+END
 $$;
 
 -- ------------------------------------------------------------------------------
