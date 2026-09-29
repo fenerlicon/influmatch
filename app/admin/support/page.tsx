@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import SupportTicketsPanel from '@/components/admin/SupportTicketsPanel'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export default async function AdminSupportPage() {
   const supabase = createSupabaseServerClient()
@@ -23,7 +22,7 @@ export default async function AdminSupportPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     redirect('/dashboard')

@@ -6,7 +6,6 @@ import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { createClient } from '@supabase/supabase-js'
 import { fetchInstagramData } from '@/utils/instagram-service'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@influmatch.net'
 
 export async function verifyUser(userId: string) {
   const supabase = createSupabaseServerClient()
@@ -25,7 +24,7 @@ export async function verifyUser(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -91,7 +90,7 @@ export async function rejectUser(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -136,7 +135,7 @@ export async function updateAdminNotes(userId: string, notes: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -181,7 +180,7 @@ export async function manuallyAwardBadges(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -226,7 +225,7 @@ export async function manuallyAwardSpecificBadge(userId: string, badgeId: string
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -294,12 +293,10 @@ export async function toggleUserSpotlight(
 
   console.log('[toggleUserSpotlight] Admin Profile:', adminProfile)
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   console.log('[toggleUserSpotlight] isAdmin check:', { 
     role: adminProfile?.role, 
-    email: user.email, 
-    expected: ADMIN_EMAIL,
     isAdmin 
   })
 
@@ -392,7 +389,7 @@ export async function verifyTaxId(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -504,7 +501,7 @@ export async function resendVerificationEmail(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -569,7 +566,7 @@ export async function forceVerifyEmail(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -625,7 +622,7 @@ export async function resetVerifiedBadges() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -684,7 +681,7 @@ export async function toggleBlueTick(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -810,7 +807,7 @@ export async function deleteUser(userId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     console.warn('[deleteUser] Unauthorized attempt by:', user.email)
@@ -888,7 +885,7 @@ export async function getAllAdverts() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -925,7 +922,7 @@ export async function deleteAdvertAdmin(advertId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -989,7 +986,7 @@ export async function adminUpdateInstagramData(userId: string) {
       .eq('id', authUser.id)
       .maybeSingle()
 
-    const isAdmin = adminProfile?.role === 'admin' || authUser.email === ADMIN_EMAIL
+    const isAdmin = adminProfile?.role === 'admin'
 
     if (!isAdmin) {
       return { success: false, error: 'Yetkisiz işlem.' }
@@ -1218,7 +1215,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     .eq('id', authUser.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || authUser.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { success: false, error: 'Bu işlem için yetkiniz yok.' }
@@ -1405,7 +1402,7 @@ export async function getAllApplications() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
   if (!isAdmin) return { error: 'Yetkisiz erişim.' }
 
   const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')

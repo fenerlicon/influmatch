@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import FeedbackAdminPanel from '@/components/admin/FeedbackAdminPanel'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export const revalidate = 0
 
@@ -23,7 +22,7 @@ export default async function AdminFeedbackPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     redirect('/dashboard')

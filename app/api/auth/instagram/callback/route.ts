@@ -2,6 +2,7 @@
 import { getMetaTokens, getInstagramBusinessAccount, saveInstagramMetaAccount } from '@/utils/meta-service'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { consumeOAuthState } from '@/lib/oauth-state'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -11,6 +12,10 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error('[MetaCallback] OAuth Error:', error, error_description)
+    return NextResponse.redirect(new URL('/dashboard/influencer/profile?error=instagram_auth_failed', request.url))
+  }
+
+  if (!consumeOAuthState('instagram', searchParams.get('state'))) {
     return NextResponse.redirect(new URL('/dashboard/influencer/profile?error=instagram_auth_failed', request.url))
   }
 
@@ -33,15 +38,12 @@ export async function GET(request: Request) {
     const igUser = await getInstagramBusinessAccount(tokens.access_token)
 
     // 3. Save to database
-    await saveInstagramMetaAccount(user.id, igUser, tokens)
+    await saveInstagramMetaAccount(user.id, igUser)
 
     // 4. Redirect to dashboard success page
     return NextResponse.redirect(new URL('/dashboard/influencer/profile?success=instagram_connected', request.url))
   } catch (err: any) {
     console.error('[MetaCallback] Exception:', err)
-    let errorMessage = err.message || 'Meta API bağlantı hatası.'
-    
-    // Redirect with error message
-    return NextResponse.redirect(new URL(`/dashboard/influencer/profile?error=${encodeURIComponent(errorMessage)}`, request.url))
+    return NextResponse.redirect(new URL('/dashboard/influencer/profile?error=instagram_auth_failed', request.url))
   }
 }

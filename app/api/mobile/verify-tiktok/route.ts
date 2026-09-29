@@ -1,50 +1,21 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { generateTikTokVerificationCode, verifyTikTokAccount } from '@/app/actions/social-verification'
-
-function createBearerClient(authHeader: string | null) {
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (!token) return null
-
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            global: {
-                headers: { Authorization: `Bearer ${token}` },
-            },
-        }
-    )
-}
+import { getBearerUser } from '@/lib/mobile-auth'
+import { issueVerificationCode, refreshTikTokAccount } from '@/lib/social-stats'
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json()
-        const { action, userId, username } = body
-
-        const authHeader = request.headers.get('Authorization')
-        const bearerClient = createBearerClient(authHeader)
-
-        if (!bearerClient) {
+        const callerUser = await getBearerUser(request)
+        if (!callerUser) {
             return NextResponse.json(
-                { success: false, error: 'Authorization header eksik veya geçersiz.' },
+                { success: false, error: 'Geçersiz veya süresi dolmuş oturum.' },
                 { status: 401 }
             )
         }
 
-        const {
-            data: { user: callerUser },
-            error: authError,
-        } = await bearerClient.auth.getUser()
+        const { action, userId, username } = await request.json()
 
-        if (authError || !callerUser) {
-            return NextResponse.json(
-                { success: false, error: 'Geçersiz veya süresi dolmuş token.' },
-                { status: 401 }
-            )
-        }
-
-        if (callerUser.id !== userId) {
+        // Kullanıcı sadece kendi hesabı adına işlem yapabilir
+        if (userId && userId !== callerUser.id) {
             return NextResponse.json(
                 { success: false, error: 'Başka bir kullanıcı adına işlem yapamazsınız.' },
                 { status: 403 }
@@ -52,17 +23,19 @@ export async function POST(request: Request) {
         }
 
         if (action === 'generate') {
-            const result = await generateTikTokVerificationCode(userId, username)
-            return NextResponse.json(result)
+            if (typeof username !== 'string') {
+                return NextResponse.json({ success: false, error: 'Kullanıcı adı gerekli.' }, { status: 400 })
+            }
+            return NextResponse.json(await issueVerificationCode(callerUser.id, 'tiktok', username))
         }
 
         if (action === 'verify') {
-            const result = await verifyTikTokAccount(userId)
-            return NextResponse.json(result)
+            return NextResponse.json(await refreshTikTokAccount(callerUser.id))
         }
 
         return NextResponse.json({ success: false, error: 'Geçersiz işlem.' }, { status: 400 })
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    } catch (error) {
+        console.error('[mobile/verify-tiktok] Error:', error)
+        return NextResponse.json({ success: false, error: 'Beklenmeyen bir hata oluştu.' }, { status: 500 })
     }
 }

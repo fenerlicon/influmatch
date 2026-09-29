@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import MessageReportsPanel from '@/components/admin/MessageReportsPanel'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export const revalidate = 0
 
@@ -22,7 +21,7 @@ export default async function AdminMessagesPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     redirect('/dashboard')

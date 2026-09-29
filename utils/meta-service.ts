@@ -100,14 +100,11 @@ export async function getInstagramBusinessAccount(accessToken: string): Promise<
 /**
  * Saves or updates Instagram account data in our database
  */
-export async function saveInstagramMetaAccount(userId: string, igData: InstagramMetaUser, tokens: any) {
+export async function saveInstagramMetaAccount(userId: string, igData: InstagramMetaUser) {
   const adminSupabase = createSupabaseAdminClient()
   if (!adminSupabase) throw new Error('Database connection failure.')
 
   const now = new Date().toISOString()
-  const expiresAt = tokens.expires_in 
-    ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
-    : null
 
   const { error } = await adminSupabase.from('social_accounts').upsert(
     {
@@ -121,8 +118,6 @@ export async function saveInstagramMetaAccount(userId: string, igData: Instagram
       media_count: igData.media_count || 0,
       is_verified: true,
       verified_at: now,
-      access_token: tokens.access_token,
-      token_expires_at: expiresAt,
       stats_payload: {
         full_name: igData.name,
         biography: igData.biography,

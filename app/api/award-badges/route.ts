@@ -20,8 +20,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
 
-    const ADMIN_EMAIL = process.env.ADMIN_EMAIL
-    const isAdmin = profile?.role === 'admin' || (ADMIN_EMAIL && user.email === ADMIN_EMAIL)
+    const isAdmin = profile?.role === 'admin'
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Bu işlem için admin yetkisi gerekiyor.' }, { status: 403 })

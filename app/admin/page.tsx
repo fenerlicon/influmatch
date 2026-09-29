@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import AdminPanel from '@/components/admin/AdminPanel'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@influmatch.net'
 
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient()
@@ -39,14 +38,12 @@ export default async function AdminPage() {
       }
     }
 
-    const isAdmin = adminProfile?.role === 'admin' || user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+    const isAdmin = adminProfile?.role === 'admin'
 
     console.log('[AdminPage] Access Check:', {
       userId: user.id,
-      email: user.email,
       role: adminProfile?.role,
       isAdmin,
-      expectedEmail: ADMIN_EMAIL
     })
 
     if (!isAdmin) {

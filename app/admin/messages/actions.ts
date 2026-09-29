@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export async function updateReportStatus(
   reportId: string,
@@ -24,7 +23,7 @@ export async function updateReportStatus(
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -68,7 +67,7 @@ export async function deleteMessage(messageId: string) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }

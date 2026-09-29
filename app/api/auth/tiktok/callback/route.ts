@@ -2,6 +2,7 @@
 import { getTikTokTokens, getTikTokUserProfile, saveTikTokAccount } from '@/utils/tiktok-service'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { consumeOAuthState } from '@/lib/oauth-state'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -11,6 +12,10 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error('[TikTokCallback] OAuth Error:', error, error_description)
+    return NextResponse.redirect(new URL('/dashboard/influencer/profile?error=tiktok_auth_failed', request.url))
+  }
+
+  if (!consumeOAuthState('tiktok', searchParams.get('state'))) {
     return NextResponse.redirect(new URL('/dashboard/influencer/profile?error=tiktok_auth_failed', request.url))
   }
 
@@ -34,12 +39,12 @@ export async function GET(request: Request) {
     const tiktokUser = await getTikTokUserProfile(accessToken)
 
     // 3. Save to database
-    await saveTikTokAccount(user.id, tiktokUser, tokens)
+    await saveTikTokAccount(user.id, tiktokUser)
 
     // 4. Redirect to dashboard success page
     return NextResponse.redirect(new URL('/dashboard/influencer/profile?success=tiktok_connected', request.url))
   } catch (err: any) {
     console.error('[TikTokCallback] Exception:', err)
-    return NextResponse.redirect(new URL(`/dashboard/influencer/profile?error=${encodeURIComponent(err.message)}`, request.url))
+    return NextResponse.redirect(new URL('/dashboard/influencer/profile?error=tiktok_auth_failed', request.url))
   }
 }

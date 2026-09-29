@@ -127,28 +127,31 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
       return { success: false, error: 'Oturum açmanız gerekiyor' }
     }
 
-    console.log('[deleteAccount] Attempting to delete user:', user.id)
+    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+    const supabaseAdmin = createSupabaseAdminClient()
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Sistem yapılandırma hatası. Lütfen destek ile iletişime geçin.' }
+    }
 
-    // Delete from public.users table (cascade will handle related data)
-    const { error: dbDeleteError } = await supabase
+    // Önce profil silinir: aktif anlaşması olan kullanıcıyı DB trigger'ı burada durdurur.
+    const { error: dbDeleteError } = await supabaseAdmin
       .from('users')
       .delete()
       .eq('id', user.id)
 
     if (dbDeleteError) {
       console.error('[deleteAccount] db delete error:', dbDeleteError)
-      return { success: false, error: `Hesap silinirken bir hata oluştu: ${dbDeleteError.message}` }
+      return { success: false, error: dbDeleteError.message || 'Hesap silinirken bir hata oluştu.' }
     }
 
-    console.log('[deleteAccount] User deleted from public.users table')
+    // Giriş kaydı da silinir; aksi halde kullanıcı tekrar giriş yapıp profil oluşturabilir.
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+    if (authDeleteError) {
+      console.error('[deleteAccount] auth delete error:', authDeleteError)
+    }
 
-    // Sign out the user first
     await supabase.auth.signOut()
-    
-    // Note: Auth user deletion requires admin privileges
-    // The public.users record is deleted, which prevents access to the platform
-    // The auth.users record can be manually deleted by admin if needed
-    
+
     return { success: true, redirect: '/login' }
   } catch (error) {
     console.error('[deleteAccount] exception:', error)

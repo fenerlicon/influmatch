@@ -5,12 +5,7 @@ import type { NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
 
-  // Log all parameters for debugging
-  console.log('[auth/callback] Received request:', {
-    url: requestUrl.toString(),
-    searchParams: Object.fromEntries(requestUrl.searchParams),
-    pathname: requestUrl.pathname,
-  })
+  // Not: URL token içerir (code, token_hash, access/refresh token); asla loglanmamalı.
 
   const token_hash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
@@ -96,7 +91,7 @@ export async function GET(request: NextRequest) {
   }
 
   // If no valid parameters, redirect to login with error
-  console.error('[auth/callback] No valid verification parameters found. URL:', requestUrl.toString())
+  console.error('[auth/callback] No valid verification parameters found.')
   console.error('[auth/callback] Available params:', {
     token_hash: !!token_hash,
     type,

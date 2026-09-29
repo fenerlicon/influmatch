@@ -29,6 +29,7 @@ interface SaveOnboardingPayload {
 }
 
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
+import { sendWelcomeMessage } from '@/lib/welcome-message'
 
 export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   const supabase = createSupabaseServerClient()
@@ -42,7 +43,7 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
     return { success: false, error: 'Oturum açmanız gerekiyor.' }
   }
 
-  console.log('[saveOnboardingProfile] Attempting to save profile:', payload)
+  console.log('[saveOnboardingProfile] Attempting to save profile for user:', payload.userId)
 
   // Validate tax details if taxId is provided
   if (payload.taxId && payload.taxId.trim()) {
@@ -95,7 +96,7 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
     }
   }
 
-  console.log('[saveOnboardingProfile] Profile saved successfully:', data)
+  console.log('[saveOnboardingProfile] Profile saved successfully for user:', payload.userId)
 
   // Award badges directly on server side (no extra HTTP request needed)
   try {
@@ -105,15 +106,10 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
     // Don't fail the whole request if badge awarding fails
   }
 
-  // Send Welcome Message
+  // Send Welcome Message (idempotent: mevcut sohbet varsa yenisini açmaz)
   try {
-    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-    const supabaseAdmin = createSupabaseAdminClient()
-    if (supabaseAdmin) {
-      await sendWelcomeMessage(supabaseAdmin, payload.userId, payload.fullName)
-    } else {
-      console.warn('[saveOnboardingProfile] Admin client not available for welcome message')
-    }
+    const role = data?.role === 'brand' ? 'brand' : 'influencer'
+    await sendWelcomeMessage(payload.userId, role)
   } catch (msgError) {
     console.error('[saveOnboardingProfile] Failed to send welcome message:', msgError)
   }
@@ -122,82 +118,4 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   revalidatePath('/onboarding')
 
   return { success: true, data }
-}
-
-async function sendWelcomeMessage(supabase: any, userId: string, userName: string) {
-  // 1. Find Admin User to send message from
-  const { data: adminUser } = await supabase
-    .from('users')
-    .select('id')
-    .eq('role', 'admin')
-    .limit(1)
-    .maybeSingle()
-
-  if (!adminUser) {
-    console.warn('No admin user found to send welcome message.')
-    return
-  }
-
-  const adminId = adminUser.id
-
-  // 2. Check if a room already exists between admin and user
-  // First get rooms for user
-  const { data: userRooms } = await supabase
-    .from('room_participants')
-    .select('room_id')
-    .eq('user_id', userId)
-
-  let roomId = null
-
-  if (userRooms && userRooms.length > 0) {
-    const roomIds = userRooms.map((r: any) => r.room_id)
-    // Check if admin is in any of these rooms
-    const { data: commonRoom } = await supabase
-      .from('room_participants')
-      .select('room_id')
-      .eq('user_id', adminId)
-      .in('room_id', roomIds)
-      .limit(1)
-      .maybeSingle()
-
-    if (commonRoom) {
-      roomId = commonRoom.room_id
-    }
-  }
-
-  // 3. Create room if it doesn't exist
-  if (!roomId) {
-    const { data: newRoom, error: roomError } = await supabase
-      .from('rooms')
-      .insert({ created_by: adminId })
-      .select()
-      .single()
-
-    if (roomError || !newRoom) {
-      console.error('Failed to create welcome room:', roomError)
-      return
-    }
-    roomId = newRoom.id
-
-    // Add participants
-    const { error: participantError } = await supabase.from('room_participants').insert([
-      { room_id: roomId, user_id: adminId },
-      { room_id: roomId, user_id: userId }
-    ])
-
-    if (participantError) {
-      console.error('Failed to add participants to welcome room:', participantError)
-      return
-    }
-  }
-
-  // 4. Send Message
-  const messageContent = `Merhaba ${userName}, Influmatch'e hoş geldin! 🎉\n\nMarkalar ve influencerlar arasında köprü kurarak işbirliklerini kolaylaştıran platformumuzda seni görmek harika.\n\nProfilini eksiksiz doldurman, rozetler kazanmanı ve daha fazla etkileşim almanı sağlayacaktır. Herhangi bir sorunda veya desteğe ihtiyacın olduğunda bu sohbet üzerinden bize ulaşabilirsin.\n\nBaşarılar dileriz!`
-
-  await supabase.from('messages').insert({
-    room_id: roomId,
-    sender_id: adminId,
-    content: messageContent,
-    read: false
-  })
 }
