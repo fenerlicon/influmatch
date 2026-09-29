@@ -2,7 +2,7 @@
 -- SECURITY HARDENING (Paket A)
 --
 -- Kapatılan açıklar:
---  1. Kullanıcı kendi satırını silip role='admin' ile yeniden ekleyerek admin olabiliyordu
+--  1. Kullanıcı kendi satırını silip role="admin" ile yeniden ekleyerek admin olabiliyordu
 --     (BEFORE INSERT kilidi yoktu + DELETE politikası açıktı).
 --  2. "Admins can update any user" politikası public.users.email alanına bakıyordu;
 --     bu alan kullanıcı tarafından değiştirilebildiği için herkes tüm profilleri düzenleyebiliyordu.
@@ -11,16 +11,15 @@
 --     Artık BEYAZ LİSTE: sadece izin verilen kolonlar güncellenebilir, yeni eklenen kolonlar varsayılan olarak kilitlidir.
 --  4. social_accounts: username ve verification_code kullanıcı tarafından değiştirilebildiği için
 --     Instagram/TikTok doğrulaması atlatılabiliyordu. Artık bu tabloya sadece sunucu (service_role) yazar.
---  5. social_accounts içindeki Meta/TikTok access/refresh token'ları herkese açıktı. Temizlendi.
+--  5. social_accounts içindeki Meta/TikTok access/refresh tokenları herkese açıktı. Temizlendi.
 --
--- ÇALIŞTIRMADAN ÖNCE: Admin hesabınızın role alanının 'admin' olduğundan emin olun.
--- Uygulama artık e-posta ile adminlik tanımıyor:
---   select id, email, role from public.users where role = 'admin';
+-- ÇALIŞTIRMADAN ÖNCE: Admin hesabınızın role alanının "admin" olduğundan emin olun.
+-- Uygulama artık e-posta ile adminlik tanımıyor (users tablosunda role alanı admin olan satırı kontrol edin).
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
 -- 0. Yardımcı: is_admin()
--- SECURITY DEFINER olduğu için RLS'e takılmaz ve politikalarda özyinelemeye yol açmaz.
+-- SECURITY DEFINER olduğu için RLS kurallarına takılmaz ve politikalarda özyinelemeye yol açmaz.
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean
@@ -38,7 +37,7 @@ GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated, service_role
 -- ------------------------------------------------------------------------------
 -- 1. USERS: INSERT kilidi
 -- İstemci kendi satırını eklerken (onboarding / dashboard fallback) kritik alanlar
--- zorla güvenli değerlere çekilir. Sadece 'influencer' ve 'brand' rolleri seçilebilir.
+-- zorla güvenli değerlere çekilir. Sadece "influencer" ve "brand" rolleri seçilebilir.
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.users_before_insert_guard()
 RETURNS TRIGGER
@@ -80,7 +79,7 @@ FOR EACH ROW EXECUTE FUNCTION public.users_before_insert_guard();
 -- ------------------------------------------------------------------------------
 -- 2. USERS: UPDATE kilidi (beyaz liste)
 -- Önceki iki trigger (restrict_users_trigger, tr_protect_user_critical_data)
--- kara liste mantığıyla çalışıyordu; tek bir beyaz liste trigger'ı ile değiştiriliyor.
+-- kara liste mantığıyla çalışıyordu; tek bir beyaz liste triggerı ile değiştiriliyor.
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.users_before_update_guard()
 RETURNS TRIGGER
@@ -105,7 +104,9 @@ BEGIN
   END IF;
 
   FOREACH k IN ARRAY editable LOOP
-    IF new_json ? k THEN
+    -- Anahtar varsa (değeri JSON null olsa bile) -> SQL NULL dönmez.
+    -- Not: jsonb soru işareti operatörü Supabase SQL Editor ile uyumsuz olduğu için kullanılmıyor.
+    IF (new_json -> k) IS NOT NULL THEN
       merged := jsonb_set(merged, ARRAY[k], new_json -> k);
     END IF;
   END LOOP;
@@ -150,7 +151,7 @@ FOR EACH ROW EXECUTE FUNCTION public.users_before_update_guard();
 -- ------------------------------------------------------------------------------
 -- 3. USERS: politikalar
 -- - İstemci tarafı DELETE kapatıldı (hesap silme sunucuda service_role ile yapılıyor).
--- - Admin güncelleme politikası artık e-postaya değil role'e bakıyor.
+-- - Admin güncelleme politikası artık e-postaya değil role alanına bakıyor.
 -- ------------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Users can delete their own profile" ON public.users;
 DROP POLICY IF EXISTS "Admins can update any user" ON public.users;
@@ -172,7 +173,7 @@ DROP POLICY IF EXISTS "Users can delete their own social accounts" ON public.soc
 
 REVOKE INSERT, UPDATE, DELETE ON public.social_accounts FROM anon, authenticated;
 
--- Token'lar hiçbir yerde okunmuyordu ve herkese açıktı: temizle.
+-- Tokenlar hiçbir yerde okunmuyordu ve herkese açıktı: temizle.
 -- Kolonlar canlı şemada yoksa hata vermemesi için dinamik.
 DO $$
 DECLARE
