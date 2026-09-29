@@ -125,7 +125,6 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                 users:user_id (
                   id,
                   full_name,
-                  email,
                   username,
                   avatar_url,
                   role
@@ -139,7 +138,12 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                 const existingIndex = prev.findIndex((t) => t.id === updatedTicket.id)
                 if (existingIndex >= 0) {
                   const newTickets = [...prev]
-                  newTickets[existingIndex] = updatedTicket as unknown as SupportTicket
+                  const merged = updatedTicket as unknown as SupportTicket
+                  // E-posta istemciden okunamaz; sunucudan gelen ilk yüklemedeki değeri koru.
+                  if (merged.users && prev[existingIndex].users?.email) {
+                    merged.users = { ...merged.users, email: prev[existingIndex].users?.email }
+                  }
+                  newTickets[existingIndex] = merged
                   return newTickets
                 } else {
                   return [updatedTicket as unknown as SupportTicket, ...prev]

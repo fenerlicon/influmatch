@@ -20,7 +20,7 @@ export async function updateFeedbackStatus(
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 

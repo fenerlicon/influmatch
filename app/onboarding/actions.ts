@@ -61,27 +61,40 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   const normalizedBio = payload.bio?.trim() || null
   const normalizedFullName = payload.fullName?.trim() || null
 
-  // Use UPSERT to handle both insert and update in one go
-  const { data, error } = await supabase
+  const profileFields = {
+    full_name: normalizedFullName,
+    username: normalizedUsername,
+    city: normalizedCity,
+    bio: normalizedBio,
+    category: payload.category || null,
+    avatar_url: payload.avatarUrl,
+    tax_id: payload.taxId?.trim() || null,
+    tax_office: payload.taxOffice?.trim() || null,
+    tax_office_city: payload.taxOfficeCity?.trim() || null,
+    social_links: payload.socialLinks,
+    creator_type: payload.creatorType || null,
+  }
+
+  // Upsert yerine ayrı update/insert: gizli kolonlar (tax_id vb.) istemci rolüne okunamaz olduğu için
+  // PostgREST upsert'inin ürettiği "ON CONFLICT DO UPDATE SET x = EXCLUDED.x" yetki hatası verir.
+  const { data: existingProfile } = await supabase
     .from('users')
-    .upsert({
-      id: payload.userId,
-      email: user.email || '',
-      role: payload.role,
-      full_name: normalizedFullName,
-      username: normalizedUsername,
-      city: normalizedCity,
-      bio: normalizedBio,
-      category: payload.category || null,
-      avatar_url: payload.avatarUrl,
-      tax_id: payload.taxId?.trim() || null,
-      tax_office: payload.taxOffice?.trim() || null,
-      tax_office_city: payload.taxOfficeCity?.trim() || null,
-      social_links: payload.socialLinks,
-      creator_type: payload.creatorType || null,
-    })
-    .select()
-    .single()
+    .select('id')
+    .eq('id', payload.userId)
+    .maybeSingle()
+
+  const { data, error } = existingProfile
+    ? await supabase
+        .from('users')
+        .update(profileFields)
+        .eq('id', payload.userId)
+        .select('id, role, full_name, username')
+        .single()
+    : await supabase
+        .from('users')
+        .insert({ id: payload.userId, email: user.email || '', role: payload.role, ...profileFields })
+        .select('id, role, full_name, username')
+        .single()
 
   if (error) {
     console.error('[saveOnboardingProfile] Save error:', error)

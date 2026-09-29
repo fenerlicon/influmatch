@@ -82,22 +82,9 @@ export default function SignupPage() {
         // Check if it's a "user already registered" error
         if (error.message?.toLowerCase().includes('user already registered') ||
           error.message?.toLowerCase().includes('already registered')) {
-          // Check if user exists in public.users
-          const { data: publicUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', email)
-            .maybeSingle()
-
-          if (!publicUser) {
-            // Auth user exists but public.users doesn't - account was deleted
-            setErrorMessage('Bu e-posta adresiyle daha önce kayıt olunmuş ancak hesap silinmiş.')
-            return
-          } else {
-            // User exists in public.users - normal "already registered" error
-            setErrorMessage('Bu e-posta adresi zaten kayıtlı.')
-            return
-          }
+          // Not: e-posta adresleri gizli olduğu için users tablosunda e-posta ile arama yapılmaz.
+          setErrorMessage('Bu e-posta adresi zaten kayıtlı.')
+          return
         }
         // Check for rate limit errors
         const errorMsg = error.message?.toLowerCase() || ''

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Search, ChevronRight, Check, Pin, ArrowLeft, MoreVertical, Send, ImagePlus, Mic } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
+import { PUBLIC_CARD_COLUMNS } from '../../lib/userColumns';
 
 export default function MessagesScreen() {
     const [selectedChat, setSelectedChat] = useState(null);
@@ -38,7 +39,7 @@ export default function MessagesScreen() {
             // Fetch rooms where I am the influencer
             const { data: rooms, error } = await supabase
                 .from('rooms')
-                .select('*, brand:brand_id(*)')
+                .select(`*, brand:brand_id(${PUBLIC_CARD_COLUMNS})`)
                 .eq('influencer_id', user.id);
 
             if (error) throw error;
@@ -56,7 +57,7 @@ export default function MessagesScreen() {
 
                 return {
                     id: room.id,
-                    name: room.brand?.full_name || room.brand?.email || 'Bilinmeyen Marka',
+                    name: room.brand?.full_name || room.brand?.username || 'Bilinmeyen Marka',
                     avatar: (room.brand?.full_name || 'B').substring(0, 2).toUpperCase(),
                     isBrand: true,
                     lastMessage: lastMsg ? lastMsg.content : 'Henüz mesaj yok.',

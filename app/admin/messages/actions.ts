@@ -19,7 +19,7 @@ export async function updateReportStatus(
 
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -63,7 +63,7 @@ export async function deleteMessage(messageId: string) {
 
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 

@@ -16,7 +16,7 @@ async function checkAdminAccess() {
 
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 

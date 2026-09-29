@@ -50,11 +50,16 @@ export default function BrandVerificationScreen({ navigation }) {
     const fetchProfile = useCallback(async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        const { data } = await supabase
+        const { data: publicData } = await supabase
             .from('users')
-            .select('company_legal_name, tax_id, phone, social_links, verification_status')
+            .select('company_legal_name, social_links, verification_status')
             .eq('id', user.id)
             .maybeSingle();
+        // Vergi no ve telefon gizli kolonlarda; sadece sahibine açık RPC ile okunur.
+        const { data: privateData } = await supabase.rpc('get_my_private_profile').maybeSingle();
+        const data = publicData
+            ? { ...publicData, tax_id: privateData?.tax_id ?? null, phone: privateData?.phone ?? null }
+            : null;
         if (data) {
             setProfile(data);
             setForm(prev => ({

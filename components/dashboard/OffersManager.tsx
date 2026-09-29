@@ -45,6 +45,8 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all')
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map())
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(dismissedOfferIds)
+  // Marka e-postası sadece kabul edilmiş tekliflerde, DB fonksiyonu üzerinden alınır.
+  const [contactEmails, setContactEmails] = useState<Record<string, string | null>>({})
   const [isPending, startTransition] = useTransition()
 
   // Update offers when initialOffers changes (e.g., after page refresh)
@@ -72,7 +74,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
         .from('offers')
         .select(
           `id, campaign_name, campaign_type, budget, message, status, created_at,
-        sender:sender_user_id(id, full_name, avatar_url, email, social_links)`,
+        sender:sender_user_id(id, full_name, avatar_url, username, social_links)`,
         )
         .eq('id', offerId)
         .single()
@@ -237,6 +239,17 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     () => offers.find((offer) => offer.id === selectedOfferId) ?? null,
     [offers, selectedOfferId],
   )
+
+  useEffect(() => {
+    if (!selectedOffer || selectedOffer.status !== 'accepted' || selectedOffer.id in contactEmails) return
+    const offerId = selectedOffer.id
+    supabase
+      .rpc('get_offer_contact_email', { p_offer_id: offerId })
+      .then(({ data, error }) => {
+        if (error) console.error('[OffersManager] contact load error', error.message)
+        setContactEmails((prev) => ({ ...prev, [offerId]: (data as string | null) ?? null }))
+      })
+  }, [selectedOffer, contactEmails, supabase])
 
   const handleStatusChange = useCallback(
     (offerId: string, nextStatus: 'accepted' | 'rejected' | 'hold', meta?: { roomId?: string | null }) => {
@@ -537,6 +550,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     const website = socialLinks?.website ?? socialLinks?.site ?? null
     const canChat = selectedOffer.status === 'accepted'
     const showContact = selectedOffer.status === 'accepted'
+    const contactEmail = contactEmails[selectedOffer.id] ?? null
 
     return (
       <div className="flex h-full flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6">
@@ -564,7 +578,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
                   </div>
                 )}
               </div>
-              <p className="text-sm text-gray-400">@{sender?.email?.split('@')[0] ?? 'unknown'}</p>
+              {sender?.username ? <p className="text-sm text-gray-400">@{sender.username}</p> : null}
             </div>
           </div>
 
@@ -630,9 +644,9 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
           <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">İletişim</p>
           {showContact ? (
             <div className="mt-3 space-y-2 text-gray-100">
-              {sender?.email ? (
-                <a href={`mailto:${sender.email}`} className="block text-soft-gold underline-offset-4 hover:underline">
-                  {sender.email}
+              {contactEmail ? (
+                <a href={`mailto:${contactEmail}`} className="block text-soft-gold underline-offset-4 hover:underline">
+                  {contactEmail}
                 </a>
               ) : (
                 <p className="text-gray-400">E-posta belirtilmemiş.</p>

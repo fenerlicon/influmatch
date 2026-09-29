@@ -35,7 +35,8 @@ export interface OfferListItem {
     id: string
     full_name: string | null
     avatar_url: string | null
-    email: string | null
+    email?: string | null
+    username?: string | null
     social_links: Record<string, string | null> | null
     verification_status?: string | null
     role?: string | null
@@ -62,7 +63,7 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
         .from('offers')
         .select(
           `id, campaign_name, campaign_type, budget, message, status, created_at,
-          sender:sender_user_id(id, full_name, avatar_url, email, social_links, role, displayed_badges)`,
+          sender:sender_user_id(id, full_name, avatar_url, username, social_links, role, displayed_badges)`,
         )
         .eq('id', offerId)
         .single()

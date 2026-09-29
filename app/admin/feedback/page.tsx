@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import FeedbackAdminPanel from '@/components/admin/FeedbackAdminPanel'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
 
 export const revalidate = 0
@@ -18,7 +19,7 @@ export default async function AdminFeedbackPage() {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -29,7 +30,13 @@ export default async function AdminFeedbackPage() {
   }
 
   // Fetch feedback submissions with user details
-  const { data: feedbackSubmissions } = await supabase
+  // Kullanıcı e-postaları istemci rollerine kapalı; admin ekranı service role ile okur.
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) {
+    throw new Error('Sistem yapılandırma hatası: SUPABASE_SERVICE_ROLE_KEY eksik.')
+  }
+
+  const { data: feedbackSubmissions } = await supabaseAdmin
     .from('feedback_submissions')
     .select(
       `

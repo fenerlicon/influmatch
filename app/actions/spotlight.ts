@@ -10,7 +10,7 @@ export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{
     // 1. Get Base Influencer Data
     const { data: baseUser, error: fetchError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, username, category, avatar_url, spotlight_active, verification_status, displayed_badges')
         .eq('id', baseInfluencerId)
         .single()
 
@@ -20,8 +20,8 @@ export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{
 
     // Parse stats
     let followerCount = 0
-    if (baseUser.instagram_stats?.followers) {
-        const raw = baseUser.instagram_stats.followers.toString().toUpperCase()
+    if ((baseUser as any).instagram_stats?.followers) {
+        const raw = (baseUser as any).instagram_stats.followers.toString().toUpperCase()
         if (raw.includes('K')) followerCount = parseFloat(raw) * 1000
         else if (raw.includes('M')) followerCount = parseFloat(raw) * 1000000
         else followerCount = parseFloat(raw)
@@ -34,7 +34,7 @@ export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{
     // Logic: Same Category AND Similar Follower Count (+/- 30%) AND Showcase Visible
     let query = supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, username, category, avatar_url, spotlight_active, verification_status, displayed_badges')
         .neq('id', baseInfluencerId) // Exclude self
         .eq('role', 'influencer')
         .eq('is_showcase_visible', true) // Only visible profiles

@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Building2, Mail, Phone, Globe, Camera, LogOut, ChevronRight, Shield, FileText, HelpCircle, Edit3, Check, X, Send, Settings } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
+import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import { useFocusEffect } from '@react-navigation/native';
 import { decode } from 'base64-arraybuffer';
 
@@ -95,13 +96,12 @@ export default function BrandProfileScreen({ navigation }) {
 
             const { data, error } = await supabase
                 .from('users')
-                .select('*')
+                .select(OWN_PROFILE_COLUMNS)
                 .eq('id', user.id)
                 .maybeSingle();
 
             if (error) throw error;
             if (data) {
-                console.log('[BrandProfile] Profile data fetched:', data);
                 setProfile({
                     ...data,
                     website: data.social_links?.website || '',

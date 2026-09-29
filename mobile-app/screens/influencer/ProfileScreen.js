@@ -9,6 +9,7 @@ import {
     BadgeCheck, MessageSquare
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
+import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import { useFocusEffect } from '@react-navigation/native';
 
 // ─── Design ───────────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ export default function ProfileScreen({ navigation }) {
             if (!user) return;
 
             const [{ data: prof }, { data: social }, { data: earnedBadges }] = await Promise.all([
-                supabase.from('users').select('*').eq('id', user.id).maybeSingle(),
+                supabase.from('users').select(OWN_PROFILE_COLUMNS).eq('id', user.id).maybeSingle(),
                 supabase.from('social_accounts').select('follower_count, engagement_rate, username').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
                 supabase.from('user_badges').select('badge_id').eq('user_id', user.id),
             ]);

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import MessageReportsPanel from '@/components/admin/MessageReportsPanel'
 
 
@@ -17,7 +18,7 @@ export default async function AdminMessagesPage() {
 
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -28,7 +29,13 @@ export default async function AdminMessagesPage() {
   }
 
   // Fetch message reports with related data
-  const { data: reports, error } = await supabase
+  // Kullanıcı e-postaları istemci rollerine kapalı; admin ekranı service role ile okur.
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) {
+    throw new Error('Sistem yapılandırma hatası: SUPABASE_SERVICE_ROLE_KEY eksik.')
+  }
+
+  const { data: reports, error } = await supabaseAdmin
     .from('message_reports')
     .select(`
       id,

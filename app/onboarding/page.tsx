@@ -108,9 +108,18 @@ export default function OnboardingPage() {
       try {
         const { data, error } = await supabaseClient
           .from('users')
-          .select('*')
+          .select('id, role, full_name, username, bio, category, city, avatar_url, social_links, creator_type')
           .eq('id', session.user.id)
           .maybeSingle() // Use maybeSingle instead of single to handle missing profiles gracefully
+
+        // Vergi bilgileri gizli kolonlarda; sadece sahibine açık RPC ile okunur.
+        const { data: privateProfile } = data
+          ? await supabaseClient.rpc('get_my_private_profile').maybeSingle<{
+              tax_id: string | null
+              tax_office: string | null
+              tax_office_city: string | null
+            }>()
+          : { data: null }
 
         // Default states (what we have if DB returns nothing)
         let newInfluencerForm = defaultInfluencerForm
@@ -149,9 +158,9 @@ export default function OnboardingPage() {
             instagram: socialLinks.instagram ?? '',
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
-            taxId: data.tax_id ?? '',
-            taxOffice: (data as any).tax_office ?? '',
-            taxOfficeCity: (data as any).tax_office_city ?? '',
+            taxId: privateProfile?.tax_id ?? '',
+            taxOffice: privateProfile?.tax_office ?? '',
+            taxOfficeCity: privateProfile?.tax_office_city ?? '',
           }
         }
 

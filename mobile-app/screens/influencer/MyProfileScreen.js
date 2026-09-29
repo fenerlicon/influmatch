@@ -11,6 +11,7 @@ import {
     Link as LinkIcon, Edit2, Instagram, CheckCircle2, X, Copy, AtSign, Info, Music
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
+import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
@@ -76,7 +77,7 @@ export default function MyProfileScreen({ navigation }) {
             if (!user) return;
 
             const [{ data: prof }, { data: social }, { data: tiktok }] = await Promise.all([
-                supabase.from('users').select('*').eq('id', user.id).maybeSingle(),
+                supabase.from('users').select(`${OWN_PROFILE_COLUMNS}, portfolio_urls`).eq('id', user.id).maybeSingle(),
                 supabase.from('social_accounts')
                     .select('username, follower_count, engagement_rate, is_verified')
                     .eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
