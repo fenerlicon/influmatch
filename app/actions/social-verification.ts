@@ -1,573 +1,65 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { fetchInstagramData } from '@/utils/instagram-service'
-import { fetchTikTokPublicProfile } from '@/utils/tiktok-service'
+import {
+  issueVerificationCode,
+  refreshInstagramAccount,
+  refreshTikTokAccount,
+  type SocialResult,
+} from '@/lib/social-stats'
 
-export async function generateVerificationCode(userId: string, username: string) {
-    const supabase = createSupabaseServerClient()
-    const adminSupabase = createSupabaseAdminClient() || supabase
+// Bu dosyadaki fonksiyonlar istemciden çağrılabilen server action'lardır.
+// Her biri önce oturumdaki kullanıcının, işlem yaptığı userId ile aynı kişi olduğunu doğrular;
+// asıl iş @/lib/social-stats içinde yapılır.
 
-    try {
-        // 0. Security Check: Ensure the requester is exactly the user they claim to be
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (!authUser || authUser.id !== userId) {
-            return { success: false, error: 'Yetkisiz işlem.' }
-        }
-
-        // Generate a random 6-digit code with prefix
-        const code = `IM-${Math.floor(100000 + Math.random() * 900000)}`
-
-        // Check for duplicate account usage by OTHER users.
-        // IMPORTANT: We check by username but also by verification status.
-        // If the conflicting record is not verified (is_verified=false), the username may have been
-        // abandoned or transferred on Instagram — we allow claiming it.
-        // The real uniqueness enforcement happens at verify time via platform_user_id (immutable numeric ID).
-        const { data: existingAccount } = await supabase
-            .from('social_accounts')
-            .select('user_id, is_verified, platform_user_id')
-            .eq('platform', 'instagram')
-            .ilike('username', username)
-            .maybeSingle()
-
-        if (existingAccount && existingAccount.user_id !== userId) {
-            // Only block if the conflicting account is actually verified (confirmed ownership)
-            // An unverified record = abandoned username attempt → allow claiming
-            if (existingAccount.is_verified) {
-                return {
-                    success: false,
-                    error: 'Bu Instagram hesabı sistemde başka bir doğrulanmış kullanıcıya bağlı. Aynı hesap birden fazla profile bağlanamaz.'
-                }
-            }
-            // Conflicting record exists but not verified → stale/abandoned, proceed
-        }
-
-        // Upsert into social_accounts using admin client to bypass DB security lockdown for updates
-        const { error } = await adminSupabase
-            .from('social_accounts')
-            .upsert(
-                {
-                    user_id: userId,
-                    platform: 'instagram',
-                    username: username,
-                    verification_code: code,
-                    is_verified: false,
-                    updated_at: new Date().toISOString(),
-                },
-                {
-                    onConflict: 'user_id, platform',
-                }
-            )
-
-        if (error) {
-            console.error('Error generating verification code:', error)
-            return { success: false, error: `Veritabanı hatası: ${error.message || error.details || 'Bilinmeyen hata'}` }
-        }
-
-        revalidatePath('/dashboard/profile')
-        return { success: true, code }
-    } catch (error: any) {
-        console.error('Exception generating verification code:', error)
-        return { success: false, error: `Beklenmeyen hata: ${error.message || error}` }
-    }
+async function isCurrentUser(userId: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return !!user && user.id === userId
 }
 
-/**
- * Kontrol eder ve eğer veriler eskiyse (3 gün) güncellemeyi tetikler.
- */
-export async function refreshIfStale(userId: string, username: string, platform: 'instagram' | 'tiktok') {
-    const supabase = await createSupabaseServerClient()
-    
-    const { data: account } = await supabase
-        .from('social_accounts')
-        .select('last_scraped_at')
-        .eq('user_id', userId)
-        .eq('platform', platform)
-        .maybeSingle()
+async function run(userId: string, task: () => Promise<SocialResult>): Promise<SocialResult> {
+  if (!(await isCurrentUser(userId))) {
+    return { success: false, error: 'Yetkisiz işlem.' }
+  }
 
-    if (!account) return { status: 'no_account' }
+  try {
+    return await task()
+  } catch (error) {
+    console.error('[social-verification] Unexpected error:', error)
+    return { success: false, error: 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.' }
+  }
+}
 
-    const lastScraped = account.last_scraped_at ? new Date(account.last_scraped_at) : new Date(0)
-    const threeDaysAgo = new Date()
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+function revalidateSocialPaths() {
+  revalidatePath('/dashboard/influencer')
+  revalidatePath('/dashboard/influencer/profile')
+  revalidatePath('/')
+}
 
-    if (lastScraped < threeDaysAgo) {
-        console.log(`[AutoRefresh] ${username} (${platform}) verisi eski, güncelleniyor...`)
-        if (platform === 'tiktok') {
-            return await verifyTikTokAccount(userId)
-        } else {
-            return await verifyInstagramAccount(userId)
-        }
-    }
-
-    return { status: 'fresh' }
+export async function generateVerificationCode(userId: string, username: string) {
+  const result = await run(userId, () => issueVerificationCode(userId, 'instagram', username))
+  if (result.success) revalidateSocialPaths()
+  return result
 }
 
 export async function verifyInstagramAccount(userId: string) {
-    const supabase = createSupabaseServerClient()
-    const adminSupabase = createSupabaseAdminClient() || supabase
-
-    try {
-        // 0. Security Check: Ensure the requester is the user they claim to be
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (!authUser || authUser.id !== userId) {
-            return { success: false, error: 'Yetkisiz işlem.' }
-        }
-
-        // 1. Get the user's social account record
-        const { data: account, error: fetchError } = await supabase
-            .from('social_accounts')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('platform', 'instagram')
-            .single()
-
-        if (fetchError || !account) {
-            return { success: false, error: 'Hesap bulunamadı.' }
-        }
-
-        const username = account.username
-        const verificationCode = account.verification_code
-        // 2. FETCH DATA using Apify Service
-        let normalizedData;
-        try {
-            normalizedData = await fetchInstagramData(username);
-        } catch (apiError: any) {
-            console.error('Instagram Service Error:', apiError)
-            return { success: false, error: apiError.message || 'Instagram verileri çekilemedi. Lütfen daha sonra tekrar deneyin.' }
-        }
-
-        const user = normalizedData.user
-        let edges = normalizedData.recent_posts
-
-        const biography = user.biography || ''
-        const platformUserId = user.id
-        const followerCount = user.follower_count
-        const followingCount = user.following_count
-        const postCount = user.media_count
-        const isVerified = user.is_verified
-        const categoryName = user.category_name
-        const isBusinessAccount = user.is_business_account
-        const externalUrl = user.external_url
-
-
-
-        // Check verification code ONLY if not already verified
-        // If the user is already verified and just updating, we trust the link (unless we want to force re-verification periodically)
-        // For now, let's relax the check for updates to allow easy refresh
-        if (!account.is_verified) {
-            const cleanBio = (biography || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            const cleanCode = (verificationCode || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            if (!cleanBio.includes(cleanCode)) {
-                return { success: false, error: `Doğrulama kodu (${verificationCode}) biyografinizde bulunamadı. Lütfen kodu değiştirmeden (büyük/küçük harf veya aradaki çizgiye dikkat ederek) biyografinize eklediğinizden emin olun.` }
-            }
-        }
-
-        // Calculate Stats from Timeline Media
-        let avgLikes = 0
-        let avgComments = 0
-        let avgViews = 0
-        let engagementRate = 0
-        let averageIntervalDays = 0
-
-        // 3. Stats Calculation Logic
-
-        const nowTimestamp = Math.floor(Date.now() / 1000)
-        const thirtyDaysAgo = nowTimestamp - (30 * 24 * 60 * 60)
-
-        // 1. FILTER: We EXCLUDE all pinned posts and ANYTHING older than 30 days
-        let cleanEdges = (edges || []).filter((edge: any) => {
-            const node = edge.node;
-            // Exclude Pinned (Safety check for both naming conventions)
-            if (node.is_pinned === true || node.isPinned === true) return false;
-            if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
-            
-            // Exclude Old (> 30 Days) - STRICT
-            const ts = Number(node?.taken_at_timestamp) || 0;
-            if (ts < thirtyDaysAgo) return false;
-
-            return true;
-        });
-
-        // 2. SORT & LIMIT to recent ones (max 24)
-        cleanEdges.sort((a: any, b: any) => {
-            const timeA = Number(a.node?.taken_at_timestamp) || 0
-            const timeB = Number(b.node?.taken_at_timestamp) || 0
-            return timeB - timeA
-        })
-
-        const analyzedPosts = cleanEdges.map((e: any) => e.node).slice(0, 24)
-
-        if (analyzedPosts.length > 0) {
-            const totalLikes = analyzedPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
-            const totalComments = analyzedPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
-            
-            // Calculate views for video posts
-            const videoPosts = analyzedPosts.filter((post: any) => post.is_video)
-            if (videoPosts.length > 0) {
-                const totalViews = videoPosts.reduce((sum: number, post: any) => sum + (post.video_view_count || 0), 0)
-                avgViews = Math.round(totalViews / videoPosts.length)
-            }
-
-            avgLikes = Math.round(totalLikes / analyzedPosts.length)
-            avgComments = Math.round(totalComments / analyzedPosts.length)
-
-            if (followerCount > 0) {
-                // Calculate engagement rate and cap at 999.99 to avoid DB numeric overflow
-                const rawRate = ((avgLikes + avgComments) / followerCount) * 100
-                engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 999.99)
-            }
-
-            // Calculate Posting Frequency (Average days between posts)
-            if (analyzedPosts.length > 1) {
-                const sortedPosts = [...analyzedPosts].sort((a: any, b: any) => b.taken_at_timestamp - a.taken_at_timestamp)
-                const newestDate = sortedPosts[0].taken_at_timestamp
-                const oldestDate = sortedPosts[sortedPosts.length - 1].taken_at_timestamp
-                const diffSeconds = newestDate - oldestDate
-                const diffDays = diffSeconds / (60 * 60 * 24)
-                averageIntervalDays = Math.round(diffDays / (sortedPosts.length - 1))
-            }
-        }
-
-        // 3.5 Check for duplicate platform_user_id usage (Collision with other users)
-        if (platformUserId) {
-            const platformUserIdStr = String(platformUserId)
-            const { data: existingConflict } = await supabase
-                .from('social_accounts')
-                .select('user_id')
-                .eq('platform', 'instagram')
-                .eq('platform_user_id', platformUserIdStr)
-                .neq('user_id', userId)
-                .maybeSingle()
-
-            if (existingConflict) {
-                return { success: false, error: 'Bu Instagram hesabı sistemde zaten kayıtlı (başka bir kullanıcıda).' }
-            }
-        }
-
-        // 4. Update Database
-        const statsPayload = {
-            avg_likes: avgLikes,
-            avg_comments: avgComments,
-            avg_views: avgViews,
-            following_count: followingCount,
-            post_count: postCount,
-            is_verified: isVerified,
-            category_name: categoryName,
-            is_business_account: isBusinessAccount,
-            external_url: externalUrl,
-            posting_frequency: averageIntervalDays
-        }
-
-        const now = new Date().toISOString()
-
-        const { error: updateError } = await adminSupabase
-            .from('social_accounts')
-            .update({
-                username: user.username, // Clean username
-                is_verified: true,
-                platform_user_id: String(platformUserId),
-                follower_count: followerCount,
-                engagement_rate: engagementRate,
-                has_stats: true,
-                stats_payload: statsPayload,
-                last_scraped_at: now,
-                updated_at: now // Explicitly update updated_at
-            })
-            .eq('id', account.id)
-
-        if (updateError) {
-            console.error('Error updating verification status:', updateError)
-            return { success: false, error: `Güncelleme hatası: ${updateError.message}` }
-        }
-
-        // Sync verified Instagram link to users table social_links
-        try {
-            const { data: userProfile } = await adminSupabase
-                .from('users')
-                .select('social_links, avatar_url')
-                .eq('id', userId)
-                .single()
-
-            const currentLinks = (userProfile?.social_links as Record<string, string | null> | null) ?? {}
-            const updatedLinks = {
-                ...currentLinks,
-                instagram: `https://instagram.com/${user.username}`
-            }
-
-            const updateFields: any = { social_links: updatedLinks }
-            if (!userProfile?.avatar_url && user.profile_pic_url) {
-                updateFields.avatar_url = user.profile_pic_url
-            }
-
-            await adminSupabase
-                .from('users')
-                .update(updateFields)
-                .eq('id', userId)
-        } catch (syncError) {
-            console.error('Error syncing Instagram social_links to users:', syncError)
-        }
-
-        // 5. Insert into History
-        const { error: historyError } = await adminSupabase
-            .from('social_account_history')
-            .insert({
-                social_account_id: account.id,
-                follower_count: followerCount,
-                engagement_rate: engagementRate,
-                avg_likes: avgLikes,
-                avg_comments: avgComments,
-                avg_views: avgViews,
-                recorded_at: now
-            })
-
-        if (historyError) {
-            console.warn('Error logging history:', historyError)
-            // Continue as this is non-critical
-        }
-
-        // 5. Award "Verified Account" (Blue Tick) Badge
-        const { error: badgeError } = await adminSupabase
-            .from('user_badges')
-            .upsert(
-                {
-                    user_id: userId,
-                    badge_id: 'verified-account',
-                    earned_at: now
-                },
-                {
-                    onConflict: 'user_id, badge_id'
-                }
-            )
-
-        if (badgeError) {
-            console.error('Error awarding verified-account badge:', badgeError)
-        }
-
-        // Revalidate relevant paths
-        revalidatePath('/dashboard/influencer')
-        revalidatePath(`/profile/${account.username}`) // In case they view their own public profile
-        revalidatePath('/') // To be safe
-
-        return {
-            success: true,
-            message: 'Hesap başarıyla güncellendi.',
-            data: {
-                platform_user_id: platformUserId,
-                follower_count: followerCount,
-                engagement_rate: engagementRate,
-                ...statsPayload
-            }
-        }
-
-    } catch (error) {
-        console.error('Exception verifying instagram account:', error)
-        return { success: false, error: 'Genel hata oluştu.' }
-    }
+  const result = await run(userId, () => refreshInstagramAccount(userId))
+  if (result.success) revalidateSocialPaths()
+  return result
 }
 
 export async function generateTikTokVerificationCode(userId: string, username: string) {
-    const supabase = createSupabaseServerClient()
-    const adminSupabase = createSupabaseAdminClient() || supabase
-
-    try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (!authUser || authUser.id !== userId) {
-            return { success: false, error: 'Yetkisiz işlem.' }
-        }
-
-        const code = `IM-TT-${Math.floor(100000 + Math.random() * 900000)}`
-
-        // Check for duplicate account usage by OTHER users
-        const { data: existingAccount } = await supabase
-            .from('social_accounts')
-            .select('user_id, is_verified')
-            .eq('platform', 'tiktok')
-            .ilike('username', username)
-            .maybeSingle()
-
-        if (existingAccount && existingAccount.user_id !== userId && existingAccount.is_verified) {
-            return {
-                success: false,
-                error: 'Bu TikTok hesabı sistemde başka bir doğrulanmış kullanıcıya bağlı.'
-            }
-        }
-
-        const { error } = await adminSupabase
-            .from('social_accounts')
-            .upsert(
-                {
-                    user_id: userId,
-                    platform: 'tiktok',
-                    username: username,
-                    verification_code: code,
-                    is_verified: false,
-                    updated_at: new Date().toISOString(),
-                },
-                {
-                    onConflict: 'user_id, platform',
-                }
-            )
-
-        if (error) {
-            console.error('Error generating TikTok code:', error)
-            return { success: false, error: `Veritabanı hatası: ${error.message}` }
-        }
-
-        revalidatePath('/dashboard/influencer')
-        return { success: true, code }
-    } catch (error: any) {
-        return { success: false, error: `Beklenmeyen hata: ${error.message}` }
-    }
+  const result = await run(userId, () => issueVerificationCode(userId, 'tiktok', username))
+  if (result.success) revalidateSocialPaths()
+  return result
 }
 
 export async function verifyTikTokAccount(userId: string) {
-    const supabase = createSupabaseServerClient()
-    const adminSupabase = createSupabaseAdminClient() || supabase
-
-    try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (!authUser || authUser.id !== userId) {
-            return { success: false, error: 'Yetkisiz işlem.' }
-        }
-
-        const { data: account, error: fetchError } = await supabase
-            .from('social_accounts')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('platform', 'tiktok')
-            .single()
-
-        if (fetchError || !account) {
-            return { success: false, error: 'Hesap bulunamadı.' }
-        }
-
-        const username = account.username
-        const verificationCode = account.verification_code
-
-        // 1. Fetch real public TikTok profile data using scraper
-        let tiktokData;
-        try {
-            tiktokData = await fetchTikTokPublicProfile(username);
-        } catch (apiError: any) {
-            console.error('TikTok Scraper Service Error:', apiError)
-            return { success: false, error: apiError.message || 'TikTok verileri çekilemedi. Lütfen daha sonra tekrar deneyin.' }
-        }
-
-        // 2. Verification Check: Check if verification code is in TikTok signature (bio)
-        if (!account.is_verified) {
-            const cleanBio = (tiktokData.signature || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            const cleanCode = (verificationCode || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            if (!cleanBio.includes(cleanCode)) {
-                return { success: false, error: `Doğrulama kodu (${verificationCode}) TikTok biyografinizde bulunamadı. Lütfen kodu biyografinize eklediğinizden emin olun.` }
-            }
-        }
-
-        // 3. Save to database
-        const now = new Date().toISOString()
-        const followerCount = tiktokData.follower_count;
-        const totalLikes = tiktokData.likes_count;
-        const videoCount = tiktokData.video_count;
-        const followingCount = tiktokData.following_count;
-        
-        // Calculate a simulated engagement rate (or default, e.g. 5.2%) since public scraper might not have a reliable one
-        const engagementRate = followerCount > 0 ? parseFloat(((totalLikes / followerCount) * 10).toFixed(2)) : 4.8;
-        const boundedEngagement = Math.min(Math.max(engagementRate, 1.5), 18.5); // Bound it to a realistic range
-
-        const statsPayload = {
-            total_likes: totalLikes,
-            following_count: followingCount,
-            video_count: videoCount,
-            post_count: videoCount,
-            is_verified: true,
-            avatar_url: tiktokData.avatar_url,
-        }
-
-        // Clean tiktok username from account
-        let cleanTTOUsername = username.replace(/İ/g, 'i').replace(/I/g, 'i').toLowerCase().replace('@', '').trim();
-        if (cleanTTOUsername.includes('tiktok.com/')) {
-            const parts = cleanTTOUsername.split('tiktok.com/');
-            if (parts.length > 1) {
-                cleanTTOUsername = parts[1].split('?')[0].split('/')[0].replace('@', '').trim();
-            }
-        }
-
-        const { error: updateError } = await adminSupabase
-            .from('social_accounts')
-            .update({
-                username: cleanTTOUsername, // Clean username
-                is_verified: true,
-                platform_user_id: `tt-${cleanTTOUsername}`,
-                follower_count: followerCount,
-                engagement_rate: boundedEngagement,
-                has_stats: true,
-                stats_payload: statsPayload,
-                last_scraped_at: now,
-                updated_at: now
-            })
-            .eq('id', account.id)
-
-        if (updateError) {
-            return { success: false, error: `Güncelleme hatası: ${updateError.message}` }
-        }
-
-        // Sync verified TikTok link to users table social_links
-        try {
-            const { data: userProfile } = await adminSupabase
-                .from('users')
-                .select('social_links, avatar_url')
-                .eq('id', userId)
-                .single()
-
-            const currentLinks = (userProfile?.social_links as Record<string, string | null> | null) ?? {}
-            const updatedLinks = {
-                ...currentLinks,
-                tiktok: `https://tiktok.com/@${cleanTTOUsername}`
-            }
-
-            const updateFields: any = { social_links: updatedLinks }
-            if (!userProfile?.avatar_url && tiktokData.avatar_url) {
-                updateFields.avatar_url = tiktokData.avatar_url
-            }
-
-            await adminSupabase
-                .from('users')
-                .update(updateFields)
-                .eq('id', userId)
-        } catch (syncError) {
-            console.error('Error syncing TikTok social_links to users:', syncError)
-        }
-
-        // Award badge
-        await adminSupabase
-            .from('user_badges')
-            .upsert(
-                {
-                    user_id: userId,
-                    badge_id: 'verified-account',
-                    earned_at: now
-                },
-                {
-                    onConflict: 'user_id, badge_id'
-                }
-            )
-
-        revalidatePath('/dashboard/influencer')
-        revalidatePath(`/profile/${account.username}`)
-        revalidatePath('/')
-
-        return {
-            success: true,
-            message: 'TikTok hesabınız başarıyla doğrulandı.',
-            data: {
-                follower_count: followerCount,
-                engagement_rate: engagementRate,
-                ...statsPayload
-            }
-        }
-    } catch (error) {
-        return { success: false, error: 'Genel hata oluştu.' }
-    }
+  const result = await run(userId, () => refreshTikTokAccount(userId))
+  if (result.success) revalidateSocialPaths()
+  return result
 }

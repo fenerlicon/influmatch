@@ -224,7 +224,7 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     .from('users')
     .update(updates)
     .eq('id', user.id)
-    .select()
+    .select('id')
 
   if (updateError) {
     console.error('[updateProfile] Update error:', updateError)

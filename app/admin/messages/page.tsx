@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import MessageReportsPanel from '@/components/admin/MessageReportsPanel'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export const revalidate = 0
 
@@ -18,18 +18,24 @@ export default async function AdminMessagesPage() {
 
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     redirect('/dashboard')
   }
 
   // Fetch message reports with related data
-  const { data: reports, error } = await supabase
+  // Kullanıcı e-postaları istemci rollerine kapalı; admin ekranı service role ile okur.
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) {
+    throw new Error('Sistem yapılandırma hatası: SUPABASE_SERVICE_ROLE_KEY eksik.')
+  }
+
+  const { data: reports, error } = await supabaseAdmin
     .from('message_reports')
     .select(`
       id,

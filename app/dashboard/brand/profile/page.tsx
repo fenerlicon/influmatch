@@ -14,12 +14,16 @@ export default async function BrandProfileSettingsPage() {
     redirect('/login')
   }
 
-  const [{ data: profile, error }, { data: userBadges }] = await Promise.all([
+  const [{ data: publicProfile, error }, { data: privateProfile }, { data: userBadges }] = await Promise.all([
     supabase
       .from('users')
-      .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role, company_legal_name, tax_id, tax_id_verified, social_links_last_updated, tax_office, tax_office_city')
+      .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role, company_legal_name, tax_id_verified, social_links_last_updated')
       .eq('id', user.id)
       .maybeSingle(),
+    // Vergi bilgileri gizli kolonlarda; sadece sahibine açık RPC ile okunur.
+    supabase
+      .rpc('get_my_private_profile')
+      .maybeSingle<{ tax_id: string | null; tax_office: string | null; tax_office_city: string | null }>(),
     supabase
       .from('user_badges')
       .select('badge_id')
@@ -29,6 +33,15 @@ export default async function BrandProfileSettingsPage() {
   if (error) {
     console.error('[BrandProfileSettingsPage] profile load error', error.message)
   }
+
+  const profile = publicProfile
+    ? {
+        ...publicProfile,
+        tax_id: privateProfile?.tax_id ?? null,
+        tax_office: privateProfile?.tax_office ?? null,
+        tax_office_city: privateProfile?.tax_office_city ?? null,
+      }
+    : null
 
   const socialLinks = (profile?.social_links as Record<string, string | null> | null) ?? {}
   const displayedBadges = (profile?.displayed_badges as string[] | null) ?? []

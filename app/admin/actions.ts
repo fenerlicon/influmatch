@@ -6,7 +6,6 @@ import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { createClient } from '@supabase/supabase-js'
 import { fetchInstagramData } from '@/utils/instagram-service'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@influmatch.net'
 
 export async function verifyUser(userId: string) {
   const supabase = createSupabaseServerClient()
@@ -21,11 +20,11 @@ export async function verifyUser(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -87,11 +86,11 @@ export async function rejectUser(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -132,11 +131,11 @@ export async function updateAdminNotes(userId: string, notes: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -177,11 +176,11 @@ export async function manuallyAwardBadges(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -222,11 +221,11 @@ export async function manuallyAwardSpecificBadge(userId: string, badgeId: string
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -284,7 +283,7 @@ export async function toggleUserSpotlight(
   // Check if user is admin
   const { data: adminProfile, error: profileError } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -294,12 +293,10 @@ export async function toggleUserSpotlight(
 
   console.log('[toggleUserSpotlight] Admin Profile:', adminProfile)
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   console.log('[toggleUserSpotlight] isAdmin check:', { 
     role: adminProfile?.role, 
-    email: user.email, 
-    expected: ADMIN_EMAIL,
     isAdmin 
   })
 
@@ -388,18 +385,23 @@ export async function verifyTaxId(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
   // Check if user has tax_id
-  const { data: userProfile } = await supabase
+  const { createSupabaseAdminClient: createTaxAdminClient } = await import('@/utils/supabase/admin')
+  const taxAdminClient = createTaxAdminClient()
+  if (!taxAdminClient) {
+    return { error: 'Sistem yapılandırma hatası.' }
+  }
+  const { data: userProfile } = await taxAdminClient
     .from('users')
     .select('tax_id, role')
     .eq('id', userId)
@@ -500,18 +502,25 @@ export async function resendVerificationEmail(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  // Get target user email
-  const { data: targetUser, error: fetchError } = await supabase
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı (Service Role Key eksik olabilir).' }
+  }
+
+  // E-posta istemci rollerine kapalı; service role ile okunur.
+  const { data: targetUser, error: fetchError } = await supabaseAdmin
     .from('users')
     .select('email')
     .eq('id', userId)
@@ -519,14 +528,6 @@ export async function resendVerificationEmail(userId: string) {
 
   if (fetchError || !targetUser?.email) {
     return { error: 'Kullanıcı veya email adresi bulunamadı.' }
-  }
-
-  // Use admin client to resend verification email
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-  const supabaseAdmin = createSupabaseAdminClient()
-
-  if (!supabaseAdmin) {
-    return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı (Service Role Key eksik olabilir).' }
   }
 
   // Resend signup verification email
@@ -565,11 +566,11 @@ export async function forceVerifyEmail(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -621,11 +622,11 @@ export async function resetVerifiedBadges() {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -680,11 +681,11 @@ export async function toggleBlueTick(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -806,11 +807,11 @@ export async function deleteUser(userId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     console.warn('[deleteUser] Unauthorized attempt by:', user.email)
@@ -884,17 +885,23 @@ export async function getAllAdverts() {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  const { data: adverts, error } = await supabase
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) {
+    return { error: 'Sistem yapılandırma hatası.' }
+  }
+
+  const { data: adverts, error } = await supabaseAdmin
     .from('advert_projects')
     .select('*, brand:brand_user_id(full_name, email, avatar_url, username)')
     .order('created_at', { ascending: false })
@@ -921,11 +928,11 @@ export async function deleteAdvertAdmin(advertId: string) {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }
@@ -985,11 +992,11 @@ export async function adminUpdateInstagramData(userId: string) {
     // Check if user is admin
     const { data: adminProfile } = await supabase
       .from('users')
-      .select('role, email')
+      .select('role')
       .eq('id', authUser.id)
       .maybeSingle()
 
-    const isAdmin = adminProfile?.role === 'admin' || authUser.email === ADMIN_EMAIL
+    const isAdmin = adminProfile?.role === 'admin'
 
     if (!isAdmin) {
       return { success: false, error: 'Yetkisiz işlem.' }
@@ -1214,11 +1221,11 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', authUser.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || authUser.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { success: false, error: 'Bu işlem için yetkiniz yok.' }
@@ -1238,7 +1245,12 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     // Assume email, lookup user
     // We cannot search auth.users directly easily without service role + admin client
     // But we can search public.users if email is there
-    const { data: publicUser } = await supabase
+    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+    const lookupClient = createSupabaseAdminClient()
+    if (!lookupClient) {
+      return { success: false, error: 'Sistem yapılandırma hatası.' }
+    }
+    const { data: publicUser } = await lookupClient
       .from('users')
       .select('id')
       .eq('email', identifier)
@@ -1401,11 +1413,11 @@ export async function getAllApplications() {
 
   const { data: adminProfile } = await createSupabaseServerClient()
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || (user.email && ADMIN_EMAIL && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = adminProfile?.role === 'admin'
   if (!isAdmin) return { error: 'Yetkisiz erişim.' }
 
   const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
@@ -1423,4 +1435,29 @@ export async function getAllApplications() {
 
   if (error) return { error: error.message }
   return { success: true, applications: data }
+}
+
+/**
+ * Admin paneli için tek bir kullanıcının kart verisini (hassas kolonlar dahil) döner.
+ * Hassas kolonlar istemci rollerine kapalı olduğu için service role ile okunur.
+ */
+export async function getAdminUserCard(userId: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Oturum açmanız gerekiyor.' }
+
+  const { data: adminProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+  if (adminProfile?.role !== 'admin') return { error: 'Yetkisiz erişim.' }
+
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) return { error: 'Sistem yapılandırma hatası.' }
+
+  const { ADMIN_USER_SELECT } = await import('@/lib/user-columns')
+  const { data, error } = await supabaseAdmin.from('users').select(ADMIN_USER_SELECT).eq('id', userId).maybeSingle()
+  if (error || !data) return { error: 'Kullanıcı bulunamadı.' }
+
+  return { user: data }
 }

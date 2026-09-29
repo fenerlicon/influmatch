@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export async function updateFeedbackStatus(
   feedbackId: string,
@@ -21,11 +20,11 @@ export async function updateFeedbackStatus(
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { error: 'Bu işlem için yetkiniz yok.' }

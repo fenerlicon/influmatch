@@ -238,7 +238,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     .from('users')
     .update(updates)
     .eq('id', user.id)
-    .select()
+    .select('id')
 
   if (updateError) {
     console.error('[updateBrandProfile] Update error:', updateError)

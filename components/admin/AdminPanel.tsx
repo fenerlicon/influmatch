@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin } from '@/app/admin/actions'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -186,11 +186,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           const oldDisplayedBadges = oldUserData?.displayed_badges
 
           // Fetch complete user data to ensure we have all fields
-          const { data: completeUser } = await supabase
-            .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, spotlight_plan, spotlight_expires_at, displayed_badges, tax_id_verified, email_verified_at')
-            .eq('id', userId)
-            .single()
+          const { user: completeUser } = await getAdminUserCard(userId)
 
           if (!completeUser) return
 
@@ -677,11 +673,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           console.error('Badge awarding error:', result.error)
         } else {
           // Fetch updated user data to get the new displayed_badges
-          const { data: updatedUser } = await supabase
-            .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
-            .eq('id', userId)
-            .single()
+          const { user: updatedUser } = await getAdminUserCard(userId)
 
           if (updatedUser) {
             const user = updatedUser as User
@@ -748,11 +740,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
           // Manually update state to reflect change immediately if needed, 
           // though realtime subscription should handle it
-          const { data: updatedUser } = await supabase
-            .from('users')
-            .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, displayed_badges, tax_id_verified, email_verified_at')
-            .eq('id', userId)
-            .single()
+          const { user: updatedUser } = await getAdminUserCard(userId)
 
           if (updatedUser) {
             const user = updatedUser as User

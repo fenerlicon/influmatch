@@ -3,7 +3,6 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 async function checkAdminAccess() {
   const supabase = createSupabaseServerClient()
@@ -17,11 +16,11 @@ async function checkAdminAccess() {
 
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     return { isAdmin: false, error: 'Bu işlem için yetkiniz yok' }

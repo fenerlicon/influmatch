@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Ref
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
+import { OWN_PROFILE_COLUMNS } from '../lib/userColumns';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     Bell, Zap, ChevronRight,
@@ -237,7 +238,7 @@ export default function DashboardScreen({ navigation }) {
             if (!user) return;
 
             const [{ data: profileData }, { data: projectsData }, { data: socialData }, { data: tiktokData }, { data: notifData }] = await Promise.all([
-                supabase.from('users').select('*').eq('id', user.id).single(),
+                supabase.from('users').select(OWN_PROFILE_COLUMNS).eq('id', user.id).single(),
                 supabase.from('advert_projects').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(5),
                 supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
                 supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'tiktok').maybeSingle(),

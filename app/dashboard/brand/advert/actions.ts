@@ -298,11 +298,35 @@ export async function deleteAdvert(advertId: string) {
  * This is used as a workaround for complex RLS issues preventing brands from seeing applications.
  */
 export async function getBrandApplicationsAdmin(projectIds: string[]) {
-  if (!projectIds || projectIds.length === 0) return { applications: [] }
+  if (!Array.isArray(projectIds) || projectIds.length === 0) return { applications: [] }
+
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Oturum açmanız gerekiyor.', applications: [] }
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
+
+  // Sadece oturumdaki markaya ait ilanların başvuruları döndürülür.
+  const { data: ownedProjects, error: ownedError } = await supabaseAdmin
+    .from('advert_projects')
+    .select('id')
+    .in('id', projectIds)
+    .eq('brand_user_id', user.id)
+
+  if (ownedError) {
+    console.error('[getBrandApplicationsAdmin] Ownership check error:', ownedError)
+    return { error: 'Başvurular alınamadı.', applications: [] }
+  }
+
+  const ownedIds = (ownedProjects ?? []).map((project) => project.id)
+  if (ownedIds.length === 0) return { applications: [] }
 
   const { data, error } = await supabaseAdmin
     .from('advert_applications')
@@ -327,12 +351,12 @@ export async function getBrandApplicationsAdmin(projectIds: string[]) {
         category
       )
     `)
-    .in('advert_id', projectIds)
+    .in('advert_id', ownedIds)
     .order('created_at', { ascending: false })
 
   if (error) {
     console.error('[getBrandApplicationsAdmin] Error:', error)
-    return { error: error.message, applications: [] }
+    return { error: 'Başvurular alınamadı.', applications: [] }
   }
 
   return { applications: data || [] }

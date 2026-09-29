@@ -2,9 +2,9 @@ export const revalidate = 0
 
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import SupportTicketsPanel from '@/components/admin/SupportTicketsPanel'
 
-const ADMIN_EMAIL = 'admin@influmatch.net'
 
 export default async function AdminSupportPage() {
   const supabase = createSupabaseServerClient()
@@ -19,18 +19,24 @@ export default async function AdminSupportPage() {
   // Check if user is admin
   const { data: adminProfile } = await supabase
     .from('users')
-    .select('role, email')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = adminProfile?.role === 'admin' || user.email === ADMIN_EMAIL
+  const isAdmin = adminProfile?.role === 'admin'
 
   if (!isAdmin) {
     redirect('/dashboard')
   }
 
   // Fetch all support tickets with user information
-  const { data: tickets, error } = await supabase
+  // Kullanıcı e-postaları istemci rollerine kapalı; admin ekranı service role ile okur.
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) {
+    throw new Error('Sistem yapılandırma hatası: SUPABASE_SERVICE_ROLE_KEY eksik.')
+  }
+
+  const { data: tickets, error } = await supabaseAdmin
     .from('support_tickets')
     .select(`
       id,

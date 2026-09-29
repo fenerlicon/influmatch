@@ -15,7 +15,7 @@ import TrustScoreCard from '@/components/dashboard/TrustScoreCard'
 import { calculateTrustScore } from '@/utils/matching'
 import { CheckCircle2, Heart, Mail, Sparkles, Calendar } from 'lucide-react'
 
-import { refreshIfStale } from '@/app/actions/social-verification'
+import { refreshIfStale } from '@/lib/social-stats'
 
 export const revalidate = 0
 
@@ -77,9 +77,9 @@ export default async function InfluencerDashboardPage() {
   const spotlightActive = rawSpotlightActive && verificationStatus === 'verified'
 
   if (user && profile?.username) {
-    refreshIfStale(user.id, profile.username, 'instagram').catch((err: any) => console.error('AutoRefresh Instagram Error:', err))
+    refreshIfStale(user.id, 'instagram').catch((err: any) => console.error('AutoRefresh Instagram Error:', err))
     if (tiktokAccount) {
-      refreshIfStale(user.id, profile.username, 'tiktok').catch((err: any) => console.error('AutoRefresh TikTok Error:', err))
+      refreshIfStale(user.id, 'tiktok').catch((err: any) => console.error('AutoRefresh TikTok Error:', err))
     }
   }
 

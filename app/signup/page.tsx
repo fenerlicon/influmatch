@@ -82,22 +82,9 @@ export default function SignupPage() {
         // Check if it's a "user already registered" error
         if (error.message?.toLowerCase().includes('user already registered') ||
           error.message?.toLowerCase().includes('already registered')) {
-          // Check if user exists in public.users
-          const { data: publicUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', email)
-            .maybeSingle()
-
-          if (!publicUser) {
-            // Auth user exists but public.users doesn't - account was deleted
-            setErrorMessage('Bu e-posta adresiyle daha önce kayıt olunmuş ancak hesap silinmiş.')
-            return
-          } else {
-            // User exists in public.users - normal "already registered" error
-            setErrorMessage('Bu e-posta adresi zaten kayıtlı.')
-            return
-          }
+          // Not: e-posta adresleri gizli olduğu için users tablosunda e-posta ile arama yapılmaz.
+          setErrorMessage('Bu e-posta adresi zaten kayıtlı.')
+          return
         }
         // Check for rate limit errors
         const errorMsg = error.message?.toLowerCase() || ''
@@ -119,23 +106,6 @@ export default function SignupPage() {
 
       // Success - Always redirect to check-email page
       console.log('[Signup] Signup successful, redirecting to check-email page')
-
-      // Use window.location for immediate redirect to prevent page refresh issues
-      // Trigger Welcome Message (Fire and Forget)
-      // We don't wait for it to complete to avoid blocking the redirect
-      if (response.data?.user?.id) {
-        // Import dynamically to avoid server-action-in-client issues if any, 
-        // but since it's a server action imported in client component, it should work fine if defined with 'use server'
-        // We'll trust the Next.js compiler here. 
-        // Actually, let's call it via a separate ensuring function in useEffect or here?
-        // Direct call here is fine.
-        import('@/app/actions/automated-messages').then(({ sendWelcomeMessage }) => {
-          if (response.data?.user?.id) {
-            sendWelcomeMessage(response.data.user.id, role)
-              .catch(err => console.error('[Signup] Welcome message failed:', err))
-          }
-        })
-      }
 
       window.location.href = `/auth/check-email?email=${encodeURIComponent(email)}`
     } catch (error) {

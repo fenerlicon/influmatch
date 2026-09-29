@@ -1,52 +1,54 @@
-
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { verifyInstagramAccount } from '@/app/actions/social-verification'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { refreshInstagramAccount, refreshTikTokAccount } from '@/lib/social-stats'
 
 /**
- * BU API UCU HER GECE OTOMATİK OLARAK ÇALIŞTIRILMAK İÇİN TASARLANDI.
- * Tüm influencer'ları tarar ve verisi 3 günden eski olanları günceller.
+ * BU API UCU HER GÜN VERCEL CRON TARAFINDAN ÇALIŞTIRILIR (vercel.json).
+ * Doğrulanmış hesaplardan verisi bugün 09:00 UTC'den eski olanları günceller.
+ *
+ * Vercel, CRON_SECRET ortam değişkeni tanımlıysa isteğe otomatik olarak
+ * "Authorization: Bearer <CRON_SECRET>" ekler. Başka hiçbir header'a güvenilmez.
  */
 export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url)
-    const authHeader = req.headers.get('authorization')
-    const vercelCronHeader = req.headers.get('x-vercel-cron')
-
-    // Güvenlik: Sadece gizli bir token ile veya Vercel'in kendi Cron servisiyle çalışır
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && vercelCronHeader !== 'true') {
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret || req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
         return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabase = createSupabaseAdminClient()
+    if (!supabase) {
+        return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY eksik.' }, { status: 500 })
+    }
 
-    // 1. Verisi bugün saat 09:00'dan önce güncellenmiş (veya hiç güncellenmemiş) Instagram hesaplarını bul
     const todayNineAM = new Date()
     todayNineAM.setUTCHours(9, 0, 0, 0)
 
     const { data: staleAccounts, error } = await supabase
         .from('social_accounts')
-        .select('user_id, username')
-        .eq('platform', 'instagram')
+        .select('user_id, username, platform')
+        .in('platform', ['instagram', 'tiktok'])
         .eq('is_verified', true)
         .or(`last_scraped_at.lt.${todayNineAM.toISOString()},last_scraped_at.is.null`)
-        .limit(100); 
+        .order('last_scraped_at', { ascending: true, nullsFirst: true })
+        .limit(100)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+        console.error('[Auto-Sync] Query error:', error)
+        return NextResponse.json({ error: 'Hesaplar alınamadı.' }, { status: 500 })
+    }
 
     console.log(`[Auto-Sync] Found ${staleAccounts.length} accounts to refresh.`)
 
     const results = []
     for (const account of staleAccounts) {
         try {
-            // Mevcut verifyInstagramAccount fonksiyonumuzu çağırıyoruz.
-            // Bu fonksiyon zaten 30 gün kuralına göre güncellendi!
-            const result = await verifyInstagramAccount(account.user_id)
-            results.push({ username: account.username, status: result.success ? 'success' : 'failed' })
+            const result = account.platform === 'tiktok'
+                ? await refreshTikTokAccount(account.user_id)
+                : await refreshInstagramAccount(account.user_id)
+            results.push({ username: account.username, platform: account.platform, status: result.success ? 'success' : 'failed' })
         } catch (err) {
-            results.push({ username: account.username, status: 'error' })
+            console.error(`[Auto-Sync] ${account.platform}/${account.username} failed:`, err)
+            results.push({ username: account.username, platform: account.platform, status: 'error' })
         }
     }
 

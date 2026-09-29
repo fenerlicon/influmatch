@@ -93,12 +93,11 @@ export async function getTikTokUserProfile(accessToken: string): Promise<TikTokU
 /**
  * Saves TikTok account data to our database (Supabase)
  */
-export async function saveTikTokAccount(userId: string, tiktokData: TikTokUser, tokens: any) {
+export async function saveTikTokAccount(userId: string, tiktokData: TikTokUser) {
   const adminSupabase = createSupabaseAdminClient()
   if (!adminSupabase) throw new Error('Database connection failure.')
 
   const now = new Date().toISOString()
-  const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString()
 
   const { error } = await adminSupabase.from('social_accounts').upsert(
     {
@@ -112,9 +111,6 @@ export async function saveTikTokAccount(userId: string, tiktokData: TikTokUser, 
       media_count: tiktokData.video_count || 0,
       is_verified: true,
       verified_at: now,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      token_expires_at: expiresAt,
       stats_payload: {
         total_likes: tiktokData.likes_count || 0,
         avatar_url: tiktokData.avatar_url,

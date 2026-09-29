@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import AdminPanel from '@/components/admin/AdminPanel'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { ADMIN_USER_SELECT } from '@/lib/user-columns'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@influmatch.net'
 
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient()
@@ -20,7 +21,7 @@ export default async function AdminPage() {
     // Check if user is admin
     const { data: adminProfile, error: adminError } = await supabase
       .from('users')
-      .select('role, email')
+      .select('role')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -39,14 +40,12 @@ export default async function AdminPage() {
       }
     }
 
-    const isAdmin = adminProfile?.role === 'admin' || user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+    const isAdmin = adminProfile?.role === 'admin'
 
     console.log('[AdminPage] Access Check:', {
       userId: user.id,
-      email: user.email,
       role: adminProfile?.role,
       isAdmin,
-      expectedEmail: ADMIN_EMAIL
     })
 
     if (!isAdmin) {
@@ -68,6 +67,12 @@ export default async function AdminPage() {
       )
     }
 
+    // Hassas kolonlar (e-posta, vergi no, admin notu) istemci rollerine kapalı; admin listesi service role ile okunur.
+    const supabaseAdmin = createSupabaseAdminClient()
+    if (!supabaseAdmin) {
+      throw new Error('Sistem yapılandırma hatası: SUPABASE_SERVICE_ROLE_KEY eksik.')
+    }
+
     // Optimize: Fetch all users in a single query to reduce rate limit issues
     // Add retry mechanism for maintenance periods
     let allUsers = null
@@ -76,9 +81,9 @@ export default async function AdminPage() {
     const retryDelay = 2000 // 2 seconds
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const result = await supabase
+      const result = await supabaseAdmin
         .from('users')
-        .select('id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, spotlight_plan, spotlight_expires_at, displayed_badges, tax_id_verified, email_verified_at')
+        .select(ADMIN_USER_SELECT)
         .order('created_at', { ascending: false })
 
       if (result.error) {
