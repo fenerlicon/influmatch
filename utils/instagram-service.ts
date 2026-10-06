@@ -1,3 +1,5 @@
+import { runApifyActor } from '@/lib/apify'
+import { ApiServiceError } from '@/lib/api-keys'
 
 // Interfaces for Internal Use (Normalized Data)
 export interface NormalizedInstagramData {
@@ -21,12 +23,14 @@ export interface NormalizedInstagramData {
 
 /**
  * Utility for retrying async operations.
+ * Sadece geçici servis hataları (5xx, zaman aşımı, ağ) tekrar denenir; "profil bulunamadı" gibi
+ * kesin sonuçlar veya anahtar havuzunun tükenmesi tekrar denenmez (her deneme Apify kredisi harcar).
  */
 async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number = 1000): Promise<T> {
     try {
         return await fn();
     } catch (error) {
-        if (retries <= 0) throw error;
+        if (retries <= 0 || !(error instanceof ApiServiceError)) throw error;
         console.warn(`[InstagramService] Retrying operation... Attempts left: ${retries}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return withRetry(fn, retries - 1, delay * 1.5);
@@ -37,10 +41,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number
  * Fetches Instagram data exclusively via Apify (Most reliable source).
  */
 export async function fetchInstagramData(username: string): Promise<NormalizedInstagramData> {
-    if (!process.env.APIFY_API_TOKEN) {
-        throw new Error('APIFY_API_TOKEN eksik. Lütfen sistem yöneticisi ile görüşün.');
-    }
-
     try {
         console.log(`[InstagramService] Fetching data for ${username} via Apify...`);
         // Start process and wait for completion (2 retries max for network issues)
@@ -57,9 +57,6 @@ export async function fetchInstagramData(username: string): Promise<NormalizedIn
  * Implementation of Apify (instagram-scraper)
  */
 async function fetchFromApify(username: string): Promise<NormalizedInstagramData> {
-    const token = process.env.APIFY_API_TOKEN
-    if (!token) throw new Error('APIFY_API_TOKEN is missing')
-
     // Clean @ or full URL and normalize Turkish characters / case
     let cleanUsername = username.replace(/İ/g, 'i').replace(/I/g, 'i').toLowerCase().replace('@', '').trim();
     if (cleanUsername.includes('instagram.com/')) {
@@ -69,28 +66,13 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
         }
     }
 
-    // Using run-sync-get-dataset-items for maximum simplicity (one request)
-    const response = await fetch(`https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${token}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "directUrls": [`https://www.instagram.com/${cleanUsername}/`],
-            "resultsType": "posts",
-            "resultsLimit": 15, // Using 15 to get enough recent posts
-            "addParentData": true
-        }),
+    // run-sync-get-dataset-items: tek istek. Anahtar havuzu patlayan anahtarı otomatik değiştirir.
+    const items = await runApifyActor('apify~instagram-scraper', {
+        "directUrls": [`https://www.instagram.com/${cleanUsername}/`],
+        "resultsType": "posts",
+        "resultsLimit": 15, // Using 15 to get enough recent posts
+        "addParentData": true
     })
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 401) throw new Error('Apify API Token geçersiz.');
-        if (response.status === 402) throw new Error('Apify bakiye yetersiz.');
-        throw new Error(`Apify HTTP ${response.status}: ${errorText}`);
-    }
-
-    const items = await response.json()
     if (!items || items.length === 0) {
         throw new Error('Instagram profil verisi veya gönderi bulunamadı. Kullanıcı hiç gönderi paylaşmamış olabilir veya hesap GİZLİ olabilir.');
     }
