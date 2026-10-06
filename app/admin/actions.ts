@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { createClient } from '@supabase/supabase-js'
 import { fetchInstagramData } from '@/utils/instagram-service'
+import { validateTaxNumber } from '@/lib/tax-id'
 
 
 export async function verifyUser(userId: string) {
@@ -413,6 +414,10 @@ export async function verifyTaxId(userId: string) {
 
   if (!userProfile.tax_id) {
     return { error: 'Bu kullanıcının vergi numarası bulunmuyor.' }
+  }
+
+  if (!validateTaxNumber(userProfile.tax_id).isValid) {
+    return { error: 'Bu vergi numarası algoritma kontrolünden geçmiyor (geçersiz numara). Markadan düzeltmesini isteyin.' }
   }
 
   if (userProfile.role !== 'brand') {

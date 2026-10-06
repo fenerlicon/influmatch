@@ -6,6 +6,7 @@ import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } f
 import { validateUsername } from '@/utils/usernameValidation'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
+import { validateTaxNumber } from '@/lib/tax-id'
 
 export interface BrandFormState {
   brandName: string
@@ -149,6 +150,9 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
         }
       }
 
+  const taxIdValidation = form.taxId?.trim() ? validateTaxNumber(form.taxId) : null
+  const taxIdError = taxIdValidation && !taxIdValidation.isValid ? taxIdValidation.error : null
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -242,14 +246,20 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
         <input
           id="taxId"
           type="text"
+          inputMode="numeric"
+          maxLength={14}
           value={form.taxId}
           onChange={handleInput('taxId')}
           placeholder="1234567890"
-          className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+          className={`mt-2 w-full rounded-2xl border bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${taxIdError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-soft-gold'}`}
         />
-        <p className="mt-1 text-xs text-gray-400">
-          Kurumsal fatura için gereklidir.
-        </p>
+        {taxIdError ? (
+          <p className="mt-1 text-xs text-red-300">{taxIdError}</p>
+        ) : (
+          <p className="mt-1 text-xs text-gray-400">
+            Şirketler 10 haneli vergi numarasını, şahıs şirketleri 11 haneli T.C. kimlik numarasını girer. Kurumsal fatura için gereklidir.
+          </p>
+        )}
       </div>
 
       {form.taxId && form.taxId.trim() && (

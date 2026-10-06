@@ -11,6 +11,7 @@ import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { BRAND_CATEGORIES, BRAND_CATEGORY_KEYS } from '@/utils/categories'
+import { validateTaxNumber } from '@/lib/tax-id'
 const LOGO_BUCKET = 'avatars'
 
 interface BrandProfileFormProps {
@@ -300,6 +301,14 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
       return
     }
 
+    if (formState.taxId.trim()) {
+      const taxValidation = validateTaxNumber(formState.taxId)
+      if (!taxValidation.isValid) {
+        setErrorMsg(`${taxValidation.error} (Kurumsal Kimlik bölümünden düzeltebilirsiniz.)`)
+        return
+      }
+    }
+
     startTransition(async () => {
       try {
         const result = await updateBrandProfile({
@@ -318,6 +327,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           displayedBadges: selectedBadges,
           companyLegalName: formState.companyLegalName.trim() || null,
           taxId: formState.taxId.trim() || null,
+          taxOffice: formState.taxOffice.trim() || null,
+          taxOfficeCity: formState.taxOfficeCity.trim() || null,
         })
 
         if (result?.success) {
@@ -376,6 +387,9 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
       </div>
     </label>
   )
+
+  const taxIdValidation = formState.taxId.trim() ? validateTaxNumber(formState.taxId) : null
+  const taxIdError = taxIdValidation && !taxIdValidation.isValid ? taxIdValidation.error : null
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -608,6 +622,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           'Vergi numaranızı girin',
           !isEditingCorporate ? true : undefined
         )}
+        {taxIdError && <p className="-mt-3 text-xs text-red-300">{taxIdError}</p>}
 
         {renderInput(
           'Vergi Dairesi',
@@ -660,6 +675,11 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               onClick={async () => {
                 setErrorMsg(null)
                 if (formState.taxId.trim()) {
+                  const taxValidation = validateTaxNumber(formState.taxId)
+                  if (!taxValidation.isValid) {
+                    setErrorMsg(taxValidation.error)
+                    return
+                  }
                   if (!formState.taxOffice.trim()) {
                     setErrorMsg('Vergi numarası girildiğinde vergi dairesi girmek zorunludur.')
                     return

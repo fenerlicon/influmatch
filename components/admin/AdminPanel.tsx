@@ -8,6 +8,7 @@ import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
 import { getCategoryLabel } from '@/utils/categories'
+import { validateTaxNumber } from '@/lib/tax-id'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
 import NotificationsPanel from '@/components/admin/NotificationsPanel'
 import { toast } from 'sonner'
@@ -1519,6 +1520,16 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                   <span className="text-xs text-gray-500">Girilmedi</span>
                                 )}
                               </div>
+                              {user.tax_id && (() => {
+                                const taxCheck = validateTaxNumber(user.tax_id)
+                                return taxCheck.isValid ? (
+                                  <p className="text-xs text-emerald-300/80">
+                                    {taxCheck.type === 'vkn' ? 'VKN (şirket)' : 'T.C. kimlik no (şahıs şirketi)'}: algoritma kontrolü geçti
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-red-300">⚠️ Algoritma kontrolünden geçmiyor: geçersiz numara</p>
+                                )
+                              })()}
                             </div>
 
                             {/* Company Legal Name */}

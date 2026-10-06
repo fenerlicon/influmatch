@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
+import { validateTaxNumber } from '@/lib/tax-id'
 
 interface UpdateBrandProfilePayload {
   brandName: string
@@ -186,7 +187,13 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
   }
 
   // Validate tax details if taxId is provided
+  let normalizedTaxId: string | null = null
   if (payload.taxId && payload.taxId.trim()) {
+    const taxValidation = validateTaxNumber(payload.taxId)
+    if (!taxValidation.isValid) {
+      throw new Error(taxValidation.error)
+    }
+    normalizedTaxId = taxValidation.normalized
     if (!payload.taxOffice || !payload.taxOffice.trim()) {
       throw new Error('Vergi numarası girildiğinde vergi dairesi girmek zorunludur.')
     }
@@ -211,7 +218,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
     category: payload.category || null,
     avatar_url: payload.logoUrl,
     company_legal_name: payload.companyLegalName?.trim() || null,
-    tax_id: payload.taxId?.trim() || null,
+    tax_id: normalizedTaxId,
     tax_office: payload.taxOffice?.trim() || null,
     tax_office_city: payload.taxOfficeCity?.trim() || null,
     social_links: {

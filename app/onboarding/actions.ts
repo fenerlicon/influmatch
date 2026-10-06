@@ -30,6 +30,7 @@ interface SaveOnboardingPayload {
 
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { sendWelcomeMessage } from '@/lib/welcome-message'
+import { validateTaxNumber } from '@/lib/tax-id'
 
 export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   const supabase = createSupabaseServerClient()
@@ -46,7 +47,13 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   console.log('[saveOnboardingProfile] Attempting to save profile for user:', payload.userId)
 
   // Validate tax details if taxId is provided
+  let normalizedTaxId: string | null = null
   if (payload.taxId && payload.taxId.trim()) {
+    const taxValidation = validateTaxNumber(payload.taxId)
+    if (!taxValidation.isValid) {
+      return { success: false, error: taxValidation.error }
+    }
+    normalizedTaxId = taxValidation.normalized
     if (!payload.taxOffice || !payload.taxOffice.trim()) {
       return { success: false, error: 'Vergi numarası girildiğinde vergi dairesi girmek zorunludur.' }
     }
@@ -68,7 +75,7 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
     bio: normalizedBio,
     category: payload.category || null,
     avatar_url: payload.avatarUrl,
-    tax_id: payload.taxId?.trim() || null,
+    tax_id: normalizedTaxId,
     tax_office: payload.taxOffice?.trim() || null,
     tax_office_city: payload.taxOfficeCity?.trim() || null,
     social_links: payload.socialLinks,
