@@ -6,6 +6,7 @@ import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { createClient } from '@supabase/supabase-js'
 import { fetchInstagramData } from '@/utils/instagram-service'
 import { validateTaxNumber } from '@/lib/tax-id'
+import { syncBlueTick, sweepBlueTicks, type BlueTickOverride } from '@/lib/blue-tick'
 
 
 export async function verifyUser(userId: string) {
@@ -236,6 +237,11 @@ export async function manuallyAwardSpecificBadge(userId: string, badgeId: string
     return { error: 'Rozet ID\'si gereklidir.' }
   }
 
+  // Mavi tik kurala bağlı; elle verilmesi kalıcı istisna olarak kaydedilir (yoksa saatlik görev geri alır).
+  if (badgeId.trim() === 'verified-account') {
+    return setBlueTickOverride(userId, 'granted')
+  }
+
   try {
     // Use SQL function to award badge
     const { error: rpcError } = await supabase.rpc('award_user_badge', {
@@ -362,6 +368,9 @@ export async function toggleUserSpotlight(
   }
 
   console.log('[toggleUserSpotlight] Successfully updated user:', userId)
+
+  // Mavi tik Spotlight üyeliğine bağlı: açılınca kazanılabilir, kapanınca düşer.
+  await syncBlueTick(userId, supabaseAdmin)
 
   revalidatePath('/admin')
   revalidatePath('/dashboard/influencer')
@@ -662,14 +671,64 @@ export async function resetVerifiedBadges() {
       throw error
     }
 
+    // Silinen tikler vitrinden de kalkar; ardından yeni kurala (Spotlight + performans + güven)
+    // uyan kullanıcılar ve admin istisnaları tekrar tik alır.
+    const summary = await sweepBlueTicks(adminClient)
+
     revalidatePath('/admin')
     revalidatePath(`/dashboard/influencer/badges`)
     revalidatePath(`/dashboard/brand/badges`)
-    return { success: true, message: `Toplam ${count ?? 'bilinmeyen sayıda'} kullanıcının mavi tiki silindi.` }
+    return {
+      success: true,
+      message: `${count ?? 'Bilinmeyen sayıda'} mavi tik silindi; yeni kurala göre ${summary.granted} kullanıcıya tekrar verildi.`,
+    }
   } catch (error: any) {
     console.error('[resetVerifiedBadges] Error:', error)
     return { error: error.message || 'Sıfırlama işlemi sırasında hata oluştu.' }
   }
+}
+
+type AdminActionResult =
+  | { success: true; message: string; error?: undefined }
+  | { error: string; success?: undefined; message?: undefined }
+
+// Mavi tik istisnası (admin): 'granted' kurala bakmadan verir, 'revoked' hiç vermez, null otomatik kurala döner.
+export async function setBlueTickOverride(userId: string, override: BlueTickOverride): Promise<AdminActionResult> {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Oturum açmanız gerekiyor.' }
+
+  const { data: adminProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+  if (adminProfile?.role !== 'admin') return { error: 'Bu işlem için yetkiniz yok.' }
+
+  if (override !== null && override !== 'granted' && override !== 'revoked') {
+    return { error: 'Geçersiz işlem.' }
+  }
+
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
+
+  const { error } = await supabaseAdmin.from('users').update({ blue_tick_override: override }).eq('id', userId)
+  if (error) {
+    console.error('[setBlueTickOverride] Error:', error)
+    return { error: `Mavi tik güncellenemedi: ${error.message}` }
+  }
+
+  await syncBlueTick(userId, supabaseAdmin)
+
+  revalidatePath('/admin')
+  revalidatePath('/dashboard/influencer/badges')
+  revalidatePath('/dashboard/messages')
+
+  const messages = {
+    granted: 'Mavi tik elle verildi (otomatik kuraldan bağımsız, siz kaldırana kadar kalır).',
+    revoked: 'Mavi tik elle kaldırıldı (kural sağlansa bile verilmez).',
+    auto: 'Mavi tik otomatik kurala döndürüldü.',
+  }
+  return { success: true, message: messages[override ?? 'auto'] }
 }
 
 // Toggle "verified-account" (Blue Tick) or "official-business" (Gold Tick) badge based on role
@@ -708,8 +767,22 @@ export async function toggleBlueTick(userId: string) {
       return { error: 'Kullanıcı bulunamadı.' }
     }
 
-    const badgeId = targetUser.role === 'brand' ? 'official-business' : 'verified-account'
-    const badgeName = targetUser.role === 'brand' ? 'Resmi İşletme (Sarı Tik)' : 'Onaylı Hesap (Mavi Tik)'
+    // Mavi tik kurala bağlı (Spotlight + performans + güven). Admin düğmesi rozeti doğrudan
+    // değiştirmek yerine kalıcı istisna tanımlar; aksi halde saatlik görev kararı geri alırdı.
+    if (targetUser.role !== 'brand') {
+      const { data: blueTick } = await supabase
+        .from('user_badges')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('badge_id', 'verified-account')
+        .maybeSingle()
+      const result = await setBlueTickOverride(userId, blueTick ? 'revoked' : 'granted')
+      if (result.error) return { error: result.error }
+      return { success: true, message: result.message, action: blueTick ? 'removed' : 'added' }
+    }
+
+    const badgeId = 'official-business'
+    const badgeName = 'Resmi İşletme (Sarı Tik)'
 
     // Check if user has the badge
     const { data: existingBadge } = await supabase
@@ -1388,21 +1461,8 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     return { success: false, error: `Veritabanı hatası: ${upsertError.message}` }
   }
 
-  // 3. Award Blue Tick Badge
-  try {
-    await supabase.rpc('award_user_badge', {
-      target_user_id: targetUserId,
-      badge_id_to_award: 'verified-account',
-    })
-
-    // Sync badge display
-    await supabaseAdmin.from('users').update({
-      displayed_badges: ['verified-account'] // Basic override/append logic might be better but this ensures it shows up
-    }).eq('id', targetUserId)
-
-  } catch (e) {
-    console.warn('Badge award failed but account connected:', e)
-  }
+  // 3. Hesap bağlamak mavi tik vermez; mavi tik kuralı güncel verilerle yeniden değerlendirilir.
+  await syncBlueTick(targetUserId, supabaseAdmin)
 
   revalidatePath('/admin')
   return {

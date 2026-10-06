@@ -212,9 +212,17 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     updates.social_links_last_updated = new Date().toISOString()
   }
 
-  // Update displayed_badges if provided
+  // Update displayed_badges if provided.
+  // Mavi tik seçilebilir bir rozet değildir: kullanıcıda varsa her zaman ilk sırada gösterilir.
   if (payload.displayedBadges !== undefined) {
-    updates.displayed_badges = payload.displayedBadges
+    const { data: blueTick } = await supabase
+      .from('user_badges')
+      .select('badge_id')
+      .eq('user_id', user.id)
+      .eq('badge_id', 'verified-account')
+      .maybeSingle()
+    const chosen = payload.displayedBadges.filter((badgeId) => badgeId !== 'verified-account')
+    updates.displayed_badges = (blueTick ? ['verified-account', ...chosen] : chosen).slice(0, 3)
   }
 
   console.log('[updateProfile] Attempting update for user:', user.id)

@@ -10,9 +10,11 @@ interface TikTokConnectProps {
     userId: string;
     isVerified?: boolean;
     username?: string | null;
+    /** Verilirse doğrulama sonrası sayfa yenilenmez, bu fonksiyon çağrılır (kayıt adımı). */
+    onVerified?: () => void;
 }
 
-export default function TikTokConnect({ userId, isVerified = false, username = '' }: TikTokConnectProps) {
+export default function TikTokConnect({ userId, isVerified = false, username = '', onVerified }: TikTokConnectProps) {
     const [step, setStep] = useState<'input' | 'code' | 'success'>(isVerified ? 'success' : 'input');
     const [tiktokUsername, setTiktokUsername] = useState(username || '');
     const [verificationCode, setVerificationCode] = useState('');
@@ -107,7 +109,8 @@ export default function TikTokConnect({ userId, isVerified = false, username = '
             if (result.success) {
                 setStep('success');
                 localStorage.removeItem(STORAGE_KEY);
-                window.location.reload(); // Reload to refresh the stats UI
+                if (onVerified) onVerified();
+                else window.location.reload(); // Reload to refresh the stats UI
             } else {
                 setError(result.error || 'Kod biyografide bulunamadı. Lütfen eklediğinizden emin olun.');
             }

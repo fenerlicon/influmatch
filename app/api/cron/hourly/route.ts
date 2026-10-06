@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { runApiKeyHealthCheck } from '@/lib/api-key-health'
+import { sweepBlueTicks } from '@/lib/blue-tick'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -11,6 +12,7 @@ export const maxDuration = 60
  * (kurulum: supabase/cron/hourly_jobs.sql). İstek "Authorization: Bearer <CRON_SECRET>" taşımalıdır.
  *
  * - Apify / Gemini anahtarlarının sağlık ve kredi kontrolü; sorun varsa admin'e özet e-posta.
+ * - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar, eşiğin altına düşenler).
  */
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET
@@ -38,6 +40,13 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] API anahtar kontrolü başarısız:', error)
     result.apiKeysError = error instanceof Error ? error.message : String(error)
+  }
+
+  try {
+    result.blueTicks = await sweepBlueTicks(admin)
+  } catch (error) {
+    console.error('[cron/hourly] Mavi tik değerlendirmesi başarısız:', error)
+    result.blueTicksError = error instanceof Error ? error.message : String(error)
   }
 
   return NextResponse.json(result)

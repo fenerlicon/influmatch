@@ -5,6 +5,7 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { CheckCircle2, Circle, Info } from 'lucide-react'
 import type { Badge } from '@/app/badges/data'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
+import { BLUE_TICK_RULES } from '@/lib/blue-tick-rules'
 
 interface BadgeProgressInfoProps {
   userRole: 'influencer' | 'brand'
@@ -83,7 +84,7 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
     // Ideally, this information should come from the badge data itself if refactored further.
 
     const requirements: Record<string, string> = {
-      'verified-account': 'Hesabınızı doğrulayarak bu rozeti kazanabilirsiniz.',
+      'verified-account': `Aktif Spotlight üyeliği, doğrulanmış hesapta en az ${BLUE_TICK_RULES.minFollowers.toLocaleString('tr-TR')} takipçi ve ${BLUE_TICK_RULES.minTrustScore}+ güven skoru ile otomatik verilir.`,
       'rising-star': 'Son 30 günde etkileşim oranınızı %20 artırın.',
       'community-leader': '1000+ takipçiye ulaşın ve aktif bir topluluk oluşturun.',
       'content-creator': 'Düzenli olarak haftada en az 3 içerik paylaşın.',

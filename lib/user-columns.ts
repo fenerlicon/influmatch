@@ -8,4 +8,4 @@ export const PRIVATE_USER_COLUMNS = ['email', 'phone', 'tax_id', 'tax_office', '
 
 // Admin panelinin kullanıcı kartları için okuduğu kolonlar (sadece service role ile kullanılır).
 export const ADMIN_USER_SELECT =
-  'id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, spotlight_plan, spotlight_expires_at, displayed_badges, tax_id_verified, email_verified_at'
+  'id, full_name, email, role, avatar_url, username, social_links, verification_status, admin_notes, created_at, bio, category, city, tax_id, company_legal_name, tax_office, tax_office_city, spotlight_active, spotlight_plan, spotlight_expires_at, displayed_badges, tax_id_verified, email_verified_at, blue_tick_override'

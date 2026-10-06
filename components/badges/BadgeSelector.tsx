@@ -83,15 +83,18 @@ export default function BadgeSelector({
     )
   }, [allBadges, availableBadgeIds])
 
+  // Vitrin en fazla 3 rozet alır; mavi tik varsa otomatik olarak bir yer kaplar.
+  const hasBlueTick = availableBadgeIds.includes('verified-account')
+  const maxSelectable = hasBlueTick ? 2 : 3
+  const selectedCount = selectedBadgeIds.filter((id) => id !== 'verified-account').length
+  const isFull = selectedCount >= maxSelectable
+
   const handleToggle = (badgeId: string) => {
     if (selectedBadgeIds.includes(badgeId)) {
       // Remove badge
       onSelectionChange(selectedBadgeIds.filter((id) => id !== badgeId))
-    } else {
-      // Add badge (max 3)
-      if (selectedBadgeIds.length < 3) {
-        onSelectionChange([...selectedBadgeIds, badgeId])
-      }
+    } else if (!isFull) {
+      onSelectionChange([...selectedBadgeIds, badgeId])
     }
   }
 
@@ -109,7 +112,8 @@ export default function BadgeSelector({
         <div>
           <p className="text-sm font-medium text-white">Rozet Seçimi</p>
           <p className="mt-1 text-xs text-gray-400">
-            Profilinizde görünecek en fazla 3 rozeti seçin. ({selectedBadgeIds.length}/3)
+            Profilinizde görünecek en fazla {maxSelectable} rozeti seçin. ({selectedCount}/{maxSelectable})
+            {hasBlueTick && ' Mavi tik otomatik olarak gösterilir.'}
           </p>
         </div>
       </div>
@@ -125,11 +129,11 @@ export default function BadgeSelector({
               key={badge.id}
               type="button"
               onClick={() => handleToggle(badge.id)}
-              disabled={disabled || (!isSelected && selectedBadgeIds.length >= 3)}
+              disabled={disabled || (!isSelected && isFull)}
               className={`group relative flex items-start gap-3 rounded-2xl border p-4 text-left transition ${isSelected
                 ? `${config.borderColor} ${config.bgColor} ${config.glowColor}`
                 : 'border-white/10 bg-white/5 hover:border-white/20'
-                } ${disabled || (!isSelected && selectedBadgeIds.length >= 3) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                } ${disabled || (!isSelected && isFull) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <div
                 className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isSelected ? config.bgColor : 'bg-white/5'

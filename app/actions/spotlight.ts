@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { DiscoverInfluencer } from '@/types/influencer'
+import { syncBlueTick } from '@/lib/blue-tick'
 
 export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{ data: DiscoverInfluencer[], error: string | null }> {
     const supabase = createSupabaseServerClient()
@@ -138,6 +139,7 @@ export async function checkSpotlightStatus(userId: string): Promise<void> {
                 .from('users')
                 .update({ spotlight_active: false })
                 .eq('id', userId)
+            await syncBlueTick(userId)
             return
         }
 
@@ -148,6 +150,7 @@ export async function checkSpotlightStatus(userId: string): Promise<void> {
                     .from('users')
                     .update({ spotlight_active: false })
                     .eq('id', userId)
+                await syncBlueTick(userId)
             }
         }
     }
@@ -173,6 +176,9 @@ export async function cancelSpotlightPlan(userId: string): Promise<{ success: bo
         console.error('Error cancelling spotlight:', error)
         return { success: false, error: 'Üyelik iptal edilemedi.' }
     }
+
+    // Mavi tik Spotlight üyeliğine bağlı.
+    await syncBlueTick(userId)
 
     return { success: true, error: null }
 }

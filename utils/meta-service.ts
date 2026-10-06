@@ -1,5 +1,6 @@
 
 import { createSupabaseAdminClient } from './supabase/admin'
+import { syncBlueTick } from '@/lib/blue-tick'
 
 /**
  * Meta/Instagram Service for handling OAuth and Data Fetching via Instagram Graph API
@@ -136,15 +137,8 @@ export async function saveInstagramMetaAccount(userId: string, igData: Instagram
     throw new Error(`Veritabanı güncelleme hatası: ${error.message}`)
   }
 
-  // Award "Verified Account" Badge
-  await adminSupabase.from('user_badges').upsert(
-    {
-      user_id: userId,
-      badge_id: 'verified-account',
-      earned_at: now
-    },
-    { onConflict: 'user_id, badge_id' }
-  )
+  // Hesap bağlamak mavi tik vermez; mavi tik Spotlight + performans kuralına göre verilir.
+  await syncBlueTick(userId, adminSupabase)
 
   return { success: true }
 }

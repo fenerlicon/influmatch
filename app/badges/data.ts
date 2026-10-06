@@ -33,8 +33,8 @@ export const influencerBadges: Badge[] = [
   // MVP (Gold)
   {
     id: 'verified-account',
-    name: 'Onaylı Hesap',
-    description: 'Kimliği doğrulanmış influencer hesabı.',
+    name: 'Mavi Tik',
+    description: 'Spotlight üyesi; yüksek takipçili, güven skoru yüksek seçkin içerik üreticisi.',
     icon: BadgeCheck,
     phase: 'mvp',
   },

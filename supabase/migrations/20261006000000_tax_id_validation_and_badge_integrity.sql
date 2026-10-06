@@ -53,7 +53,8 @@ AS $$
 $$;
 
 -- ------------------------------------------------------------------------------
--- 2. USERS: INSERT kilidi (20260929000000_security_hardening.sql ile aynı + vergi no kontrolü)
+-- 2. USERS: INSERT kilidi (20260929000000_security_hardening.sql ile aynı + vergi no kontrolü;
+--    blue_tick_override kolonu 20261006000002 ile eklenir, yoksa yok sayılır)
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.users_before_insert_guard()
 RETURNS TRIGGER
@@ -80,7 +81,8 @@ BEGIN
       'email_verified_at', NULL,
       'admin_notes', NULL,
       'is_verified', false,
-      'displayed_badges', '{}'::text[]
+      'displayed_badges', '{}'::text[],
+      'blue_tick_override', NULL
     ));
 
     IF NEW.tax_id IS NOT NULL AND NOT public.is_valid_tax_number(NEW.tax_id) THEN

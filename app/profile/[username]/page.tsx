@@ -212,7 +212,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                     <BadgeCheck className={`h-6 w-6 transition-all hover:scale-110 cursor-pointer ${isBrand ? 'text-soft-gold hover:text-soft-gold/80' : 'text-blue-500 hover:text-blue-400'}`} />
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
                       <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
-                        {isBrand ? 'Onaylanmış İşletme' : 'Onaylı hesap'}
+                        {isBrand ? 'Onaylanmış İşletme' : 'Mavi Tik: seçkin içerik üreticisi'}
                         <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
                           <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
                         </div>

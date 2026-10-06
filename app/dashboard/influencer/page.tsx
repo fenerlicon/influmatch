@@ -12,6 +12,8 @@ import InfluencerStats from '@/components/profile/InfluencerStats'
 import VerificationWarningCard from '@/components/dashboard/VerificationWarningCard'
 import { getFavoriteCount } from '@/app/actions/favorites'
 import TrustScoreCard from '@/components/dashboard/TrustScoreCard'
+import BlueTickProgressCard from '@/components/dashboard/BlueTickProgressCard'
+import { BLUE_TICK_BADGE_ID, evaluateBlueTick, type BlueTickAccount } from '@/lib/blue-tick-rules'
 import { calculateTrustScore } from '@/utils/matching'
 import { CheckCircle2, Heart, Mail, Sparkles, Calendar } from 'lucide-react'
 
@@ -42,7 +44,7 @@ export default async function InfluencerDashboardPage() {
   // Fetch social account stats (Instagram)
   const { data: instagramAccount } = await supabase
     .from('social_accounts')
-    .select('username, follower_count, engagement_rate, stats_payload, updated_at, has_stats')
+    .select('username, follower_count, engagement_rate, stats_payload, updated_at, has_stats, is_verified, last_scraped_at')
     .eq('user_id', user.id)
     .eq('platform', 'instagram')
     .maybeSingle()
@@ -50,7 +52,7 @@ export default async function InfluencerDashboardPage() {
   // Fetch social account stats (TikTok)
   const { data: tiktokAccount } = await supabase
     .from('social_accounts')
-    .select('username, follower_count, engagement_rate, stats_payload, updated_at, is_verified, has_stats')
+    .select('username, follower_count, engagement_rate, stats_payload, updated_at, is_verified, has_stats, last_scraped_at')
     .eq('user_id', user.id)
     .eq('platform', 'tiktok')
     .maybeSingle()
@@ -70,6 +72,29 @@ export default async function InfluencerDashboardPage() {
     statsPayload: tiktokAccount.stats_payload as any,
     lastUpdated: tiktokAccount.updated_at || new Date().toISOString()
   } : undefined
+
+  // Mavi tik: Spotlight + performans + güven kuralı (lib/blue-tick-rules.ts)
+  const blueTickEvaluation = evaluateBlueTick(
+    {
+      id: user.id,
+      full_name: profile?.full_name ?? null,
+      username: profile?.username ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+      category: profile?.category ?? null,
+      spotlight_active: profile?.spotlight_active ?? false,
+      spotlight_expires_at: profile?.spotlight_expires_at ?? null,
+    },
+    [
+      ...(instagramAccount ? [{ platform: 'instagram', ...instagramAccount }] : []),
+      ...(tiktokAccount ? [{ platform: 'tiktok', ...tiktokAccount }] : []),
+    ] as BlueTickAccount[],
+  )
+  const { data: blueTickBadge } = await supabase
+    .from('user_badges')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('badge_id', BLUE_TICK_BADGE_ID)
+    .maybeSingle()
 
   const rawSpotlightActive = profile?.spotlight_active ?? false
   const isShowcaseVisible = profile?.is_showcase_visible ?? true 
@@ -355,6 +380,7 @@ export default async function InfluencerDashboardPage() {
                   engagementRate: Number(instagramAccount?.engagement_rate) || 0
                 }}
               />
+              <BlueTickProgressCard evaluation={blueTickEvaluation} hasBlueTick={!!blueTickBadge} />
             </div>
             <OfferActivityCard userId={user.id} initialOffers={filteredOffers} dismissedOfferIds={dismissedOfferIds} />
           </>
@@ -384,6 +410,7 @@ export default async function InfluencerDashboardPage() {
                   engagementRate: Number(instagramAccount?.engagement_rate) || 0
                 }}
               />
+              <BlueTickProgressCard evaluation={blueTickEvaluation} hasBlueTick={!!blueTickBadge} />
               {instagramData || tiktokData ? (
                 <InfluencerStats
                   instagramData={instagramData}

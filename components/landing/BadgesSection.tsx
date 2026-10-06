@@ -6,7 +6,7 @@ export default function BadgesSection() {
     {
       icon: BadgeCheck,
       title: 'Mavi Tik',
-      description: 'Kimliği doğrulanmış güvenilir hesaplar.',
+      description: 'Spotlight üyesi, yüksek performanslı ve güvenilir içerik üreticileri.',
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/10',
       borderColor: 'border-blue-500/30',

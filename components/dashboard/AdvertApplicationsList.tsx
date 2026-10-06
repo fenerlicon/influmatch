@@ -41,6 +41,7 @@ export interface AdvertApplication {
     username: string | null
     avatar_url: string | null
     verification_status?: 'pending' | 'verified' | 'rejected' | null
+    displayed_badges?: string[] | null
   }
   brand?: {
     id: string
@@ -48,6 +49,7 @@ export interface AdvertApplication {
     username: string | null
     avatar_url: string | null
     verification_status?: 'pending' | 'verified' | 'rejected' | null
+    displayed_badges?: string[] | null
   }
   cover_letter: string | null
   deliverable_idea: string | null
@@ -209,7 +211,8 @@ export default function AdvertApplicationsList({
                   full_name,
                   username,
                   avatar_url,
-                  verification_status
+                  verification_status,
+                  displayed_badges
                 ),
                 advert:advert_id (
                   title,
@@ -237,6 +240,7 @@ export default function AdvertApplicationsList({
                 username: appData.influencer?.username ?? null,
                 avatar_url: appData.influencer?.avatar_url ?? null,
                 verification_status: appData.influencer?.verification_status ?? null,
+                displayed_badges: appData.influencer?.displayed_badges ?? null,
               },
               cover_letter: appData.cover_letter,
               deliverable_idea: appData.deliverable_idea,
@@ -548,19 +552,19 @@ export default function AdvertApplicationsList({
                         ? (application.brand?.full_name ?? 'Marka')
                         : (application.influencer.full_name ?? 'Influencer')}
                     </h3>
-                    {isInfluencerView && application.brand?.verification_status === 'verified' && (
+                    {isInfluencerView && application.brand?.displayed_badges?.includes('official-business') && (
                       <div className="group relative flex-shrink-0">
                         <BadgeCheck className="h-4 w-4 text-soft-gold" />
                         <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                          Onaylanmış İşletme
+                          Resmi İşletme
                         </div>
                       </div>
                     )}
-                    {!isInfluencerView && application.influencer.verification_status === 'verified' && (
+                    {!isInfluencerView && application.influencer.displayed_badges?.includes('verified-account') && (
                       <div className="group relative flex-shrink-0">
                         <BadgeCheck className="h-4 w-4 text-blue-400" />
                         <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                          Onaylı hesap
+                          Mavi Tik
                         </div>
                       </div>
                     )}

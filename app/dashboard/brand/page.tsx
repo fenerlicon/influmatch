@@ -57,7 +57,7 @@ export default async function BrandDashboardPage() {
     .from('offers')
     .select(
       `id, campaign_name, campaign_type, budget, message, status, created_at,
-      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status)`,
+      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status, displayed_badges)`,
     )
     .eq('sender_user_id', user.id)
     .order('created_at', { ascending: false })

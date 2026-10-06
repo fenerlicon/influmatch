@@ -204,7 +204,7 @@ export default function BrandOffersList({
         .from('offers')
         .select(
           `id, campaign_name, campaign_type, budget, message, status, created_at,
-          receiver:receiver_user_id(id, full_name, avatar_url, username)`,
+          receiver:receiver_user_id(id, full_name, avatar_url, username, displayed_badges)`,
         )
         .eq('id', offerId)
         .single()
@@ -499,11 +499,11 @@ export default function BrandOffersList({
                     <p className="text-sm font-semibold text-white truncate">
                       {receiver?.full_name ?? 'Influencer'}
                     </p>
-                    {receiver?.verification_status === 'verified' && (
+                    {receiver?.displayed_badges?.includes('verified-account') && (
                       <div className="group relative flex-shrink-0">
                         <BadgeCheck className="h-4 w-4 text-blue-400" />
                         <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                          Onaylı hesap
+                          Mavi Tik
                         </div>
                       </div>
                     )}

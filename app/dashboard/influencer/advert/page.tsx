@@ -96,7 +96,7 @@ export default async function InfluencerAdvertPage() {
   })
 
   let advertMap = new Map<string, { id: string; title: string | null; category: string | null; brand_user_id: string | null }>()
-  let brandMapForApplications = new Map<string, { id: string; full_name: string | null; username: string | null; avatar_url: string | null; verification_status: string | null }>()
+  let brandMapForApplications = new Map<string, { id: string; full_name: string | null; username: string | null; avatar_url: string | null; verification_status: string | null; displayed_badges: string[] | null }>()
 
   if (advertIds.size > 0) {
     const { data: adverts } = await supabase
@@ -115,7 +115,7 @@ export default async function InfluencerAdvertPage() {
     if (brandIds.size > 0) {
       const { data: brands } = await supabase
         .from('users')
-        .select('id, full_name, username, avatar_url, verification_status')
+        .select('id, full_name, username, avatar_url, verification_status, displayed_badges')
         .in('id', Array.from(brandIds))
 
       brandMapForApplications = new Map(brands?.map((b) => [b.id, b]) ?? [])
@@ -192,6 +192,7 @@ export default async function InfluencerAdvertPage() {
         username: brand.username ?? null,
         avatar_url: brand.avatar_url ?? null,
         verification_status: brand.verification_status as 'pending' | 'verified' | 'rejected' | null | undefined,
+        displayed_badges: brand.displayed_badges ?? null,
       } : undefined,
       cover_letter: row.cover_letter ?? null,
       deliverable_idea: row.deliverable_idea ?? null,

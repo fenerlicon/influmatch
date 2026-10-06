@@ -5,6 +5,7 @@
 -- bakım görevi (/api/cron/hourly) Supabase tarafından tetiklenir:
 --   - Apify ve Gemini anahtarlarının kredi ve geçerlilik kontrolü
 --   - Sorun varsa admin e-postasına özet
+--   - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar vb.)
 --
 -- Bu dosya bir migration DEĞİLDİR; içine gizli anahtar yazılacağı için repoya
 -- değiştirilmiş hali commit edilmemelidir.

@@ -9,6 +9,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { fetchInstagramData } from '@/utils/instagram-service'
 import { fetchTikTokPublicProfile } from '@/utils/tiktok-service'
+import { syncBlueTick } from '@/lib/blue-tick'
 
 export type SocialPlatform = 'instagram' | 'tiktok'
 
@@ -139,16 +140,9 @@ async function syncProfileAfterVerification(
     console.error(`[syncProfileAfterVerification] ${platform} sync error:`, syncError)
   }
 
-  const { error: badgeError } = await admin
-    .from('user_badges')
-    .upsert(
-      { user_id: userId, badge_id: 'verified-account', earned_at: new Date().toISOString() },
-      { onConflict: 'user_id, badge_id' },
-    )
-
-  if (badgeError) {
-    console.error('[syncProfileAfterVerification] Badge error:', badgeError)
-  }
+  // Hesap doğrulaması mavi tik vermez (kayıtta herkes için zorunlu). Güncel istatistiklerle
+  // mavi tik kuralı (Spotlight + performans + güven) yeniden değerlendirilir.
+  await syncBlueTick(userId, admin)
 }
 
 /**

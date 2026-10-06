@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle, KeyRound } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
+import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, setBlueTickOverride, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -37,6 +37,7 @@ interface User {
   displayed_badges?: string[] | null
   tax_id_verified?: boolean | null
   email_verified_at?: string | null
+  blue_tick_override?: 'granted' | 'revoked' | null
 }
 
 interface Advert {
@@ -724,9 +725,12 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
-  const handleToggleBlueTick = async (userId: string, hasBlueTick: boolean) => {
+  const handleToggleBlueTick = async (userId: string, hasBlueTick: boolean, isInfluencer: boolean) => {
     const action = hasBlueTick ? 'kaldırmak' : 'vermek'
-    if (!confirm(`Bu kullanıcıya Mavi Tik (Onaylı Hesap) rozetini ${action} istediğinizden emin misiniz?`)) {
+    const question = isInfluencer
+      ? `Mavi tik normalde otomatik kurala göre veriliyor (Spotlight + performans + güven). Bu kullanıcı için elle ${action} kalıcı bir istisna oluşturur. Devam edilsin mi?`
+      : `Bu markaya Sarı Tik (Resmi İşletme) rozetini ${action} istediğinizden emin misiniz?`
+    if (!confirm(question)) {
       return
     }
 
@@ -755,6 +759,29 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         }
       } catch (error) {
         console.error('Toggle blue tick error:', error)
+        alert('İşlem başarısız.')
+      }
+    })
+  }
+
+  const handleClearBlueTickOverride = async (userId: string) => {
+    startTransition(async () => {
+      try {
+        const result = await setBlueTickOverride(userId, null)
+        if (result.error) {
+          alert(result.error)
+          return
+        }
+        toast.success(result.message ?? 'Mavi tik otomatik kurala döndürüldü.')
+        const { user: updatedUser } = await getAdminUserCard(userId)
+        if (updatedUser) {
+          const updateUserInState = (users: User[]) => users.map((u) => (u.id === userId ? (updatedUser as User) : u))
+          setPendingUsersState(updateUserInState)
+          setVerifiedUsersState(updateUserInState)
+          setRejectedUsersState(updateUserInState)
+        }
+      } catch (error) {
+        console.error('Clear blue tick override error:', error)
         alert('İşlem başarısız.')
       }
     })
@@ -791,7 +818,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   }
 
   const handleResetVerifiedBadges = async () => {
-    if (!confirm('DİKKAT! Tüm kullanıcıların Mavi Tik (Onaylı Hesap) rozetini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+    if (!confirm('Tüm mavi tikler silinecek ve hemen ardından yeni kurala (Spotlight + performans + güven) göre yeniden verilecek. Elle tanımlanan istisnalar korunur. Devam edilsin mi?')) {
       return
     }
 
@@ -994,17 +1021,17 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                 onClick={handleResetVerifiedBadges}
                 disabled={isResettingBadges || isPending}
                 className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/50 text-red-500 hover:bg-red-500/20 text-xs font-bold transition flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-                title="Tüm mavi tikleri sil"
+                title="Tüm mavi tikleri silip yeni kurala göre yeniden verir"
               >
                 {isResettingBadges ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    SİLİNİYOR...
+                    DEĞERLENDİRİLİYOR...
                   </>
                 ) : (
                   <>
                     <AlertTriangle className="w-4 h-4" />
-                    SİSTEM: MAVİ TİKLERİ SİL
+                    SİSTEM: MAVİ TİKLERİ YENİDEN DEĞERLENDİR
                   </>
                 )}
               </button>
@@ -1369,7 +1396,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             )}
 
                             <button
-                              onClick={() => handleToggleBlueTick(user.id, isInfluencer ? (user.displayed_badges?.includes('verified-account') ?? false) : (user.displayed_badges?.includes('official-business') ?? false))}
+                              onClick={() => handleToggleBlueTick(user.id, isInfluencer ? (user.displayed_badges?.includes('verified-account') ?? false) : (user.displayed_badges?.includes('official-business') ?? false), isInfluencer)}
                               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${isInfluencer
                                 ? (user.displayed_badges?.includes('verified-account')
                                   ? 'border-blue-500/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
@@ -1385,6 +1412,15 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                 : (user.displayed_badges?.includes('official-business') ? 'Sarı Tik Kaldır' : 'Sarı Tik Ekle')
                               }
                             </button>
+                            {isInfluencer && user.blue_tick_override && (
+                              <button
+                                onClick={() => handleClearBlueTickOverride(user.id)}
+                                title="Mavi tik bu kullanıcı için elle ayarlandı; otomatik kurala döndürmek için tıklayın."
+                                className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-300 hover:bg-sky-500/20"
+                              >
+                                {user.blue_tick_override === 'granted' ? 'Elle verildi' : 'Elle kaldırıldı'} · Otomatiğe döndür
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteUser(user.id)}
                               className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400 hover:bg-red-500/20"

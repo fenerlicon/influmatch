@@ -413,9 +413,10 @@ export default function OnboardingPage() {
 
     console.log('[Onboarding] Profile saved successfully via server action')
 
-    // Force a router refresh to update server components, then navigate
+    // Force a router refresh to update server components, then navigate.
+    // Influencer / UGC hesapları panelden önce sosyal medya hesabını doğrular.
     router.refresh()
-    router.replace('/dashboard')
+    router.replace(role === 'influencer' ? '/onboarding/verify' : '/dashboard')
     setIsSaving(false)
 
     // Clear localStorage on successful submission
