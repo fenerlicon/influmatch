@@ -23,7 +23,7 @@ export default function Footer() {
             <Link href="/discover" className="hover:text-soft-gold">Keşfet</Link>
             <Link href="/badges" className="hover:text-soft-gold">Rozetler</Link>
             <Link href="/#sss" className="hover:text-soft-gold">S.S.S</Link>
-            <Link href="/legal/privacy" className="hover:text-soft-gold">Gizlilik Politikası</Link>
+            <Link href="/legal?tab=privacy" className="hover:text-soft-gold">Gizlilik Politikası</Link>
           </div>
         </div>
 

@@ -224,8 +224,13 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     setIsUploading(true)
     setErrorMsg(null)
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('Oturum bulunamadı')
       const fileExt = file.name.split('.').pop()
-      const fileName = `${crypto.randomUUID()}.${fileExt}`
+      // Kullanıcı klasörü: depo kuralı ve hesap silmede dosya temizliği bu yola dayanır.
+      const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`
       const { error: uploadError } = await supabase.storage.from(LOGO_BUCKET).upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,

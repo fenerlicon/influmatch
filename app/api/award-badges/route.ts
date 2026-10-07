@@ -4,7 +4,8 @@ import { awardBadgesForUser } from '@/utils/badgeAwarding'
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth & Admin check — this endpoint must be admin-only
+    // Kullanıcı yalnızca kendi rozetlerini değerlendirtebilir; başkası için admin gerekir.
+    // Rozet kuralları sunucuda DB verisinden hesaplanır (utils/badgeAwarding.ts), istemciye güvenilmez.
     const supabase = createSupabaseServerClient()
     const {
       data: { user },
@@ -14,22 +15,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 })
     }
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    const isAdmin = profile?.role === 'admin'
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Bu işlem için admin yetkisi gerekiyor.' }, { status: 403 })
-    }
-
     const { userId } = await request.json()
 
     if (!userId || typeof userId !== 'string') {
       return NextResponse.json({ error: 'Invalid userId' }, { status: 400 })
+    }
+
+    if (userId !== user.id) {
+      const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+      if (profile?.role !== 'admin') {
+        return NextResponse.json({ error: 'Bu işlem için admin yetkisi gerekiyor.' }, { status: 403 })
+      }
     }
 
     await awardBadgesForUser(userId)

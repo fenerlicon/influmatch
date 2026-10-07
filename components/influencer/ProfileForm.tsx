@@ -233,9 +233,13 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
     setIsUploading(true)
     setErrorMsg(null)
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('Oturum bulunamadı')
       const fileExt = file.name.split('.').pop()
-      const fileName = `${crypto.randomUUID()}.${fileExt}`
-      const filePath = `${fileName}`
+      // Kullanıcı klasörü: depo kuralı ve hesap silmede dosya temizliği bu yola dayanır.
+      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`
       const { error: uploadError } = await supabase.storage.from(AVATAR_BUCKET).upload(filePath, file, {
         upsert: true,
       })

@@ -8,6 +8,7 @@ import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { getOrCreateAdvertApplicationRoom, updateApplicationStatus } from '@/app/dashboard/brand/advert/actions'
 import { toast } from 'sonner'
+import { countUnreadInRoom } from '@/lib/unread-messages'
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString)
@@ -134,37 +135,7 @@ export default function AdvertApplicationsList({
       if (!currentUserId || !roomId) return 0
 
       try {
-        const { data: messages, error: messagesError } = await supabase
-          .from('messages')
-          .select('id, sender_id')
-          .eq('room_id', roomId)
-          .order('created_at', { ascending: true })
-
-        if (messagesError || !messages || messages.length === 0) {
-          return 0
-        }
-
-        const otherPartyMessages = messages.filter((m) => m.sender_id !== currentUserId)
-        if (otherPartyMessages.length === 0) {
-          return 0
-        }
-
-        const messageIds = otherPartyMessages.map((m) => m.id)
-        const { data: readReceipts, error: readError } = await supabase
-          .from('message_reads')
-          .select('message_id')
-          .in('message_id', messageIds)
-          .eq('user_id', currentUserId)
-
-        if (readError) {
-          console.error('Error fetching read receipts:', readError)
-          return 0
-        }
-
-        const readMessageIds = new Set(readReceipts?.map((r) => r.message_id) ?? [])
-        const unreadCount = otherPartyMessages.filter((m) => !readMessageIds.has(m.id)).length
-
-        return unreadCount
+        return await countUnreadInRoom(supabase, roomId, currentUserId)
       } catch (error) {
         console.error('Error calculating unread count:', error)
         return 0
