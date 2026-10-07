@@ -3,8 +3,8 @@
 --
 -- Marka vergi levhasını (PDF veya fotoğraf) yükler; sunucu PDF metnini kendi içinde okur
 -- (hiçbir dış servise veya yapay zekaya gönderilmez) ve profildeki vergi bilgileriyle
--- karşılaştırır. Tüm kontroller geçerse vergi numarası otomatik onaylanır, aksi halde
--- admin incelemesine düşer. Fotoğraf ve taramalar doğrudan admin incelemesine düşer.
+-- karşılaştırır ve sonucu admin incelemesine hazırlar. Son kararı admin verir
+-- (TAX_AUTO_APPROVE=true ile tüm kontrolleri geçen levhalar otomatik onaylanabilir).
 --
 -- 1. tax-documents: gizli depolama alanı. Kullanıcı sadece kendi klasörüne yükleyebilir,
 --    okuyamaz/silemez. Belgeleri sadece sunucu (service role) okur; admin ekranı

@@ -3,7 +3,8 @@
 // tüm kontroller geçerse vergi numarasını otomatik onaylar.
 //
 // Fotoğraf ve taranmış belgeler otomatik okunmaz; doğrudan admin incelemesine düşer.
-// Otomatik onay TAX_AUTO_APPROVE=false ortam değişkeniyle kapatılabilir.
+// Otomatik onay varsayılan olarak KAPALIDIR: kontroller geçse bile son kararı admin verir.
+// TAX_AUTO_APPROVE=true yapılırsa tüm kontrolleri geçen levhalar admin beklemeden onaylanır.
 //
 // BU DOSYA KASITLI OLARAK 'use server' DEĞİLDİR: istemciden çağrılamamalıdır.
 
@@ -32,7 +33,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 }
 
 export function isAutoApproveEnabled() {
-  return process.env.TAX_AUTO_APPROVE?.trim().toLowerCase() !== 'false'
+  return process.env.TAX_AUTO_APPROVE?.trim().toLowerCase() === 'true'
 }
 
 export function guessMimeType(path: string, blobType?: string | null) {
@@ -150,7 +151,7 @@ export async function processTaxCertificate(admin: SupabaseClient, userId: strin
 
   if (status === 'auto_approved' && !isAutoApproveEnabled()) {
     status = 'needs_review'
-    reasons.push('Tüm kontroller geçti; otomatik onay kapalı olduğu için admin onayı bekleniyor.')
+    reasons.push('Belgeniz otomatik kontrollerden geçti; ekibimiz kısa süre içinde onaylayacak.')
   }
 
   if (status === 'auto_approved') {
