@@ -23,3 +23,20 @@ export const recoveryCookieOptions = (maxAge: number) => ({
   path: '/',
   maxAge,
 })
+
+/**
+ * Sıfırlama bağlantısının döneceği adres: isteğin yapıldığı alan adı (www veya www'suz).
+ * PKCE doğrulayıcısı ve talep çerezi o alan adına yazıldığı için bağlantı başka bir alan
+ * adına dönerse çerezler gönderilmez ve doğrulama başarısız olur. Bilinmeyen host değeri
+ * kullanılmaz (Host başlığı istemci kontrolündedir).
+ */
+export function requestBaseUrl(host: string | null | undefined, proto: string | null | undefined): string {
+  const cleanHost = (host ?? '').split(',')[0].trim().toLowerCase()
+  const allowed =
+    /^(www\.)?influmatch\.net$/.test(cleanHost) ||
+    /^localhost(:\d+)?$/.test(cleanHost) ||
+    /^[a-z0-9-]+\.vercel\.app$/.test(cleanHost)
+  if (!allowed) return siteBaseUrl()
+  const scheme = cleanHost.startsWith('localhost') ? (proto?.split(',')[0].trim() || 'http') : 'https'
+  return `${scheme}://${cleanHost}`
+}

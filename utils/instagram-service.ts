@@ -1,5 +1,5 @@
 import { runApifyActor } from '@/lib/apify'
-import { ApiServiceError } from '@/lib/api-keys'
+import { ApiRequestError, ApiServiceError } from '@/lib/api-keys'
 
 // Interfaces for Internal Use (Normalized Data)
 export interface NormalizedInstagramData {
@@ -66,6 +66,12 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
             cleanUsername = parts[1].split('?')[0].split('/')[0].trim();
         }
     }
+
+    // Önce profil aktörü: tek profil sayfası okur (biyografi, sayılar, son ~12 gönderi). Gönderi
+    // kazıyıcısına göre belirgin şekilde hızlı ve her gönderiyi ayrı sonuç saymadığı için ucuzdur.
+    // Kullanılamazsa (aktör erişimi, beklenmeyen yanıt) eski gönderi kazıyıcısına düşülür.
+    const profile = await fetchProfileFast(cleanUsername)
+    if (profile) return profile
 
     // run-sync-get-dataset-items: tek istek. Anahtar havuzu patlayan anahtarı otomatik değiştirir.
     const items = await runApifyActor('apify~instagram-scraper', {
@@ -176,21 +182,48 @@ async function fetchProfileDetails(username: string, postsErrorItem: any): Promi
         throw new Error(describeApifyError(username, { error: 'private' }))
     }
 
-    const posts: any[] = Array.isArray(profile.latestPosts) ? profile.latestPosts.slice(0, 15) : []
-    const edges = posts.map((post: any) => ({
-        node: {
-            id: post.id,
-            shortcode: post.shortCode,
-            display_url: post.displayUrl,
-            is_video: post.type === 'Video' || post.isVideo === true,
-            video_view_count: Number(post.videoViewCount || post.videoPlayCount || 0),
-            edge_media_to_comment: { count: post.commentsCount || 0 },
-            edge_liked_by: { count: post.likesCount || 0 },
-            taken_at_timestamp: Math.floor(new Date(post.timestamp).getTime() / 1000),
-            is_pinned: post.isPinned === true,
-        },
-    }))
+    return normalizeProfile(profile)
+}
 
+const PROFILE_ACTOR = 'apify~instagram-profile-scraper'
+
+/**
+ * Hızlı yol: instagram-profile-scraper. Hesap bulunamadı / gizli gibi kesin sonuçlarda hata
+ * fırlatır; aktör kullanılamıyorsa veya yanıt tanınmıyorsa null döner (yavaş yola düşülür).
+ * Anahtar/kredi hataları ve servis kesintileri olduğu gibi fırlatılır.
+ */
+async function fetchProfileFast(username: string): Promise<NormalizedInstagramData | null> {
+    let items: any[]
+    try {
+        items = await runApifyActor(PROFILE_ACTOR, { usernames: [username] })
+    } catch (error) {
+        if (error instanceof ApiRequestError) {
+            console.warn(`[InstagramService] Profil aktörü kullanılamadı, gönderi kazıyıcısına geçiliyor: ${error.message}`)
+            return null
+        }
+        throw error
+    }
+
+    const profile = items?.[0]
+    if (!profile) return null
+    if (profile.error) {
+        const text = apifyErrorText(profile).toLowerCase()
+        if (text.includes('not found') || text.includes('not_found') || text.includes('does not exist') || text.includes('private')) {
+            throw new Error(describeApifyError(username, profile))
+        }
+        console.warn(`[InstagramService] Profil aktörü hata döndü (@${username}): ${apifyErrorText(profile) || 'açıklama yok'}`)
+        return null
+    }
+    if (!profile.username) return null
+    if (profile.private) {
+        throw new Error(describeApifyError(username, { error: 'private' }))
+    }
+    return normalizeProfile(profile)
+}
+
+/** Profil kaydını (profile aktörü veya "details" modu) iç biçime çevirir. */
+function normalizeProfile(profile: any): NormalizedInstagramData {
+    const posts: any[] = Array.isArray(profile.latestPosts) ? profile.latestPosts.slice(0, 15) : []
     return {
         user: {
             id: String(profile.id || profile.fbid || ''),
@@ -207,6 +240,30 @@ async function fetchProfileDetails(username: string, postsErrorItem: any): Promi
             category_name: profile.businessCategoryName || profile.categoryName,
             is_business_account: profile.isBusinessAccount,
         },
-        recent_posts: edges,
+        recent_posts: mapPosts(posts),
     }
+}
+
+/**
+ * Gönderileri istatistik hesabının beklediği biçime çevirir. Sabitlenmiş gönderi tahmini:
+ * ızgaranın ilk 3 gönderisinden biri, kendisinden sonra gelen daha yeni bir gönderi varsa sabitlenmiştir.
+ */
+function mapPosts(posts: any[]): any[] {
+    const timestamps = posts.map((p: any) => new Date(p.timestamp || 0).getTime())
+    return posts.map((post: any, index: number) => {
+        const inferredPinned = index < 3 && timestamps.slice(index + 1).some((ts) => ts > timestamps[index])
+        return {
+            node: {
+                id: post.id,
+                shortcode: post.shortCode,
+                display_url: post.displayUrl,
+                is_video: post.type === 'Video' || post.isVideo === true,
+                video_view_count: Number(post.videoViewCount || post.videoPlayCount || 0),
+                edge_media_to_comment: { count: post.commentsCount || 0 },
+                edge_liked_by: { count: post.likesCount || 0 },
+                taken_at_timestamp: Math.floor(new Date(post.timestamp).getTime() / 1000),
+                is_pinned: post.isPinned === true || post.is_pinned === true || inferredPinned,
+            },
+        }
+    })
 }
