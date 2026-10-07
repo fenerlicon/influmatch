@@ -66,8 +66,10 @@
 | Test | Liste bitince toplu test. Ara testler istenmiyor. |
 | Yetki (8 Ekim) | "Bana sormadan düzenleyebileceğin her şeyi düzenle, en iyi haliyle; parça parça yapabilirsin. Bana yalnızca soracağın işler kalsın." Ardından strateji konuşulacak. |
 | Milyon Kulübü (8 Ekim) | Doğrulanmış hesapta 1 milyon+ takipçi. Uygulandı (saatlik görev). |
-| 5 Yıldız (8 Ekim) | Kullanıcı: "iş tesliminden sonra markaların verdiği puanlama olabilir, emin değilim". Puanlama sistemi yok; tasarım bekliyor. |
 | Profil görüntülenme (8 Ekim) | Sayı kaydedilsin; yalnızca Spotlight sahibi influencer/UGC görür. Uygulandı. |
+| Rozet eşikleri (8 Ekim) | Kabul: Hızlı Dönüş (mesaj yanıtı ort. < 2 saat), Jet Onay (başvuruya ort. ≤ 24 saat), Marka Elçisi (aynı markayla ≥ 3 kabul edilmiş iş), Elit Bütçe (≥ 50.000 TL). Trend Belirleyici, Dönüşüm Sihirbazı, Global, İletişim Uzmanı, Sadık Partner "yakında" kalır. |
+| 5 Yıldız (8 Ekim) | İleriki bir güncellemede gelecek; **şimdilik dokunma**. |
+| Doğru olmayan arayüz iddiaları + KVKK (8 Ekim) | Kuyruğun **en sonuna**. "Ne kaldı" sorulduğunda hatırlat (bölüm 8). |
 | Çevrimiçi / son görülme (8 Ekim) | Admin panelinde her kullanıcı için. Uygulandı (dakikalık sinyal + son giriş zamanı). |
 
 ## 4. Karar bekleyenler (kullanıcı: "biraz daha beklesin") — kendi başına uygulama
@@ -191,3 +193,12 @@ Ayrıntı ve bağlam için haritadaki ilgili satıra bak. "NOT" satırları ür�
 - **Hesap silme:** `lib/account-deletion.ts` `deleteAccountCompletely` storage dosyalarını da siliyor. Kullanıcıdan şifre tekrar isteniyor.
 - **Avatar/logo adresi:** sunucuda `lib/avatar-url.ts` ile doğrulanıyor. Yalnızca `avatars/{uid}/` altındaki ya da zaten kayıtlı olan adres kabul ediliyor.
 - **Build:** `next build` için `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` gerekli. Route sildikten sonra `rm -rf .next/types` çalıştır.
+
+## 8. Kuyruğun en sonu (kullanıcı kararı, 8 Ekim — "ne kaldı" sorulunca hatırlat)
+
+- Arayüzdeki doğru olmayan iddialar: marka AI sayfasındaki "Yapay zeka algoritmamız … %95+ uyumlu" (3.5-S2, 2.9-S1),
+  ana sayfadaki "Resmi Entegrasyon Ortaklarımız" platform logoları (9.1-S2), sabit "%5.2", "10K+", "50+", "%100" rakamları (9.1-S3).
+- KVKK / kullanıcı sözleşmesi / açık rıza metinleri: `lib/legal-constants.ts` ile `app/legal/page.tsx` iki ayrı sürüm (1.7-S1);
+  metinler kısa, avukat incelemesi önerildi.
+- 5 Yıldız rozeti (puanlama sistemi) ileriki güncellemede.
+

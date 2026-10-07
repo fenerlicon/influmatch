@@ -398,7 +398,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**4.1-S1 [ORTA]**~~ ('use server' kaldırıldı; yalnızca sunucu içi çağrılar) Dosya `'use server'`; `awardBadgesForUser(anyUserId)` yetki kontrolsüz çağrılabilir bir aksiyon (yalnızca hak edilen rozetleri verdiği için etki düşük).
   - ✅ ~~**4.1-S2 [ORTA]**~~ (okumalar ve sayım service role ile; sayım hatasında rozet verilmiyor) `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
-  - **4.1-S3 [DÜŞÜK]** (kısmen ✅: `million-club` artık otomatik: doğrulanmış hesapta 1M+ takipçi, saatlik görev verir/geri alır, `lib/million-club.ts`. Kalanların eşikleri/veri kaynağı karar bekliyor: `five-star` puanlama sistemi gerektiriyor) Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
+  - ✅ ~~**4.1-S3 [DÜŞÜK]**~~ (kullanıcı kararıyla eşikler, saatlik görev verir/geri alır: `million-club` 1M+ takipçi (`lib/million-club.ts`); `lightning-fast`, `brand-ambassador`, `jet-approval`, `elite-budget` (`lib/activity-badges.ts`, veri `20261009000001`). `five-star` ileriki güncellemede; `trendsetter`, `conversion-wizard`, `global`, `communication-expert`, `loyal-partner` "yakında" kalıyor) Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
 
 ### 4.2 Rozet seçimi ve gösterimi
 - **Dosyalar:** `components/badges/{BadgeSelector,BadgeDisplay,BadgeDetailList,BadgeCompactList,BadgeProgressInfo,BadgeCard,BadgeToggle}.tsx`
