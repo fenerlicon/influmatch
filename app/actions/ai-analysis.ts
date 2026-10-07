@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { resolveSubscriptionTier, type SubscriptionTier } from '@/lib/subscription-tier'
 
 // Define the response structure
 export interface AIAnalysisResponse {
@@ -10,8 +11,7 @@ export interface AIAnalysisResponse {
 
 export type AnalysisType = 'basic' | 'match_score' | 'profile_coach' | 'campaign_analysis'
 
-// Define Subscription Tiers
-export type SubscriptionTier = 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO'
+export type { SubscriptionTier } from '@/lib/subscription-tier'
 
 // Tier Permissions Configuration
 const TIER_PERMISSIONS: Record<SubscriptionTier, AnalysisType[]> = {
@@ -35,17 +35,12 @@ export async function generateAIAnalysis(
 
     const { data: dbUser } = await supabase
         .from('users')
-        .select('spotlight_active, spotlight_plan, role')
+        .select('spotlight_active, spotlight_plan, spotlight_expires_at, role, verification_status')
         .eq('id', authUser.id)
         .single()
 
-    // Tier belirleme mantığı
-    let userTier: SubscriptionTier = 'FREE'
-    if (dbUser?.role === 'brand') userTier = 'BRAND_PRO' // Şimdilik markalar full erişim, ilerde plan eklenebilir.
-    else if (dbUser?.spotlight_active) {
-        if (dbUser.spotlight_plan === 'ipro') userTier = 'SPOTLIGHT_PLUS'
-        else userTier = 'SPOTLIGHT'
-    }
+    // Seviye tek yerden: süresi dolmuş veya onaysız Spotlight seviye vermez (lib/subscription-tier.ts).
+    const userTier: SubscriptionTier = resolveSubscriptionTier(dbUser)
 
     // 1. Check Permissions
     if (!TIER_PERMISSIONS[userTier].includes(requestedType)) {

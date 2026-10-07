@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { activateSpotlightPlan, checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { planPrice } from '@/lib/spotlight-plans'
 
 const features = [
     {
@@ -211,8 +212,8 @@ export default function InfluencerSpotlightPage() {
                 <div className="grid gap-8 md:grid-cols-2 lg:gap-16 pt-8">
                     <PricingCard
                         title="Spotlight Basic"
-                        price={billingInterval === 'mo' ? "99 ₺" : "990 ₺"}
-                        originalPrice={billingInterval === 'mo' ? "198 ₺" : "1.980 ₺"}
+                        price={planPrice('ibasic', billingInterval).price}
+                        originalPrice={planPrice('ibasic', billingInterval).originalPrice}
                         interval={billingInterval}
                         features={[
                             { text: "Vitrin Rozeti", highlight: true },
@@ -229,8 +230,8 @@ export default function InfluencerSpotlightPage() {
 
                     <PricingCard
                         title="Spotlight Pro"
-                        price={billingInterval === 'mo' ? "199 ₺" : "1.990 ₺"}
-                        originalPrice={billingInterval === 'mo' ? "398 ₺" : "3.980 ₺"}
+                        price={planPrice('ipro', billingInterval).price}
+                        originalPrice={planPrice('ipro', billingInterval).originalPrice}
                         interval={billingInterval}
                         features={[
                             { text: "Vitrin Rozeti", highlight: true },

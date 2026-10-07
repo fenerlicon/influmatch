@@ -5,6 +5,7 @@ import { ChevronLeft, BadgeCheck } from 'lucide-react'
 import OfferModal from '@/components/profile/OfferModal'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { fetchAccountRole } from '@/lib/viewer-role'
+import { resolveSubscriptionTier, type SubscriptionTier } from '@/lib/subscription-tier'
 import BadgeDetailList from '@/components/badges/BadgeDetailList'
 import { getCategoryLabel } from '@/utils/categories'
 import InfluencerStats from '@/components/profile/InfluencerStats'
@@ -115,30 +116,21 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   )
 
   // Determine Viewer's Tier and Verification Status
-  let viewerTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'
+  let viewerTier: SubscriptionTier = 'FREE'
   let isViewerVerified = false
   let viewerVerificationStatus: 'pending' | 'verified' | 'rejected' = 'pending'
 
   if (viewer) {
-    // Fetch viewer profile details (including verification status and spotlight)
     const { data: viewerData } = await supabase
       .from('users')
-      .select('spotlight_active, verification_status')
+      .select('spotlight_active, spotlight_plan, spotlight_expires_at, verification_status')
       .eq('id', viewer.id)
       .single()
 
     const verificationStatus = viewerData?.verification_status ?? 'pending'
     viewerVerificationStatus = verificationStatus as 'pending' | 'verified' | 'rejected'
     isViewerVerified = verificationStatus === 'verified'
-
-    if (viewerRole === 'brand') {
-      viewerTier = 'BRAND_PRO' // Brands get Pro features for analysis
-    } else {
-      // Check if viewer has spotlight
-      if (viewerData?.spotlight_active && isViewerVerified) {
-        viewerTier = 'SPOTLIGHT'
-      }
-    }
+    viewerTier = resolveSubscriptionTier({ ...viewerData, role: viewerRole })
   }
 
   // Block unverified brands from viewing influencer profiles

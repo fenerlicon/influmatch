@@ -5,6 +5,7 @@ import { BadgeCheck, BrainCircuit, Crown, Sparkles, Users } from 'lucide-react'
 import Link from 'next/link'
 import PricingCard from '@/components/spotlight/PricingCard'
 import { useRouter } from 'next/navigation'
+import { planPrice } from '@/lib/spotlight-plans'
 
 export default function PublicSpotlightPage() {
     const router = useRouter()
@@ -99,8 +100,8 @@ export default function PublicSpotlightPage() {
                             <div className="grid gap-8 md:grid-cols-2 lg:gap-16">
                                 <PricingCard
                                     title="Brand Basic"
-                                    price={billingInterval === 'mo' ? "750 ₺" : "7.500 ₺"}
-                                    originalPrice={billingInterval === 'mo' ? "1.500 ₺" : "15.000 ₺"}
+                                    price={planPrice('mbasic', billingInterval).price}
+                                    originalPrice={planPrice('mbasic', billingInterval).originalPrice}
                                     interval={billingInterval}
                                     features={[
                                         { text: "Sınırsız AI Eşleşme", highlight: true },
@@ -113,8 +114,8 @@ export default function PublicSpotlightPage() {
                                 />
                                 <PricingCard
                                     title="Brand Pro"
-                                    price={billingInterval === 'mo' ? "1.250 ₺" : "12.500 ₺"}
-                                    originalPrice={billingInterval === 'mo' ? "2.500 ₺" : "25.000 ₺"}
+                                    price={planPrice('mpro', billingInterval).price}
+                                    originalPrice={planPrice('mpro', billingInterval).originalPrice}
                                     interval={billingInterval}
                                     features={[
                                         { text: "Sınırsız AI Eşleşme", highlight: true },
@@ -183,8 +184,8 @@ export default function PublicSpotlightPage() {
                             <div className="grid gap-8 md:grid-cols-2 lg:gap-16">
                                 <PricingCard
                                     title="Spotlight Basic"
-                                    price={billingInterval === 'mo' ? "99 ₺" : "990 ₺"}
-                                    originalPrice={billingInterval === 'mo' ? "198 ₺" : "1.980 ₺"}
+                                    price={planPrice('ibasic', billingInterval).price}
+                                    originalPrice={planPrice('ibasic', billingInterval).originalPrice}
                                     interval={billingInterval}
                                     features={[
                                         { text: "Vitrin Rozeti", highlight: true },
@@ -197,8 +198,8 @@ export default function PublicSpotlightPage() {
                                 />
                                 <PricingCard
                                     title="Spotlight Pro"
-                                    price={billingInterval === 'mo' ? "199 ₺" : "1.990 ₺"}
-                                    originalPrice={billingInterval === 'mo' ? "398 ₺" : "3.980 ₺"}
+                                    price={planPrice('ipro', billingInterval).price}
+                                    originalPrice={planPrice('ipro', billingInterval).originalPrice}
                                     interval={billingInterval}
                                     features={[
                                         { text: "Vitrin Rozeti", highlight: true },

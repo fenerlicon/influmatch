@@ -76,33 +76,25 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
   const mvpBadges = allBadges.filter((b) => b.phase === 'mvp')
   const futureBadges = allBadges.filter((b) => b.phase !== 'mvp')
 
+  // Kazanma koşulları gerçek kurallarla aynı (lib/blue-tick-rules.ts, utils/badgeAwarding.ts,
+  // lib/official-business.ts, lib/million-club.ts, lib/activity-badges.ts).
   const getBadgeRequirement = (badge: Badge): string => {
-    // This logic was previously relying on translation keys.
-    // Now we need to map badge IDs to their requirements in Turkish.
-    // Since we don't have the translation file content readily available here for all keys,
-    // I will use a mapping based on common badge IDs or default to a generic message if specific ones are missing.
-    // Ideally, this information should come from the badge data itself if refactored further.
-
+    const automatic = 'Koşulu sağladığınızda saatlik kontrolde otomatik verilir; koşul bozulursa geri alınır.'
     const requirements: Record<string, string> = {
       'verified-account': `Aktif Spotlight üyeliği, doğrulanmış hesapta en az ${BLUE_TICK_RULES.minFollowers.toLocaleString('tr-TR')} takipçi ve ${BLUE_TICK_RULES.minTrustScore}+ güven skoru ile otomatik verilir.`,
-      'rising-star': 'Son 30 günde etkileşim oranınızı %20 artırın.',
-      'community-leader': '1000+ takipçiye ulaşın ve aktif bir topluluk oluşturun.',
-      'content-creator': 'Düzenli olarak haftada en az 3 içerik paylaşın.',
-      'trend-setter': 'İçerikleriniz keşfet sayfasında yer alsın.',
-      'brand-favorite': 'En az 5 marka ile başarılı işbirliği yapın.',
-      'reliable-partner': 'İşbirliklerini zamanında ve eksiksiz tamamlayın.',
-      'early-adopter': 'Platformun ilk üyelerinden biri olun.',
-      'premium-member': 'Premium üyelik avantajlarından yararlanın.',
-      'corporate': 'Kurumsal hesap doğrulamasını tamamlayın.',
-      'brand-ambassador': 'Marka elçisi programına katılın.'
+      'founder-member': 'Platforma katılan ilk 1000 influencer/UGC arasında olun.',
+      'profile-expert': 'Profilinizi %100 doldurun.',
+      'showcase-brand': 'Marka profilinizi %100 doldurun.',
+      'pioneer-brand': 'Marka hesabınız onaylandığında verilir.',
+      'official-business': 'Vergi levhanız onaylandıktan sonra şirket alan adınızdaki kurumsal e-postayı doğrulayın.',
+      'million-club': automatic,
+      'lightning-fast': automatic,
+      'brand-ambassador': automatic,
+      'jet-approval': automatic,
+      'elite-budget': automatic,
     }
 
-    return requirements[badge.id] || 'Bu rozeti kazanmak için platformdaki aktivitelerinizi artırın.'
-  }
-
-  const isComingSoon = (badge: Badge): boolean => {
-    const comingSoonBadges = ['corporate', 'brand-ambassador']
-    return comingSoonBadges.includes(badge.id)
+    return requirements[badge.id] || 'Bu rozet yakında kazanılabilir olacak.'
   }
 
   if (isLoading) {
@@ -158,38 +150,19 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
             Kazanabileceğiniz Rozetler ({unownedMvpBadges.length})
           </h3>
           <div className="space-y-2">
-            {unownedMvpBadges.map((badge) => {
-              const comingSoon = isComingSoon(badge)
-              return (
-                <div
-                  key={badge.id}
-                  className={`flex items-start gap-3 rounded-2xl border p-4 transition-transform hover:scale-[1.01] ${comingSoon
-                    ? 'border-amber-500/25 bg-amber-500/8 opacity-85'
-                    : 'border-amber-500/30 bg-amber-500/10'
-                    }`}
-                >
-                  <Circle
-                    className={`h-5 w-5 flex-shrink-0 ${comingSoon ? 'text-amber-500/70' : 'text-amber-400'
-                      }`}
-                  />
-                  <div className="flex-1">
-                    <p
-                      className={`font-semibold ${comingSoon ? 'text-white/90' : 'text-white'
-                        }`}
-                    >
-                      {badge.name}
-                    </p>
-                    <p
-                      className={`mt-1 text-sm ${comingSoon ? 'text-gray-300/90' : 'text-gray-300'
-                        }`}
-                    >
-                      {badge.description}
-                    </p>
-                    <p className="mt-2 text-xs text-gray-500">{getBadgeRequirement(badge)}</p>
-                  </div>
+            {unownedMvpBadges.map((badge) => (
+              <div
+                key={badge.id}
+                className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 transition-transform hover:scale-[1.01]"
+              >
+                <Circle className="h-5 w-5 flex-shrink-0 text-amber-400" />
+                <div className="flex-1">
+                  <p className="font-semibold text-white">{badge.name}</p>
+                  <p className="mt-1 text-sm text-gray-300">{badge.description}</p>
+                  <p className="mt-2 text-xs text-gray-500">{getBadgeRequirement(badge)}</p>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </div>
       )}

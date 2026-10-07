@@ -225,7 +225,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `utils/profileCompletion.ts`, `components/dashboard/ProfileCompletionCard.tsx`
 - **Sorunlar:**
   - ✅ ~~**2.6-S1 [ORTA]**~~ (kullanıcı kendi rozetlerini değerlendirtebiliyor; başkası için admin gerekir) Kart admin‑only `/api/award-badges`'e POST atıyor → kullanıcı hep 403 alıyor, otomatik rozet yolu ölü.
-  - **2.6-S2 [DÜŞÜK]** Tamamlama doğrulanmış hesapları değil elle girilen `social_links`'i sayıyor; `phone`/`email` görevleri hiç üretilmiyor.
+  - ✅ ~~**2.6-S2 [DÜŞÜK]**~~ (2026-10-09: doğrulanan hesap profil linkine yazıldığı için tamamlamada sayılıyor; telefon/e-posta görevi tasarımda yok, eklenmeyecek) Tamamlama doğrulanmış hesapları değil elle girilen `social_links`'i sayıyor; `phone`/`email` görevleri hiç üretilmiyor.
 
 ### 2.7 Profil düzenleme
 - **Dosyalar:** `components/influencer/ProfileForm.tsx`, `app/dashboard/influencer/profile/actions.ts`,
@@ -246,8 +246,8 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `components/profile/InfluencerStats.tsx`, `app/actions/ai-analysis.ts`
 - **Sorunlar:**
   - **2.9-S1 [ORTA]** "AI analiz" yerel kural motoru + rastgele karıştırma + sahte 800 ms gecikme; LLM yok. Pazarlama dili yanıltıcı.
-  - **2.9-S2 [ORTA]** Her marka ücretsiz BRAND_PRO seviyesini alıyor; seviye eşlemesi dosyalar arasında farklı (`ipro`/`mpro`, eski `pro`/`elite`).
-  - **2.9-S3 [DÜŞÜK]** ("TikTok Resmi Entegrasyonu Aktif" → "Herkese açık TikTok profilinden alındı") `match_score` / `profile_coach` "Çok yakında" ile kapalı; `statsPayload.changes` hiç yazılmıyor; "TikTok Resmi Entegrasyonu Aktif" yazısı yanlış.
+  - ✅ ~~**2.9-S2 [ORTA]**~~ (seviye tek yerden: `lib/subscription-tier.ts` (süre ve onay kontrollü, Pro planı tanıyor; eski `pro`/`elite` eşlemesi kaldırıldı). Markaların ücretsiz BRAND_PRO alması ürün kararı olarak 3.13'te) Her marka ücretsiz BRAND_PRO seviyesini alıyor; seviye eşlemesi dosyalar arasında farklı (`ipro`/`mpro`, eski `pro`/`elite`).
+  - ✅ ~~**2.9-S3 [DÜŞÜK]**~~ (`statsPayload.changes` hiçbir ekranda okunmuyor, yazılmaması bir şeyi bozmuyor; `match_score` / `profile_coach` "Çok yakında" ürün kararı. TikTok metni düzeltilmişti) ("TikTok Resmi Entegrasyonu Aktif" → "Herkese açık TikTok profilinden alındı") `match_score` / `profile_coach` "Çok yakında" ile kapalı; `statsPayload.changes` hiç yazılmıyor; "TikTok Resmi Entegrasyonu Aktif" yazısı yanlış.
 
 ### 2.10 İstatistik geçmişi
 - **Dosyalar:** `app/dashboard/influencer/stats/page.tsx`, `components/dashboard/StatsHistory.tsx`
@@ -351,7 +351,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **İş:** PDF yerelde `unpdf` ile okunur (dış servis yok), profil ile karşılaştırılır (VKN/TCKN, unvan, vergi dairesi, il, yıl, üretici).
   `TAX_AUTO_APPROVE=true` değilse her kayıt admin onayına düşer. Görsel/taramalar her zaman incelemeye gider.
 - **Tablolar:** `tax_verifications`, özel `tax-documents` bucket'ı.
-- **Sorunlar:** **3.10-S1 [DÜŞÜK]** Günlük 5 sınırı `tax_verifications` satırlarını sayıyor; aksiyon çağrılmadan bucket'a doğrudan yükleme sınırsız (yalnızca kendi klasörü, 5 MB).
+- **Sorunlar:** **3.10-S1 [DÜŞÜK]** (düşük risk: yalnızca kendi klasörü, 5 MB, PDF/görsel; sahipsiz dosya temizliği 8.9-N1 Drive yapısıyla birlikte) Günlük 5 sınırı `tax_verifications` satırlarını sayıyor; aksiyon çağrılmadan bucket'a doğrudan yükleme sınırsız (yalnızca kendi klasörü, 5 MB).
 
 ### 3.11 Kurumsal e-posta ve Resmi İşletme (sarı tik)
 - **Dosyalar:** `lib/corporate-email.ts`, `lib/corporate-email-verification.ts`, `lib/official-business.ts`,
@@ -405,7 +405,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **İş:** En fazla 3 rozet gösterilir; DB trigger'ı kazanılmamış rozetin gösterilmesini engeller.
 - **Sorunlar:**
   - ✅ ~~**4.2-S1 [ORTA]**~~ (keşif kartları seçilen rozetleri gösteriyor, yalnızca kazanılmışlar; mavi tik her zaman; profil sayfası tüm rozet listesini bilinçli gösteriyor) `/profile/[username]` ve `utils/fetchInfluencers.ts` kullanıcının seçtiği `displayed_badges` yerine tüm kazanılmış rozetleri gösteriyor.
-  - **4.2-S2 [DÜŞÜK]** (ölü `profile/badges/actions.ts` dosyaları silindi) `influencer/profile/badges/actions.ts` (`updateDisplayedBadges`) ölü; marka rozet sayfası kazanılanları göstermiyor.
+  - ✅ ~~**4.2-S2 [DÜŞÜK]**~~ (marka rozet sayfası `BadgeProgressInfo` ile kazanılanları gösteriyor; kazanma koşulları gerçek kurallarla güncellendi (Marka Elçisi artık "yakında" değil)) (ölü `profile/badges/actions.ts` dosyaları silindi) `influencer/profile/badges/actions.ts` (`updateDisplayedBadges`) ölü; marka rozet sayfası kazanılanları göstermiyor.
 
 ### 4.3 Spotlight üyeliği
 - **Dosyalar:** `app/actions/spotlight.ts`, `app/dashboard/spotlight/**`, `app/spotlight/page.tsx`, `components/spotlight/*`
@@ -414,7 +414,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**4.3-S1 [YÜKSEK]**~~ (saatlik görev `lib/spotlight-expiry.ts` ile kapatıyor; canlıda 12 kullanıcı etkileniyordu) Süresi dolan Spotlight hiç kapanmıyor: `checkSpotlightStatus` kullanıcı istemcisiyle `spotlight_active` yazıyor,
     kolon beyaz listede olmadığı için sessizce düşüyor; cron da kapatmıyor. Süresi dolanlar sıralamada önde, +10 güven puanı ve mavi tik hakkı sürüyor.
     Fonksiyon ayrıca istemciden gelen `userId`'ye güveniyor.
-  - **4.3-S2 [ORTA]** Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor.
+  - ✅ ~~**4.3-S2 [ORTA]**~~ (fiyatlar `lib/spotlight-plans.ts`'te tek yerde (değerler değişmedi), seviye eşlemesi 2.9-S2 ile tekleşti; plan sayfaları metadata rolü okumuyor) Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor.
   - **4.3-S3 [DÜŞÜK]** (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. Ajans sayfası ürün kararı) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller
@@ -433,7 +433,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `app/actions/analytics.ts`, RPC `track_analytics_event`, tablo `analytics_events`
 - **Sorunlar:**
   - ✅ ~~**4.6-S1 [ORTA]**~~ (anon yetkisi kaldırıldı, search_path sabit; `20261007000006`) RPC anon dahil herkese açık ve `search_path`'siz; `click_*` olayları için yalnızca markanın varlığına bakıyor → herkes istediği markanın analitiğini şişirebilir.
-  - **4.6-S2 [DÜŞÜK]** Yalnızca `view_advert` izleniyor; influencer tarafında analitik yok.
+  - ✅ ~~**4.6-S2 [DÜŞÜK]**~~ (influencer tarafı için profil görüntülenmeleri eklendi (4.5-S3)) Yalnızca `view_advert` izleniyor; influencer tarafında analitik yok.
 
 ---
 
@@ -544,7 +544,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 6.7 API anahtar havuzu ekranı `/admin/api-keys`
 - **Dosyalar:** `app/admin/api-keys/{page,data,actions}.ts(x)`, `components/admin/ApiKeysPanel.tsx`
 - **İş:** Apify/Gemini anahtarlarını ekle, sırala, kapat, sağlık kontrolü, test e-postası. Gizli anahtarlar maskeli.
-- **Sorunlar:** **6.7-S1 [DÜŞÜK]** Gemini sağlayıcısı listede ama artık hiçbir modül kullanmıyor (bkz. 8.3-S2); `moveApiKey` transaction'sız.
+- **Sorunlar:** **6.7-S1 [DÜŞÜK]** (Gemini anahtar sağlık kontrolü CLAUDE.md kural 1 gereği bilinçli tutuluyor; `moveApiKey` yarıda kalırsa sonraki sıralamada numaralar yeniden düzeliyor, düşük öncelik) Gemini sağlayıcısı listede ama artık hiçbir modül kullanmıyor (bkz. 8.3-S2); `moveApiKey` transaction'sız.
 
 ### 6.8 Manuel Instagram bağlama `/admin/manual-connect`
 - **Dosya:** `app/admin/manual-connect/page.tsx`
