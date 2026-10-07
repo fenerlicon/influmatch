@@ -74,21 +74,15 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
         "resultsLimit": 15, // Using 15 to get enough recent posts
         "addParentData": true
     })
-    if (!items || items.length === 0) {
-        throw new Error('Instagram profil verisi veya gönderi bulunamadı. Kullanıcı hiç gönderi paylaşmamış olabilir veya hesap GİZLİ olabilir.');
+    // Gönderisi olmayan veya kazıyıcının gönderi listesini döndüremediği hesaplarda gönderi
+    // modu boş ya da hata kaydı döner (Apify: {error, errorDescription}). Bu durumda profil
+    // bilgisi ayrıca "details" moduyla alınır; ek koşu yalnızca bu durumda yapılır.
+    const firstItem = items?.[0]
+    if (!items || items.length === 0 || firstItem?.error) {
+        return fetchProfileDetails(cleanUsername, firstItem)
     }
 
-    // Since resultsType="posts" and addParentData=true, items is an array of posts,
-    // and each item contains the parent profile details flatly.
-    const parentData = items[0];
-
-    // Check if the scraper returned error info
-    if (parentData.error) {
-        if (parentData.message?.includes('found')) {
-            throw new Error(`Instagram hesabı (@${cleanUsername}) bulunamadı. Lütfen kullanıcı adını kontrol edin.`);
-        }
-        throw new Error(`Apify Scraper Hatası: ${parentData.message || 'Kullanıcı verisi alınamadı.'}`);
-    }
+    const parentData = firstItem;
 
     const latestPosts = items || []
 
@@ -139,5 +133,80 @@ async function fetchFromApify(username: string): Promise<NormalizedInstagramData
             is_business_account: parentData.isBusinessAccount
         },
         recent_posts: edges
+    }
+}
+
+function apifyErrorText(item: any): string {
+    return String(item?.errorDescription || item?.message || item?.error || '').trim()
+}
+
+/** Hata kaydını kullanıcıya gösterilecek açıklamaya çevirir. */
+function describeApifyError(username: string, item: any): string {
+    const text = apifyErrorText(item).toLowerCase()
+    if (text.includes('not found') || text.includes('not_found') || text.includes("doesn't exist") || text.includes('does not exist')) {
+        return `Instagram hesabı (@${username}) bulunamadı. Lütfen kullanıcı adını kontrol edin.`
+    }
+    if (text.includes('private')) {
+        return `Instagram hesabı (@${username}) gizli görünüyor. Doğrulama için hesabı geçici olarak herkese açık yapın.`
+    }
+    return `Instagram hesabı (@${username}) okunamadı. Hesabın herkese açık olduğundan emin olup birkaç dakika sonra tekrar deneyin.`
+}
+
+/** Profil bilgisi (gönderi listesi alınamadığında). */
+async function fetchProfileDetails(username: string, postsErrorItem: any): Promise<NormalizedInstagramData> {
+    if (postsErrorItem) {
+        console.warn(`[InstagramService] Gönderi modu hata döndü (@${username}): ${apifyErrorText(postsErrorItem) || 'açıklama yok'}`)
+    }
+
+    const details = await runApifyActor('apify~instagram-scraper', {
+        directUrls: [`https://www.instagram.com/${username}/`],
+        resultsType: 'details',
+        resultsLimit: 1,
+    })
+    const profile = details?.[0]
+
+    if (!profile || profile.error || !profile.username) {
+        if (profile?.error) {
+            console.warn(`[InstagramService] Profil modu hata döndü (@${username}): ${apifyErrorText(profile) || 'açıklama yok'}`)
+        }
+        throw new Error(describeApifyError(username, profile?.error ? profile : postsErrorItem))
+    }
+
+    if (profile.private) {
+        throw new Error(describeApifyError(username, { error: 'private' }))
+    }
+
+    const posts: any[] = Array.isArray(profile.latestPosts) ? profile.latestPosts.slice(0, 15) : []
+    const edges = posts.map((post: any) => ({
+        node: {
+            id: post.id,
+            shortcode: post.shortCode,
+            display_url: post.displayUrl,
+            is_video: post.type === 'Video' || post.isVideo === true,
+            video_view_count: Number(post.videoViewCount || post.videoPlayCount || 0),
+            edge_media_to_comment: { count: post.commentsCount || 0 },
+            edge_liked_by: { count: post.likesCount || 0 },
+            taken_at_timestamp: Math.floor(new Date(post.timestamp).getTime() / 1000),
+            is_pinned: post.isPinned === true,
+        },
+    }))
+
+    return {
+        user: {
+            id: String(profile.id || profile.fbid || ''),
+            username: profile.username,
+            full_name: profile.fullName || profile.username,
+            biography: profile.biography || '',
+            follower_count: profile.followersCount || 0,
+            following_count: profile.followsCount || 0,
+            media_count: profile.postsCount || 0,
+            is_verified: profile.verified || false,
+            is_private: profile.private || false,
+            profile_pic_url: profile.profilePicUrl,
+            external_url: profile.externalUrl,
+            category_name: profile.businessCategoryName || profile.categoryName,
+            is_business_account: profile.isBusinessAccount,
+        },
+        recent_posts: edges,
     }
 }
