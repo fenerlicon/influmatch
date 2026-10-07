@@ -33,29 +33,3 @@ export async function dismissInfluencer(receiverUserId: string) {
   revalidatePath('/dashboard/brand/offers')
   return { success: true }
 }
-
-export async function undismissInfluencer(receiverUserId: string) {
-  const supabase = createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: 'Oturum açmanız gerekiyor.' }
-  }
-
-  const { error } = await supabase
-    .from('dismissed_offers')
-    .delete()
-    .eq('user_id', user.id)
-    .eq('receiver_user_id', receiverUserId)
-
-  if (error) {
-    console.error('Undismiss influencer error:', error)
-    return { error: `Influencer geri getirilemedi: ${error.message}` }
-  }
-
-  revalidatePath('/dashboard/brand/offers')
-  return { success: true }
-}
-

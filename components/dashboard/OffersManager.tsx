@@ -340,28 +340,6 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
             }
           },
         )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'message_reads',
-            filter: `user_id=eq.${currentUserId}`,
-          },
-          async () => {
-            // Recalculate unread count when read receipts change for current user
-            const unreadCount = await calculateUnreadCount(roomId)
-            setUnreadCounts((prev) => {
-              const next = new Map(prev)
-              if (unreadCount > 0) {
-                next.set(roomId, unreadCount)
-              } else {
-                next.delete(roomId)
-              }
-              return next
-            })
-          },
-        )
         .subscribe()
 
       return channel

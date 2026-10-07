@@ -44,30 +44,3 @@ export async function dismissOffer(offerId: string) {
   revalidatePath('/dashboard/influencer/offers')
   return { success: true }
 }
-
-export async function undismissOffer(offerId: string) {
-  const supabase = createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: 'Oturum açmanız gerekiyor.' }
-  }
-
-  const { error } = await supabase
-    .from('dismissed_offers')
-    .delete()
-    .eq('user_id', user.id)
-    .eq('offer_id', offerId)
-
-  if (error) {
-    console.error('Undismiss offer error:', error)
-    return { error: `Teklif geri getirilemedi: ${error.message}` }
-  }
-
-  revalidatePath('/dashboard/offers')
-  revalidatePath('/dashboard/influencer/offers')
-  return { success: true }
-}
-
