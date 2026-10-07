@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export const revalidate = 0
 
@@ -13,7 +14,7 @@ export default async function BrandDiscoverPage() {
   // Get user profile for spotlight status & verification status
   const { data: userData } = await supabase
     .from('users')
-    .select('spotlight_active, spotlight_plan, category, verification_status')
+    .select('spotlight_active, spotlight_plan, spotlight_expires_at, category, verification_status')
     .eq('id', user.id)
     .single()
 
@@ -34,6 +35,8 @@ export default async function BrandDiscoverPage() {
   const favoritedIds = new Set(favorites?.map((f: { influencer_id: string }) => f.influencer_id) || [])
 
   const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
+  // Süresi dolmuş Spotlight PRO filtrelerini açmasın.
+  const isSpotlight = hasActiveSpotlight(userData)
 
   return (
     <div className="space-y-6">
@@ -50,8 +53,8 @@ export default async function BrandDiscoverPage() {
         influencers={influencers}
         initialFavoritedIds={Array.from(favoritedIds) as string[]}
         userRole={userRole}
-        isSpotlightMember={userData?.spotlight_active ?? false}
-        spotlightPlan={userData?.spotlight_plan as 'basic' | 'pro' | null}
+        isSpotlightMember={isSpotlight}
+        spotlightPlan={isSpotlight ? (userData?.spotlight_plan as 'basic' | 'pro' | null) : null}
         defaultCategory={userData?.category}
       />
     </div>

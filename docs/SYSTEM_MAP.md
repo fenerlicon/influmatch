@@ -288,11 +288,11 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `discover/page.tsx`, `components/dashboard/BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`, `AddToListModal`, `SimilarProfilesModal`
 - **Sorunlar:**
   - ✅ ~~**3.2-S1 [ORTA]**~~ (favoriler ve liste sayfaları aktif Spotlight planını geçiriyor) Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
-  - **3.2-S2 [ORTA]** Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
+  - **3.2-S2 [ORTA]** (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
 
 ### 3.3 Favoriler
 - **Dosyalar:** `app/dashboard/brand/favorites/page.tsx`, `app/actions/favorites.ts`
-- **Sorunlar:** **3.3-S1 [ORTA]** `favorites` tablosundaki UNIQUE kısıtı bir migration'da düşürülmüş; tekrar varsa `.single()` hata verip
+- **Sorunlar:** ✅ ~~**3.3-S1 [ORTA]**~~ (toggle tüm eşleşen satırlara bakıyor; tekil indeks `20261007000010` toplu SQL'de; canlıda tekrar yok) `favorites` tablosundaki UNIQUE kısıtı bir migration'da düşürülmüş; tekrar varsa `.single()` hata verip
   silmek yerine bir kopya daha ekliyor.
 
 ### 3.4 Inflist (adlandırılmış listeler)
@@ -790,6 +790,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - `sohbet_ekleri_kurali.sql` → `20261007000007` politika kısmı (chat-attachments oda katılımcısı kuralı, 5.1-S5)
 - `geri_bildirim_gorselleri_kurali.sql` → `20261007000008` DROP POLICY kısmı (kova zaten gizli, 1.10-S1)
 - `ilan_kurallari_temizlik.sql` → `20261007000009` (gevşek advert_projects kuralları, 7.7-S2)
+- `20261007000010` favoriler tekil indeksi (3.3-S1)
 
 ### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07)
 - Mobil uygulamaya bir süre dokunulmayacak; önce web tamamlanacak, mobil entegrasyonlar web'e göre yapılacak.
