@@ -180,6 +180,15 @@ export default function ModernChatWindow({
             return
         }
 
+        if (!file.type.startsWith('image/')) {
+            alert('Yalnızca görsel gönderebilirsiniz (PNG, JPEG, WEBP).')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Görsel en fazla 5 MB olabilir.')
+            return
+        }
+
         setIsSending(true)
         try {
             const fileExt = file.name.split('.').pop()
@@ -200,7 +209,7 @@ export default function ModernChatWindow({
             await handleSendMessage(content)
         } catch (error: any) {
             console.error('File upload error:', error)
-            alert(`Dosya yüklenemedi: ${error.message || 'Bilinmeyen hata'}. Lütfen 'chat-attachments' adında bir bucket olduğundan ve public erişim izni olduğundan emin olun.`)
+            alert('Görsel yüklenemedi. Lütfen tekrar deneyin.')
         } finally {
             setIsSending(false)
         }

@@ -17,31 +17,23 @@ export default function BrandVerificationCard({
   const [verificationStatus, setVerificationStatus] = useState(initialVerificationStatus)
   const showVerificationCard = verificationStatus === 'pending'
 
-  // Real-time subscription for verification status
+  // users tablosu realtime yayınında değil (gizli kolonlar sızmasın diye); bu yüzden durum,
+  // sekmeye geri dönüldüğünde yeniden okunur. Admin onayı sayfa yenilenmeden de görünür.
   useEffect(() => {
-    const channel = supabase
-      .channel(`brand-verification-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'users',
-          filter: `id=eq.${userId}`,
-        },
-        (payload) => {
-          const newStatus = payload.new.verification_status as 'pending' | 'verified' | 'rejected'
-          if (newStatus) {
-            setVerificationStatus(newStatus)
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
+    if (verificationStatus !== 'pending') return
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible') return
+      const { data } = await supabase.from('users').select('verification_status').eq('id', userId).maybeSingle()
+      const next = data?.verification_status as 'pending' | 'verified' | 'rejected' | undefined
+      if (next) setVerificationStatus(next)
     }
-  }, [userId, supabase])
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [userId, supabase, verificationStatus])
 
   if (!showVerificationCard) {
     return null
