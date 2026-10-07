@@ -557,8 +557,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - `supabase/cron/hourly_jobs.sql` — pg_cron + Vault, elle çalıştırılır.
 - **Sorunlar:**
   - **7.1-S1 [YÜKSEK]** Canlı DB repodan neredeyse kesin sapmış (bkz. 7.6); migration'lar sıfırdan sırayla oynatılamıyor (`20260316000001` var olmayan `influencer_id`'yi kullanıyor).
-  - **7.1-S2 [ORTA]** Bazı migration'lar idempotent değil (`20241209023500` IF NOT EXISTS'siz, `create_user_badges_table` korumasız ADD CONSTRAINT).
-  - **7.1-S3 [ORTA]** Kolon bazlı yetki (`20260930000001`) sonradan eklenen her kolonu gizliyor; yeni herkese açık kolon için GRANT bloğu tekrar çalıştırılmalı (unutması kolay).
+  - ✅ ~~**7.1-S2 [ORTA]**~~ (`20241209023500` IF NOT EXISTS; `create_user_badges_table` politikaları DROP IF EXISTS + kısıt DO bloğu, rozet ekleme canlıdaki gibi yalnızca admin) Bazı migration'lar idempotent değil (`20241209023500` IF NOT EXISTS'siz, `create_user_badges_table` korumasız ADD CONSTRAINT).
+  - ✅ ~~**7.1-S3 [ORTA]**~~ (tasarım gereği güvenli varsayılan: yeni kolon gizli doğar. Kural: herkese açık yeni bir `users` kolonu eklenirken aynı migration'da `GRANT SELECT (kolon) ON public.users TO anon, authenticated;` yazılır) Kolon bazlı yetki (`20260930000001`) sonradan eklenen her kolonu gizliyor; yeni herkese açık kolon için GRANT bloğu tekrar çalıştırılmalı (unutması kolay).
 
 ### 7.2 Tablolar
 
