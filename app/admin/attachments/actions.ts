@@ -6,7 +6,8 @@ import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 
 // Geri bildirim ve destek talebi ekleri özel (private) kovada tutulur; admin ekranı bunları
 // kısa süreli imzalı bağlantı ile açar. Kayıtlarda eski "public" URL biçimi saklı; yol oradan çıkarılır.
-const PRIVATE_ATTACHMENT_BUCKETS = new Set(['feedback-images'])
+// chat-attachments: raporlanan fotoğraflı mesajlar (admin odanın tarafı olmadığı için RLS ile açamaz).
+const PRIVATE_ATTACHMENT_BUCKETS = new Set(['feedback-images', 'chat-attachments'])
 const SIGNED_URL_TTL_SECONDS = 10 * 60
 
 export async function getAttachmentUrl(storedUrl: string): Promise<{ url?: string; error?: string }> {

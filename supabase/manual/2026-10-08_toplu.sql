@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- 2026-10-08 TOPLU SQL — Supabase Dashboard > SQL Editor'de TEK SEFERDE çalıştırın.
--- İçerik (sırasıyla): 20261008000001, 20261008000002, 20261008000003.
+-- İçerik (sırasıyla): 20261008000001, 20261008000002, 20261008000003, 20261008000004.
 -- Tekrar çalıştırılabilir. Bittiğinde web PR'ı birleştirilebilir (kod bu değişikliklere dayanıyor).
 -- ==============================================================================
 
@@ -308,3 +308,26 @@ DROP POLICY IF EXISTS "Kullanıcılar sadece kendi belgelerini yükleyebilir" ON
 
 -- 7.4-S3: boş taslak fonksiyon (canlıda zaten yok; repo ile eşitlemek için)
 DROP FUNCTION IF EXISTS public.handle_delete_auth_user();
+
+-- >>> 20261008000004_private_chat_attachments.sql
+-- ==============================================================================
+-- 2026-10-08: Sohbet ekleri gizli kovaya (SYSTEM_MAP 7.5-S2)
+--
+-- chat-attachments kovası herkese açıktı: adresi bilen herkes görseli açabiliyordu. Kova gizli yapılır,
+-- okuma yalnızca odanın iki tarafına açılır. Web sohbeti görselleri 1 saatlik imzalı bağlantıyla gösterir;
+-- mesajlarda saklı eski "public" adresler yol bilgisi olarak kullanılmaya devam eder.
+-- Yükleme kuralı 20261007000017 ile zaten oda katılımcısına sınırlı.
+-- ==============================================================================
+
+ALTER POLICY "Anyone can view chat attachments" ON storage.objects
+  TO authenticated
+  USING (
+    bucket_id = 'chat-attachments'
+    AND EXISTS (
+      SELECT 1 FROM public.rooms r
+      WHERE (r.id)::text = (storage.foldername(objects.name))[1]
+        AND (r.brand_id = (SELECT auth.uid()) OR r.influencer_id = (SELECT auth.uid()))
+    )
+  );
+
+UPDATE storage.buckets SET public = false WHERE id = 'chat-attachments';

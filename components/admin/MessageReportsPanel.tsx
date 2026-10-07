@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, Eye, CheckCircle, XCircle, Archive, Trash2, Loader2 } from 'lucide-react'
 import { updateReportStatus, deleteMessage } from '@/app/admin/messages/actions'
+import { getAttachmentUrl } from '@/app/admin/attachments/actions'
+import { parseChatImageUrl } from '@/lib/chat-image'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 
 interface MessageReport {
@@ -304,9 +306,25 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
                         <div className="mb-4">
                           <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Raporlanan Mesaj</p>
                           <div className="rounded-xl border border-white/10 bg-[#0F1014] p-4">
-                            <p className="text-sm text-gray-300 whitespace-pre-wrap">
-                              {report.message_snapshot ?? report.message.content}
-                            </p>
+                            {parseChatImageUrl(report.message_snapshot ?? report.message.content) ? (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const stored = parseChatImageUrl(report.message_snapshot ?? report.message!.content)
+                                  if (!stored) return
+                                  const result = await getAttachmentUrl(stored)
+                                  if (result.url) window.open(result.url, '_blank', 'noopener,noreferrer')
+                                  else alert(result.error ?? 'Fotoğraf açılamadı.')
+                                }}
+                                className="text-sm font-semibold text-soft-gold underline hover:text-white"
+                              >
+                                📷 Fotoğrafı aç (10 dk geçerli bağlantı)
+                              </button>
+                            ) : (
+                              <p className="text-sm text-gray-300 whitespace-pre-wrap">
+                                {report.message_snapshot ?? report.message.content}
+                              </p>
+                            )}
                             {report.message_removed_at && (
                               <p className="mt-2 text-xs font-semibold text-red-400">Sohbetten kaldırıldı</p>
                             )}

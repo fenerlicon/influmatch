@@ -633,12 +633,12 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `advert-hero-images` | elle | herhangi bir authenticated yükler; sahibi siler | kök dizine yükleme |
 | `feedback-images` | elle | aynı desen | destek ekleri de burada (public) |
 | `tax-documents` | migration | özel; yalnızca kendi klasörüne INSERT | — |
-| `chat-attachments` | **hiçbir yerde** | **yok** | public URL |
+| `chat-attachments` | `20261008000004` | gizli; okuma ve yükleme oda taraflarına | imzalı URL |
 
 - **Sorunlar:**
   - **7.5-S1 [YÜKSEK]** (kısmen ✅: ölü "Tam Yetki" politikaları 7 Ekim toplu SQL'iyle silindi (doğrulandı). Kalan tek iş: "avatars insert" yayındaki mobil sürüm public/<uid>/ yüklediği için mobil sürüm çıkınca kaldırılacak) `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
     (avatars politikaları, users SELECT değişikliği ve `track_analytics_event` sertleştirmesi dahil). Canlıda kontrol edilmeli.
-  - **7.5-S2 [ORTA]** `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
+  - ✅ ~~**7.5-S2 [ORTA]**~~ (`20261008000004`: kova gizli, okuma yalnızca oda taraflarına; sohbet görselleri 1 saatlik imzalı bağlantıyla, admin raporlanan fotoğrafı 10 dk'lık bağlantıyla açıyor) `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
 
 ### 7.6 Şema kayması (kodda var, migration'da yok)
 - ✅ ~~**7.6-S1 [YÜKSEK]**~~ (`20261007000011` ile repoya eklendi) `advert_applications.influencer_id` — politikalarda, web ve mobilde kullanılıyor, hiç oluşturulmamış.
