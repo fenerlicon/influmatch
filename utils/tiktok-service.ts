@@ -141,7 +141,15 @@ export interface NormalizedTikTokData {
   signature: string
   /** TikTok'un değişmeyen hesap kimliği (varsa); kullanıcı adı değişebilir. */
   platform_id: string | null
+  /** Son videoların ortalamaları; video verisi gelmezse null. */
+  recent_video_count: number
+  avg_likes: number | null
+  avg_comments: number | null
+  avg_shares: number | null
+  avg_views: number | null
 }
+
+const RECENT_VIDEO_LIMIT = 12
 
 // Sadece geçici servis hataları tekrar denenir (her deneme Apify kredisi harcar).
 async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number = 1000): Promise<T> {
@@ -173,7 +181,8 @@ async function fetchTikTokFromApify(username: string): Promise<NormalizedTikTokD
   // Call official Clockworks TikTok Profile Scraper (anahtar havuzu patlayan anahtarı otomatik değiştirir)
   const items = await runApifyActor('clockworks~tiktok-profile-scraper', {
     "profiles": [cleanUsername],
-    "resultsPerPage": 1
+    // Aktör her video için bir satır döndürür; etkileşim oranı son videoların ortalamasından hesaplanır.
+    "resultsPerPage": RECENT_VIDEO_LIMIT
   });
   if (!items || items.length === 0) {
     throw new Error('TikTok profil verisi bulunamadı. Kullanıcı adı hatalı olabilir veya hesap gizli olabilir.');
@@ -233,9 +242,24 @@ async function fetchTikTokFromApify(username: string): Promise<NormalizedTikTokD
     authorMeta.nickname ?? 
     cleanUsername;
 
+  // Gerçek video satırları (beğeni sayısı olanlar); profil özet satırı varsa sayılmaz.
+  const videos = items
+    .filter((item: any) => item && typeof item.diggCount === 'number')
+    .slice(0, RECENT_VIDEO_LIMIT)
+  const average = (key: string): number | null => {
+    const values = videos.map((v: any) => Number(v[key])).filter((n: number) => Number.isFinite(n) && n >= 0)
+    if (values.length === 0) return null
+    return Math.round(values.reduce((sum: number, n: number) => sum + n, 0) / values.length)
+  }
+
   return {
     username: cleanUsername,
     display_name: displayName,
+    recent_video_count: videos.length,
+    avg_likes: average('diggCount'),
+    avg_comments: average('commentCount'),
+    avg_shares: average('shareCount'),
+    avg_views: average('playCount'),
     follower_count: followerCount,
     following_count: followingCount,
     likes_count: likesCount,

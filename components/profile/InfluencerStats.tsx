@@ -131,12 +131,13 @@ export default function InfluencerStats({
     const generateStaticAnalysis = () => {
         const analyses = []
         const fCount = activeData?.followerCount || 0
-        const eRate = activeData?.engagementRate || (isTikTok ? 4.8 : 3.0)
+        // Etkileşim verisi yoksa uydurma bir oran varsayılmaz; o cümle atlanır.
+        const eRate = activeData?.engagementRate || 0
 
         if (isTikTok) {
             if (eRate > 6) analyses.push("TikTok üzerinde dikkat çekici derecede yüksek etkileşime sahip.")
             else if (eRate > 4) analyses.push("Ortalamanın üzerinde TikTok etkileşim oranıyla öne çıkıyor.")
-            else analyses.push("TikTok algoritmasında stabil ve düzenli bir izleyici etkileşimi var.")
+            else if (eRate > 0) analyses.push("TikTok algoritmasında stabil ve düzenli bir izleyici etkileşimi var.")
 
             if (fCount > 100000) analyses.push("Geniş kitlelere ulaşan popüler TikTok içerik üreticisi.")
             else if (fCount > 10000) analyses.push("Niş kitlelere hitap eden, büyümekte olan TikTok hesabı.")
@@ -148,7 +149,7 @@ export default function InfluencerStats({
         } else {
             if (eRate > 5) analyses.push("Yüksek etkileşim oranıyla dikkat çekiyor.")
             else if (eRate > 3) analyses.push("Ortalamanın üzerinde bir etkileşim oranına sahip.")
-            else analyses.push("Gelişmekte olan bir etkileşim grafiği var.")
+            else if (eRate > 0) analyses.push("Gelişmekte olan bir etkileşim grafiği var.")
 
             if (fCount > 100000) analyses.push("Geniş kitlelere ulaşan Macro Influencer.")
             else if (fCount > 10000) analyses.push("Niş kitlelere hitap eden Micro Influencer.")
@@ -380,7 +381,7 @@ export default function InfluencerStats({
                                 <TrendingUp className="h-4 w-4" />
                             </div>
                             <p className="text-xs uppercase tracking-wider text-gray-400">Etkileşim Oranı</p>
-                            <p className="mt-1 text-lg font-bold text-white">%{activeData.engagementRate || '4.8'}</p>
+                            <p className="mt-1 text-lg font-bold text-white">{activeData.engagementRate ? `%${activeData.engagementRate}` : '—'}</p>
                         </div>
                     </>
                 ) : (
@@ -399,7 +400,7 @@ export default function InfluencerStats({
                                 <TrendingUp className="h-4 w-4" />
                             </div>
                             <p className="text-xs uppercase tracking-wider text-gray-400">Etkileşim</p>
-                            <p className="mt-1 text-lg font-bold text-white">%{activeData.engagementRate || 0}</p>
+                            <p className="mt-1 text-lg font-bold text-white">{activeData.engagementRate ? `%${activeData.engagementRate}` : '—'}</p>
                             {activeData.statsPayload?.changes?.engagement_rate && renderChange(activeData.statsPayload.changes.engagement_rate, true)}
                         </div>
 
