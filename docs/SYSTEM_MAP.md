@@ -178,7 +178,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
     7 günlük bekleme yalnızca istemcide ve `updated_at`'e bakıyor. Mobil uç noktalar da sınırsız → Apify kredisi tüketme saldırısı.
   - ✅ ~~**2.1-S2 [ORTA]**~~ (gönderi modu boş/hata dönerse profil "details" moduyla alınıyor; gizli/bulunamadı ayrı mesaj) Gönderisi olmayan Instagram hesabı doğrulanamıyor (scraper gönderi yoksa hata atıyor).
   - ✅ ~~**2.1-S3 [ORTA]**~~ (TikTok yenilemesi `social_account_history` yazıyor: takipçi + yaklaşık etkileşim) TikTok yenilemesi `social_account_history` yazmıyor → TikTok grafikleri boş.
-  - ✅ ~~**2.1-S4 [ORTA]**~~ (son 12 videonun ortalama beğeni+yorum+paylaşım / takipçi; veri yoksa null. Profil ekranlarındaki %4.8/%3.0 yedekleri kaldırıldı; mevcut hesaplar sonraki yenilemede düzelir) TikTok etkileşim oranı uydurma: `(toplam beğeni / takipçi) * 10`, 1.5–18.5 aralığına kırpılıyor.
+  - ✅ ~~**2.1-S4 [ORTA]**~~ (son videoların ortalama beğeni+yorum+paylaşım / takipçi; veri yoksa null. Örnek sayısı `TIKTOK_VIDEO_SAMPLE`, varsayılan 1 = eski maliyet; Profil ekranlarındaki %4.8/%3.0 yedekleri kaldırıldı; mevcut hesaplar sonraki yenilemede düzelir) TikTok etkileşim oranı uydurma: `(toplam beğeni / takipçi) * 10`, 1.5–18.5 aralığına kırpılıyor.
     Bu sayı güven skorunu ve mavi tiki besliyor.
   - ✅ ~~**2.1-S5 [ORTA]**~~ (Apify `authorMeta.id` varsa `tt-id-<id>` kullanılıyor ve başka kullanıcıyla çakışma kontrol ediliyor; yoksa eski biçim) TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
   - **2.1-S6 [DÜŞÜK]** Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.

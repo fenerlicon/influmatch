@@ -149,7 +149,9 @@ export interface NormalizedTikTokData {
   avg_views: number | null
 }
 
-const RECENT_VIDEO_LIMIT = 12
+// Aktör sonuç (video) başına ücret alır (~2,50 $ / 1000). Varsayılan 1 video eski maliyetle aynıdır;
+// daha kararlı bir oran için TIKTOK_VIDEO_SAMPLE ile artırılabilir (en çok 12).
+const RECENT_VIDEO_LIMIT = Math.min(Math.max(Number(process.env.TIKTOK_VIDEO_SAMPLE) || 1, 1), 12)
 
 // Sadece geçici servis hataları tekrar denenir (her deneme Apify kredisi harcar).
 async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number = 1000): Promise<T> {
