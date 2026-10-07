@@ -125,7 +125,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **İş (sırasıyla):** oturum → `users` satırı (yoksa oluşturur) → username/full_name yoksa onboarding →
   reddedilmişse RejectedScreen → DB rolü influencer ve doğrulanmış hesap yoksa `/onboarding/verify` → bannerlar.
 - **Sorunlar:**
-  - **1.8-S1 [KRİTİK]** Rol kaynağı tutarsız. Sidebar, header ve `/dashboard` yönlendirmesi `user_metadata.role`
+  - ✅ ~~**1.8-S1 [KRİTİK]**~~ (rol artık `lib/viewer-role.ts` ile DB'den; marka/influencer layout'ları eklendi) Rol kaynağı tutarsız. Sidebar, header ve `/dashboard` yönlendirmesi `user_metadata.role`
     okuyor; kullanıcı bunu `auth.updateUser({data:{role:'brand'}})` ile değiştirebilir. Ayrıca
     `/dashboard/brand/*` ve `/dashboard/influencer/*` altında rol koruması yok: doğrulanmış bir influencer marka
     keşif ekranını ve AI önerilerini açabilir. Etkilenen yerler: `app/dashboard/page.tsx:15`, `layout.tsx:24`,
@@ -661,9 +661,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `SUPABASE_DB_URL` | `env.example`'da var, kullanılmıyor |
 
 ### 8.7 Gizli bilgiler ve repo hijyeni
-- **8.7-S1 [KRİTİK]** `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
+- ✅ ~~**8.7-S1 [KRİTİK]**~~ (dosya silindi; anahtarın sağlayıcıda iptali kullanıcıda) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
   dosya silinmeli (git geçmişinde kalacağı için iptal şart).
-- **8.7-S2 [DÜŞÜK]** `.env.local.txt` `.gitignore`'a rağmen takip ediliyor (yalnızca URL + anon key).
+- ✅ ~~**8.7-S2 [DÜŞÜK]**~~ (takipten çıkarıldı) `.env.local.txt` `.gitignore`'a rağmen takip ediliyor (yalnızca URL + anon key).
 - **8.7-S3 [DÜŞÜK]** Başıboş dosyalar: `validate_json.js`, `fix_turkish.js`, `crop_icon.py`, boş `types.ts`, `tsc_output.txt`, `tasarim-sistemi-analizi.txt`.
 - **8.7-S4 [ORTA]** Alan adı tutarsızlığı: sitemap/robots/JSON-LD `influmatch.com`, geri kalan her şey `influmatch.net`.
 

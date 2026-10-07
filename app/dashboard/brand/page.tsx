@@ -140,7 +140,7 @@ export default async function BrandDashboardPage() {
   // Fetch AI Recommendations (Shared Logic)
   const recommendations = await getAIRecommendations(user.id, profileData.category, 4)
 
-  const userRole = user.user_metadata?.role || 'brand'
+  const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
   const isSpotlight = profile?.spotlight_active || false
 
   return (

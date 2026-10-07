@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { ChevronLeft, BadgeCheck } from 'lucide-react'
 import OfferModal from '@/components/profile/OfferModal'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { fetchAccountRole } from '@/lib/viewer-role'
 import BadgeDetailList from '@/components/badges/BadgeDetailList'
 import { getCategoryLabel } from '@/utils/categories'
 import InfluencerStats from '@/components/profile/InfluencerStats'
@@ -68,7 +69,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
     .eq('user_id', profile.id)
 
   const viewer = authResponse.data.user
-  const viewerRole = (viewer?.user_metadata?.role as 'brand' | 'influencer' | undefined) ?? null
+  const viewerRole = viewer ? await fetchAccountRole(supabase, viewer.id) : null
   const isInfluencer = profile.role === 'influencer'
   const isBrand = profile.role === 'brand'
   const canSendOffer = viewerRole === 'brand' && isInfluencer && viewer?.id !== profile.id

@@ -58,7 +58,6 @@ export default function BrandSpotlightPage() {
             const supabase = createSupabaseBrowserClient()
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
-                setUserRole(session.user.user_metadata?.role)
                 setUserId(session.user.id)
 
                 // Check server status first to handle expirations
@@ -70,11 +69,12 @@ export default function BrandSpotlightPage() {
 
                 const { data } = await supabase
                     .from('users')
-                    .select('spotlight_active, spotlight_plan, spotlight_expires_at, verification_status')
+                    .select('role, spotlight_active, spotlight_plan, spotlight_expires_at, verification_status')
                     .eq('id', session.user.id)
                     .single()
 
                 if (data) {
+                    setUserRole(data.role) // rol DB'den; user_metadata güvenilmez
                     setVerificationStatus(data.verification_status)
                     setSpotlightActive(!!data.spotlight_active)
                     if (data.spotlight_active) {

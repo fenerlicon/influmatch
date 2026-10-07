@@ -21,7 +21,6 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect('/login')
   }
 
-  const role = (user.user_metadata?.role ?? 'influencer') as UserRole
   const fullName = user.user_metadata?.full_name ?? user.email ?? 'Kullanıcı'
 
   // Check email confirmation status
@@ -76,6 +75,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   // Use the profile we found
   const finalUserProfile = userProfile
+  // Rol her zaman DB'den: user_metadata.role kullanıcı tarafından değiştirilebilir.
+  const role = (finalUserProfile.role ?? 'influencer') as UserRole
 
   // Check if profile is complete (has username and full_name)
   // If not, redirect to onboarding to complete the profile

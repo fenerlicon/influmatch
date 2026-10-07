@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import OffersManager from '@/components/dashboard/OffersManager'
 import type { OfferListItem } from '@/components/dashboard/InfluencerOffersFeed'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import type { UserRole } from '@/types/auth'
+import { fetchAccountRole } from '@/lib/viewer-role'
 
 export default async function DashboardOffersPage() {
   const supabase = createSupabaseServerClient()
@@ -14,7 +14,7 @@ export default async function DashboardOffersPage() {
     redirect('/login')
   }
 
-  const role = (user.user_metadata?.role ?? 'influencer') as UserRole
+  const role = await fetchAccountRole(supabase, user.id)
 
   if (role !== 'influencer') {
     redirect('/dashboard/brand/offers')
