@@ -83,9 +83,9 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **İş:** Rol seçimi → `auth.signUp` (metadata: role, full_name, creator_type) → `/auth/check-email`.
   `handle_new_auth_user` trigger'ı `users.role`'ü güvenli değere zorlar.
 - **Sorunlar:**
-  - **1.3-S1 [ORTA]** Rol URL'den geliyor; `/signup?role=admin` metadata'ya `admin` yazar. DB rolü influencer olur
+  - ✅ ~~**1.3-S1 [ORTA]**~~ (kayıt URL'sinde yalnızca brand/influencer kabul ediliyor; DB tarafı zaten güvenliydi) Rol URL'den geliyor; `/signup?role=admin` metadata'ya `admin` yazar. DB rolü influencer olur
     ama metadata'ya güvenen ekranlarda admin menüsü görünür (bkz. 1.8-S1).
-  - **1.3-S2 [DÜŞÜK]** Rate‑limit hatası başarı sayılıp check-email'e yönlendiriyor (`signup/page.tsx:91-99`).
+  - ✅ ~~**1.3-S2 [DÜŞÜK]**~~ (hız sınırı artık hata mesajı; check-email'e yönlendirmiyor) Rate‑limit hatası başarı sayılıp check-email'e yönlendiriyor (`signup/page.tsx:91-99`).
 
 ### 1.4 Giriş ve şifre
 - **Dosya:** `app/login/page.tsx`
@@ -281,7 +281,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `app/dashboard/brand/page.tsx`, `BrandPipelineCard`, `ProfileCompletionCard`, `InfluencerGridCard`,
   `InflistManager`, `BrandOffersList`, `BrandVerificationCard`
 - **Sorunlar:**
-  - **3.1-S1 [ORTA]** Spotlight olmayan markaya AI önerileri hesaplanıp gönderiliyor, yalnızca CSS ile bulanıklaştırılıyor (premium veri DOM'da).
+  - ✅ ~~**3.1-S1 [ORTA]**~~ (öneriler yalnızca Spotlight markası için hesaplanıyor; diğerlerine boş iskelet, `lib/spotlight-access.ts`) Spotlight olmayan markaya AI önerileri hesaplanıp gönderiliyor, yalnızca CSS ile bulanıklaştırılıyor (premium veri DOM'da).
   - **3.1-S2 [DÜŞÜK]** `BrandVerificationCard` kolon kısıtlı `users` tablosunu realtime dinliyor; olay sessizce gelmeyebilir (doğrulanmadı).
 
 ### 3.2 Keşfet (influencer ızgarası)
@@ -298,14 +298,14 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 3.4 Inflist (adlandırılmış listeler)
 - **Dosyalar:** `components/dashboard/InflistManager.tsx`, `AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`
 - **Sorunlar:**
-  - **3.4-S1 [ORTA]** Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
+  - **3.4-S1 [ORTA]** (ücretsiz markanın liste oluşturup oluşturamayacağı belirsiz: arayüz oluşturmaya izin verip yönetimi kilitliyor; 3.13 kararıyla birlikte) Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
   - **3.4-S2 [DÜŞÜK]** "Tümünü Yönet" favoriler sayfasına gidiyor, liste yönetim sayfası yok; isim sunucuda doğrulanmıyor;
     revalidate yanlış yolu hedefliyor; `InflistCard.tsx` ve `getLists` ölü.
 
 ### 3.5 AI öneriler (marka)
 - **Dosyalar:** `app/dashboard/brand/ai/page.tsx`, `utils/fetchInfluencers.ts` (`getAIRecommendations`), `utils/matching.ts`
 - **Sorunlar:**
-  - **3.5-S1 [ORTA]** Sayfada Spotlight kontrolü yok (yalnızca link Spotlight'a gösteriliyor); LLM yok, sezgisel skor.
+  - ✅ ~~**3.5-S1 [ORTA]**~~ (Spotlight yoksa sayfa plan ekranına yönlendiriyor; sezgisel skor/LLM yok notu sürüyor) Sayfada Spotlight kontrolü yok (yalnızca link Spotlight'a gösteriliyor); LLM yok, sezgisel skor.
   - **3.5-S2 [DÜŞÜK]** "%95+ uyumlu" sabit iddia; marka ve influencer kategorileri farklı listelerden geldiği için eşleşme genelde boş havuza düşüyor; sınırsız `.in('id', ids)`.
 
 ### 3.6 Teklifler (marka → influencer)
@@ -324,7 +324,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**3.7-S1 [YÜKSEK]**~~ (mevcut kapak korunuyor) İlan düzenleme bozuk: düzenlemede `heroImage` boşaltılıyor, kaydetme "Kapak fotoğrafı zorunlu" diye reddediyor.
   - ✅ ~~**3.7-S2 [YÜKSEK]**~~ (payment_type/custom_questions okunuyor, açıklama ezilmiyor) Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
-  - **3.7-S3 [ORTA]** Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
+  - ✅ ~~**3.7-S3 [ORTA]**~~ (`getAnalyticsStats` Spotlight kontrolü yapıyor) Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
   - **3.7-S4 [DÜŞÜK]** Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
 
 ### 3.8 Başvuru değerlendirme (marka)
@@ -365,6 +365,20 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 3.12 Kilit ve doğrulama ekranları
 - **Dosyalar:** `components/dashboard/BrandLockScreen.tsx`, `BrandVerificationCard.tsx`
 - **Sorunlar:** bkz. 1.8-S4.
+
+### 3.13 Ürün notları: doğrulama yolu ve ücretsiz marka erişimi (karar/tasarım bekliyor)
+- **Kaynak:** kullanıcı notları, 7 Ekim. Henüz kod yok.
+- **Önkoşul:** OAuth yolu gerçekten çalışmalı (2.3-S1/S2: arayüzde "Çok yakında", TikTok OAuth yanlış kullanıcı adı kaydediyor).
+- **Notlar:**
+  - **3.13-N1** Kod (bio) ile doğrulayan Instagram/TikTok hesaplarının belli verileri çekilemiyor: kazıma yalnızca herkese açık
+    sayıları verir (takipçi, beğeni, yorum, izlenme). Erişim, gösterim, kaydetme, kitle demografisi yalnızca OAuth ile gelir.
+  - **3.13-N2** OAuth yerine kod ile doğrulayanlar dezavantajlı olmalı. Seçenekler: güven skorunda tavan, mavi tik/rozet yok,
+    keşifte alt sıra, "resmi veri" etiketi yok, Spotlight sınırı.
+  - **3.13-N3** Ücret ödemeyen markalar yalnızca kod ile doğrulanmış influencer/UGC'lere ulaşabilsin; OAuth ile bağlanmış
+    profiller ücretli markalara ayrılsın.
+  - **3.13-N4** Ücret ödemeyen markalar tüm listeyi göremesin. Sistem markanın ihtiyacını (kategori, bütçe, ilanlar, hedef kitle)
+    analiz edip ücretsiz olarak belli oranda/kotada profil önersin. Kısıt sunucuda uygulanmalı (bugün premium veri istemciye
+    gidip yalnızca CSS ile bulanıklaştırılıyor, bkz. 3.1-S1).
 
 ---
 
