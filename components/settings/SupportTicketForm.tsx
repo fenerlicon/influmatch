@@ -30,7 +30,7 @@ export default function SupportTicketForm({ onTicketCreated }: SupportTicketForm
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<{ ticketNumber: number } | null>(null)
+  const [success, setSuccess] = useState<{ ticketCode: string } | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,8 +144,8 @@ export default function SupportTicketForm({ onTicketCreated }: SupportTicketForm
         fileUrl,
       })
 
-      if (result.success && result.ticketNumber) {
-        setSuccess({ ticketNumber: result.ticketNumber })
+      if (result.success && result.ticketCode) {
+        setSuccess({ ticketCode: result.ticketCode })
         // Reset form
         setSubject('')
         setPriority('Orta')
@@ -193,7 +193,7 @@ export default function SupportTicketForm({ onTicketCreated }: SupportTicketForm
             <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-400" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-emerald-200">Destek talebiniz alındı!</p>
-              <p className="mt-1 text-xs text-emerald-300/80">Talep No: #{success.ticketNumber}</p>
+              <p className="mt-1 text-xs text-emerald-300/80">Talep No: #{success.ticketCode}</p>
               <p className="mt-2 text-xs text-emerald-300/70">
                 Talebiniz en kısa sürede incelenecek ve size geri dönüş yapılacaktır.
               </p>

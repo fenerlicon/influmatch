@@ -1,5 +1,6 @@
 'use server'
 
+import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
@@ -243,9 +244,10 @@ export async function deleteAdvert(advertId: string) {
   // Delete hero image from storage if exists
   if (advert.hero_image) {
     try {
-      const imagePath = advert.hero_image.split('/').pop()
-      if (imagePath) {
-        await supabase.storage.from('advert-hero-images').remove([imagePath])
+      // Dosya yolu adresten çıkarılır (klasörlü yüklemelerde de doğru yolu siler).
+      const stored = storagePathFromPublicUrl(advert.hero_image)
+      if (stored?.bucket === 'advert-hero-images') {
+        await supabase.storage.from('advert-hero-images').remove([stored.path])
       }
     } catch (error) {
       console.error('[deleteAdvert] image delete error', error)

@@ -147,7 +147,7 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
 
     await supabase.auth.signOut()
 
-    return { success: true, redirect: '/login' }
+    return { success: true, redirect: '/login?deleted=true' }
   } catch (error) {
     console.error('[deleteAccount] exception:', error)
     return { success: false, error: 'Beklenmeyen bir hata oluştu' }

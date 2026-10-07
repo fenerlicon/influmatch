@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { ticketCode } from '@/lib/support-ticket'
 import { revalidatePath } from 'next/cache'
 
 export interface CreateSupportTicketPayload {
@@ -12,7 +13,7 @@ export interface CreateSupportTicketPayload {
 
 export async function createSupportTicket(
   payload: CreateSupportTicketPayload,
-): Promise<{ success: boolean; error?: string; ticketId?: string; ticketNumber?: number }> {
+): Promise<{ success: boolean; error?: string; ticketId?: string; ticketCode?: string }> {
   try {
     const supabase = createSupabaseServerClient()
     
@@ -32,14 +33,6 @@ export async function createSupportTicket(
     if (payload.message.trim().length < 10) {
       return { success: false, error: 'Mesaj en az 10 karakter olmalıdır' }
     }
-
-    // Get ticket number before inserting (count existing tickets)
-    const { count: existingCount } = await supabase
-      .from('support_tickets')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-
-    const ticketNumber = (existingCount ?? 0) + 1
 
     // Create support ticket
     const { data: ticket, error } = await supabase
@@ -63,7 +56,7 @@ export async function createSupportTicket(
     revalidatePath('/dashboard/influencer/settings')
     revalidatePath('/dashboard/brand/settings')
     
-    return { success: true, ticketId: ticket.id, ticketNumber }
+    return { success: true, ticketId: ticket.id, ticketCode: ticketCode(ticket.id) }
   } catch (error) {
     console.error('[createSupportTicket] exception:', error)
     return { success: false, error: 'Beklenmeyen bir hata oluştu' }

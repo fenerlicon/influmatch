@@ -84,7 +84,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
     
     const showMatchDetails = (matchReasons && matchReasons.length > 0) && ((matchScore || 0) > 25)
 
-    // Verification Logic: Blue tick ONLY if they have the verified-account badge (completed bio check)
+    // Mavi tik yalnızca verified-account rozeti varsa gösterilir (kural: lib/blue-tick-rules.ts — Spotlight + performans + güven)
     const isVerified = influencer.displayed_badges?.includes('verified-account')
 
     const isSpotlightUser = isSpotlightMember

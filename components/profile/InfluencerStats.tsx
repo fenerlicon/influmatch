@@ -343,7 +343,7 @@ export default function InfluencerStats({
               <div>
                 <p className="text-sm font-semibold text-white">Performans Verileri</p>
                 <p className="text-xs text-gray-400">
-                  Son {formatDist(activeData.lastUpdated)} güncellendi. <span className={`${isTikTok ? 'text-[#25F4EE]/80' : 'text-soft-gold/80'} font-medium`}>(GÜNCEL: Son 21 Gün ve Sabitsiz)</span>
+                  Son {formatDist(activeData.lastUpdated)} güncellendi.
                 </p>
               </div>
             </div>
@@ -455,8 +455,8 @@ export default function InfluencerStats({
                         </span>
                         <span>
                             {isTikTok 
-                                ? 'TikTok Resmi Entegrasyonu Aktif' 
-                                : 'Son 6 gönderi analiz edildi'}
+                                ? 'Herkese açık TikTok profilinden alındı'
+                                : 'Son gönderiler analiz edildi'}
                         </span>
                     </div>
                     {!isTikTok && (

@@ -40,9 +40,9 @@ export async function awardBadgesForUser(userId: string) {
   const existingBadgeIds = existingBadges?.map((b) => b.badge_id) ?? []
 
   if (role === 'influencer') {
-    // 1. Verified Account Badge
-    // This is now awarded directly upon social verification in actions/social-verification.ts
-    // or manually by admin via actions.ts/toggleBlueTick
+    // 1. Mavi tik (verified-account) burada verilmez: lib/blue-tick.ts (syncBlueTick) kuralı uygular
+    //    (Spotlight + doğrulanmış hesap + taze istatistik + takipçi + güven skoru); admin istisnası
+    //    users.blue_tick_override ile.
     // No automatic logic here.
 
     // 2. Profile Expert Badge (100% completion)

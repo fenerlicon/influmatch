@@ -1,5 +1,6 @@
 'use client'
 
+import { ticketCode } from '@/lib/support-ticket'
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, X } from 'lucide-react'
@@ -124,13 +125,7 @@ export default function SupportTicketsList({ userId, initialTickets }: SupportTi
     }).format(date)
   }
 
-  const getTicketNumber = (ticket: SupportTicket) => {
-    const sortedTickets = [...tickets].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    )
-    const index = sortedTickets.findIndex((t) => t.id === ticket.id)
-    return index + 1
-  }
+  const getTicketNumber = (ticket: SupportTicket) => ticketCode(ticket.id)
 
   if (tickets.length === 0) {
     return null
