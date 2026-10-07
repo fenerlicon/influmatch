@@ -31,14 +31,14 @@ export default async function BrandAdvertPage() {
     supabase
       .from('advert_projects')
       .select(
-        `id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, deliverables, platforms, location, hero_image, deadline, status, created_at, brand_user_id`,
+        `id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, deliverables, platforms, location, hero_image, deadline, status, created_at, brand_user_id, payment_type, custom_questions`,
       )
       .eq('status', 'open')
       .order('created_at', { ascending: false }),
     supabase
       .from('advert_projects')
       .select(
-        `id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, deliverables, platforms, location, hero_image, deadline, status, created_at, brand_user_id`,
+        `id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, deliverables, platforms, location, hero_image, deadline, status, created_at, brand_user_id, payment_type, custom_questions`,
       )
       .eq('brand_user_id', user.id)
       .order('created_at', { ascending: false }),
@@ -112,6 +112,8 @@ export default async function BrandAdvertPage() {
       status: row.status ?? 'open',
       createdAt: row.created_at,
       brandAvatar: brandUser?.avatar_url ?? null,
+      paymentType: row.payment_type ?? 'cash',
+      customQuestions: Array.isArray(row.custom_questions) ? row.custom_questions : [],
     }
   }
 

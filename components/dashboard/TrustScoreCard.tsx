@@ -15,6 +15,8 @@ interface TrustScoreCardProps {
 }
 
 export default function TrustScoreCard({ score, details }: TrustScoreCardProps) {
+    // engagementRate yüzde olarak gelir (ör. 3.5 = %3.5); puan formülüyle aynı %1-%10 aralığı.
+    const healthyEngagement = !!details && details.engagementRate >= 1 && details.engagementRate <= 10
     const [showInfo, setShowInfo] = useState(false)
 
     // Analyze score for color and status
@@ -157,13 +159,13 @@ export default function TrustScoreCard({ score, details }: TrustScoreCardProps) 
 
                         {/* 2. Sağlıklı Etkileşim */}
                         <div className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors",
-                            (details?.engagementRate >= 0.01 && details?.engagementRate <= 0.10) ? "bg-blue-500/10 border border-blue-500/20" : "bg-white/5 opacity-50"
+                            healthyEngagement ? "bg-blue-500/10 border border-blue-500/20" : "bg-white/5 opacity-50"
                         )}>
                             <TrendingUp className={cn("h-4 w-4 mt-0.5 shrink-0",
-                                (details?.engagementRate >= 0.01 && details?.engagementRate <= 0.10) ? "text-blue-400" : "text-gray-500"
+                                healthyEngagement ? "text-blue-400" : "text-gray-500"
                             )} />
                             <div>
-                                <p className={cn("text-xs font-bold", (details?.engagementRate >= 0.01 && details?.engagementRate <= 0.10) ? "text-blue-200" : "text-gray-200")}>
+                                <p className={cn("text-xs font-bold", healthyEngagement ? "text-blue-200" : "text-gray-200")}>
                                     Sağlıklı Etkileşim (+20 Puan)
                                 </p>
                                 <p className="text-[10px] text-gray-400">%1 - %10 arası etkileşim oranı en idealdir.</p>

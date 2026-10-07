@@ -75,6 +75,10 @@ export default async function BrandProfileSettingsPage() {
     website: socialLinks?.website ?? '',
     linkedin: socialLinks?.linkedin ?? '',
     instagram: socialLinks?.instagram ?? '',
+    // Formda olup burada geçilmeyen linkler kayıtta null'a çekiliyordu (3.9-S2).
+    kick: socialLinks?.kick ?? '',
+    twitter: socialLinks?.twitter ?? '',
+    twitch: socialLinks?.twitch ?? '',
     displayedBadges,
     availableBadgeIds,
     companyLegalName: profile?.company_legal_name ?? '',

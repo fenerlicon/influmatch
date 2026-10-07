@@ -77,12 +77,15 @@ export async function saveBrandAdvert(payload: SaveAdvertPayload) {
     deadline: deadline || null,
     brand_user_id: user.id,
     brand_id: user.id,
-    description: description?.trim() || '',
   }
 
-  // Only add these columns if they are provided (to avoid errors on older schemas)
+  // Form açıklama alanı göndermiyor: güncellemede mevcut açıklama ezilmesin, yeni ilanda boş başlasın.
+  if (description !== undefined) row.description = description?.trim() || ''
+  else if (!id) row.description = ''
+
   if (payment_type) row.payment_type = payment_type
-  if (custom_questions && custom_questions.length > 0) row.custom_questions = custom_questions
+  // Boş dizi de yazılır: markanın tüm soruları silmesi güncellemeye yansısın.
+  if (Array.isArray(custom_questions)) row.custom_questions = custom_questions
 
   if (status) {
     row.status = status
