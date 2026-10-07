@@ -114,7 +114,7 @@ Saatlik görev Supabase pg_cron ile çalışıyor. `supabase/cron/hourly_jobs.sq
 
 ## 6. Açık maddeler (SYSTEM_MAP'ten, 2026-10-07)
 
-Ayrıntı ve bağlam için haritadaki ilgili satıra bak. "NOT" satırları ürün notudur, kod işi değildir.
+Ayrıntı ve bağlam için haritadaki ilgili satıra bak. Takip panosu bu tabloyla eşit (7 Ekim); her değişiklikte panoyu da güncelle (CLAUDE.md → Çalışma akışı). "NOT" satırları ürün notudur, kod işi değildir.
 
 | ID | Seviye | Özet |
 |---|---|---|
@@ -150,6 +150,7 @@ Ayrıntı ve bağlam için haritadaki ilgili satıra bak. "NOT" satırları ür�
 | 7.5-S2 | ORTA | `chat-attachments` bucket'ı migration'da yok (yükleme kuralı `20261007000017` ile daraltıldı); özel bucket + imzalı URL'ye geçilmeli. |
 | 7.6-S4 | DÜŞÜK | `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`. |
 | 7.7-S3 | DÜŞÜK | `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'\|'pro'` cast'i var. |
+| 8.7-S1 | KRİTİK | Dosya silindi; RocketAPI anahtarının rocketapi.io panelinde iptali kullanıcıda. |
 | 8.4-S1 | YÜKSEK | Ücretsiz plan günde 100, ayda 3000 e-posta. Kurumsal e-posta kodları ve admin uyarıları aynı kotayı paylaşıyor; kota dolunca markalara kod gitmez. İzleme ve uyarı eklendi, risk sürüyor (çözüm: ücretli plan veya ikinci sağlayıcı). |
 | 9.1-S2 | ORTA | PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski). |
 | 9.1-S3 | DÜŞÜK | (Footer `/discover` → `/spotlight`; gizlilik linki zaten düzgün) Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`. |
