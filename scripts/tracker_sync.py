@@ -32,12 +32,25 @@ def parse_map():
     items = {}
     order = 0
     section_by_module = {}
-    for line in open(MAP_PATH, encoding='utf-8'):
-        m = ITEM_RE.match(line.rstrip('\n'))
+    lines = open(MAP_PATH, encoding='utf-8').read().split('\n')
+    for idx, line in enumerate(lines):
+        m = ITEM_RE.match(line)
         if not m:
             continue
         order += 1
         rest = m.group('rest').strip()
+        # Madde birden çok satıra yayılabilir: girintili, yeni madde olmayan satırlar devamıdır.
+        item_indent = len(m.group('indent'))
+        j = idx + 1
+        while j < len(lines):
+            nxt = lines[j]
+            stripped = nxt.strip()
+            if not stripped or stripped.startswith('- ') or stripped.startswith('#') or stripped.startswith('|'):
+                break
+            if len(nxt) - len(nxt.lstrip()) <= item_indent:
+                break
+            rest += ' ' + stripped
+            j += 1
         note = ''
         if rest.startswith('('):
             depth = 0
