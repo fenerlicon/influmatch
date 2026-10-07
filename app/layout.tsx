@@ -34,8 +34,8 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   'name': 'Influmatch',
-  'url': 'https://influmatch.com',
-  'logo': 'https://influmatch.com/icon.png',
+  'url': 'https://influmatch.net',
+  'logo': 'https://influmatch.net/icon.png',
   'description': 'Türkiye\'nin en şeffaf ücretsiz influencer bulma platformu ve arama motoru. Markalar ve influencerlar ajanssız doğrudan buluşur.',
   'address': {
     '@type': 'PostalAddress',
