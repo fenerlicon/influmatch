@@ -142,7 +142,7 @@ export default function BrandProfileScreen({ navigation }) {
             setSaving(true);
             const { data: { user } } = await supabase.auth.getUser();
             const ext = 'jpg';
-            const path = `public/${user.id}/avatar_${Date.now()}.${ext}`;
+            const path = `${user.id}/avatar_${Date.now()}.${ext}`;
 
             const { error: upErr } = await supabase.storage
                 .from('avatars')

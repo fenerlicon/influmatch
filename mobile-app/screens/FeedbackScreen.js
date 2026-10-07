@@ -24,31 +24,26 @@ export default function FeedbackScreen({ navigation }) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Kullanıcı bulunamadı');
 
-            // Attempt to insert into a 'feedback' or 'interactions' table if it exists.
-            // Since we don't know the exact schema, we will try a generic approach or just simulate for MVP
-            // However, the user specifically mentioned "our site creates feedback with user info".
-            // I will assume a 'feedback' table creates via:
+            // Web ile aynı tablo: admin panelindeki geri bildirim listesine düşer.
+            const { data: profile } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle();
+
             const { error } = await supabase
-                .from('feedback')
+                .from('feedback_submissions')
                 .insert({
                     user_id: user.id,
-                    message: message,
-                    rating: rating,
-                    platform: 'mobile',
-                    created_at: new Date().toISOString()
+                    role: profile?.role || 'influencer',
+                    description: rating ? `[Mobil · ${rating}/5] ${message.trim()}` : `[Mobil] ${message.trim()}`,
+                    status: 'pending',
                 });
 
-            if (error) {
-                // If table doesn't exist, we might just log it or alert success for MVP
-                console.log('Feedback table error (might not exist):', error);
-                // Fallback: If error is strictly about relation, ignore.
-                // But let's assume success for user experience if it's MVP.
-                Alert.alert('Teşekkürler', 'Geri bildiriminiz alındı.');
-                navigation.goBack();
-            } else {
-                Alert.alert('Teşekkürler', 'Geri bildiriminiz başarıyla gönderildi.');
-                navigation.goBack();
-            }
+            if (error) throw error;
+
+            Alert.alert('Teşekkürler', 'Geri bildiriminiz başarıyla gönderildi.');
+            navigation.goBack();
 
         } catch (error) {
             console.log('Feedback error:', error);

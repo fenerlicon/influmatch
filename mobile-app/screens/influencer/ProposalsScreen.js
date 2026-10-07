@@ -147,7 +147,8 @@ export default function ProposalsScreen({ route, navigation }) {
                 .from('advert_applications')
                 .insert({
                     advert_id: selectedProject.id,
-                    influencer_id: user.id,          // Correct column name (web uses influencer_id)
+                    influencer_id: user.id,
+                    influencer_user_id: user.id,     // canlıda ikisi de NOT NULL (web ile aynı)
                     status: 'pending',
                     cover_letter: coverLetter.trim() || null,
                     deliverable_idea: deliveryItem.trim() || null,  // Save to its own column

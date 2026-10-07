@@ -152,7 +152,7 @@ export default function OnboardingScreen({ navigation }) {
     async function uploadAvatar(base64Image) {
         try {
             setUploading(true);
-            const filePath = `public/${user.id}/${Date.now()}.jpg`;
+            const filePath = `${user.id}/${Date.now()}.jpg`;
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')

@@ -198,8 +198,8 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `app/api/auth/{instagram,tiktok}/{login,callback}/route.ts`, `utils/meta-service.ts`, `utils/tiktok-service.ts`,
   `lib/oauth-state.ts` (CSRF state — sağlam), tetikleyici `components/influencer/ProfileForm.tsx`
 - **Sorunlar:**
-  - **2.3-S1 [YÜKSEK]** Dashboard bu bağlantıları "Çok Yakında" diye kapalı gösteriyor ama ProfileForm canlı link veriyor.
-  - **2.3-S2 [YÜKSEK]** TikTok OAuth kullanıcı adı yerine `display_name` kaydediyor, `syncBlueTick` çağırmıyor; sonraki yenileme yanlış hesabı kazıyor.
+  - ✅ ~~**2.3-S1 [YÜKSEK]**~~ (ProfileForm da "Çok Yakında"; login rotaları `SOCIAL_OAUTH_ENABLED=true` olmadan başlamıyor) Dashboard bu bağlantıları "Çok Yakında" diye kapalı gösteriyor ama ProfileForm canlı link veriyor.
+  - **2.3-S2 [YÜKSEK]** (OAuth kapatıldığı için etkisiz; açılmadan önce `user.info.profile` kapsamı + `username` alanı gerekli. Canlıda OAuth ile bağlanmış hesap yok) TikTok OAuth kullanıcı adı yerine `display_name` kaydediyor, `syncBlueTick` çağırmıyor; sonraki yenileme yanlış hesabı kazıyor.
   - **2.3-S3 [ORTA]** Meta yolu `platform_user_id`'yi Graph business id ile yazıyor (Apify IG pk yazıyor) → aynı IG hesabı iki kullanıcıya bağlanabilir.
     `last_scraped_at` set edilmiyor, diğer kullanıcılarla çakışma kontrolü yok.
   - **2.3-S4 [DÜŞÜK]** Token'lar saklanmıyor (OAuth kazımaya göre bir şey katmıyor); `video.list` kapsamı kullanılmıyor.
@@ -748,13 +748,13 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **10.3-S1 [YÜKSEK]** Influencer sosyal doğrulama zorunluluğu mobilde yok (web'de de yalnızca arayüz kapısı; DB zorlamıyor).
 - **10.3-S2 [YÜKSEK]** Marka doğrulama ekranı: VKN/TCKN istemci kontrolü yok, vergi dairesi/il yok, vergi levhası yükleme yok, kurumsal e-posta yok;
   `verification_status` yazımı beyaz liste tarafından sessizce düşürülüyor.
-- **10.3-S3 [YÜKSEK]** Favoriler bozuk (`user_id` kolonu kullanılıyor, tablo `brand_id`); influencer'lara da kalp gösteriliyor.
+- ✅ ~~**10.3-S3 [YÜKSEK]**~~ (brand_id kullanılıyor; kalp yalnızca markalara) Favoriler bozuk (`user_id` kolonu kullanılıyor, tablo `brand_id`); influencer'lara da kalp gösteriliyor.
 - **10.3-S4 [YÜKSEK]** Doğrudan sohbet engelleniyor (`InfluencerDetailScreen.js` bağlantısız oda açıyor).
-- **10.3-S5 [YÜKSEK]** İlana başvuru bozuk (`influencer_user_id` NOT NULL, yalnızca `influencer_id` gönderiliyor).
-- **10.3-S6 [ORTA]** Avatar yüklemeleri `public/<uid>/…` yoluna gidiyor, politika ihlali (MyProfile hariç).
+- ✅ ~~**10.3-S5 [YÜKSEK]**~~ (influencer_user_id de gönderiliyor) İlana başvuru bozuk (`influencer_user_id` NOT NULL, yalnızca `influencer_id` gönderiliyor).
+- ✅ ~~**10.3-S6 [ORTA]**~~ (`<uid>/…` yolu) Avatar yüklemeleri `public/<uid>/…` yoluna gidiyor, politika ihlali (MyProfile hariç).
 - **10.3-S7 [ORTA]** Push token'ları ve bildirim tercihi hiç kaydedilmiyor (7.3-S1).
-- **10.3-S8 [ORTA]** Geri bildirim var olmayan `feedback` tablosuna gidiyor ama başarı gösteriliyor.
-- **10.3-S9 [ORTA]** Keşfette doğrulanmamış istatistikler ve sahte güven skoru (`75 + charCode % 22`).
+- ✅ ~~**10.3-S8 [ORTA]**~~ (`feedback_submissions`'a yazıyor, hata gösteriliyor) Geri bildirim var olmayan `feedback` tablosuna gidiyor ama başarı gösteriliyor.
+- **10.3-S9 [ORTA]** (sahte güven skoru satırı kaldırıldı; kullanılmıyordu) Keşfette doğrulanmamış istatistikler ve sahte güven skoru (`75 + charCode % 22`).
 - **10.3-S10 [ORTA]** AiAssistant ekranı sabit cevaplı sahte sohbet; şifre sıfırlama kırık (1.4-S1); signup `creator_type` göndermiyor.
 - **10.3-S11 [DÜŞÜK]** İlan ekleme var olmayabilecek `brand_id` kolonu gönderiyor; kapak görseli klasörsüz.
 
