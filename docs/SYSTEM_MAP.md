@@ -366,6 +366,20 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `components/dashboard/BrandLockScreen.tsx`, `BrandVerificationCard.tsx`
 - **Sorunlar:** bkz. 1.8-S4.
 
+### 3.13 Ürün notları: doğrulama yolu ve ücretsiz marka erişimi (karar/tasarım bekliyor)
+- **Kaynak:** kullanıcı notları, 7 Ekim. Henüz kod yok.
+- **Önkoşul:** OAuth yolu gerçekten çalışmalı (2.3-S1/S2: arayüzde "Çok yakında", TikTok OAuth yanlış kullanıcı adı kaydediyor).
+- **Notlar:**
+  - **3.13-N1** Kod (bio) ile doğrulayan Instagram/TikTok hesaplarının belli verileri çekilemiyor: kazıma yalnızca herkese açık
+    sayıları verir (takipçi, beğeni, yorum, izlenme). Erişim, gösterim, kaydetme, kitle demografisi yalnızca OAuth ile gelir.
+  - **3.13-N2** OAuth yerine kod ile doğrulayanlar dezavantajlı olmalı. Seçenekler: güven skorunda tavan, mavi tik/rozet yok,
+    keşifte alt sıra, "resmi veri" etiketi yok, Spotlight sınırı.
+  - **3.13-N3** Ücret ödemeyen markalar yalnızca kod ile doğrulanmış influencer/UGC'lere ulaşabilsin; OAuth ile bağlanmış
+    profiller ücretli markalara ayrılsın.
+  - **3.13-N4** Ücret ödemeyen markalar tüm listeyi göremesin. Sistem markanın ihtiyacını (kategori, bütçe, ilanlar, hedef kitle)
+    analiz edip ücretsiz olarak belli oranda/kotada profil önersin. Kısıt sunucuda uygulanmalı (bugün premium veri istemciye
+    gidip yalnızca CSS ile bulanıklaştırılıyor, bkz. 3.1-S1).
+
 ---
 
 ## 4. Ortak: rozetler, Spotlight, profil
