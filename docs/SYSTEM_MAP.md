@@ -447,7 +447,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     `restrict_rooms_insert` trigger'ı reddediyor; `?userId=` ile mevcut oda yoksa yalnızca konsola hata düşüyor. Mobilde de aynı (10.3-S4).
   - ✅ ~~**5.1-S2 [YÜKSEK]**~~ (her oda için yalnızca son mesaj ve okunmamış sayısı; 20'lik gruplar halinde paralel) Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
   - ✅ ~~**5.1-S3 [ORTA]**~~ (thread yalnızca karşı taraf değişince yükleniyor; realtime kanalı liste güncellemesinde yeniden kurulmuyor) Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
-  - **5.1-S4 [ORTA]** Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
+  - ✅ ~~**5.1-S4 [ORTA]**~~ (yalnızca chat-attachments adresi görsel sayılıyor, diğerleri düz metin; boyut sınırı PR #19) Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
   - **5.1-S5 [ORTA]** (5 MB/görsel sınırı canlıda; oda katılımcısı politikası `20261007000007` elle çalıştırılmayı bekliyor) `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
   - **5.1-S6 [DÜŞÜK]** Her mesajda engel kontrolü için sunucu aksiyonu; `SidebarLink` iki kez render edilip aynı adlı iki kanal açıyor.
 
