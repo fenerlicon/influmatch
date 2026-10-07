@@ -46,6 +46,18 @@ type ScrapeAccount = {
   scrape_window_started_at: string | null
 }
 
+const OUTAGE_ERROR_NAMES = new Set(['ApiPoolExhaustedError', 'ApiServiceError', 'ApiKeyError'])
+
+/** Servis kesintisi mi (kredi/anahtar bitti, Apify çöktü), yoksa hesaba özel bir hata mı (gizli, silinmiş hesap). */
+export function isServiceOutage(error: unknown): boolean {
+  let current: any = error
+  for (let depth = 0; current && depth < 4; depth++) {
+    if (OUTAGE_ERROR_NAMES.has(current.name)) return true
+    current = current.cause
+  }
+  return false
+}
+
 function minutesUntil(ms: number) {
   return Math.max(1, Math.ceil(ms / 60000))
 }
@@ -279,7 +291,11 @@ async function scrapeInstagram(admin: SupabaseClient, userId: string, account: S
     normalizedData = await fetchInstagramData(account.username)
   } catch (apiError: any) {
     console.error('[refreshInstagramAccount] Instagram service error:', apiError)
-    return { success: false, error: apiError.message || 'Instagram verileri çekilemedi. Lütfen daha sonra tekrar deneyin.' }
+    return {
+      success: false,
+      code: isServiceOutage(apiError) ? 'service_unavailable' : 'scrape_failed',
+      error: apiError.message || 'Instagram verileri çekilemedi. Lütfen daha sonra tekrar deneyin.',
+    }
   }
 
   const user = normalizedData.user
@@ -443,7 +459,11 @@ async function scrapeTikTok(admin: SupabaseClient, userId: string, account: Scra
     tiktokData = await fetchTikTokPublicProfile(account.username)
   } catch (apiError: any) {
     console.error('[refreshTikTokAccount] TikTok service error:', apiError)
-    return { success: false, error: apiError.message || 'TikTok verileri çekilemedi. Lütfen daha sonra tekrar deneyin.' }
+    return {
+      success: false,
+      code: isServiceOutage(apiError) ? 'service_unavailable' : 'scrape_failed',
+      error: apiError.message || 'TikTok verileri çekilemedi. Lütfen daha sonra tekrar deneyin.',
+    }
   }
 
   if (!account.is_verified && !bioContainsCode(tiktokData.signature, account.verification_code)) {
@@ -536,31 +556,37 @@ export interface StaleRefreshReport {
   succeeded: number
   failed: number
   remaining: number // zaman bütçesi bittiği için bu turda yenilenmeyen bayat hesap sayısı
-  stoppedEarly: boolean // art arda hata (ör. Apify kredisi bitti) nedeniyle erken durdu
+  stoppedEarly: boolean // art arda servis kesintisi (ör. Apify kredisi bitti) nedeniyle erken durdu
+  deferred: number // hesaba özel hata (gizli/silinmiş hesap) nedeniyle bir süre kuyruktan çıkarılanlar
 }
+
+const RETRY_BACKOFF_DAYS = [1, 2, 4, 7]
 
 /**
  * Verisi 3 günden eski doğrulanmış hesapları en eskiden başlayarak yeniler. Yeni bir ücretli koşuya
  * yalnızca `deadline` öncesinde başlanır; böylece cron fonksiyonu zaman aşımına düşmez ve iş
- * saatlik turlara yayılır. Art arda 2 hata alınırsa (kredi bitti vb.) boşuna denemeden durur.
+ * saatlik turlara yayılır. Art arda 2 servis kesintisi (kredi bitti vb.) alınırsa boşuna denemeden durur.
+ * Hesaba özel hatada (gizli, silinmiş hesap) hesap 1/2/4/7 gün kuyruktan çıkarılır; kuyruğu tıkamaz.
  */
 export async function refreshStaleAccounts(
   admin: SupabaseClient,
   { deadline, limit = 25 }: { deadline: number; limit?: number },
 ): Promise<StaleRefreshReport> {
+  const nowIso = new Date().toISOString()
   const cutoff = new Date(Date.now() - STALE_AFTER_MS).toISOString()
   const { data: accounts, error } = await admin
     .from('social_accounts')
-    .select('user_id, platform')
+    .select('id, user_id, platform, scrape_fail_count')
     .in('platform', ['instagram', 'tiktok'])
     .eq('is_verified', true)
     .or(`last_scraped_at.lt.${cutoff},last_scraped_at.is.null`)
+    .or(`scrape_retry_after.is.null,scrape_retry_after.lt.${nowIso}`)
     .order('last_scraped_at', { ascending: true, nullsFirst: true })
     .limit(limit)
   if (error) throw new Error(`Bayat hesaplar alınamadı: ${error.message}`)
 
-  const report: StaleRefreshReport = { attempted: 0, succeeded: 0, failed: 0, remaining: 0, stoppedEarly: false }
-  let consecutiveFailures = 0
+  const report: StaleRefreshReport = { attempted: 0, succeeded: 0, failed: 0, remaining: 0, stoppedEarly: false, deferred: 0 }
+  let consecutiveOutages = 0
   const list = accounts ?? []
   for (let i = 0; i < list.length; i++) {
     if (Date.now() >= deadline) {
@@ -569,27 +595,47 @@ export async function refreshStaleAccounts(
     }
     const account = list[i]
     report.attempted++
-    let ok = false
+    let result: SocialResult
     try {
-      const result =
+      result =
         account.platform === 'tiktok'
           ? await refreshTikTokAccount(account.user_id, 'auto')
           : await refreshInstagramAccount(account.user_id, 'auto')
-      ok = result.success || result.code === 'rate_limited' // başka bir tur zaten yeniliyor
     } catch (refreshError) {
       console.error(`[refreshStaleAccounts] ${account.platform}/${account.user_id}:`, refreshError)
+      result = { success: false, code: isServiceOutage(refreshError) ? 'service_unavailable' : 'scrape_failed' }
     }
-    if (ok) {
+
+    if (result.success || result.code === 'rate_limited') {
+      // rate_limited: başka bir tur zaten bu hesabı yeniliyor
       report.succeeded++
-      consecutiveFailures = 0
-    } else {
-      report.failed++
-      if (++consecutiveFailures >= 2) {
+      consecutiveOutages = 0
+      if (result.success && account.scrape_fail_count) {
+        await admin.from('social_accounts').update({ scrape_fail_count: 0, scrape_retry_after: null }).eq('id', account.id)
+      }
+      continue
+    }
+
+    report.failed++
+    if (result.code === 'service_unavailable') {
+      if (++consecutiveOutages >= 2) {
         report.stoppedEarly = true
         report.remaining = list.length - i - 1
         break
       }
+      continue
     }
+
+    // Hesaba özel hata: hesabı artan sürelerle kuyruktan çıkar, sıradakine geç.
+    consecutiveOutages = 0
+    const failCount = (account.scrape_fail_count ?? 0) + 1
+    const days = RETRY_BACKOFF_DAYS[Math.min(failCount, RETRY_BACKOFF_DAYS.length) - 1]
+    const { error: deferError } = await admin
+      .from('social_accounts')
+      .update({ scrape_fail_count: failCount, scrape_retry_after: new Date(Date.now() + days * 86_400_000).toISOString() })
+      .eq('id', account.id)
+    if (deferError) console.error('[refreshStaleAccounts] Bekletme kaydedilemedi:', deferError.message)
+    else report.deferred++
   }
   return report
 }

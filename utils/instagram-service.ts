@@ -49,7 +49,8 @@ export async function fetchInstagramData(username: string): Promise<NormalizedIn
         console.error(`[InstagramService] Apify fetch failed: ${error.message || error}`);
         // Preserve original message if it's already descriptive
         const msg = error.message || 'Apify servis hatası';
-        throw new Error(msg.includes('Instagram') ? msg : `Instagram verileri alınamadı: ${msg}`);
+        // Asıl hata cause olarak korunur: servis kesintisi (kredi bitti vb.) hesaba özel hatadan ayırt edilir.
+        throw Object.assign(new Error(msg.includes('Instagram') ? msg : `Instagram verileri alınamadı: ${msg}`), { cause: error });
     }
 }
 
