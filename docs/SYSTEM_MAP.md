@@ -133,7 +133,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   - ✅ ~~**1.8-S2 [YÜKSEK]**~~ (silmede giriş kaydı önce kilitleniyor; auth silinemezse kilitli kalıyor, `lib/account-deletion.ts`) Silinen hesap geri dönebiliyor: profil satırı yoksa layout yeni satır açıyor; `deleteAccount`
     auth silme hatasını yutuyor (bkz. 1.9-S1).
   - **1.8-S3 [ORTA]** Insert hatası her zaman `/onboarding`'e yönlendiriyor → olası döngü.
-  - **1.8-S4 [ORTA]** Marka kilidi merkezi değil; her sayfa `BrandLockScreen`'i kendisi çiziyor, unutan sayfa kilitsiz kalıyor.
+  - ✅ ~~**1.8-S4 [ORTA]**~~ (kilit marka layout'unda merkezi; doğrulanmamış marka yalnızca ana sayfa, profil, ayarlar, rozetler) Marka kilidi merkezi değil; her sayfa `BrandLockScreen`'i kendisi çiziyor, unutan sayfa kilitsiz kalıyor.
 
 ### 1.9 Ayarlar (bildirim tercihi, şifre, hesap silme)
 - **Dosyalar:** `app/dashboard/{influencer,brand}/settings/page.tsx` (birebir kopya),
@@ -231,7 +231,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `components/influencer/ProfileForm.tsx`, `app/dashboard/influencer/profile/actions.ts`,
   `utils/{socialLinkValidation,usernameValidation}.ts`, `/api/check-username`
 - **Sorunlar:**
-  - **2.7-S1 [ORTA]** Instagram link alanı hesap doğrulandıktan sonra da düzenlenebilir (TikTok kilitli); `social_links.instagram` doğrulanmış kullanıcı adından sapabilir.
+  - ✅ ~~**2.7-S1 [ORTA]**~~ (doğrulanmış Instagram/TikTok linki formda kilitli ve sunucuda doğrulanmış kullanıcı adından yazılıyor) Instagram link alanı hesap doğrulandıktan sonra da düzenlenebilir (TikTok kilitli); `social_links.instagram` doğrulanmış kullanıcı adından sapabilir.
   - ✅ ~~**2.7-S2 [ORTA]**~~ (avatar artık `{uid}/` klasörüne yükleniyor) Avatar bucket köküne rastgele adla yükleniyor; avatars politikası `{uid}/` klasörü istiyor (bkz. 7.5-S1).
   - **2.7-S3 [DÜŞÜK]** Tüm güncelleme yükü `console.log` ile loglanıyor; eksik kolon için kalıntı try/catch.
 
@@ -313,7 +313,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `components/profile/OfferModal.tsx` → `app/profile/actions.ts` (`createOffer`), `brand/offers/page.tsx`,
   `components/dashboard/BrandOffersList.tsx`, `brand/offers/dismiss/actions.ts`
 - **Sorunlar:**
-  - **3.6-S1 [ORTA]** `createOffer` rol kontrolünü `user_metadata.role` ile yapıyor (DB politikası asıl korumayı sağlıyor),
+  - ✅ ~~**3.6-S1 [ORTA]**~~ (rol DB'den, `fetchAccountRole`) `createOffer` rol kontrolünü `user_metadata.role` ile yapıyor (DB politikası asıl korumayı sağlıyor),
     bütçe NaN/negatif kontrolü yok, alıcının influencer olduğu kontrol edilmiyor.
   - **3.6-S2 [YÜKSEK]** Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1).
   - **3.6-S3 [ORTA]** Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
@@ -403,7 +403,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `components/badges/{BadgeSelector,BadgeDisplay,BadgeDetailList,BadgeCompactList,BadgeProgressInfo,BadgeCard,BadgeToggle}.tsx`
 - **İş:** En fazla 3 rozet gösterilir; DB trigger'ı kazanılmamış rozetin gösterilmesini engeller.
 - **Sorunlar:**
-  - **4.2-S1 [ORTA]** `/profile/[username]` ve `utils/fetchInfluencers.ts` kullanıcının seçtiği `displayed_badges` yerine tüm kazanılmış rozetleri gösteriyor.
+  - ✅ ~~**4.2-S1 [ORTA]**~~ (keşif kartları seçilen rozetleri gösteriyor, yalnızca kazanılmışlar; mavi tik her zaman; profil sayfası tüm rozet listesini bilinçli gösteriyor) `/profile/[username]` ve `utils/fetchInfluencers.ts` kullanıcının seçtiği `displayed_badges` yerine tüm kazanılmış rozetleri gösteriyor.
   - **4.2-S2 [DÜŞÜK]** `influencer/profile/badges/actions.ts` (`updateDisplayedBadges`) ölü; marka rozet sayfası kazanılanları göstermiyor.
 
 ### 4.3 Spotlight üyeliği

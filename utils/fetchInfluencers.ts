@@ -51,26 +51,29 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
 
     // 3. Merge
     const influencers: DiscoverInfluencer[] = data.map((user) => {
-        // Use user_badges if available (real-time), fallback to displayed_badges column
-        let displayedBadges: string[] | null = null
-
-        if (user.user_badges && Array.isArray(user.user_badges)) {
-            displayedBadges = user.user_badges.map((ub: any) => ub.badge_id).filter(Boolean)
-        } else if (user.displayed_badges) {
-            if (Array.isArray(user.displayed_badges)) {
-                displayedBadges = user.displayed_badges
-                    .filter((id): id is string => typeof id === 'string' && id.length > 0)
-            } else if (typeof user.displayed_badges === 'string') {
-                try {
-                    const parsed = JSON.parse(user.displayed_badges)
-                    if (Array.isArray(parsed)) {
-                        displayedBadges = parsed.filter((id): id is string => typeof id === 'string' && id.length > 0)
-                    }
-                } catch {
-                    displayedBadges = null
-                }
+        // Kartta kullanıcının seçtiği rozetler (displayed_badges) gösterilir, yalnızca kazanılmış
+        // olanlar. Seçim yoksa kazanılanların ilk 3'ü. Mavi tik (verified-account) bir durum
+        // göstergesi olduğu için seçilmemiş olsa da her zaman eklenir.
+        const earned: string[] = Array.isArray(user.user_badges)
+            ? user.user_badges.map((ub: any) => ub.badge_id).filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+            : []
+        let chosen: string[] = []
+        if (Array.isArray(user.displayed_badges)) {
+            chosen = user.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)
+        } else if (typeof user.displayed_badges === 'string') {
+            try {
+                const parsed = JSON.parse(user.displayed_badges)
+                if (Array.isArray(parsed)) chosen = parsed.filter((id): id is string => typeof id === 'string' && id.length > 0)
+            } catch {
+                chosen = []
             }
         }
+        const earnedSet = new Set(earned)
+        let selected = (chosen.length > 0 ? chosen.filter((id) => earnedSet.has(id)) : earned).slice(0, 3)
+        if (earnedSet.has('verified-account') && !selected.includes('verified-account')) {
+            selected = ['verified-account', ...selected]
+        }
+        const displayedBadges: string[] | null = selected.length > 0 ? selected : null
 
         const userAccounts = socialAccountsMap[user.id] || []
         const platforms = userAccounts.map(a => a.platform as any)

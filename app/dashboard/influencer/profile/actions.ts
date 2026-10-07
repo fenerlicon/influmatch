@@ -189,6 +189,16 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   const normalizedBio = payload.bio?.trim() || null
   const normalizedFullName = payload.fullName?.trim() || null
 
+  // Doğrulanmış hesapların linki doğrulanmış kullanıcı adından gelir; formdan değiştirilemez
+  // (aksi halde profil, doğrulanmış hesaptan farklı bir hesabı gösterebilirdi).
+  const { data: verifiedAccounts } = await supabase
+    .from('social_accounts')
+    .select('platform, username')
+    .eq('user_id', user.id)
+    .eq('is_verified', true)
+  const verifiedInstagram = verifiedAccounts?.find((a) => a.platform === 'instagram')?.username
+  const verifiedTikTok = verifiedAccounts?.find((a) => a.platform === 'tiktok')?.username
+
   const updates: any = {
     full_name: normalizedFullName,
     username: normalizedUsername,
@@ -198,8 +208,8 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     avatar_url: payload.avatarUrl,
     creator_type: payload.creatorType || null,
     social_links: {
-      instagram: instagramResult.normalizedUrl || null,
-      tiktok: tiktokResult.normalizedUrl || null,
+      instagram: verifiedInstagram ? `https://instagram.com/${verifiedInstagram}` : instagramResult.normalizedUrl || null,
+      tiktok: verifiedTikTok ? `https://tiktok.com/@${verifiedTikTok}` : tiktokResult.normalizedUrl || null,
       youtube: youtubeResult.normalizedUrl || null,
       kick: kickResult.normalizedUrl || null,
       twitter: twitterResult.normalizedUrl || null,
