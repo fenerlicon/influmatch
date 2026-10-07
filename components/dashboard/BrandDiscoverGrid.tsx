@@ -1,5 +1,6 @@
 'use client'
 
+import { isProPlan } from '@/lib/subscription-tier'
 import { useMemo, useState } from 'react'
 import { Filter, ArrowUpDown, ChevronDown, BadgeCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -40,7 +41,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['instagram', 'tiktok'])
   const [creatorTypeFilter, setCreatorTypeFilter] = useState<'all' | 'influencer' | 'ugc'>('all')
 
-  const isPro = spotlightPlan === 'pro' || spotlightPlan === 'mpro' || spotlightPlan === 'ipro' || spotlightPlan === 'elite'
+  const isPro = isProPlan(spotlightPlan)
 
   const favoritedSet = useMemo(() => new Set(initialFavoritedIds), [initialFavoritedIds])
 

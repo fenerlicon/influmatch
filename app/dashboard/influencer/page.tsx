@@ -21,6 +21,7 @@ import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { getProfileViewStats } from '@/lib/profile-views'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import ProfileViewsCard from '@/components/dashboard/ProfileViewsCard'
+import { resolveSubscriptionTier } from '@/lib/subscription-tier'
 
 export const revalidate = 0
 
@@ -115,15 +116,7 @@ export default async function InfluencerDashboardPage() {
     }
   }
 
-  // Determine User Tier
-  let userTier: 'FREE' | 'SPOTLIGHT' | 'SPOTLIGHT_PLUS' | 'BRAND_PRO' = 'FREE'
-  if (spotlightActive) {
-    if (profile?.spotlight_plan === 'ipro' || profile?.spotlight_plan === 'mpro') {
-      userTier = 'SPOTLIGHT_PLUS'
-    } else {
-      userTier = 'SPOTLIGHT'
-    }
-  }
+  const userTier = resolveSubscriptionTier({ ...profile, role: 'influencer' })
 
 
   const profileData: ProfileRecord = {

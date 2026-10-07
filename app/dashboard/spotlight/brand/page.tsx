@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { activateSpotlightPlan, checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { planPrice } from '@/lib/spotlight-plans'
 
 const features = [
     {
@@ -185,8 +186,8 @@ export default function BrandSpotlightPage() {
                 <div className="grid gap-8 md:grid-cols-2 lg:gap-16 pt-8">
                     <PricingCard
                         title="Brand Basic"
-                        price={billingInterval === 'mo' ? "750 ₺" : "7.500 ₺"}
-                        originalPrice={billingInterval === 'mo' ? "1.500 ₺" : "15.000 ₺"}
+                        price={planPrice('mbasic', billingInterval).price}
+                        originalPrice={planPrice('mbasic', billingInterval).originalPrice}
                         interval={billingInterval}
                         features={[
                             { text: "Sınırsız AI Eşleşme", highlight: true },
@@ -203,8 +204,8 @@ export default function BrandSpotlightPage() {
 
                     <PricingCard
                         title="Brand Pro"
-                        price={billingInterval === 'mo' ? "1.250 ₺" : "12.500 ₺"}
-                        originalPrice={billingInterval === 'mo' ? "2.500 ₺" : "25.000 ₺"}
+                        price={planPrice('mpro', billingInterval).price}
+                        originalPrice={planPrice('mpro', billingInterval).originalPrice}
                         interval={billingInterval}
                         features={[
                             { text: "Sınırsız AI Eşleşme", highlight: true },

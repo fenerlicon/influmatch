@@ -16,27 +16,18 @@
 - Mobil sürüm sonrası çalıştırılacak SQL:
   `DROP POLICY "avatars insert" ON storage.objects;` Bu SQL yalnızca yeni mobil sürüm yayınlandıktan sonra çalıştırılacak.
 
-## 2. Sıradaki önerilen işler (sırayla)
+## 2. Sıradaki işler (2026-10-09 itibarıyla)
 
-1. **Supabase performans uyarıları:**
-   - 66 RLS politikasında `auth.uid()` satır başına çalışıyor; `(select auth.uid())` yapılmalı.
-   - 123 tabloda/rolde birden çok permissive politika var.
+Kararsız yapılabilecek web maddeleri bitti (PR #32–#36). Kalanlar:
 
-   Bunlar politika yeniden yazımı demek. ALTER POLICY ile koşul değiştirmek risksiz sayılabilir, ama tek tek canlıda doğrula.
-   Birleştirme gerektirenler (DROP POLICY) toplu SQL'e girer. Bkz. SYSTEM_MAP 7.4.
-2. **7.1-S1 tam şema (baseline) migration'ı:** canlı şemayı okuyup repoya tek bir temel dosya çıkar.
-   Eski migration'lar çakışıyor, ayrıntı 7.1 ve 7.7'de.
-3. **Küçük kalanlar:**
-   - 7.4-S3 boş `handle_delete_auth_user` (DROP FUNCTION → toplu SQL'e)
-   - 4.1-S3 mantığı olmayan rozetler (katalogdan kaldırmak arayüzü değiştirir; kullanıcıya sor)
-   - 4.5-S3 / 4.6-S2 analitik olayları (`analytics_events` marka odaklı; influencer profili görüntülenmesi için kimin okuyacağı tasarlanmalı)
-   - 7.3-S1 (DB beyaz listesi; canlı erişim gerekiyor)
-4. 2026-10-08 yerel oturumda yapılanlar (PR'da): 1.1-S2 admin layout'u, 1.11-S1 ek adresi doğrulaması,
-   2.11-S1 influencer vitrini ortak kaynağa bağlandı, 2.12-S2 başvuruyu geri çekme, 3.6-S4 / 3.8-S3 realtime filtreleri,
-   7.7-S3 kod cast'i, 8.8-S1 tek kurulum rehberi (`docs/SETUP.md`).
-   **Yerel oturumun Influmatch Supabase projesine MCP erişimi yok**; 1. ve 2. maddeler (canlı DB) erişim
-   kurulunca ya da bulut oturumunda yapılmalı.
-5. Karar bekleyenlere (bölüm 4) kullanıcı karar verdikçe geç.
+1. **Kullanıcı kararı bekleyen web işleri** (bölüm 4): bildirimler ve e-postalar (5.4-S1, 3.6-S2, 3.8-S3, 1.9-S5, 6.5-S1),
+   doğrudan mesaj (5.1-S1, 5.3-S2 ile birlikte), ücretsiz marka kotası ve sayfalama (3.13, 3.2-S2), eski sarı tikler (3.11-S1),
+   teklif "Beklet" (2.13-S1), Resend ücretli plan (8.4-S1).
+2. **Mobil** (CLAUDE.md kural 3, kullanıcıya hatırlatılacak): SYSTEM_MAP 10.3, 2.1-S8 (doğrulama kodu kolonu, mobil `select('*')`
+   nedeniyle bekliyor), mobil sürüm çıkınca `DROP POLICY "avatars insert"`.
+3. **OAuth açılırsa:** 2.3-S2, 2.3-S3, 2.3-S4.
+4. **Son temizlik SQL'i** (DROP içerir, en sonda toplu): 7.4-S9 kullanılmayan fonksiyonlar ve `offers` üzerindeki çift trigger.
+5. **Kuyruğun en sonu:** bölüm 8.
 
 ## 3. Kullanıcının verdiği kararlar (kronolojik, 6–7 Ekim 2026)
 
