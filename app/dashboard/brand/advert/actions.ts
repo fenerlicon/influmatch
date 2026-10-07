@@ -181,51 +181,27 @@ export async function getOrCreateAdvertApplicationRoom(applicationId: string) {
   const influencerId = application.influencer_id || application.influencer_user_id
   const brandId = advert.brand_user_id
 
-  // Check if room already exists (by brand_id and influencer_id, or by advert_application_id if column exists)
-  let existingRoom: any = null
-  const { data: roomsByParticipants, error: roomError1 } = await supabase
+  // Yalnızca bu başvuruya ait oda yeniden kullanılır. Eskiden çift arasındaki herhangi bir oda
+  // (ör. başka bir ilanın) alınıp advert_application_id güncellenmeye çalışılıyordu; rooms için
+  // UPDATE politikası olmadığından bu sessizce başarısız oluyordu. Mesaj kutusu odaları karşı
+  // tarafa göre zaten birleştirir.
+  const { data: existingRoom, error: roomError } = await supabase
     .from('rooms')
-    .select('id, advert_application_id')
-    .eq('brand_id', brandId)
-    .eq('influencer_id', influencerId)
-    .is('offer_id', null) // Not an offer room
+    .select('id')
+    .eq('advert_application_id', applicationId)
+    .limit(1)
+    .maybeSingle()
 
-  if (roomError1 && roomError1.code !== 'PGRST116') {
-    console.error('[getOrCreateAdvertApplicationRoom] room check error', roomError1.message)
+  if (roomError) {
+    console.error('[getOrCreateAdvertApplicationRoom] room check error', roomError.message)
   }
-
-  // Check if there's a room for this specific application
-  if (roomsByParticipants) {
-    existingRoom = roomsByParticipants.find((r: any) => r.advert_application_id === applicationId) || roomsByParticipants[0]
-  }
-
   if (existingRoom?.id) {
-    // If room exists but doesn't have advert_application_id, update it
-    if (!existingRoom.advert_application_id) {
-      await supabase
-        .from('rooms')
-        .update({ advert_application_id: applicationId })
-        .eq('id', existingRoom.id)
-    }
     return { success: true, roomId: existingRoom.id }
-  }
-
-  // Create new room
-  const roomData: any = {
-    brand_id: brandId,
-    influencer_id: influencerId,
-  }
-
-  // Try to add advert_application_id if column exists
-  try {
-    roomData.advert_application_id = applicationId
-  } catch {
-    // Column might not exist, that's okay
   }
 
   const { data: newRoom, error: insertRoomError } = await supabase
     .from('rooms')
-    .insert(roomData)
+    .insert({ brand_id: brandId, influencer_id: influencerId, advert_application_id: applicationId })
     .select('id')
     .single()
 
@@ -234,11 +210,8 @@ export async function getOrCreateAdvertApplicationRoom(applicationId: string) {
     return { error: `Oda oluşturulamadı: ${insertRoomError.message}` }
   }
 
-  // Update application status to indicate communication started
-  await supabase
-    .from('advert_applications')
-    .update({ status: 'pending' }) // Keep as pending but mark that communication started
-    .eq('id', applicationId)
+  // Not: başvuru durumu burada değiştirilmez (eskiden 'pending'e çekiliyordu; kabul edilmiş
+  // bir başvuru sohbet açılınca beklemeye düşebiliyordu).
 
   revalidatePath('/dashboard/brand/advert')
   revalidatePath('/dashboard/influencer/advert')

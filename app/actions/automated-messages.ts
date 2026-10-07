@@ -54,8 +54,8 @@ export async function sendSpotlightNotification(userId: string, isActive: boolea
 
     await sendNotification(
         userId,
-        'Spotlight Üyeliğiniz Aktifleşti! ✨',
-        'Tebrikler! Profiliniz artık Vitrin sayfasında markalar tarafından öncelikli olarak görünüyor. Bol şans!',
+        'Vitrin modu açıldı',
+        'Profiliniz artık markaların keşif sayfasında görünüyor.',
         'success',
         '/dashboard/influencer/spotlight'
     )
