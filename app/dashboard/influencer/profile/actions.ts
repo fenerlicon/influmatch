@@ -235,8 +235,6 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     updates.displayed_badges = (blueTick ? ['verified-account', ...chosen] : chosen).slice(0, 3)
   }
 
-  console.log('[updateProfile] Attempting update for user:', user.id)
-  console.log('[updateProfile] Updates:', JSON.stringify(updates, null, 2))
 
   const { data: updateResult, error: updateError } = await supabase
     .from('users')
@@ -275,7 +273,6 @@ export async function updateProfile(payload: UpdateProfilePayload) {
 
   // Log update result
   if (updateResult && updateResult.length > 0) {
-    console.log('[updateProfile] Update successful, returned data:', JSON.stringify(updateResult[0], null, 2))
   } else {
     console.warn('[updateProfile] Update completed but no data returned (this is normal for UPDATE operations)')
   }

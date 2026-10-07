@@ -27,8 +27,8 @@ function LoginPageContent() {
     } else if (verified === 'true') {
       setSuccessMessage('Mail adresiniz doğrulanmıştır, lütfen tekrar giriş yapın.')
       router.replace('/login', { scroll: false })
-    } else if (error === 'account_deleted') {
-      setAccountDeletedError('Hesabınız silinmiştir.')
+    } else if (searchParams.get('deleted') === 'true') {
+      setSuccessMessage('Hesabınız ve verileriniz silindi.')
       router.replace('/login', { scroll: false })
     } else if (error === 'rate_limit') {
       // URL'deki metin gösterilmez: herkes ?message= ile giriş sayfasında istediği yazıyı gösterebiliyordu.

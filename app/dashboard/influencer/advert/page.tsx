@@ -3,6 +3,7 @@ import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
 import { type AdvertApplication } from '@/components/dashboard/AdvertApplicationsList'
 import InfluencerAdvertTabs from '@/components/dashboard/InfluencerAdvertTabs'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export const revalidate = 0
 
@@ -42,7 +43,7 @@ export default async function InfluencerAdvertPage() {
   if (brandUserIds.size > 0) {
     const { data: brandUsers } = await supabase
       .from('users')
-      .select('id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active')
+      .select('id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active, spotlight_expires_at')
       .in('id', Array.from(brandUserIds))
 
     brandMap = new Map(
@@ -54,7 +55,8 @@ export default async function InfluencerAdvertPage() {
           avatar_url: u.avatar_url,
           displayed_badges: (u.displayed_badges as string[] | null) ?? null,
           verification_status: u.verification_status ?? null,
-          spotlight_active: u.spotlight_active ?? false,
+          // Süresi dolmuş Spotlight öne çıkarılmaz.
+          spotlight_active: hasActiveSpotlight(u),
         },
       ]) ?? [],
     )

@@ -83,7 +83,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
             <ul className="mt-2 space-y-1 text-xs text-red-300/80">
               <li>• Tüm verileriniz kalıcı olarak silinecektir.</li>
               <li>• Profiliniz artık görüntülenemeyecektir.</li>
-              <li>• Mevcut abonelikleriniz iptal edilecektir.</li>
+              <li>• Aktif Spotlight üyeliğiniz varsa hesabınızla birlikte sona erer.</li>
               <li>• Bu işlem geri alınamaz.</li>
             </ul>
           </div>

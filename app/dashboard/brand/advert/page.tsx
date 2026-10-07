@@ -69,11 +69,11 @@ export default async function BrandAdvertPage() {
     if (row.brand_user_id) brandUserIds.add(row.brand_user_id)
   })
 
-  let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null; verification_status: string | null }>()
+  let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null; verification_status: string | null; spotlight_active: boolean }>()
   if (brandUserIds.size > 0) {
     const { data: brandUsers } = await supabase
       .from('users')
-      .select('id, full_name, avatar_url, displayed_badges, verification_status')
+      .select('id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active, spotlight_expires_at')
       .in('id', Array.from(brandUserIds))
 
     brandMap = new Map(
@@ -85,6 +85,7 @@ export default async function BrandAdvertPage() {
           avatar_url: u.avatar_url,
           displayed_badges: (u.displayed_badges as string[] | null) ?? null,
           verification_status: u.verification_status ?? null,
+          spotlight_active: hasActiveSpotlight(u),
         },
       ]) ?? [],
     )
@@ -102,6 +103,8 @@ export default async function BrandAdvertPage() {
       brandUserId: row.brand_user_id ?? null, // Include brand_user_id for ownership check
       brandDisplayedBadges: brandUser?.displayed_badges ?? null, // Include brand badges
       brandVerificationStatus: brandUser?.verification_status ?? null,
+      // Topluluk sekmesi Spotlight markaları öne alır (önceden hiç doldurulmuyordu).
+      brandIsSpotlight: brandUser?.spotlight_active ?? false,
       budgetCurrency: row.budget_currency ?? 'TRY',
       budgetMin: row.budget_min ?? null,
       budgetMax: row.budget_max ?? null,

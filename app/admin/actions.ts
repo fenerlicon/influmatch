@@ -1,5 +1,6 @@
 'use server'
 
+import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
@@ -951,9 +952,10 @@ export async function deleteAdvertAdmin(advertId: string) {
 
   if (advert?.hero_image) {
     try {
-      const imagePath = advert.hero_image.split('/').pop()
-      if (imagePath) {
-        await supabaseAdmin.storage.from('advert-hero-images').remove([imagePath])
+      // Dosya yolu adresten çıkarılır (klasörlü yüklemelerde de doğru yolu siler).
+      const stored = storagePathFromPublicUrl(advert.hero_image)
+      if (stored?.bucket === 'advert-hero-images') {
+        await supabaseAdmin.storage.from('advert-hero-images').remove([stored.path])
       }
     } catch (e) {
       console.warn('[deleteAdvertAdmin] Hero image deletion failed:', e)

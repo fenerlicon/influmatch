@@ -426,7 +426,8 @@ export default function OnboardingPage() {
       taxOffice: role === 'brand' ? brandForm.taxOffice : null,
       taxOfficeCity: role === 'brand' ? brandForm.taxOfficeCity : null,
       corporateEmail: role === 'brand' ? brandForm.corporateEmail : null,
-      category: role === 'influencer' ? influencerForm.category : 'tech', // Default category for brands
+      // Marka kategorisi onboarding'de sorulmuyor; profil sayfasında seçilir (sabit 'tech' yazılmaz).
+      category: role === 'influencer' ? influencerForm.category : '',
       avatarUrl: avatarUrl,
       socialLinks: socialLinks,
       creatorType: role === 'influencer' ? influencerForm.creatorType : undefined,

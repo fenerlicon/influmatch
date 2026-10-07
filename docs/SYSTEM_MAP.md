@@ -93,7 +93,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   - ✅ ~~**1.4-S1 [YÜKSEK]**~~ (web akışı eklendi ve canlıda kullanıcı tarafından doğrulandı: `/forgot-password` → e-posta → `/auth/callback` → `/auth/update-password`; mobil ekran hâlâ hash tabanlı eski adrese gidiyor) Web'de "şifremi unuttum" akışı yok. Mobil `ForgotPasswordScreen.js` var olmayan
     `/auth/update-password` sayfasına yönlendiriyor; `/auth/callback` de her durumda oturumu kapatıyor → şifre sıfırlama kırık.
   - ✅ ~~**1.4-S2 [DÜŞÜK]**~~ (sabit metin gösteriliyor) `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
-  - **1.4-S3 [DÜŞÜK]** `account_deleted` dalı ölü; kullanılmayan `supabase` değişkeni.
+  - ✅ ~~**1.4-S3 [DÜŞÜK]**~~ (silme sonrası `/login?deleted=true` → "Hesabınız ve verileriniz silindi") `account_deleted` dalı ölü; kullanılmayan `supabase` değişkeni.
 
 ### 1.5 E-posta doğrulama
 - **Dosyalar:** `app/auth/check-email/page.tsx` (OTP), `app/auth/callback/route.ts` (bağlantı),
@@ -102,7 +102,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   - ✅ ~~**1.5-S1 [ORTA]**~~ (PKCE bağlantısı da oturumu açık bırakıp /dashboard'a gidiyor; token_hash/access_token yolları giriş CSRF'ine karşı oturumu kapatmaya devam ediyor) OTP yolu kullanıcıyı oturum açık bırakıp `/onboarding`'e, bağlantı yolu oturumu kapatıp `/login`'e götürüyor; iki farklı son durum.
   - ✅ ~~**1.5-S2 [ORTA]**~~ (tekrar etmiyor: canlıda son 30 günün kayıtları 6 haneli kodla onaylanmış; yorum düzeltildi) Kodda "user gets 8" yorumu var, arayüz 6 hane kabul ediyor. Supabase projesinde OTP uzunluğu 8 ise doğrulama imkânsız (doğrulanmadı).
   - ✅ ~~**1.5-S3 [ORTA]**~~ (tekrar etmiyor: Supabase onayı zorunlu tutuyor; onaysız 20 hesabın hiçbiri giriş yapamamış) E-posta onayı zorunlu değil; dashboard yalnızca banner gösteriyor.
-  - **1.5-S4 [DÜŞÜK]** `/auth/verify-email` hiçbir yerden bağlanmıyor, `alert()` kullanıyor.
+  - ✅ ~~**1.5-S4 [DÜŞÜK]**~~ (yetim sayfa silindi) `/auth/verify-email` hiçbir yerden bağlanmıyor, `alert()` kullanıyor.
 
 ### 1.6 Onboarding profil formu
 - **Dosyalar:** `app/onboarding/page.tsx`, `app/onboarding/actions.ts` (`saveOnboardingProfile`),
@@ -111,7 +111,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   Kaydettikten sonra influencer `/onboarding/verify`'a, marka `/dashboard`'a gider. Marka için kurumsal e-postaya kod gönderilir.
 - **Sorunlar:**
   - ✅ ~~**1.6-S1 [ORTA]**~~ (taslak yalnızca DB'de boş alanları dolduruyor; varsayılanlar birleştirmeden sonra; DB avatarı öncelikli) localStorage taslağı DB değerlerinin üzerine yazıyor; eski taslak yeni profili ezebilir.
-  - **1.6-S2 [DÜŞÜK]** Marka kategorisi `'tech'` olarak sabit (`page.tsx`).
+  - ✅ ~~**1.6-S2 [DÜŞÜK]**~~ (sabit 'tech' kaldırıldı; kategori yalnızca seçilince yazılıyor, mevcut değer silinmiyor) Marka kategorisi `'tech'` olarak sabit (`page.tsx`).
   - **1.6-S3 [DÜŞÜK]** RLS hata metni kullanıcıya gösteriliyor; `avatar_url` istemciden gelen herhangi bir string.
 
 ### 1.7 Onboarding sosyal doğrulama adımı
@@ -141,7 +141,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.9-S1 [YÜKSEK]**~~ (`lib/account-deletion.ts`: kilit → profil → dosyalar → auth; DB kuralı mesajı kullanıcıya gösteriliyor) `deleteAccount` auth kullanıcısını silemezse yalnızca loglayıp başarı dönüyor; kullanıcı tekrar giriş yapabilir.
   - ✅ ~~**1.9-S2 [ORTA]**~~ (avatars ve tax-documents altındaki `{uid}/` dosyaları ve eski kök avatar siliniyor) Hesap silinince storage dosyaları (avatars, feedback-images, tax-documents) silinmiyor (KVKK).
-  - **1.9-S3 [DÜŞÜK]** Silme modalı "abonelikleriniz iptal edilecek" diyor, Spotlight iptal edilmiyor; şifre tekrar sorulmuyor.
+  - **1.9-S3 [DÜŞÜK]** (modal metni düzeltildi: "Spotlight hesabınızla birlikte sona erer"; şifre tekrar sorulmaması açık) Silme modalı "abonelikleriniz iptal edilecek" diyor, Spotlight iptal edilmiyor; şifre tekrar sorulmuyor.
   - ✅ ~~**1.9-S4 [DÜŞÜK]**~~ (hata türüne göre mesaj) `changePassword` her hatayı "en az 6 karakter" olarak raporluyor.
   - **1.9-S5 [ORTA]** `email_notifications` tercihleri kaydediliyor ama hiçbir kod bu tercihlere göre e-posta göndermiyor (bkz. 5.4).
 
@@ -150,7 +150,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   `app/dashboard/influencer/settings/support/actions.ts`
 - **Sorunlar:**
   - ✅ ~~**1.10-S1 [ORTA]**~~ (admin ekranları 10 dk imzalı bağlantı kullanıyor; kova gizli, herkese okuma kuralının silinmesi elle çalıştırılacak) Ekler herkese açık `feedback-images` bucket'ına gidiyor ve public URL alıyor (gizlilik).
-  - **1.10-S2 [DÜŞÜK]** "Talep numarası" kullanıcının talep sayısı + 1; saklanmıyor, yarış durumuna açık.
+  - ✅ ~~**1.10-S2 [DÜŞÜK]**~~ (kullanıcı ve admin aynı sabit kodu görüyor: talep kimliğinin ilk 8 karakteri, `lib/support-ticket.ts`) "Talep numarası" kullanıcının talep sayısı + 1; saklanmıyor, yarış durumuna açık.
   - **1.10-S3 [DÜŞÜK]** Yeni talep realtime gelene kadar listede görünmüyor; seçim değişince realtime yeniden aboneleniyor.
 
 ### 1.11 Geri bildirim
@@ -181,7 +181,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   - ✅ ~~**2.1-S4 [ORTA]**~~ (son videoların ortalama beğeni+yorum+paylaşım / takipçi; veri yoksa null. Örnek sayısı `TIKTOK_VIDEO_SAMPLE`, varsayılan 1 = eski maliyet; Profil ekranlarındaki %4.8/%3.0 yedekleri kaldırıldı; mevcut hesaplar sonraki yenilemede düzelir) TikTok etkileşim oranı uydurma: `(toplam beğeni / takipçi) * 10`, 1.5–18.5 aralığına kırpılıyor.
     Bu sayı güven skorunu ve mavi tiki besliyor.
   - ✅ ~~**2.1-S5 [ORTA]**~~ (Apify `authorMeta.id` varsa `tt-id-<id>` kullanılıyor ve başka kullanıcıyla çakışma kontrol ediliyor; yoksa eski biçim) TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
-  - **2.1-S6 [DÜŞÜK]** Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.
+  - ✅ ~~**2.1-S6 [DÜŞÜK]**~~ (yanıltıcı "Son 21 Gün" / "Son 6 gönderi" etiketleri kaldırıldı) Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.
   - ✅ ~~**2.1-S7 [ORTA]**~~ (aynı doğrulanmış hesap için yeni kod üretilmiyor, doğrulama düşmüyor; farklı hesaba geçiş bilinçli değişiklik) Doğrulanmış hesapta yeniden kod üretmek hesabı doğrulanmamışa çeviriyor; tek hesapsa kullanıcı dashboard'dan kilitlenir.
   - **2.1-S8 [DÜŞÜK]** (canlıda kontrol edildi: jeton kolonu yok; okunabilen doğrulama kodu başkasının biyografisine yazılamayacağı için işe yaramaz. Düşük) `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
 
@@ -212,7 +212,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Sorunlar:**
   - ✅ ~~**2.4-S1 [ORTA]**~~ (kart artık `evaluateBlueTick` sonucunu gösteriyor: aynı hesap, aynı skor, süresi kontrol edilmiş Spotlight) Kural en çok takipçili hesabı (TikTok olabilir) kullanıyor; dashboard TrustScoreCard yalnızca Instagram'ı kullanıyor → iki kart farklı skor gösterebilir.
   - ✅ ~~**2.4-S2 [ORTA]**~~ (4.3-S1 ile: süresi dolan Spotlight saatlik görevde kapanıyor) Spotlight süresi dolanlar `spotlight_active=true` kaldığı için mavi tik kuralını geçmeye devam ediyor (bkz. 4.3-S1).
-  - **2.4-S3 [DÜŞÜK]** Eski yorumlar tiki bio doğrulamaya bağlı anlatıyor (`badgeAwarding.ts`, `InfluencerGridCard.tsx`).
+  - ✅ ~~**2.4-S3 [DÜŞÜK]**~~ (yorumlar güncel kurala göre yazıldı) Eski yorumlar tiki bio doğrulamaya bağlı anlatıyor (`badgeAwarding.ts`, `InfluencerGridCard.tsx`).
 
 ### 2.5 Güven skoru ve eşleşme skoru
 - **Dosyalar:** `utils/matching.ts`, `components/dashboard/TrustScoreCard.tsx`; mobilde ayrı kopya `mobile-app/utils/calculation.js`
@@ -233,7 +233,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Sorunlar:**
   - ✅ ~~**2.7-S1 [ORTA]**~~ (doğrulanmış Instagram/TikTok linki formda kilitli ve sunucuda doğrulanmış kullanıcı adından yazılıyor) Instagram link alanı hesap doğrulandıktan sonra da düzenlenebilir (TikTok kilitli); `social_links.instagram` doğrulanmış kullanıcı adından sapabilir.
   - ✅ ~~**2.7-S2 [ORTA]**~~ (avatar artık `{uid}/` klasörüne yükleniyor) Avatar bucket köküne rastgele adla yükleniyor; avatars politikası `{uid}/` klasörü istiyor (bkz. 7.5-S1).
-  - **2.7-S3 [DÜŞÜK]** Tüm güncelleme yükü `console.log` ile loglanıyor; eksik kolon için kalıntı try/catch.
+  - **2.7-S3 [DÜŞÜK]** (profil yükünü loglayan console.log'lar silindi; eski kolon try/catch'i duruyor) Tüm güncelleme yükü `console.log` ile loglanıyor; eksik kolon için kalıntı try/catch.
 
 ### 2.8 Vitrin görünürlüğü (`is_showcase_visible`, "Vitrin Modu")
 - **Dosyalar:** `components/dashboard/SpotlightToggleCard.tsx`, `app/dashboard/influencer/actions.ts` (`toggleShowcaseVisibility`)
@@ -247,7 +247,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Sorunlar:**
   - **2.9-S1 [ORTA]** "AI analiz" yerel kural motoru + rastgele karıştırma + sahte 800 ms gecikme; LLM yok. Pazarlama dili yanıltıcı.
   - **2.9-S2 [ORTA]** Her marka ücretsiz BRAND_PRO seviyesini alıyor; seviye eşlemesi dosyalar arasında farklı (`ipro`/`mpro`, eski `pro`/`elite`).
-  - **2.9-S3 [DÜŞÜK]** `match_score` / `profile_coach` "Çok yakında" ile kapalı; `statsPayload.changes` hiç yazılmıyor; "TikTok Resmi Entegrasyonu Aktif" yazısı yanlış.
+  - **2.9-S3 [DÜŞÜK]** ("TikTok Resmi Entegrasyonu Aktif" → "Herkese açık TikTok profilinden alındı") `match_score` / `profile_coach` "Çok yakında" ile kapalı; `statsPayload.changes` hiç yazılmıyor; "TikTok Resmi Entegrasyonu Aktif" yazısı yanlış.
 
 ### 2.10 İstatistik geçmişi
 - **Dosyalar:** `app/dashboard/influencer/stats/page.tsx`, `components/dashboard/StatsHistory.tsx`
@@ -326,7 +326,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.7-S1 [YÜKSEK]**~~ (mevcut kapak korunuyor) İlan düzenleme bozuk: düzenlemede `heroImage` boşaltılıyor, kaydetme "Kapak fotoğrafı zorunlu" diye reddediyor.
   - ✅ ~~**3.7-S2 [YÜKSEK]**~~ (payment_type/custom_questions okunuyor, açıklama ezilmiyor) Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
   - ✅ ~~**3.7-S3 [ORTA]**~~ (`getAnalyticsStats` Spotlight kontrolü yapıyor) Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
-  - **3.7-S4 [DÜŞÜK]** Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
+  - ✅ ~~**3.7-S4 [DÜŞÜK]**~~ (brandIsSpotlight süre kontrollü dolduruluyor; kapak silme yolu adresten çıkarılıyor) Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
 
 ### 3.8 Başvuru değerlendirme (marka)
 - **Dosyalar:** `AdvertApplicationsList.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
@@ -343,7 +343,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.9-S1 [YÜKSEK]**~~ (canlıda "avatars insert" kökte yüklemeye izin veriyordu; logo artık `{uid}/` klasörüne yükleniyor) Logo yükleme yolu klasörsüz (`${uuid}.ext`), avatars politikası `{uid}/` istiyor → büyük ihtimalle başarısız (bkz. 7.5-S1).
   - ✅ ~~**3.9-S2 [YÜKSEK]**~~  Sayfa `kick`, `twitter`, `twitch` alanlarını forma geçmiyor → kaydetme bunları null'a çekiyor (ya da 30 günlük kilide takılıyor).
   - ✅ ~~**3.9-S4 [YÜKSEK]**~~ `updateBrandProfile` doğrulama hatasını fırlatıyordu; production'da kullanıcı hata sayfası görüyordu (canlı Vercel kayıtlarında görüldü). Artık mesaj olarak dönüyor.
-  - **3.9-S3 [DÜŞÜK]** Eksik kolon try/catch'i ölü; `brand/profile/badges/actions.ts`, brand settings re-export dosyaları kullanılmıyor.
+  - **3.9-S3 [DÜŞÜK]** (yeniden dışa aktarma dosyaları ve rozet actions silindi; eski kolon try/catch'i duruyor) Eksik kolon try/catch'i ölü; `brand/profile/badges/actions.ts`, brand settings re-export dosyaları kullanılmıyor.
 
 ### 3.10 Vergi levhası doğrulama
 - **Dosyalar:** `components/brand/TaxCertificateUpload.tsx`, `brand/profile/tax-actions.ts` (`submitTaxCertificate`),

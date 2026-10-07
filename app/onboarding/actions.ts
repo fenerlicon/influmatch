@@ -85,13 +85,14 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
     username: normalizedUsername,
     city: normalizedCity,
     bio: normalizedBio,
-    category: payload.category || null,
     avatar_url: payload.avatarUrl,
     tax_id: normalizedTaxId,
     tax_office: payload.taxOffice?.trim() || null,
     tax_office_city: payload.taxOfficeCity?.trim() || null,
     social_links: payload.socialLinks,
     creator_type: payload.creatorType || null,
+    // Kategori yalnızca seçildiyse yazılır; boş gelirse mevcut değer silinmez.
+    ...(payload.category ? { category: payload.category } : {}),
   }
 
   // Upsert yerine ayrı update/insert: gizli kolonlar (tax_id vb.) istemci rolüne okunamaz olduğu için

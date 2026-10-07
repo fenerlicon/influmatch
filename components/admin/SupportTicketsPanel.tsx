@@ -1,5 +1,6 @@
 'use client'
 
+import { ticketCode } from '@/lib/support-ticket'
 import { useState, useEffect, useTransition } from 'react'
 import Image from 'next/image'
 import { getAttachmentUrl } from '@/app/admin/attachments/actions'
@@ -207,13 +208,7 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
     }).format(date)
   }
 
-  const getTicketNumber = (ticket: SupportTicket) => {
-    const userTickets = tickets
-      .filter((t) => t.user_id === ticket.user_id)
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    const index = userTickets.findIndex((t) => t.id === ticket.id)
-    return index + 1
-  }
+  const getTicketNumber = (ticket: SupportTicket) => ticketCode(ticket.id)
 
   return (
     <main className="min-h-screen bg-background px-6 py-24 md:px-12 lg:px-24">
