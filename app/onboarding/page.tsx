@@ -72,8 +72,9 @@ export default function OnboardingPage() {
 
   const role: UserRole | null = useMemo(() => {
     if (profile?.role) return profile.role
+    // Profil yüklenene kadar kayıttaki seçim; yalnızca bilinen roller (metadata kullanıcı tarafından değiştirilebilir).
     const sessionRole = session?.user.user_metadata?.role
-    return sessionRole ?? null
+    return sessionRole === 'brand' || sessionRole === 'influencer' ? sessionRole : null
   }, [profile, session])
 
   useEffect(() => {

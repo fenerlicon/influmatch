@@ -13,6 +13,7 @@ import type { DiscoverInfluencer } from '@/types/influencer'
 import { calculateMatchScore, getMatchReason } from '@/utils/matching'
 import { Sparkles, Layers, Lock } from 'lucide-react'
 import InflistManager from '@/components/dashboard/InflistManager'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export default async function BrandDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -27,7 +28,7 @@ export default async function BrandDashboardPage() {
   // Get profile data for completion card
   const { data: profile } = await supabase
     .from('users')
-    .select('verification_status, full_name, username, city, bio, category, avatar_url, social_links, spotlight_active')
+    .select('verification_status, full_name, username, city, bio, category, avatar_url, social_links, spotlight_active, spotlight_expires_at')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -137,11 +138,11 @@ export default async function BrandDashboardPage() {
     favoriteInfluencers.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id))
   }
 
-  // Fetch AI Recommendations (Shared Logic)
-  const recommendations = await getAIRecommendations(user.id, profileData.category, 4)
-
   const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
-  const isSpotlight = profile?.spotlight_active || false
+  const isSpotlight = hasActiveSpotlight(profile)
+
+  // Öneriler yalnızca Spotlight markası için hesaplanır; diğerlerine sadece boş kart iskeleti gider.
+  const recommendations = isSpotlight ? await getAIRecommendations(user.id, profileData.category, 4) : []
 
   return (
     <div className="space-y-6">
@@ -249,6 +250,10 @@ export default async function BrandDashboardPage() {
 
           <div className="relative z-10">
             <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4 relative ${!isSpotlight ? 'blur-md pointer-events-none select-none opacity-50' : ''}`}>
+              {!isSpotlight &&
+                Array.from({ length: 4 }, (_, i) => (
+                  <div key={i} className="h-72 rounded-3xl border border-white/10 bg-white/5" aria-hidden="true" />
+                ))}
               {recommendations.map(influencer => (
                 <div key={influencer.id} className="h-full">
                   <InfluencerGridCard

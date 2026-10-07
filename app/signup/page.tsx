@@ -12,7 +12,9 @@ function SignupPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = useSupabaseClient()
-  const defaultRole = (searchParams.get('role') as UserRole) || 'influencer'
+  // Yalnızca bilinen roller; URL'den gelen başka bir değer (ör. admin) metadata'ya yazılmaz.
+  const roleParam = searchParams.get('role')
+  const defaultRole: UserRole = roleParam === 'brand' ? 'brand' : 'influencer'
 
   const [role, setRole] = useState<UserRole>(defaultRole)
   const [fullName, setFullName] = useState('')
@@ -92,10 +94,8 @@ function SignupPageContent() {
           errorMsg.includes('too many requests') ||
           errorMsg.includes('rate limit exceeded') ||
           errorMsg.includes('exceeded')) {
-          // Rate limit - but email might have been sent on first attempt
-          // Redirect immediately to check-email page
-          // Use window.location for immediate redirect to prevent page refresh issues
-          window.location.href = `/auth/check-email?email=${encodeURIComponent(email)}`
+          // Hız sınırında e-posta gönderilmez; kullanıcı başarı sayfasına değil hataya düşmeli.
+          setErrorMessage('Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin. Daha önce kayıt olduysanız e-postanızı kontrol edin.')
           return
         }
 

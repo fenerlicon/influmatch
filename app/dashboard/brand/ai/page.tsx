@@ -5,6 +5,7 @@ import { getAIRecommendations } from '@/utils/fetchInfluencers'
 import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import { Sparkles, ArrowLeft, Zap } from 'lucide-react'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export default async function AIRecommendationsPage() {
     const supabase = createSupabaseServerClient()
@@ -17,13 +18,18 @@ export default async function AIRecommendationsPage() {
     // Get user profile for category, spotlight status, and verification status
     const { data: profile } = await supabase
         .from('users')
-        .select('category, spotlight_active, spotlight_plan, verification_status')
+        .select('category, spotlight_active, spotlight_expires_at, spotlight_plan, verification_status')
         .eq('id', user.id)
         .single()
 
     const verificationStatus = (profile?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
     if (verificationStatus !== 'verified') {
         return <BrandLockScreen status={verificationStatus} />
+    }
+
+    // AI önerileri Spotlight özelliğidir; plan yoksa hesaplanmaz.
+    if (!hasActiveSpotlight(profile)) {
+        redirect('/dashboard/spotlight/brand')
     }
 
     const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı

@@ -1,5 +1,6 @@
 'use server'
 
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export type AnalyticsEventType = 'view_advert' | 'click_profile' | 'view_profile'
@@ -59,6 +60,16 @@ export async function getAnalyticsStats(brandId: string, timeRange: '7d' | '30d'
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || user.id !== brandId) {
         return { success: false, data: [], error: 'Sadece kendi istatistiklerinizi görüntüleyebilirsiniz.' }
+    }
+
+    // İlan analitiği Spotlight özelliğidir; arayüzdeki kilit yalnızca görseldir.
+    const { data: profile } = await supabase
+        .from('users')
+        .select('spotlight_active, spotlight_expires_at')
+        .eq('id', user.id)
+        .maybeSingle()
+    if (!hasActiveSpotlight(profile)) {
+        return { success: false, data: [], error: 'Analitik Spotlight üyelerine açıktır.' }
     }
 
     // Calculate date filter
