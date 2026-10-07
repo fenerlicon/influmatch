@@ -29,3 +29,11 @@ ALTER TABLE public.social_accounts ADD COLUMN IF NOT EXISTS last_scraped_at time
 ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE public.users
   ADD CONSTRAINT users_role_check CHECK (role = ANY (ARRAY['influencer'::text, 'brand'::text, 'admin'::text]));
+
+-- İlan durumları: arayüz "Duraklat" için 'paused' kullanıyor; canlı kısıt bunu reddediyordu
+-- (2026-10-07'de canlıda düzeltildi). Başvuru kuralı yalnızca 'open' ilanlara izin verdiği için
+-- duraklatılan ilana başvuru yapılamaz.
+ALTER TABLE public.advert_projects DROP CONSTRAINT IF EXISTS advert_projects_status_check;
+ALTER TABLE public.advert_projects
+  ADD CONSTRAINT advert_projects_status_check
+  CHECK (status = ANY (ARRAY['open'::text, 'paused'::text, 'closed'::text, 'archived'::text]));
