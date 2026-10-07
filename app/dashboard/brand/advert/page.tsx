@@ -4,6 +4,7 @@ import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
 import { type AdvertApplication } from '@/components/dashboard/AdvertApplicationsList'
 import BrandAdvertTabs from '@/components/dashboard/BrandAdvertTabs'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -21,7 +22,7 @@ export default async function BrandAdvertPage() {
   // Get user verification status
   const { data: userProfile } = await supabase
     .from('users')
-    .select('verification_status, spotlight_active')
+    .select('verification_status, spotlight_active, spotlight_expires_at')
     .eq('id', user.id)
     .single()
 
@@ -187,7 +188,7 @@ export default async function BrandAdvertPage() {
         currentUserId={user.id}
         myProjectIds={myProjectIds}
         verificationStatus={verificationStatus}
-        userSpotlightStatus={userProfile?.spotlight_active ?? false}
+        userSpotlightStatus={hasActiveSpotlight(userProfile)}
       />
     </div>
   )

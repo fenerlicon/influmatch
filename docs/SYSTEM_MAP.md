@@ -210,7 +210,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Kural:** aktif Spotlight + doğrulanmış hesap + 30 günden taze istatistik + 10k+ takipçi + güven skoru ≥ 80.
   Admin istisnası `users.blue_tick_override`. Rozet her zaman ilk sırada gösterilir.
 - **Sorunlar:**
-  - **2.4-S1 [ORTA]** Kural en çok takipçili hesabı (TikTok olabilir) kullanıyor; dashboard TrustScoreCard yalnızca Instagram'ı kullanıyor → iki kart farklı skor gösterebilir.
+  - ✅ ~~**2.4-S1 [ORTA]**~~ (kart artık `evaluateBlueTick` sonucunu gösteriyor: aynı hesap, aynı skor, süresi kontrol edilmiş Spotlight) Kural en çok takipçili hesabı (TikTok olabilir) kullanıyor; dashboard TrustScoreCard yalnızca Instagram'ı kullanıyor → iki kart farklı skor gösterebilir.
   - ✅ ~~**2.4-S2 [ORTA]**~~ (4.3-S1 ile: süresi dolan Spotlight saatlik görevde kapanıyor) Spotlight süresi dolanlar `spotlight_active=true` kaldığı için mavi tik kuralını geçmeye devam ediyor (bkz. 4.3-S1).
   - **2.4-S3 [DÜŞÜK]** Eski yorumlar tiki bio doğrulamaya bağlı anlatıyor (`badgeAwarding.ts`, `InfluencerGridCard.tsx`).
 
@@ -288,11 +288,11 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `discover/page.tsx`, `components/dashboard/BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`, `AddToListModal`, `SimilarProfilesModal`
 - **Sorunlar:**
   - ✅ ~~**3.2-S1 [ORTA]**~~ (favoriler ve liste sayfaları aktif Spotlight planını geçiriyor) Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
-  - **3.2-S2 [ORTA]** Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
+  - **3.2-S2 [ORTA]** (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
 
 ### 3.3 Favoriler
 - **Dosyalar:** `app/dashboard/brand/favorites/page.tsx`, `app/actions/favorites.ts`
-- **Sorunlar:** **3.3-S1 [ORTA]** `favorites` tablosundaki UNIQUE kısıtı bir migration'da düşürülmüş; tekrar varsa `.single()` hata verip
+- **Sorunlar:** ✅ ~~**3.3-S1 [ORTA]**~~ (toggle tüm eşleşen satırlara bakıyor; tekil indeks `20261007000010` canlıda uygulandı) `favorites` tablosundaki UNIQUE kısıtı bir migration'da düşürülmüş; tekrar varsa `.single()` hata verip
   silmek yerine bir kopya daha ekliyor.
 
 ### 3.4 Inflist (adlandırılmış listeler)
@@ -334,6 +334,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.8-S1 [ORTA]**~~ (okuma ve durum güncelleme oturum istemcisiyle; canlı RLS markaya yalnızca kendi ilanlarının başvurularını açıyor) Okumalar "RLS sorunu için geçici çözüm" olarak service role ile; sahiplik kodda kontrol ediliyor ama RLS devre dışı kalmış.
   - ✅ ~~**3.8-S2 [ORTA]**~~ (yalnızca bu başvurunun odası yeniden kullanılıyor; başvuru durumu artık 'pending'e çekilmiyor) `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
     `advert_application_id` güncellemesi sessizce başarısız; oda açılırken başvuruyu `pending`'e geri çekebiliyor.
+  - ✅ ~~**3.8-S4 [YÜKSEK]**~~ (yeni bulundu, canlıda düzeltildi) Canlı CHECK kısıtı `shortlisted` durumunu reddediyordu; "Ön Listeye Al" hiç çalışmamış (canlıda tek bir shortlisted başvuru yok). Kısıt genişletildi, `20261007000011`.
   - **3.8-S3 [ORTA]** Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
 
 ### 3.9 Marka profili
@@ -461,7 +462,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sistem B:** `auth.user_metadata["last_read_<roomId>"]` — sidebar ve mesaj kutusu kullanıyor.
 - **Sorunlar:**
   - ✅ ~~**5.3-S1 [YÜKSEK]**~~ (`message_reads` tablosu canlıda yok, rozetler hep 0 çıkıyordu; sayım `last_read_<roomId>` metadata ile, `lib/unread-messages.ts`) Teklif ve başvuru ekranlarındaki okunmamış rozetleri hiç temizlenmiyor.
-  - **5.3-S2 [ORTA]** Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyor;
+  - **5.3-S2 [ORTA]** (canlıda ölçüldü: en büyük metadata 550 bayt, en çok 4 oda anahtarı; acil değil, mesajlaşma tasarımıyla birlikte `room_reads` tablosuna taşınacak) Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyor;
     aynı kişiyle birleşik odalardan yalnızca seçili oda okundu oluyor.
 
 ### 5.4 Bildirimler
@@ -615,9 +616,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   - **7.5-S2 [ORTA]** `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
 
 ### 7.6 Şema kayması (kodda var, migration'da yok)
-- **7.6-S1 [YÜKSEK]** `advert_applications.influencer_id` — politikalarda, web ve mobilde kullanılıyor, hiç oluşturulmamış.
-- **7.6-S2 [ORTA]** `social_accounts.verification_code`, `has_stats`, `last_scraped_at` — kod yazıyor; canlıda var olmalı, repoda yok.
-- **7.6-S3 [ORTA]** `users.role='admin'` — `schema.sql` CHECK yalnızca influencer/brand'e izin veriyor; hiçbir migration genişletmiyor.
+- ✅ ~~**7.6-S1 [YÜKSEK]**~~ (`20261007000011` ile repoya eklendi) `advert_applications.influencer_id` — politikalarda, web ve mobilde kullanılıyor, hiç oluşturulmamış.
+- ✅ ~~**7.6-S2 [ORTA]**~~ (`20261007000011`) `social_accounts.verification_code`, `has_stats`, `last_scraped_at` — kod yazıyor; canlıda var olmalı, repoda yok.
+- ✅ ~~**7.6-S3 [ORTA]**~~ (`20261007000011`) `users.role='admin'` — `schema.sql` CHECK yalnızca influencer/brand'e izin veriyor; hiçbir migration genişletmiyor.
 - **7.6-S4 [DÜŞÜK]** `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`.
 
 ### 7.7 Çakışan migration'lar
@@ -785,6 +786,11 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **T1** Marka doğrulama kilidi (1.8-S4, PR #17): doğrulanmış marka hesabıyla Keşfet, İlanlar, Favoriler, AI öneriler, Teklifler normal açılmalı;
   doğrulanmamış markada bu sayfalar kilit ekranı göstermeli, ana sayfa/profil/ayarlar/rozetler açık olmalı.
 - **T2** Instagram hızlı doğrulama (PR #12): kodla hesap ekleyip "Kontrol et" süresi.
+
+### 11.3 Elle çalıştırılacak SQL'ler (kullanıcı kararı: en sonda tek dosyada toplu gönderilecek)
+- `sohbet_ekleri_kurali.sql` → `20261007000007` politika kısmı (chat-attachments oda katılımcısı kuralı, 5.1-S5)
+- `geri_bildirim_gorselleri_kurali.sql` → `20261007000008` DROP POLICY kısmı (kova zaten gizli, 1.10-S1)
+- `ilan_kurallari_temizlik.sql` → `20261007000009` (gevşek advert_projects kuralları, 7.7-S2)
 
 ### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07)
 - Mobil uygulamaya bir süre dokunulmayacak; önce web tamamlanacak, mobil entegrasyonlar web'e göre yapılacak.

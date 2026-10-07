@@ -49,6 +49,10 @@ export interface BlueTickEvaluation {
   eligible: boolean
   trustScore: number
   criteria: BlueTickCriterion[]
+  /** Skorun hesaplandığı hesap (en çok takipçili doğrulanmış hesap); dashboard kartı da bunu gösterir. */
+  primaryPlatform: string | null
+  primaryEngagementRate: number
+  spotlightActive: boolean
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -123,5 +127,12 @@ export function evaluateBlueTick(profile: BlueTickProfile, accounts: BlueTickAcc
     },
   ]
 
-  return { eligible: criteria.every((criterion) => criterion.met), trustScore, criteria }
+  return {
+    eligible: criteria.every((criterion) => criterion.met),
+    trustScore,
+    criteria,
+    primaryPlatform: primary?.platform ?? null,
+    primaryEngagementRate: Number(primary?.engagement_rate) || 0,
+    spotlightActive: spotlight,
+  }
 }

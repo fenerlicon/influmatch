@@ -22,20 +22,23 @@ export async function toggleFavorite(influencerId: string) {
         return { error: 'Sadece markalar favorilere ekleme yapabilir.' }
     }
 
-    // Check if already favorited
+    // Tüm eşleşen satırlar okunur: .single() birden fazla satırda hata verip kaydı "yok" sanıyor
+    // ve yeni bir kopya ekliyordu (çift tıklama vb.).
     const { data: existing, error: checkError } = await supabase
         .from('favorites')
         .select('id')
         .eq('brand_id', user.id)
         .eq('influencer_id', influencerId)
-        .single()
 
-    if (existing) {
+    if (checkError) return { error: checkError.message }
+
+    if (existing && existing.length > 0) {
         // Remove
         const { error } = await supabase
             .from('favorites')
             .delete()
-            .eq('id', existing.id)
+            .eq('brand_id', user.id)
+            .eq('influencer_id', influencerId)
 
         if (error) return { error: error.message }
 
@@ -51,7 +54,8 @@ export async function toggleFavorite(influencerId: string) {
                 influencer_id: influencerId
             })
 
-        if (error) return { error: error.message }
+        // 23505: aynı anda gelen ikinci istek; kayıt zaten var.
+        if (error && error.code !== '23505') return { error: error.message }
 
         revalidatePath('/dashboard/brand')
         revalidatePath('/dashboard/brand/favorites')
