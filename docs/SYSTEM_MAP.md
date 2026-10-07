@@ -282,7 +282,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   `InflistManager`, `BrandOffersList`, `BrandVerificationCard`
 - **Sorunlar:**
   - ✅ ~~**3.1-S1 [ORTA]**~~ (öneriler yalnızca Spotlight markası için hesaplanıyor; diğerlerine boş iskelet, `lib/spotlight-access.ts`) Spotlight olmayan markaya AI önerileri hesaplanıp gönderiliyor, yalnızca CSS ile bulanıklaştırılıyor (premium veri DOM'da).
-  - **3.1-S2 [DÜŞÜK]** `BrandVerificationCard` kolon kısıtlı `users` tablosunu realtime dinliyor; olay sessizce gelmeyebilir (doğrulanmadı).
+  - ✅ ~~**3.1-S2 [DÜŞÜK]**~~ (users realtime yayınında değil, olay hiç gelmiyordu; sekmeye dönünce durum yeniden okunuyor) `BrandVerificationCard` kolon kısıtlı `users` tablosunu realtime dinliyor; olay sessizce gelmeyebilir (doğrulanmadı).
 
 ### 3.2 Keşfet (influencer ızgarası)
 - **Dosyalar:** `discover/page.tsx`, `components/dashboard/BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`, `AddToListModal`, `SimilarProfilesModal`
@@ -448,7 +448,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.1-S2 [YÜKSEK]**~~ (her oda için yalnızca son mesaj ve okunmamış sayısı; 20'lik gruplar halinde paralel) Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
   - **5.1-S3 [ORTA]** Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
   - **5.1-S4 [ORTA]** Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
-  - **5.1-S5 [ORTA]** `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
+  - **5.1-S5 [ORTA]** (5 MB/görsel sınırı canlıda; oda katılımcısı politikası `20261007000007` elle çalıştırılmayı bekliyor) `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
   - **5.1-S6 [DÜŞÜK]** Her mesajda engel kontrolü için sunucu aksiyonu; `SidebarLink` iki kez render edilip aynı adlı iki kanal açıyor.
 
 ### 5.2 Eski sohbet sayfası
@@ -497,7 +497,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   Spotlight ve rozet modalları, vergi levhası incelemesi, kurumsal e-posta durumu, ilanlar, başvurular, bildirim gönderimi.
 - **Sorunlar:**
   - ✅ ~~**6.1-S1 [ORTA]**~~ (oturum kontrolü try dışında; bakım mesajı genelleştirildi) `redirect('/login')` `try` içinde; NEXT_REDIRECT yakalanıp "Bir Hata Oluştu" ekranı gösteriliyor.
-  - **6.1-S2 [DÜŞÜK]** `PGRST116` rate limit sayılıyor; eski "21-23 Kasım bakım" mesajı sabit; başka statüdeki kullanıcılar hiçbir listede yok.
+  - **6.1-S2 [DÜŞÜK]** (PGRST116 artık rate limit sayılmıyor; bakım mesajı genelleştirildi) `PGRST116` rate limit sayılıyor; eski "21-23 Kasım bakım" mesajı sabit; başka statüdeki kullanıcılar hiçbir listede yok.
   - ✅ ~~**6.1-S3 [ORTA]**~~ (toplu silme deleteUser kullanıyor; kendini/admini silme koruması PR #7) Toplu silme kendini veya başka bir admini silmeye karşı korumasız.
 
 ### 6.2 Admin aksiyonları (`app/admin/actions.ts`)
@@ -589,7 +589,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Sorunlar:**
   - **7.3-S1 [ORTA]** Beyaz listede `push_notifications_enabled`, `website` var ama bu kolonlar yok; `push_token` ise ne kolon ne beyaz listede (mobil push hiç kaydedilmiyor).
   - **7.3-S2 [YÜKSEK]** Anon SELECT politikası olmadığı için herkese açık profil ve `/api/check-username` (kayıt öncesi her zaman "müsait" der) çalışmıyor.
-  - **7.3-S3 [ORTA]** `users` realtime yayınındaysa `postgres_changes` olayları kolon yetkisine bakmadan tüm satırı gönderebilir → gizli kolon sızıntısı riski (canlıda doğrulanmalı).
+  - ✅ ~~**7.3-S3 [ORTA]**~~ (canlıda realtime yayınında yalnızca messages var; users yok, sızıntı yolu yok) `users` realtime yayınındaysa `postgres_changes` olayları kolon yetkisine bakmadan tüm satırı gönderebilir → gizli kolon sızıntısı riski (canlıda doğrulanmalı).
 
 ### 7.4 RPC'ler ve fonksiyonlar
 - Güvenli: `is_admin()`, `get_my_private_profile()`, `get_offer_contact_email()`, `award_user_badge()` (artık yalnızca admin/sunucu),

@@ -34,8 +34,7 @@ export default async function AdminPage() {
       // If rate limit error, show a helpful message
       const isRateLimit =
         adminError.message?.includes('rate limit') ||
-        adminError.message?.includes('429') ||
-        adminError.code === 'PGRST116'
+        adminError.message?.includes('429')
 
       if (isRateLimit) {
         throw new Error('Veritabanı geçici olarak yanıt vermiyor (rate limit). Lütfen birkaç dakika bekleyip tekrar deneyin.')
