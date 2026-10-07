@@ -26,8 +26,9 @@ Kararsız yapılabilecek web maddeleri bitti (PR #32–#36). Kalanlar:
 2. **Mobil** (CLAUDE.md kural 3, kullanıcıya hatırlatılacak): SYSTEM_MAP 10.3, 2.1-S8 (doğrulama kodu kolonu, mobil `select('*')`
    nedeniyle bekliyor), mobil sürüm çıkınca `DROP POLICY "avatars insert"`.
 3. **OAuth açılırsa:** 2.3-S2, 2.3-S3, 2.3-S4.
-4. **Son temizlik SQL'i** (DROP içerir, en sonda toplu): 7.4-S9 kullanılmayan fonksiyonlar ve `offers` üzerindeki çift trigger.
-5. **Kuyruğun en sonu:** bölüm 8.
+4. **Son temizlik SQL'i** hazır: `supabase/manual/2026-10-09_temizlik.sql` (7.4-S9). Kullanıcı çalıştırınca haritada ✅.
+5. **Takip panosu:** yerel oturum panoya erişemiyor (artifact başka hesapta, bu hesapla paylaşılmamış). Harita güncel; erişimi olan ilk oturum `scripts/tracker_sync.py` ile eşitlemeli.
+6. **Kuyruğun en sonu:** bölüm 8.
 
 ## 3. Kullanıcının verdiği kararlar (kronolojik, 6–7 Ekim 2026)
 

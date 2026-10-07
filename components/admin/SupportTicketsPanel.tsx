@@ -7,20 +7,7 @@ import { getAttachmentUrl } from '@/app/admin/attachments/actions'
 import Link from 'next/link'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { updateSupportTicketStatus, addAdminResponse } from '@/app/admin/support/actions'
-import {
-  ArrowLeft,
-  Mail,
-  MessageSquare,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  FileText,
-  User,
-  Calendar,
-  Send,
-  X,
-  Eye,
-} from 'lucide-react'
+import { ArrowLeft, AlertCircle, Clock, FileText, User, Calendar, Send, X, Eye } from 'lucide-react'
 
 interface SupportTicket {
   id: string

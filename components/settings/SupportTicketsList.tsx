@@ -3,7 +3,7 @@
 import { ticketCode } from '@/lib/support-ticket'
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, X } from 'lucide-react'
+import { FileText, Clock, CheckCircle, AlertCircle, MessageSquare, X } from 'lucide-react'
 
 interface SupportTicket {
   id: string

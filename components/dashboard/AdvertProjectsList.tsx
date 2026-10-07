@@ -102,7 +102,6 @@ export default function AdvertProjectsList({
   const [submittingId, setSubmittingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const myProjectIdsSet = useMemo(() => new Set(myProjectIds), [myProjectIds])
 
   useEffect(() => {
     setAppliedIds(new Set(initialAppliedIds))
@@ -218,7 +217,6 @@ export default function AdvertProjectsList({
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
           {filteredProjects.map((project) => {
             const isApplied = appliedIds.has(project.id)
-            const projectFeedback = feedback[project.id]
 
             // Card view for both influencer and brand mode (like influencer cards)
             // Check if this project belongs to the current user

@@ -10,8 +10,7 @@ import type { BrandOfferItem } from '@/app/dashboard/brand/offers/page'
 import { getEnrichedInfluencers, getAIRecommendations } from '@/utils/fetchInfluencers'
 import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import type { DiscoverInfluencer } from '@/types/influencer'
-import { calculateMatchScore, getMatchReason } from '@/utils/matching'
-import { Sparkles, Layers, Lock } from 'lucide-react'
+import { Sparkles, Lock } from 'lucide-react'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export default async function BrandDashboardPage() {

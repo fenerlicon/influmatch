@@ -205,7 +205,6 @@ function generateLocalAnalysis(stats: any, mode: 'brand-view' | 'influencer-view
     else if (type === 'campaign_analysis') {
 
         const estimatedReach = Math.floor(activeAudience * (viralityMultiplier > 100 ? 2.5 : 1.2))
-        const potentialCpm = (estimatedReach / 1000) * 50 // Varsayılan 50TL CPM üzerinden
 
         // --- ANALİZ 1: ERİŞİM MALİYETİ ---
         if (viralityMultiplier > 100) {

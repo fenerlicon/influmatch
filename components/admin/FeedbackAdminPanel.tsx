@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAttachmentUrl } from '@/app/admin/attachments/actions'
-import { CheckCircle, XCircle, Archive, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
+import { CheckCircle, Archive, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
 import { updateFeedbackNote, updateFeedbackStatus } from '@/app/admin/feedback/actions'
 import Link from 'next/link'
 

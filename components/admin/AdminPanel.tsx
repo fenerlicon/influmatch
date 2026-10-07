@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
 import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle, KeyRound, Link2 } from 'lucide-react'
-import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, setBlueTickOverride, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
+import { verifyUser, rejectUser, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, setBlueTickOverride, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
@@ -106,7 +106,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const [selectedBadgeId, setSelectedBadgeId] = useState<string>('')
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState<string>('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'influencer' | 'brand'>('all')
   const [isResettingBadges, setIsResettingBadges] = useState(false)
   const [spotlightModalData, setSpotlightModalData] = useState<{ userId: string, role: string } | null>(null)
   const [spotlightForm, setSpotlightForm] = useState<{ plan: string, duration: number }>({ plan: 'ibasic', duration: 1 })
@@ -183,7 +182,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     // Clear selection when tab changes
     setSelectedUserIds(new Set())
     setSearchQuery('')
-    setRoleFilter('all')
   }, [activeTab, pendingUsersState, verifiedUsersState, rejectedUsersState])
 
   // Sync with initial data
@@ -382,7 +380,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     setSelectedUserIds(new Set())
   }
 
-
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('DİKKAT: Bu kullanıcıyı ve tüm verilerini (profil, mesajlar, vb.) kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return
 
@@ -536,7 +533,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           console.error('Verify error:', result.error)
         } else {
           toast.success('Kullanıcı başarıyla onaylandı!')
-          console.log('User verified successfully:', userId)
         }
       } catch (error) {
         toast.dismiss(loadingToast)
@@ -564,7 +560,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           console.error('Reject error:', result.error)
         } else {
           toast.success('Kullanıcı reddedildi.')
-          console.log('User rejected successfully:', userId)
         }
       } catch (error) {
         toast.dismiss(loadingToast)
@@ -596,7 +591,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           setPendingUsersState(updateUserInState)
           setVerifiedUsersState(updateUserInState)
           setRejectedUsersState(updateUserInState)
-          console.log('Tax ID verified successfully for user:', userId)
         }
       } catch (error) {
         console.error('Tax ID verification exception:', error)
@@ -706,7 +700,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           alert(result.message || 'Rozet başarıyla verildi.')
           setBadgeModalUserId(null)
           setSelectedBadgeId('')
-          console.log('Badge awarded successfully for user:', userId, 'badge:', badgeId)
         }
       } catch (error) {
         console.error('Badge awarding exception:', error)
@@ -728,7 +721,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           console.error('Resend verification error:', result.error)
         } else {
           alert(result.message || 'Doğrulama e-postası tekrar gönderildi.')
-          console.log('Verification email resent successfully for user:', userId)
         }
       } catch (error) {
         console.error('Resend verification exception:', error)
@@ -812,7 +804,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           console.error('Force verify error:', result.error)
         } else {
           alert(result.message || 'E-posta başarıyla onaylandı.')
-          console.log('Email verified manually for user:', userId)
 
           // Update local state
           const updateUserInState = (users: User[]) =>
@@ -853,8 +844,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     })
   }
 
-
-
   const handleUpdateInstagramData = async (userId: string) => {
     if (!confirm('Bu kullanıcının Instagram verilerini güncellemek istediğinizden emin misiniz?')) return
 
@@ -873,10 +862,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
             duration: 8000,
             style: { background: '#1c1a00', color: '#fbbf24', border: '1px solid #d97706' }
           })
-          console.log('Partial update data:', (result as any).data)
         } else {
           toast.success('Instagram verileri başarıyla güncellendi!')
-          console.log('Updated stats:', result.data)
         }
       } catch (error) {
         toast.dismiss(loadingToast)
@@ -918,7 +905,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
 
   const getMissingInfo = (user: User) => {
     const missing: string[] = []
-    const socialLinks = user.social_links as Record<string, string | null> | null
     const socialLinksCount = getSocialLinksCount(user)
 
     if (socialLinksCount === 0) {

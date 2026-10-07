@@ -1,4 +1,4 @@
-import { BadgeDollarSign, Building2, Crown, Sparkles, Users } from 'lucide-react'
+import { BadgeDollarSign, Building2, Crown, Sparkles } from 'lucide-react'
 import SpotlightSelectionCard from '@/components/spotlight/SpotlightSelectionCard'
 import SpotlightShowcase from '@/components/spotlight/SpotlightShowcase'
 import { createSupabaseServerClient } from '@/utils/supabase/server'

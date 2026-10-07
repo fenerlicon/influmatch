@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Fragment, useMemo } from 'react'
 import type { UserRole } from '@/types/auth'
@@ -15,7 +14,6 @@ const roleHomePath: Record<UserRole | 'admin', string> = {
   admin: '/admin',
 }
 
-const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ')
 
 interface DashboardSidebarProps {
   role: UserRole
@@ -52,7 +50,9 @@ export default function DashboardSidebar({ role, fullName, email }: DashboardSid
       ],
       admin: [
         { label: 'Admin Paneli', href: '/admin' },
-        { label: 'Dashboard', href: '/dashboard/brand' }, // Temporary fallback
+        { label: 'Mesajlar', href: '/dashboard/messages' },
+        { label: 'Geri Bildirimler', href: '/admin/feedback' },
+        { label: 'Destek Talepleri', href: '/admin/support' },
       ],
     }
     return map[role as keyof typeof map] || map['influencer']

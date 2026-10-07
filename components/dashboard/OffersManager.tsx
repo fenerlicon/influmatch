@@ -2,7 +2,6 @@
 
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import OfferActionButtons from '@/components/dashboard/OfferActionButtons'
 import { dismissOffer } from '@/app/dashboard/influencer/offers/dismiss/actions'
@@ -60,10 +59,8 @@ const formatBudget = (value: number | null) => {
 
 export default function OffersManager({ initialOffers, currentUserId, dismissedOfferIds = new Set() }: OffersManagerProps) {
   const supabase = useSupabaseClient()
-  const router = useRouter()
   const [offers, setOffers] = useState<OfferListItem[]>(initialOffers)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(initialOffers[0]?.id ?? null)
-  const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all')
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map())
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(dismissedOfferIds)
@@ -380,17 +377,6 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     }
   }, [acceptedRoomKey, supabase, calculateUnreadCount, currentUserId])
 
-  const fetchRoomId = useCallback(
-    async (offerId: string) => {
-      const { data, error } = await supabase.from('rooms').select('id').eq('offer_id', offerId).maybeSingle()
-      if (error) {
-        console.error('fetchRoomId error', error.message)
-      }
-      return data?.id ?? null
-    },
-    [supabase],
-  )
-
   const handleOpenChat = useCallback(
     (offer: OfferListItem, e?: React.MouseEvent) => {
       if (e) {
@@ -520,7 +506,6 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     const sender = selectedOffer.sender
     const socialLinks = (sender?.social_links as Record<string, string> | null) ?? null
     const website = socialLinks?.website ?? socialLinks?.site ?? null
-    const canChat = selectedOffer.status === 'accepted'
     const showContact = selectedOffer.status === 'accepted'
     const contactEmail = contactEmails[selectedOffer.id] ?? null
 

@@ -261,6 +261,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `app/dashboard/influencer/advert/{page,actions}.ts(x)`, `components/dashboard/{InfluencerAdvertTabs,AdvertProjectsList,AdvertApplicationsList}.tsx`
 - **Sorunlar:**
   - ✅ ~~**2.12-S1 [ORTA]**~~ (aksiyon rol ve son başvuru gününü kontrol ediyor; DB kuralı `20261007000005`) `applyToAdvert` rol ve son tarih kontrolü yapmıyor.
+  - ✅ ~~**2.12-S3 [ORTA]**~~ (2026-10-09, yeni bulgu) Başvuru kartlarında durum (Beklemede / Ön Listede / Kabul / Red) hiç gösterilmiyordu; etiketler tanımlı ama kullanılmıyordu. Kartın sağ üstünde gösteriliyor; yalnızca ölü bir durumu besleyen oda başına mesaj kanalları kaldırıldı.
   - ✅ ~~**2.12-S2 [DÜŞÜK]**~~ (influencer başvuru kartında "Başvuruyu Geri Çek"; yalnızca bekleyen başvuru, DB kuralıyla uyumlu. Açık ilanların sayfalaması 3.2-S2 ile birlikte) `cancelApplication` hiçbir yerden çağrılmıyor; tüm açık ilanlar sayfalamasız yükleniyor.
 
 ### 2.13 Gelen teklifler (influencer)
@@ -300,6 +301,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `components/dashboard/InflistManager.tsx`, `AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`
 - **Sorunlar:**
   - ✅ ~~**3.4-S1 [ORTA]**~~ (karar: listeler şimdilik ücretsiz, kilit kaldırıldı; ileride Spotlight, bkz. 3.13-N5) Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
+  - ✅ ~~**3.4-S3 [ORTA]**~~ (2026-10-09, yeni bulgu) Listeye ekleme penceresinde çöp kutusu silinecek listeyi seçiyor ama onay penceresi hiç çizilmediği için liste silinemiyordu. Onay penceresi bağlandı.
   - ✅ ~~**3.4-S2 [DÜŞÜK]**~~ (liste adı sunucuda kırpılıp 1–50 karakter doğrulanıyor; ham hata metni gösterilmiyor; `InflistCard` ve `getLists` silindi. Liste yönetim sayfası ürün kararı olarak açık) "Tümünü Yönet" favoriler sayfasına gidiyor, liste yönetim sayfası yok; isim sunucuda doğrulanmıyor;
     revalidate yanlış yolu hedefliyor; `InflistCard.tsx` ve `getLists` ölü.
 
@@ -505,6 +507,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Sorunlar:**
   - ✅ ~~**6.1-S1 [ORTA]**~~ (oturum kontrolü try dışında; bakım mesajı genelleştirildi) `redirect('/login')` `try` içinde; NEXT_REDIRECT yakalanıp "Bir Hata Oluştu" ekranı gösteriliyor.
   - ✅ ~~**6.1-S2 [DÜŞÜK]**~~ (2026-10-08: `/admin` sayfasında da PGRST116 çıkarıldı, sabit "21-23 Kasım" mesajı genel mesaja çevrildi) `PGRST116` rate limit sayılıyor; eski "21-23 Kasım bakım" mesajı sabit; başka statüdeki kullanıcılar hiçbir listede yok.
+  - ✅ ~~**6.1-S4 [DÜŞÜK]**~~ (2026-10-09, yeni bulgu) Admin menüsünde "geçici" bir Dashboard bağlantısı marka paneline gidiyordu; yerine Mesajlar, Geri Bildirimler, Destek Talepleri.
   - ✅ ~~**6.1-S3 [ORTA]**~~ (toplu silme deleteUser kullanıyor; kendini/admini silme koruması PR #7) Toplu silme kendini veya başka bir admini silmeye karşı korumasız.
 
 ### 6.2 Admin aksiyonları (`app/admin/actions.ts`)
@@ -617,10 +620,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
     doğrudan yazıyordu ve tablo herkese yazılabilirdi (marka analitiği şişirilebiliyordu). Fonksiyon düzeltildi, doğrudan yazım kapatıldı.
   - ✅ ~~**7.4-S6 [ORTA]**~~ `users` için "Public profiles are viewable by everyone" anon'a açıktı ve anon kolon yetkileri vardı:
     giriş yapmadan profiller API'den okunabiliyordu (kural 2'ye aykırı). Kural authenticated'a daraltıldı, anon okuma yetkisi kaldırıldı.
-  - **7.4-S8 [DÜŞÜK]** (2026-10-09, `20261009000002`) `restrict_social_accounts_columns` ve `protect_social_account_metrics`
+  - ✅ ~~**7.4-S8 [DÜŞÜK]**~~ (2026-10-09, `20261009000002`, kullanıcı çalıştırdı, canlıda doğrulandı) `restrict_social_accounts_columns` ve `protect_social_account_metrics`
     trigger'ları tabloda olmayan kolonlara (`following_count`, `verified_at`, `avg_likes`) yazıyordu; istemci UPDATE kuralı
     olmadığı için tetiklenmiyordu. Doğru kolonlarla yeniden yazıldı (kullanıcı SQL'i çalıştırınca ✅).
-  - **7.4-S9 [DÜŞÜK]** Kullanılmayan fonksiyonlar: `protect_user_critical_data`, `restrict_users_sensitive_columns` (trigger'ı yok),
+  - **7.4-S9 [DÜŞÜK]** (temizlik SQL'i hazır: `supabase/manual/2026-10-09_temizlik.sql` / `20261009000003`; ayrıca `messages` ve `social_accounts` üzerindeki tekrar eden trigger'lar ve boş `message_logs` tablosu. Kullanıcı çalıştırınca ✅) Kullanılmayan fonksiyonlar: `protect_user_critical_data`, `restrict_users_sensitive_columns` (trigger'ı yok),
     `log_message` (uygulama çağırmıyor). `offers` üzerinde aynı işi yapan iki trigger (`restrict_offers_trigger`,
     `secure_offers_trigger`). DROP gerektirdiği için toplu temizlik SQL'ine bırakıldı.
   - ✅ ~~**7.4-S7 [DÜŞÜK]**~~ `rooms` "System can create rooms" `WITH CHECK (true)`; `message_logs` herkese yazılabilirdi.
@@ -699,6 +702,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Sorunlar:**
   - ✅ ~~**8.5-S1 [ORTA]**~~ (yalnızca Supabase deposu ve Instagram/TikTok CDN'leri; optimize görseller 31 gün önbellekte) `images.remotePatterns hostname: '**'` → görsel optimizasyonu açık proxy (maliyet/kötüye kullanım).
   - ✅ ~~**8.5-S2 [ORTA]**~~ (main'de Next 14.2.35) Next 14.0.4 eski ve güvenlik yamaları eksik; yükseltilmeli.
+  - ✅ ~~**8.5-S4 [DÜŞÜK]**~~ (2026-10-09, yeni bulgu) Vercel Speed Insights bileşeni çift eklemeyi düzeltirken tamamen kaldırılmıştı; ölçüm toplanmıyordu. Kök layout'a geri eklendi.
   - ✅ ~~**8.5-S3 [DÜŞÜK]**~~ (next-intl, pg, xlsx, uuid kaldırıldı; dev script'i platformdan bağımsız) Kullanılmayan bağımlılıklar: `@google/generative-ai`, `pg`, `xlsx` (bilinen açıkları var), `uuid`; `next-intl` yalnızca ölü layout'ta.
     `dev` script'i Windows'a özel `set` sözdizimi.
 
@@ -721,6 +725,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   dosya silinmeli (git geçmişinde kalacağı için iptal şart).
 - ✅ ~~**8.7-S2 [DÜŞÜK]**~~ (takipten çıkarıldı) `.env.local.txt` `.gitignore`'a rağmen takip ediliyor (yalnızca URL + anon key).
 - ✅ ~~**8.7-S3 [DÜŞÜK]**~~ (başıboş dosyalar silindi) Başıboş dosyalar: `validate_json.js`, `fix_turkish.js`, `crop_icon.py`, boş `types.ts`, `tsc_output.txt`, `tasarim-sistemi-analizi.txt`.
+- ✅ ~~**8.7-S5 [ORTA]**~~ (2026-10-09, yeni bulgu) Sunucu ve tarayıcı kayıtlarına `console.log` ile kişisel veri yazılıyordu (admin e-postası, kayıt yanıtı, onboarding formu, Spotlight güncellemesinde hedef e-posta). Tüm `console.log` çağrıları kaldırıldı (44), uyarı kayıtlarında e-posta yerine kimlik.
 - ✅ ~~**8.7-S4 [ORTA]**~~ (JSON-LD, sitemap ve robots influmatch.net) Alan adı tutarsızlığı: sitemap/robots/JSON-LD `influmatch.com`, geri kalan her şey `influmatch.net`.
 
 ### 8.9 Ürün notu: dosya depolama ("Drive" yapısı)
@@ -810,6 +815,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | 11.9 | `lib/gemini.ts → generateGeminiContent`, `@google/generative-ai`, `pg`, `xlsx`, `uuid` |
 | 11.10 | `checkIfBlocked` (kopya), `MessagesPage` içindeki kullanılmayan `ChatWindow` importu |
 | 11.11 | Kök dizindeki başıboş script ve notlar (8.7-S3), eski deploy dokümanları (8.8) |
+| 11.12 | ✅ 2026-10-09 taraması: kullanılmayan dosya yok; kullanılmayan dışa açık değerler (`manuallyAwardBadges`, `USER_ROLE_LABELS`, kategori etiket listeleri, `getCategoryKey`, `profileCompletionFields`), 80 kullanılmayan import/değişken (`tsc --noUnusedLocals` temiz), ölü `fetchRoomId`, `handleSubscribe` (influencer), rol filtresi durumu kaldırıldı |
 
 ---
 

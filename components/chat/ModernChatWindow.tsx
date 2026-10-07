@@ -2,7 +2,7 @@
 
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { useEffect, useRef, useState } from 'react'
-import { BadgeCheck, Info, MoreVertical, Phone, Video } from 'lucide-react'
+import { BadgeCheck, Info, MoreVertical } from 'lucide-react'
 import MessageActionsMenu from './MessageActionsMenu'
 import ModernChatInput from './ModernChatInput'
 import Image from 'next/image'

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BadgeCheck, BarChart3, Bot, BrainCircuit, HeartHandshake, Search, Target, Users } from 'lucide-react'
+import { BadgeCheck, Bot, BrainCircuit, HeartHandshake, Search, Target, Users } from 'lucide-react'
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
-import { activateSpotlightPlan, checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
+import { checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { planPrice } from '@/lib/spotlight-plans'
@@ -46,13 +46,13 @@ const features = [
 export default function BrandSpotlightPage() {
     const router = useRouter()
     const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('mo')
-    const [loading, setLoading] = useState(true)
-    const [processing, setProcessing] = useState(false)
+    const [, setLoading] = useState(true)
+    const [, setProcessing] = useState(false)
     const [spotlightActive, setSpotlightActive] = useState(false)
     const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
     const [userId, setUserId] = useState<string | null>(null)
-    const [userRole, setUserRole] = useState<string | null>(null)
-    const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected' | null>(null)
+    const [, setUserRole] = useState<string | null>(null)
+    const [, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected' | null>(null)
 
     useEffect(() => {
         const checkStatus = async () => {

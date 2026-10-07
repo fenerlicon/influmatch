@@ -14,7 +14,7 @@ import {
     BarChart,
     Bar
 } from 'recharts'
-import { TrendingUp, Users, Heart, MessageCircle, Eye, ArrowUp, ArrowDown } from 'lucide-react'
+import { TrendingUp, Users, Heart, Eye, ArrowUp, ArrowDown } from 'lucide-react'
 
 interface HistoryRecord {
     id: string

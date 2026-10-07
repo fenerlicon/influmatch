@@ -42,7 +42,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number
  */
 export async function fetchInstagramData(username: string): Promise<NormalizedInstagramData> {
     try {
-        console.log(`[InstagramService] Fetching data for ${username} via Apify...`);
         // Start process and wait for completion (2 retries max for network issues)
         return await withRetry(() => fetchFromApify(username), 2);
     } catch (error: any) {

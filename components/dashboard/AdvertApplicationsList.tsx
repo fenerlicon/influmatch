@@ -63,7 +63,7 @@ export interface AdvertApplication {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'İletişime Geçildi',
+  pending: 'Beklemede',
   shortlisted: 'Ön Listede',
   rejected: 'Reddedildi',
   accepted: 'Kabul Edildi',
@@ -124,9 +124,6 @@ export default function AdvertApplicationsList({
     setLocalApplications(applications)
   }, [applications])
 
-  const [applicationsWithMessages, setApplicationsWithMessages] = useState<Set<string>>(
-    new Set(Array.from(localApplications.filter((app) => app.has_messages).map((app) => app.id)))
-  )
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map())
 
   // Calculate unread count for a specific room
@@ -304,58 +301,6 @@ export default function AdvertApplicationsList({
       channels.forEach((channel) => supabase.removeChannel(channel))
     }
   }, [localApplications, currentUserId, supabase, calculateUnreadCount])
-
-  // Update applicationsWithMessages when localApplications prop changes
-  useEffect(() => {
-    setApplicationsWithMessages(
-      new Set(localApplications.filter((app) => app.has_messages).map((app) => app.id))
-    )
-  }, [localApplications])
-
-  // Real-time subscription for messages (influencer view only)
-  useEffect(() => {
-    if (!isInfluencerView || !currentUserId) return
-
-    const roomIds = applications
-      .filter((app) => app.room_id)
-      .map((app) => app.room_id)
-      .filter(Boolean) as string[]
-
-    if (roomIds.length === 0) return
-
-    const subscriptions: any[] = []
-
-    roomIds.forEach((roomId) => {
-      const channel = supabase
-        .channel(`room-messages-${roomId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `room_id=eq.${roomId}`,
-          },
-          (payload) => {
-            // Check if message is from brand (not influencer)
-            if (payload.new.sender_id !== currentUserId) {
-              // Find application by room_id
-              const app = applications.find((a) => a.room_id === roomId)
-              if (app) {
-                setApplicationsWithMessages((prev) => new Set([...prev, app.id]))
-              }
-            }
-          },
-        )
-        .subscribe()
-
-      subscriptions.push(channel)
-    })
-
-    return () => {
-      subscriptions.forEach((sub) => supabase.removeChannel(sub))
-    }
-  }, [applications, isInfluencerView, currentUserId, supabase])
 
   const handleOpenChat = async (application: AdvertApplication) => {
     if (onOpenChat) {
@@ -553,8 +498,14 @@ export default function AdvertApplicationsList({
                 </div>
               </div>
 
-              {/* Right: Date and Actions */}
+              {/* Right: Status, Date and Actions */}
               <div className="flex flex-col items-end gap-3">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[application.status] ?? STATUS_STYLES.pending}`}
+                >
+                  <StatusIcon className="h-3.5 w-3.5" />
+                  {STATUS_LABELS[application.status] ?? application.status}
+                </span>
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <CalendarDays className="h-4 w-4" />
                   <span>{formatRelativeTime(application.created_at)}</span>

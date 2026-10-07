@@ -89,12 +89,6 @@ export default function ProfileCompletionCard({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId }),
             })
-              .then((response) => response.json())
-              .then((data) => {
-                if (data.success) {
-                  console.log('[ProfileCompletionCard] Profile Expert badge awarded successfully')
-                }
-              })
               .catch((error) => {
                 console.error('[ProfileCompletionCard] Failed to award badge:', error)
               })

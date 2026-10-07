@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react'
+import { Bell, Info, AlertTriangle, CheckCircle, Loader2, Trash2 } from 'lucide-react'
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, deleteAllNotifications } from '@/app/actions/notifications'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 interface Notification {
     id: string
@@ -29,7 +28,6 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
     const [unreadCount, setUnreadCount] = useState(0)
     const popoverRef = useRef<HTMLDivElement>(null)
     const supabase = createSupabaseBrowserClient()
-    const router = useRouter()
 
     const fetchNotifications = async () => {
         setIsLoading(true)

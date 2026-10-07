@@ -1,6 +1,6 @@
 'use client'
 
-import { Info, ShieldCheck, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Info, ShieldCheck, TrendingUp, CheckCircle2 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
 

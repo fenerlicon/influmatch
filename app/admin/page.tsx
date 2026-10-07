@@ -6,7 +6,6 @@ import { ADMIN_USER_SELECT } from '@/lib/user-columns'
 import { loadLatestTaxVerifications } from '@/lib/tax-verification'
 import { loadLastSeen } from '@/lib/presence'
 
-
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient()
 
@@ -22,7 +21,6 @@ export default async function AdminPage() {
   }
 
   try {
-
     // Check if user is admin
     const { data: adminProfile, error: adminError } = await supabase
       .from('users')
@@ -44,14 +42,7 @@ export default async function AdminPage() {
 
     const isAdmin = adminProfile?.role === 'admin'
 
-    console.log('[AdminPage] Access Check:', {
-      userId: user.id,
-      role: adminProfile?.role,
-      isAdmin,
-    })
-
     if (!isAdmin) {
-      console.log('[AdminPage] Access Denied.')
       return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0C10] p-4 text-white">
           <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
@@ -78,7 +69,6 @@ export default async function AdminPage() {
     // Optimize: Fetch all users in a single query to reduce rate limit issues
     // Add retry mechanism for maintenance periods
     let allUsers = null
-    let usersError = null
     const maxRetries = 3
     const retryDelay = 2000 // 2 seconds
 
@@ -89,7 +79,6 @@ export default async function AdminPage() {
         .order('created_at', { ascending: false })
 
       if (result.error) {
-        usersError = result.error
         const isRateLimit =
           result.error.message?.toLowerCase().includes('rate limit') ||
           result.error.message?.includes('429') ||

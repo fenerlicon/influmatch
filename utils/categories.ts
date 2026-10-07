@@ -26,17 +26,10 @@ export function getCategoryLabel(key: string): string {
 }
 
 // Get category key by label (for reverse lookup)
-export function getCategoryKey(label: string): string | null {
-  const entry = Object.entries(INFLUENCER_CATEGORIES).find(([_, value]) => value === label)
-  return entry ? entry[0] : null
-}
-
 // Get all category keys as array
 export const INFLUENCER_CATEGORY_KEYS = Object.keys(INFLUENCER_CATEGORIES) as InfluencerCategoryKey[]
 
 // Get all category labels as array
-export const INFLUENCER_CATEGORY_LABELS = Object.values(INFLUENCER_CATEGORIES)
-
 // Brand Categories (can be same or different - keeping separate for flexibility)
 export const BRAND_CATEGORIES = {
   tech: 'Teknoloji',
@@ -58,5 +51,3 @@ export const BRAND_CATEGORIES = {
 export type BrandCategoryKey = keyof typeof BRAND_CATEGORIES
 
 export const BRAND_CATEGORY_KEYS = Object.keys(BRAND_CATEGORIES) as BrandCategoryKey[]
-export const BRAND_CATEGORY_LABELS = Object.values(BRAND_CATEGORIES)
-
