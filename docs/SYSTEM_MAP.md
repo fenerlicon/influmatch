@@ -90,7 +90,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 ### 1.4 Giriş ve şifre
 - **Dosya:** `app/login/page.tsx`
 - **Sorunlar:**
-  - ✅ ~~**1.4-S1 [YÜKSEK]**~~ (web akışı eklendi: `/forgot-password` → e-posta → `/auth/callback` → `/auth/update-password`; mobil ekran hâlâ hash tabanlı eski adrese gidiyor) Web'de "şifremi unuttum" akışı yok. Mobil `ForgotPasswordScreen.js` var olmayan
+  - ✅ ~~**1.4-S1 [YÜKSEK]**~~ (web akışı eklendi ve canlıda kullanıcı tarafından doğrulandı: `/forgot-password` → e-posta → `/auth/callback` → `/auth/update-password`; mobil ekran hâlâ hash tabanlı eski adrese gidiyor) Web'de "şifremi unuttum" akışı yok. Mobil `ForgotPasswordScreen.js` var olmayan
     `/auth/update-password` sayfasına yönlendiriyor; `/auth/callback` de her durumda oturumu kapatıyor → şifre sıfırlama kırık.
   - **1.4-S2 [DÜŞÜK]** `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
   - **1.4-S3 [DÜŞÜK]** `account_deleted` dalı ölü; kullanılmayan `supabase` değişkeni.
@@ -382,6 +382,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     gidip yalnızca CSS ile bulanıklaştırılıyor, bkz. 3.1-S1).
   - **3.13-N5** Listeler (Inflist) şimdilik tüm doğrulanmış markalara ücretsiz; ileride Spotlight'a dahil edilecek
     (o zaman `createList` / `toggleInList` sunucuda da kontrol etmeli).
+  - **3.13-N6** İleride gönderisi olmayan Instagram/TikTok hesapları doğrulamada kabul edilmeyecek (bugün 2.1-S2 düzeltmesiyle
+    kabul ediliyor). Kural eklenince `media_count = 0` veya son gönderi yoksa net mesajla reddet; mevcut gönderisiz doğrulanmış
+    hesaplar için ne yapılacağına karar ver.
 
 ---
 
