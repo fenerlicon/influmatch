@@ -91,7 +91,7 @@ export default function InflistManager({ initialLists }: InflistManagerProps) {
                         onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowForm(false) }}
                         placeholder="Liste adı (örn: Fitness İçerik Üreticileri)"
                         autoFocus
-                        maxLength={60}
+                        maxLength={50}
                         className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 outline-none"
                     />
                     <button

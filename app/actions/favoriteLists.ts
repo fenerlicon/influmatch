@@ -3,7 +3,13 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+const LIST_NAME_MAX = 50
+
 export async function createList(name: string) {
+    const trimmedName = typeof name === 'string' ? name.trim() : ''
+    if (!trimmedName) return { error: 'Liste adı boş olamaz.' }
+    if (trimmedName.length > LIST_NAME_MAX) return { error: `Liste adı en fazla ${LIST_NAME_MAX} karakter olabilir.` }
+
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
@@ -25,11 +31,14 @@ export async function createList(name: string) {
 
     const { data, error } = await supabase
         .from('favorite_lists')
-        .insert({ brand_id: user.id, name })
+        .insert({ brand_id: user.id, name: trimmedName })
         .select()
         .single()
 
-    if (error) return { error: error.message }
+    if (error) {
+        console.error('[createList] error:', error)
+        return { error: 'Liste oluşturulamadı.' }
+    }
     revalidatePath('/dashboard/brand/favorites')
     return { data }
 }
@@ -45,23 +54,12 @@ export async function deleteList(listId: string) {
         .eq('id', listId)
         .eq('brand_id', user.id)
 
-    if (error) return { error: error.message }
+    if (error) {
+        console.error('[deleteList] error:', error)
+        return { error: 'Liste silinemedi.' }
+    }
     revalidatePath('/dashboard/brand/favorites')
     return { success: true }
-}
-
-export async function getLists() {
-    const supabase = createSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return []
-
-    const { data } = await supabase
-        .from('favorite_lists')
-        .select('*')
-        .eq('brand_id', user.id)
-        .order('created_at', { ascending: true })
-
-    return data || []
 }
 
 export async function toggleInList(listId: string, influencerId: string) {
@@ -99,18 +97,21 @@ export async function toggleInList(listId: string, influencerId: string) {
             .delete()
             .eq('id', existing.id)
 
-        if (error) return { error: error.message }
+        if (error) {
+            console.error('[toggleInList] delete error:', error)
+            return { error: 'Listeden çıkarılamadı.' }
+        }
         return { added: false }
     } else {
         // Add
-        // First ensure global favorite exists? No, independent logic or auto-add?
-        // Let's keep them independent as per schema, BUT UI usually auto-hearts if added to list.
-        // For now, independent.
         const { error } = await supabase
             .from('favorite_list_items')
             .insert({ list_id: listId, influencer_id: influencerId })
 
-        if (error) return { error: error.message }
+        if (error) {
+            console.error('[toggleInList] insert error:', error)
+            return { error: 'Listeye eklenemedi.' }
+        }
         return { added: true }
     }
 }

@@ -73,7 +73,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.2-S1 [DÜŞÜK]**~~ (`@supabase/ssr` `createBrowserClient` tarayıcıda tek örnek; AuthProvider ve doğrudan çağıranlar aynı istemciyi paylaşıyor) İki farklı tarayıcı istemci fabrikası; bazı bileşenler her render'da yeni istemci açıyor
     (`SidebarLink.tsx`, `NotificationsPopover.tsx`, `AdvertApplicationsList.tsx`) → ayrı realtime soketleri.
-  - **1.2-S2 [DÜŞÜK]** Service‑role istemcisi farklı yollarla kuruluyor (`createClient(..., SERVICE_ROLE_KEY!)`:
+  - ✅ ~~**1.2-S2 [DÜŞÜK]**~~ (admin rozet sıfırlama da `createSupabaseAdminClient` kullanıyor; dinamik importlar statik yapıldı) Service‑role istemcisi farklı yollarla kuruluyor (`createClient(..., SERVICE_ROLE_KEY!)`:
     `app/admin/actions.ts`, `app/dashboard/brand/advert/actions.ts`).
   - ✅ ~~**1.2-S3 [DÜŞÜK]**~~ (ölü `[locale]` layout'u ve `SupabaseProvider` silindi) `SupabaseProvider` yalnızca ölü `app/[locale]/layout.tsx` tarafından kullanılıyor.
   - ✅ ~~**1.2-S4 [ORTA]**~~ (`@supabase/ssr` 0.8: sunucu, middleware ve tarayıcı istemcileri geçirildi; eski dizi biçimli oturum çerezleri middleware'de `lib/supabase/legacy-session-cookie.ts` ile yeni biçime çevriliyor, kimse çıkış yapmıyor. `auth-helpers-react` yalnızca bağlam/kanca olarak kaldı) `@supabase/auth-helpers-nextjs` 0.10 kullanımdan kalkmış paket; `@supabase/ssr`'a geçilmeli.
@@ -112,7 +112,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.6-S1 [ORTA]**~~ (taslak yalnızca DB'de boş alanları dolduruyor; varsayılanlar birleştirmeden sonra; DB avatarı öncelikli) localStorage taslağı DB değerlerinin üzerine yazıyor; eski taslak yeni profili ezebilir.
   - ✅ ~~**1.6-S2 [DÜŞÜK]**~~ (sabit 'tech' kaldırıldı; kategori yalnızca seçilince yazılıyor, mevcut değer silinmiyor) Marka kategorisi `'tech'` olarak sabit (`page.tsx`).
-  - **1.6-S3 [DÜŞÜK]** RLS hata metni kullanıcıya gösteriliyor; `avatar_url` istemciden gelen herhangi bir string.
+  - ✅ ~~**1.6-S3 [DÜŞÜK]**~~ (onboarding ve profil kayıtlarında ham DB hata metni yerine genel mesaj; avatar/logo adresi sunucuda `lib/avatar-url.ts` ile yalnızca kullanıcının `avatars/{id}/` klasörü veya mevcut değer olarak kabul ediliyor) RLS hata metni kullanıcıya gösteriliyor; `avatar_url` istemciden gelen herhangi bir string.
 
 ### 1.7 Onboarding sosyal doğrulama adımı
 - **Dosyalar:** `app/onboarding/verify/page.tsx`, `components/onboarding/SocialVerificationStep.tsx`
@@ -141,7 +141,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.9-S1 [YÜKSEK]**~~ (`lib/account-deletion.ts`: kilit → profil → dosyalar → auth; DB kuralı mesajı kullanıcıya gösteriliyor) `deleteAccount` auth kullanıcısını silemezse yalnızca loglayıp başarı dönüyor; kullanıcı tekrar giriş yapabilir.
   - ✅ ~~**1.9-S2 [ORTA]**~~ (avatars ve tax-documents altındaki `{uid}/` dosyaları ve eski kök avatar siliniyor) Hesap silinince storage dosyaları (avatars, feedback-images, tax-documents) silinmiyor (KVKK).
-  - **1.9-S3 [DÜŞÜK]** (modal metni düzeltildi: "Spotlight hesabınızla birlikte sona erer"; şifre tekrar sorulmaması açık) Silme modalı "abonelikleriniz iptal edilecek" diyor, Spotlight iptal edilmiyor; şifre tekrar sorulmuyor.
+  - ✅ ~~**1.9-S3 [DÜŞÜK]**~~ (hesap silmede şifre tekrar soruluyor; doğrulama oturum saklamayan ayrı istemciyle) Silme modalı "abonelikleriniz iptal edilecek" diyor, Spotlight iptal edilmiyor; şifre tekrar sorulmuyor.
   - ✅ ~~**1.9-S4 [DÜŞÜK]**~~ (hata türüne göre mesaj) `changePassword` her hatayı "en az 6 karakter" olarak raporluyor.
   - **1.9-S5 [ORTA]** `email_notifications` tercihleri kaydediliyor ama hiçbir kod bu tercihlere göre e-posta göndermiyor (bkz. 5.4).
 
@@ -151,7 +151,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.10-S1 [ORTA]**~~ (admin ekranları 10 dk imzalı bağlantı kullanıyor; kova gizli, herkese okuma kuralının silinmesi elle çalıştırılacak) Ekler herkese açık `feedback-images` bucket'ına gidiyor ve public URL alıyor (gizlilik).
   - ✅ ~~**1.10-S2 [DÜŞÜK]**~~ (kullanıcı ve admin aynı sabit kodu görüyor: talep kimliğinin ilk 8 karakteri, `lib/support-ticket.ts`) "Talep numarası" kullanıcının talep sayısı + 1; saklanmıyor, yarış durumuna açık.
-  - **1.10-S3 [DÜŞÜK]** Yeni talep realtime gelene kadar listede görünmüyor; seçim değişince realtime yeniden aboneleniyor.
+  - ✅ ~~**1.10-S3 [DÜŞÜK]**~~ (yeni talep anında listeye ekleniyor; seçim değişince kanal yeniden açılmıyor) Yeni talep realtime gelene kadar listede görünmüyor; seçim değişince realtime yeniden aboneleniyor.
 
 ### 1.11 Geri bildirim
 - **Dosyalar:** `app/feedback/page.tsx`, `app/feedback/actions.ts`, `app/feedback/thank-you/page.tsx`
@@ -233,7 +233,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Sorunlar:**
   - ✅ ~~**2.7-S1 [ORTA]**~~ (doğrulanmış Instagram/TikTok linki formda kilitli ve sunucuda doğrulanmış kullanıcı adından yazılıyor) Instagram link alanı hesap doğrulandıktan sonra da düzenlenebilir (TikTok kilitli); `social_links.instagram` doğrulanmış kullanıcı adından sapabilir.
   - ✅ ~~**2.7-S2 [ORTA]**~~ (avatar artık `{uid}/` klasörüne yükleniyor) Avatar bucket köküne rastgele adla yükleniyor; avatars politikası `{uid}/` klasörü istiyor (bkz. 7.5-S1).
-  - **2.7-S3 [DÜŞÜK]** (profil yükünü loglayan console.log'lar silindi; eski kolon try/catch'i duruyor) Tüm güncelleme yükü `console.log` ile loglanıyor; eksik kolon için kalıntı try/catch.
+  - ✅ ~~**2.7-S3 [DÜŞÜK]**~~ (eksik kolon try/catch'leri ve e-posta ayarlarındaki 42703 dalı silindi) Tüm güncelleme yükü `console.log` ile loglanıyor; eksik kolon için kalıntı try/catch.
 
 ### 2.8 Vitrin görünürlüğü (`is_showcase_visible`, "Vitrin Modu")
 - **Dosyalar:** `components/dashboard/SpotlightToggleCard.tsx`, `app/dashboard/influencer/actions.ts` (`toggleShowcaseVisibility`)
@@ -268,7 +268,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   `app/dashboard/influencer/offers/actions.ts` (`updateOfferStatus`), `.../dismiss/actions.ts`
 - **Sorunlar:**
   - **2.13-S1 [ORTA]** (bilinçli görünüyor: teklif beklemede kalır, görüşmek için sohbet açılır; ürün kararı bekliyor) "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor.
-  - **2.13-S2 [DÜŞÜK]** (`undismissOffer`/`undismissInfluencer` silindi) `OffersManager` her "gizle"de realtime'a yeniden aboneleniyor; `undismissOffer` ve `InfluencerOffersFeed` ölü.
+  - ✅ ~~**2.13-S2 [DÜŞÜK]**~~ (gizle/seçim kanalları yeniden açmıyor; oda kanalları oda listesine bağlı; `InfluencerOffersFeed` silindi, tip `OffersManager`'a taşındı) `OffersManager` her "gizle"de realtime'a yeniden aboneleniyor; `undismissOffer` ve `InfluencerOffersFeed` ölü.
 
 ---
 
@@ -300,7 +300,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `components/dashboard/InflistManager.tsx`, `AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`
 - **Sorunlar:**
   - ✅ ~~**3.4-S1 [ORTA]**~~ (karar: listeler şimdilik ücretsiz, kilit kaldırıldı; ileride Spotlight, bkz. 3.13-N5) Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
-  - **3.4-S2 [DÜŞÜK]** "Tümünü Yönet" favoriler sayfasına gidiyor, liste yönetim sayfası yok; isim sunucuda doğrulanmıyor;
+  - ✅ ~~**3.4-S2 [DÜŞÜK]**~~ (liste adı sunucuda kırpılıp 1–50 karakter doğrulanıyor; ham hata metni gösterilmiyor; `InflistCard` ve `getLists` silindi. Liste yönetim sayfası ürün kararı olarak açık) "Tümünü Yönet" favoriler sayfasına gidiyor, liste yönetim sayfası yok; isim sunucuda doğrulanmıyor;
     revalidate yanlış yolu hedefliyor; `InflistCard.tsx` ve `getLists` ölü.
 
 ### 3.5 AI öneriler (marka)
@@ -343,7 +343,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.9-S1 [YÜKSEK]**~~ (canlıda "avatars insert" kökte yüklemeye izin veriyordu; logo artık `{uid}/` klasörüne yükleniyor) Logo yükleme yolu klasörsüz (`${uuid}.ext`), avatars politikası `{uid}/` istiyor → büyük ihtimalle başarısız (bkz. 7.5-S1).
   - ✅ ~~**3.9-S2 [YÜKSEK]**~~  Sayfa `kick`, `twitter`, `twitch` alanlarını forma geçmiyor → kaydetme bunları null'a çekiyor (ya da 30 günlük kilide takılıyor).
   - ✅ ~~**3.9-S4 [YÜKSEK]**~~ `updateBrandProfile` doğrulama hatasını fırlatıyordu; production'da kullanıcı hata sayfası görüyordu (canlı Vercel kayıtlarında görüldü). Artık mesaj olarak dönüyor.
-  - **3.9-S3 [DÜŞÜK]** (yeniden dışa aktarma dosyaları ve rozet actions silindi; eski kolon try/catch'i duruyor) Eksik kolon try/catch'i ölü; `brand/profile/badges/actions.ts`, brand settings re-export dosyaları kullanılmıyor.
+  - ✅ ~~**3.9-S3 [DÜŞÜK]**~~ (eksik kolon try/catch'leri silindi) Eksik kolon try/catch'i ölü; `brand/profile/badges/actions.ts`, brand settings re-export dosyaları kullanılmıyor.
 
 ### 3.10 Vergi levhası doğrulama
 - **Dosyalar:** `components/brand/TaxCertificateUpload.tsx`, `brand/profile/tax-actions.ts` (`submitTaxCertificate`),
@@ -449,8 +449,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.1-S2 [YÜKSEK]**~~ (her oda için yalnızca son mesaj ve okunmamış sayısı; 20'lik gruplar halinde paralel) Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
   - ✅ ~~**5.1-S3 [ORTA]**~~ (thread yalnızca karşı taraf değişince yükleniyor; realtime kanalı liste güncellemesinde yeniden kurulmuyor) Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
   - ✅ ~~**5.1-S4 [ORTA]**~~ (yalnızca chat-attachments adresi görsel sayılıyor, diğerleri düz metin; boyut sınırı PR #19) Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
-  - **5.1-S5 [ORTA]** (5 MB/görsel sınırı canlıda; oda katılımcısı politikası `20261007000007` elle çalıştırılmayı bekliyor) `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
-  - **5.1-S6 [DÜŞÜK]** Her mesajda engel kontrolü için sunucu aksiyonu; `SidebarLink` iki kez render edilip aynı adlı iki kanal açıyor.
+  - ✅ ~~**5.1-S5 [ORTA]**~~ (5 MB/görsel sınırı canlıda; yükleme politikası oda katılımcısıyla sınırlandı — canlıda mevcut "Authenticated users can upload chat attachments" politikası ALTER ile daraltıldı, bkz. `20261007000017`) `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
+  - ✅ ~~**5.1-S6 [DÜŞÜK]**~~ (okunmamış sayısı kenar çubuğunda tek kanca/tek kanalla izleniyor) Her mesajda engel kontrolü için sunucu aksiyonu; `SidebarLink` iki kez render edilip aynı adlı iki kanal açıyor.
 
 ### 5.2 Eski sohbet sayfası
 - **Dosyalar:** `app/chat/[roomId]/page.tsx`, `components/chat/ChatWindow.tsx`
@@ -483,7 +483,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**5.5-S1 [ORTA]**~~ (olmayan kolonlar kaldırıldı) Hoş geldin mesajı migration'larda olmayan kolonlara yazıyor (`messages.receiver_id`, `is_read`, `rooms.last_message_at`) → büyük ihtimalle sessizce başarısız (doğrulanmadı).
   - ✅ ~~**5.5-S2 [ORTA]**~~ (gönderen en eski admin hesabı; destek@ hesabı hiç yoktu, mesaj hiç gitmiyordu) İki destek kimliği: kod `destek@influmatch.net`'i arıyor, migration `support@influmatch.com` (id `000…0`) ekliyor.
-  - **5.5-S3 [DÜŞÜK]** `sendNotification` adı iki modülde farklı imzayla export ediliyor; Spotlight bildirim metni influencer'a yönelik.
+  - ✅ ~~**5.5-S3 [DÜŞÜK]**~~ (ikinci `sendNotification` server action'ı silindi; vitrin bildirimi sunucuda yazılıyor, bağlantısı panele gidiyor) `sendNotification` adı iki modülde farklı imzayla export ediliyor; Spotlight bildirim metni influencer'a yönelik.
 
 ### 5.6 Engelleme ve şikayet
 - **Dosyalar:** `app/dashboard/users/block/actions.ts`, `app/dashboard/messages/report/actions.ts`, tablolar `user_blocks`, `message_reports`
@@ -602,7 +602,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Güvenlik denetimi (2026-10-07):** tetikleyici fonksiyonların RPC çağrı izni kaldırıldı; `get_my_private_profile` /
   `get_offer_contact_email` anon'a kapatıldı; `website_host` search_path sabitlendi (`20261007000014`). Açık kalanlar:
   `is_admin()` anon'a açık (RLS'te kullanılıyor, gerekli); `pg_net` public şemada (taşımak riskli);
-  **Auth → sızdırılmış şifre koruması kapalı (panelden açılmalı, kullanıcı)**.
+  **Auth → sızdırılmış şifre koruması kapalı** (Supabase'de yalnızca Pro planında açılabiliyor; Free planda panelde görünmüyor — Pro'ya geçilince açılmalı).
 - **Performans denetimi (2026-10-07):** 17 indekssiz yabancı anahtar indekslendi (`20261007000015`). Ertelenenler (mevcut
   ölçekte etkisiz, kural yeniden yazımı riskli): 66 politikada `auth.uid()` satır başına değerlendiriliyor (`(select auth.uid())`
   ile sarılmalı), 123 "çoklu permissive politika" (aynı işlem için birden çok kural; 7.7 temizliğiyle birlikte birleştirilmeli),
@@ -741,7 +741,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 9.3 Statik ve ölü sayfalar
 - `/spotlight` (fiyatlar), `/badges` (katalog), `/cekilis` (404'e yönlendiriyor).
 - ✅ ~~**9.3-S1 [ORTA]**~~ (app/cekilis silindi) `app/cekilis/actions.ts`: `'use server'` dosyasında altı gerçek isim ve sabit 6 haneli PIN'ler. Kullanılmıyor; silinmeli.
-- **9.3-S2 [DÜŞÜK]** `app/[locale]/layout.tsx` yalnızca layout, sayfası yok, ikinci `<html>` üretir; next-intl yapılandırılmamış.
+- ✅ ~~**9.3-S2 [DÜŞÜK]**~~ (`[locale]` layout'u daha önce silindi) `app/[locale]/layout.tsx` yalnızca layout, sayfası yok, ikinci `<html>` üretir; next-intl yapılandırılmamış.
 
 ---
 

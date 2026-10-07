@@ -1,5 +1,6 @@
 'use server'
 
+import { isAllowedAvatarUrl } from '@/lib/avatar-url'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
@@ -58,32 +59,11 @@ async function saveBrandProfile(payload: UpdateBrandProfilePayload): Promise<{ s
   }
 
   // Get current user's data from database
-  // Try to select social_links_last_updated, but handle gracefully if column doesn't exist yet
-  let currentUser: any = null
-  let currentUserError: any = null
-
-  try {
-    const result = await supabase
-      .from('users')
-      .select('username, social_links, social_links_last_updated')
-      .eq('id', user.id)
-      .maybeSingle()
-    currentUser = result.data
-    currentUserError = result.error
-  } catch (err: any) {
-    // If column doesn't exist, try without it
-    if (err.message?.includes('social_links_last_updated') || err.message?.includes('column')) {
-      const result = await supabase
-        .from('users')
-        .select('username, social_links')
-        .eq('id', user.id)
-        .maybeSingle()
-      currentUser = result.data
-      currentUserError = result.error
-    } else {
-      throw err
-    }
-  }
+  const { data: currentUser, error: currentUserError } = await supabase
+    .from('users')
+    .select('username, social_links, social_links_last_updated, avatar_url')
+    .eq('id', user.id)
+    .maybeSingle()
 
   if (currentUserError) {
     console.error('[updateBrandProfile] Error fetching current user:', currentUserError)
@@ -92,6 +72,10 @@ async function saveBrandProfile(payload: UpdateBrandProfilePayload): Promise<{ s
 
   if (!currentUser) {
     throw new Error('Kullanıcı bulunamadı.')
+  }
+
+  if (!isAllowedAvatarUrl(payload.logoUrl, user.id, currentUser.avatar_url)) {
+    throw new Error('Geçersiz görsel adresi. Lütfen görseli yeniden yükleyin.')
   }
 
   const currentUsername = currentUser?.username
@@ -256,7 +240,7 @@ async function saveBrandProfile(payload: UpdateBrandProfilePayload): Promise<{ s
     updates.displayed_badges = payload.displayedBadges
   }
 
-  const { data: updateResult, error: updateError } = await supabase
+  const { error: updateError } = await supabase
     .from('users')
     .update(updates)
     .eq('id', user.id)
@@ -269,26 +253,7 @@ async function saveBrandProfile(payload: UpdateBrandProfilePayload): Promise<{ s
       throw new Error('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
     }
 
-    // Check if it's a column not found error for displayed_badges
-    if (updateError.message.includes('displayed_badges') || updateError.message.includes('schema cache')) {
-      console.error('[updateBrandProfile] displayed_badges column error:', updateError.message)
-      // Remove displayed_badges from updates and try again
-      delete updates.displayed_badges
-      const { error: retryError } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', user.id)
-
-      if (retryError) {
-        throw new Error(retryError.message)
-      }
-
-      // Log warning about displayed_badges column
-      console.warn('[updateBrandProfile] displayed_badges column not found, profile updated without badges. Please run migration: add_displayed_badges_column.sql')
-    } else {
-      console.error('[updateBrandProfile] Update failed with error:', updateError)
-      throw new Error(updateError.message)
-    }
+    throw new Error('Profil kaydedilemedi. Lütfen tekrar deneyin.')
   }
 
   // Award badges after profile update

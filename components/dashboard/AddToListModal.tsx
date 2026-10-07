@@ -103,6 +103,7 @@ export default function AddToListModal({ influencerId, isOpen, onClose }: AddToL
                                 placeholder="Liste adı..."
                                 className="flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none focus:border-soft-gold/50 focus:bg-white/5 transition-colors"
                                 value={newListName}
+                                maxLength={50}
                                 onChange={e => setNewListName(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleCreateList()}
                                 autoFocus

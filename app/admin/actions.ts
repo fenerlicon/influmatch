@@ -3,8 +3,8 @@
 import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
-import { createClient } from '@supabase/supabase-js'
 import { fetchInstagramData } from '@/utils/instagram-service'
 import { validateTaxNumber } from '@/lib/tax-id'
 import { syncBlueTick, sweepBlueTicks, type BlueTickOverride } from '@/lib/blue-tick'
@@ -36,7 +36,6 @@ export async function verifyUser(userId: string) {
   }
 
   // Use Admin Client to bypass RLS for updates in OTHER users' profiles
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -102,7 +101,6 @@ export async function rejectUser(userId: string) {
   }
 
   // Use Admin Client to bypass RLS
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -147,7 +145,6 @@ export async function updateAdminNotes(userId: string, notes: string) {
   }
 
   // Use Admin Client
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -337,7 +334,6 @@ export async function toggleUserSpotlight(
   }
 
   // Use Admin Client to bypass RLS
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -409,8 +405,7 @@ export async function verifyTaxId(userId: string) {
   }
 
   // Check if user has tax_id
-  const { createSupabaseAdminClient: createTaxAdminClient } = await import('@/utils/supabase/admin')
-  const taxAdminClient = createTaxAdminClient()
+  const taxAdminClient = createSupabaseAdminClient()
   if (!taxAdminClient) {
     return { error: 'Sistem yapılandırma hatası.' }
   }
@@ -437,7 +432,6 @@ export async function verifyTaxId(userId: string) {
   }
 
   // Use Admin Client to bypass RLS
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -496,7 +490,6 @@ export async function resendVerificationEmail(userId: string) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -561,7 +554,6 @@ export async function forceVerifyEmail(userId: string) {
   }
 
   // Use admin client
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -616,20 +608,10 @@ export async function resetVerifiedBadges() {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!serviceRoleKey) {
-    console.error('SUPABASE_SERVICE_ROLE_KEY is missing')
-    return { error: 'Sistem hatası: Service Role Key eksik.' }
+  const adminClient = createSupabaseAdminClient()
+  if (!adminClient) {
+    return { error: 'Sistem yapılandırma hatası: SUPABASE_SERVICE_ROLE_KEY eksik.' }
   }
-
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
 
   try {
     const { error, count } = await adminClient
@@ -677,7 +659,6 @@ export async function setBlueTickOverride(userId: string, override: BlueTickOver
     return { error: 'Geçersiz işlem.' }
   }
 
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
   if (!supabaseAdmin) return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
 
@@ -753,8 +734,7 @@ export async function toggleBlueTick(userId: string) {
 
     // Sarı tik kurala bağlı (vergi onayı + doğrulanmış kurumsal e-posta). Admin düğmesi vergi onayını
     // verir / geri alır; rozet lib/official-business.ts kuralıyla eşitlenir.
-    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-    const supabaseAdmin = createSupabaseAdminClient()
+      const supabaseAdmin = createSupabaseAdminClient()
     if (!supabaseAdmin) {
       return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
     }
@@ -830,7 +810,6 @@ export async function deleteUser(userId: string) {
   }
 
   // Silme service role ile yapılır (lib/account-deletion.ts).
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -892,7 +871,6 @@ export async function getAllAdverts() {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
   if (!supabaseAdmin) {
     return { error: 'Sistem yapılandırma hatası.' }
@@ -936,7 +914,6 @@ export async function deleteAdvertAdmin(advertId: string) {
   }
 
   // Use Admin Client to bypass RLS
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -1136,8 +1113,7 @@ export async function adminUpdateInstagramData(userId: string) {
 
 
     // Use ADMIN CLIENT to bypass RLS policies for updating another user's data
-    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-    const supabaseAdmin = createSupabaseAdminClient()
+      const supabaseAdmin = createSupabaseAdminClient()
 
     if (!supabaseAdmin) {
       console.error('[adminUpdateInstagramData] Service Role Key missing')
@@ -1243,8 +1219,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     // Assume email, lookup user
     // We cannot search auth.users directly easily without service role + admin client
     // But we can search public.users if email is there
-    const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-    const lookupClient = createSupabaseAdminClient()
+      const lookupClient = createSupabaseAdminClient()
     if (!lookupClient) {
       return { success: false, error: 'Sistem yapılandırma hatası.' }
     }
@@ -1258,8 +1233,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
       targetUserId = publicUser.id
     } else {
       // Try Admin Client to find user by email in Auth
-      const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
-      const supabaseAdmin = createSupabaseAdminClient()
+          const supabaseAdmin = createSupabaseAdminClient()
       // Admin client doesn't verify email lookup easily without exact match in `users` list which is paginated
       // It's safer to rely on 'users' table sync. If not found, return error.
       return { success: false, error: 'Kullanıcı bulunamadı (Email public.users tablosunda yok). Lütfen doğrudan User ID (UUID) kullanın.' }
@@ -1353,7 +1327,6 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
 
   // 2. Upsert Social Account
   // Use Admin Client to bypass RLS
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
   if (!supabaseAdmin) {
@@ -1405,7 +1378,6 @@ export async function getAllApplications() {
   const isAdmin = adminProfile?.role === 'admin'
   if (!isAdmin) return { error: 'Yetkisiz erişim.' }
 
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
   if (!supabaseAdmin) return { error: 'Admin yetkisi alınamadı.' }
 
@@ -1436,7 +1408,6 @@ export async function getAdminUserCard(userId: string) {
   const { data: adminProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
   if (adminProfile?.role !== 'admin') return { error: 'Yetkisiz erişim.' }
 
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
   if (!supabaseAdmin) return { error: 'Sistem yapılandırma hatası.' }
 
@@ -1458,7 +1429,6 @@ async function requireAdminClient() {
   const { data: adminProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
   if (adminProfile?.role !== 'admin') return { error: 'Bu işlem için yetkiniz yok.' as const }
 
-  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
   if (!supabaseAdmin) return { error: 'Sistem yapılandırma hatası.' as const }
   return { user, supabaseAdmin }

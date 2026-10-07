@@ -35,6 +35,7 @@ import { validateTaxNumber } from '@/lib/tax-id'
 import { validateCorporateEmail } from '@/lib/corporate-email'
 import { saveCorporateEmail, sendCorporateEmailCode } from '@/lib/corporate-email-verification'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { isAllowedAvatarUrl } from '@/lib/avatar-url'
 
 export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   const supabase = createSupabaseServerClient()
@@ -47,8 +48,6 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   if (!user || user.id !== payload.userId) {
     return { success: false, error: 'Oturum açmanız gerekiyor.' }
   }
-
-  console.log('[saveOnboardingProfile] Attempting to save profile for user:', payload.userId)
 
   // Validate tax details if taxId is provided
   let normalizedTaxId: string | null = null
@@ -99,9 +98,13 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   // PostgREST upsert'inin ürettiği "ON CONFLICT DO UPDATE SET x = EXCLUDED.x" yetki hatası verir.
   const { data: existingProfile } = await supabase
     .from('users')
-    .select('id')
+    .select('id, avatar_url')
     .eq('id', payload.userId)
     .maybeSingle()
+
+  if (!isAllowedAvatarUrl(payload.avatarUrl, payload.userId, existingProfile?.avatar_url)) {
+    return { success: false, error: 'Geçersiz profil fotoğrafı adresi. Lütfen fotoğrafı yeniden yükleyin.' }
+  }
 
   const { data, error } = existingProfile
     ? await supabase
@@ -122,14 +125,9 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
     // Check if it's a unique constraint violation
     if (error.code === '23505' || error.message.includes('unique') || error.message.includes('duplicate')) {
       return { success: false, error: 'Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.' }
-    } else if (error.message.includes('row-level security') || error.code === '42501') {
-      return { success: false, error: `RLS hatası: ${error.message}. Lütfen Supabase'de RLS politikalarını kontrol edin.` }
-    } else {
-      return { success: false, error: `Profil kaydedilemedi: ${error.message || 'Bilinmeyen hata'}` }
     }
+    return { success: false, error: 'Profil kaydedilemedi. Lütfen tekrar deneyin.' }
   }
-
-  console.log('[saveOnboardingProfile] Profile saved successfully for user:', payload.userId)
 
   // Kurumsal e-posta gizli bir kolondur; sunucu yazar ve doğrulama kodunu gönderir.
   // Kod gönderilemese bile kayıt tamamlanır; marka profilinden yeni kod isteyebilir.

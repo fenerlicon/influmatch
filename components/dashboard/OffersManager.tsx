@@ -5,10 +5,31 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import OfferActionButtons from '@/components/dashboard/OfferActionButtons'
-import type { OfferListItem } from '@/components/dashboard/InfluencerOffersFeed'
 import { dismissOffer } from '@/app/dashboard/influencer/offers/dismiss/actions'
 import { X, BadgeCheck } from 'lucide-react'
 import { countUnreadInRoom } from '@/lib/unread-messages'
+
+export interface OfferListItem {
+  id: string
+  campaign_name: string | null
+  campaign_type: string | null
+  budget: number | null
+  message: string | null
+  status: string
+  created_at: string
+  room_id?: string | null
+  sender: {
+    id: string
+    full_name: string | null
+    avatar_url: string | null
+    email?: string | null
+    username?: string | null
+    social_links: Record<string, string | null> | null
+    verification_status?: string | null
+    role?: string | null
+    displayed_badges?: string[] | null
+  } | null
+}
 
 interface OffersManagerProps {
   initialOffers: OfferListItem[]
@@ -212,7 +233,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [currentUserId, fetchOfferById, supabase, dismissedIds])
+  }, [currentUserId, fetchOfferById, supabase])
 
   // Keep offers state clean - always filter out dismissed offers
   useEffect(() => {
@@ -284,10 +305,17 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     [supabase, currentUserId],
   )
 
+  // Kabul edilmiş tekliflerin sohbet odaları. Efektler bu listeye bağlıdır; böylece bir teklifi
+  // gizlemek ya da seçmek oda kanallarını yeniden açmaz.
+  const acceptedRoomKey = useMemo(
+    () => offers.filter((o) => o.room_id && o.status === 'accepted').map((o) => o.room_id!).join(','),
+    [offers],
+  )
+
   // Fetch unread message counts for all rooms (only messages that haven't been replied to)
   useEffect(() => {
     const fetchUnreadCounts = async () => {
-      const roomIds = offers.filter((o) => o.room_id && o.status === 'accepted').map((o) => o.room_id!)
+      const roomIds = acceptedRoomKey ? acceptedRoomKey.split(',') : []
       if (roomIds.length === 0) return
 
       const counts = new Map<string, number>()
@@ -303,11 +331,11 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     }
 
     fetchUnreadCounts()
-  }, [offers, calculateUnreadCount])
+  }, [acceptedRoomKey, calculateUnreadCount])
 
   // Set up real-time subscriptions for all rooms
   useEffect(() => {
-    const roomIds = offers.filter((o) => o.room_id && o.status === 'accepted').map((o) => o.room_id!)
+    const roomIds = acceptedRoomKey ? acceptedRoomKey.split(',') : []
     if (roomIds.length === 0) return
 
     const channels = roomIds.map((roomId) => {
@@ -350,7 +378,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
         supabase.removeChannel(channel)
       })
     }
-  }, [offers, supabase, calculateUnreadCount, currentUserId])
+  }, [acceptedRoomKey, supabase, calculateUnreadCount, currentUserId])
 
   const fetchRoomId = useCallback(
     async (offerId: string) => {

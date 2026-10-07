@@ -45,6 +45,15 @@ export default function SupportTicketsList({ userId, initialTickets }: SupportTi
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+  // Formdan yeni oluşturulan talep üst bileşenden gelir; realtime beklemeden listeye eklenir.
+  useEffect(() => {
+    setTickets((prev) => {
+      const known = new Set(prev.map((t) => t.id))
+      const added = initialTickets.filter((t) => !known.has(t.id))
+      return added.length > 0 ? [...added, ...prev] : prev
+    })
+  }, [initialTickets])
+
   // Real-time updates
   useEffect(() => {
     const channel = supabase
@@ -79,10 +88,8 @@ export default function SupportTicketsList({ userId, initialTickets }: SupportTi
                 }
               })
               
-              // Update selected ticket if it's the one being updated
-              if (selectedTicket && selectedTicket.id === updated.id) {
-                setSelectedTicket(updated)
-              }
+              // Açık olan talep güncellendiyse detay da güncellenir
+              setSelectedTicket((prev) => (prev && prev.id === updated.id ? updated : prev))
             }
           }
         },
@@ -92,7 +99,7 @@ export default function SupportTicketsList({ userId, initialTickets }: SupportTi
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId, supabase, selectedTicket])
+  }, [userId, supabase])
 
   // Close modal with ESC key
   useEffect(() => {

@@ -7,6 +7,7 @@ import type { UserRole } from '@/types/auth'
 import SignOutButton from './SignOutButton'
 import SettingsButton from './SettingsButton'
 import SidebarLink from './SidebarLink'
+import { useUnreadMessageCount } from './useUnreadMessageCount'
 
 const roleHomePath: Record<UserRole | 'admin', string> = {
   influencer: '/dashboard/influencer',
@@ -20,11 +21,11 @@ interface DashboardSidebarProps {
   role: UserRole
   fullName: string
   email?: string | null
-  currentUserId?: string
 }
 
-export default function DashboardSidebar({ role, fullName, email, currentUserId }: DashboardSidebarProps) {
+export default function DashboardSidebar({ role, fullName, email }: DashboardSidebarProps) {
   const pathname = usePathname()
+  const unreadCount = useUnreadMessageCount()
 
   const navItems = useMemo(() => {
     const map: Record<UserRole | 'admin', Array<{ label: string; href: string }>> = {
@@ -75,7 +76,7 @@ export default function DashboardSidebar({ role, fullName, email, currentUserId 
           label={item.label}
           isActive={isActive(item.href)}
           variant={variant}
-          currentUserId={currentUserId}
+          unreadCount={unreadCount}
         />
       )
     })

@@ -2,7 +2,7 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
 
 export interface EmailNotificationSettings {
   offers: boolean
@@ -35,16 +35,7 @@ export async function updateEmailNotifications(
 
     if (error) {
       console.error('[updateEmailNotifications] error:', error)
-      
-      // Check if it's a column not found error
-      if (error.message?.includes('email_notifications') || error.message?.includes('column') || error.code === '42703') {
-        return { 
-          success: false, 
-          error: 'E-posta bildirimleri özelliği henüz aktif değil. Lütfen daha sonra tekrar deneyin veya destek ekibiyle iletişime geçin.' 
-        }
-      }
-      
-      return { success: false, error: error.message || 'Ayarlar kaydedilemedi' }
+      return { success: false, error: 'Ayarlar kaydedilemedi. Lütfen tekrar deneyin.' }
     }
 
     revalidatePath('/dashboard/influencer/settings')
@@ -121,7 +112,7 @@ export async function changePassword(
   }
 }
 
-export async function deleteAccount(): Promise<{ success: boolean; error?: string; redirect?: string }> {
+export async function deleteAccount(password: string): Promise<{ success: boolean; error?: string; redirect?: string }> {
   try {
     const supabase = createSupabaseServerClient()
     
@@ -129,8 +120,21 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
       data: { user },
     } = await supabase.auth.getUser()
     
-    if (!user) {
+    if (!user || !user.email) {
       return { success: false, error: 'Oturum açmanız gerekiyor' }
+    }
+
+    // Açık kalmış bir oturumla hesabın silinememesi için şifre tekrar doğrulanır.
+    // Doğrulama ayrı, oturum saklamayan bir istemciyle yapılır; mevcut oturum çerezleri değişmez.
+    if (!password) {
+      return { success: false, error: 'Şifrenizi girin' }
+    }
+    const verifier = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const { error: passwordError } = await verifier.auth.signInWithPassword({ email: user.email, password })
+    if (passwordError) {
+      return { success: false, error: 'Şifre yanlış' }
     }
 
     const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
