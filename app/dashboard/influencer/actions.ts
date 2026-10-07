@@ -1,5 +1,6 @@
 'use server'
 
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
@@ -80,8 +81,19 @@ export async function toggleShowcaseVisibility(nextValue: boolean) {
 
   // Send notification if enabled
   if (nextValue) {
-    const { sendSpotlightNotification } = await import('@/app/actions/automated-messages')
-    await sendSpotlightNotification(user.id, true).catch(e => console.error('Spotlight notification error:', e))
+    // Bildirim sunucuda yazılır (notifications tablosuna istemciden ekleme yok).
+    const admin = createSupabaseAdminClient()
+    if (admin) {
+      const { error: notifyError } = await admin.from('notifications').insert({
+        user_id: user.id,
+        title: 'Vitrin modu açıldı',
+        message: 'Profiliniz artık markaların keşif sayfasında görünüyor.',
+        type: 'success',
+        link: '/dashboard/influencer',
+        is_read: false,
+      })
+      if (notifyError) console.error('Showcase notification error:', notifyError)
+    }
   }
 
   revalidatePath('/dashboard/influencer')

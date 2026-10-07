@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import OffersManager from '@/components/dashboard/OffersManager'
-import type { OfferListItem } from '@/components/dashboard/InfluencerOffersFeed'
+import type { OfferListItem } from '@/components/dashboard/OffersManager'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { fetchAccountRole } from '@/lib/viewer-role'
 

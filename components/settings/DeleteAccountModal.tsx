@@ -12,6 +12,7 @@ interface DeleteAccountModalProps {
 
 export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps) {
   const [confirmText, setConfirmText] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -27,9 +28,13 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
       setError(`Onaylamak için "${CONFIRM_TEXT}" yazın`)
       return
     }
+    if (!password) {
+      setError('Şifrenizi girin')
+      return
+    }
 
     startTransition(async () => {
-      const result = await deleteAccount()
+      const result = await deleteAccount(password)
 
       if (result.success) {
         // Redirect to login
@@ -103,6 +108,22 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
               autoComplete="off"
             />
           </div>
+
+          <div>
+            <label htmlFor="deletePassword" className="mb-2 block text-sm font-medium text-gray-300">
+              Şifreniz
+            </label>
+            <input
+              id="deletePassword"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isPending}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 transition focus:border-red-500/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 disabled:opacity-50"
+              placeholder="Mevcut şifreniz"
+              autoComplete="current-password"
+            />
+          </div>
         </div>
 
         {error && (
@@ -122,7 +143,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
           </button>
           <button
             type="submit"
-            disabled={isPending || !isConfirmed}
+            disabled={isPending || !isConfirmed || !password}
             className="flex-1 rounded-xl border border-red-500/60 bg-red-500/20 px-4 py-3 text-sm font-semibold text-red-200 transition hover:border-red-500 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? 'Siliniyor...' : 'Hesabı Sil'}
