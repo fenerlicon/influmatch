@@ -31,14 +31,20 @@ export async function submitTaxCertificate(filePath: string): Promise<SubmitResu
 
   const { data: profile } = await admin
     .from('users')
-    .select('role, tax_id, tax_office, tax_office_city, tax_id_verified')
+    .select('role, tax_id, tax_office, tax_office_city, company_legal_name, tax_id_verified')
     .eq('id', user.id)
     .maybeSingle()
 
   if (profile?.role !== 'brand') return { success: false, error: 'Bu işlem sadece markalar içindir.' }
   if (profile.tax_id_verified) return { success: false, error: 'Vergi numaranız zaten doğrulanmış.' }
-  if (!profile.tax_id || !validateTaxNumber(profile.tax_id).isValid || !profile.tax_office || !profile.tax_office_city) {
-    return { success: false, error: 'Önce Kurumsal Kimlik bölümünde vergi numarası, vergi dairesi ve ili kaydedin.' }
+  if (
+    !profile.tax_id ||
+    !validateTaxNumber(profile.tax_id).isValid ||
+    !profile.tax_office ||
+    !profile.tax_office_city ||
+    !profile.company_legal_name?.trim()
+  ) {
+    return { success: false, error: 'Önce Kurumsal Kimlik bölümünde resmi unvan, vergi numarası, vergi dairesi ve ili kaydedin.' }
   }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()

@@ -90,8 +90,9 @@ export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit,
       <div>
         <p className="text-sm font-semibold text-white">Vergi Levhası</p>
         <p className="mt-1 text-xs text-gray-400">
-          e-Devlet / GİB üzerinden indirdiğiniz vergi levhası PDF&apos;ini veya net bir fotoğrafını yükleyin. Bilgiler profilinizle
-          eşleşirse vergi numaranız dakikalar içinde otomatik onaylanır ve &quot;Resmi İşletme&quot; rozeti verilir.
+          e-Devlet veya GİB İnternet Vergi Dairesi&apos;nden indirdiğiniz vergi levhası PDF&apos;ini yükleyin. Bilgiler profilinizle
+          eşleşirse vergi numaranız hemen onaylanır ve &quot;Resmi İşletme&quot; rozeti verilir. Fotoğraf ve taramalar ekibimiz
+          tarafından elle incelenir.
         </p>
       </div>
 
@@ -123,11 +124,11 @@ export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit,
             {isWorking ? 'Belge kontrol ediliyor...' : shown ? 'Yeni belge yükle' : 'Vergi levhası yükle'}
           </button>
           {!canSubmit && (
-            <p className="text-xs text-gray-400">Önce vergi numarası, vergi dairesi ve ili kaydedin.</p>
+            <p className="text-xs text-gray-400">Önce resmi unvan, vergi numarası, vergi dairesi ve ili kaydedin.</p>
           )}
           <p className="text-[11px] text-gray-500">
-            Belgeniz otomatik kontrol için yapay zeka hizmetine (Google Gemini, yurt dışı) iletilir ve inceleme için saklanır.
-            Yükleyerek buna onay vermiş olursunuz.
+            Belgeniz sadece Influmatch sunucularında kontrol edilir; yapay zeka servislerine veya üçüncü taraflara gönderilmez.
+            İnceleme için güvenli bir alanda saklanır.
           </p>
         </>
       )}

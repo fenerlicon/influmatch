@@ -25,7 +25,7 @@ const PROVIDERS: { id: ApiProvider; name: string; usage: string; placeholder: st
   {
     id: 'gemini',
     name: 'Gemini',
-    usage: 'Yapay zeka modülleri (ör. vergi levhası doğrulama). Ücretsiz anahtarlar dakikalık/günlük limite takılınca sıradakine geçilir.',
+    usage: 'Şu an hiçbir modül kullanmıyor (vergi levhası kontrolü sunucuda, yapay zekasız yapılır). İleride kişisel veri içermeyen yapay zeka modülleri için; ücretsiz katmana gönderilen veriler Google tarafından incelenebilir.',
     placeholder: 'AIza...',
   },
 ]

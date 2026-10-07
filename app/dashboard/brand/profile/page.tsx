@@ -1,5 +1,5 @@
 export const revalidate = 0
-// Vergi levhası okuma (Gemini) bu sayfanın server action'ında çalışır.
+// Vergi levhası PDF okuma bu sayfanın server action'ında (sunucuda) çalışır.
 export const maxDuration = 60
 
 import { redirect } from 'next/navigation'

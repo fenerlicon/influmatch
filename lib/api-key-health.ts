@@ -28,8 +28,8 @@ export const LAST_RUN_STATE_KEY = 'api_key_health_last_run'
 const ALERT_STATE_KEY = 'api_key_health_alert'
 const REMINDER_INTERVAL_MS = 24 * 60 * 60 * 1000
 
-/** Havuzu boş kalınca sistemin çalışmadığı servisler (Gemini: vergi levhası doğrulama). */
-const REQUIRED_PROVIDERS: ApiProvider[] = ['apify', 'gemini']
+/** Havuzu boş kalınca sistemin çalışmadığı servisler. Gemini şu an hiçbir modülde kullanılmıyor. */
+const REQUIRED_PROVIDERS: ApiProvider[] = ['apify']
 const PROBLEM_STATUSES = new Set(['low_credit', 'exhausted', 'invalid', 'error'])
 
 export interface ProviderHealth {

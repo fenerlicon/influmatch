@@ -656,6 +656,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
             userId={userId}
             taxIdVerified={!!initialData.taxIdVerified}
             canSubmit={
+              !!initialData.companyLegalName?.trim() &&
               !!initialData.taxId &&
               validateTaxNumber(initialData.taxId).isValid &&
               !!initialData.taxOffice &&

@@ -43,19 +43,17 @@ export default function TaxVerificationReview({ verification }: { verification: 
 
   const fields: [string, string | number | null | undefined][] = extracted
     ? [
-        ['Vergi No', extracted.tax_number],
-        ['Unvan', extracted.taxpayer_name],
-        ['Vergi Dairesi', extracted.tax_office],
-        ['İl', extracted.city],
-        ['Yıl', extracted.year],
+        ['Belgedeki vergi no', extracted.tax_numbers?.join(', ') || null],
+        ['En yeni yıl', extracted.year],
         ['Onay Kodu', extracted.approval_code],
+        ['PDF üreticisi', extracted.pdf_producer],
       ]
     : []
 
   return (
     <div className="mt-3 space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-gray-300">Vergi Levhası (yapay zeka kontrolü)</span>
+        <span className="text-xs font-semibold text-gray-300">Vergi Levhası (otomatik kontrol)</span>
         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.className}`}>{status.label}</span>
       </div>
       <p className="text-[10px] text-gray-500">{new Date(current.created_at).toLocaleString('tr-TR')}</p>
