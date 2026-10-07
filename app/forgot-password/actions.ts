@@ -1,12 +1,12 @@
 'use server'
 
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs'
 import {
   RESET_REQUEST_COOKIE,
   RESET_REQUEST_MAX_AGE,
   recoveryCookieOptions,
-  siteBaseUrl,
+  requestBaseUrl,
 } from '@/lib/password-recovery'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -21,7 +21,7 @@ export async function requestPasswordReset(rawEmail: string): Promise<{ success:
   // yazamaz); bu yüzden bağlantı aynı tarayıcıda açılmalıdır.
   const supabase = createServerActionClient({ cookies })
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteBaseUrl()}/auth/callback`,
+    redirectTo: `${requestBaseUrl(headers().get('x-forwarded-host') ?? headers().get('host'), headers().get('x-forwarded-proto'))}/auth/callback`,
   })
 
   if (error) {

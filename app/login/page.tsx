@@ -35,12 +35,13 @@ function LoginPageContent() {
       setAccountDeletedError(decodeURIComponent(message))
       router.replace('/login', { scroll: false })
     } else if (error === 'email_link_expired') {
-      setAccountDeletedError('E-posta bağlantısının süresi dolmuş.')
+      setAccountDeletedError('E-posta bağlantısının süresi dolmuş veya bağlantı daha önce kullanılmış. Şifre sıfırlıyorsanız yeni bağlantı isteyin.')
       router.replace('/login', { scroll: false })
     } else if (error === 'verification_denied') {
       setAccountDeletedError('Doğrulama reddedildi.')
       router.replace('/login', { scroll: false })
     } else if (error === 'verification_failed') {
+      setAccountDeletedError('Bağlantı doğrulanamadı. Bağlantıyı isteği yaptığınız tarayıcıda açın veya yeni bir bağlantı isteyin.')
       router.replace('/login', { scroll: false })
     }
   }, [searchParams, router])
