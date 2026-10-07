@@ -29,9 +29,13 @@ export async function applyToAdvert(payload: ApplyToAdvertPayload) {
   // Check verification status
   const { data: userProfile } = await supabase
     .from('users')
-    .select('verification_status')
+    .select('role, verification_status')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (userProfile?.role !== 'influencer') {
+    return { error: 'İlanlara yalnızca influencer hesapları başvurabilir.' }
+  }
 
   if (userProfile?.verification_status !== 'verified') {
     return { error: 'Hesabınız henüz onaylanmadı. İlanlara başvurabilmek için hesabınızın onaylanması gerekmektedir.' }
@@ -42,7 +46,7 @@ export async function applyToAdvert(payload: ApplyToAdvertPayload) {
     return { error: 'Kısa bir niyet mesajı paylaşmalısınız.' }
   }
 
-  const { data: advert, error: advertError } = await supabase.from('advert_projects').select('id, status').eq('id', advertId).maybeSingle()
+  const { data: advert, error: advertError } = await supabase.from('advert_projects').select('id, status, deadline').eq('id', advertId).maybeSingle()
 
   if (advertError || !advert) {
     return { error: 'İlan bilgisi alınamadı.' }
@@ -50,6 +54,12 @@ export async function applyToAdvert(payload: ApplyToAdvertPayload) {
 
   if (advert.status !== 'open') {
     return { error: 'Bu ilan artık başvuruya kapalı.' }
+  }
+
+  // Son başvuru günü dahil (Türkiye saatiyle); DB politikası da aynı kuralı uygular.
+  const todayIstanbul = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' })
+  if (advert.deadline && advert.deadline < todayIstanbul) {
+    return { error: 'Bu ilanın son başvuru tarihi geçti.' }
   }
 
   const { error: insertError } = await supabase.from('advert_applications').insert({

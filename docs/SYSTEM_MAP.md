@@ -159,7 +159,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 
 ### 1.12 Yasal sayfalar
 - **Dosya:** `app/legal/page.tsx` (KVKK, şartlar, çerezler — inline JSX)
-- **Sorunlar:** **1.12-S1 [ORTA]** Footer `/legal/privacy`'e bağlanıyor, böyle bir rota yok. Metin `lib/legal-constants.ts` ile ikiye bölünmüş; KVKK metni ince.
+- **Sorunlar:** ✅ ~~**1.12-S1 [ORTA]**~~ (footer linki `/legal?tab=privacy`; KVKK metni içeriği ayrı iş) Footer `/legal/privacy`'e bağlanıyor, böyle bir rota yok. Metin `lib/legal-constants.ts` ile ikiye bölünmüş; KVKK metni ince.
 
 ---
 
@@ -224,7 +224,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 ### 2.6 Profil tamamlama
 - **Dosyalar:** `utils/profileCompletion.ts`, `components/dashboard/ProfileCompletionCard.tsx`
 - **Sorunlar:**
-  - **2.6-S1 [ORTA]** Kart admin‑only `/api/award-badges`'e POST atıyor → kullanıcı hep 403 alıyor, otomatik rozet yolu ölü.
+  - ✅ ~~**2.6-S1 [ORTA]**~~ (kullanıcı kendi rozetlerini değerlendirtebiliyor; başkası için admin gerekir) Kart admin‑only `/api/award-badges`'e POST atıyor → kullanıcı hep 403 alıyor, otomatik rozet yolu ölü.
   - **2.6-S2 [DÜŞÜK]** Tamamlama doğrulanmış hesapları değil elle girilen `social_links`'i sayıyor; `phone`/`email` görevleri hiç üretilmiyor.
 
 ### 2.7 Profil düzenleme
@@ -232,7 +232,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   `utils/{socialLinkValidation,usernameValidation}.ts`, `/api/check-username`
 - **Sorunlar:**
   - **2.7-S1 [ORTA]** Instagram link alanı hesap doğrulandıktan sonra da düzenlenebilir (TikTok kilitli); `social_links.instagram` doğrulanmış kullanıcı adından sapabilir.
-  - **2.7-S2 [ORTA]** Avatar bucket köküne rastgele adla yükleniyor; avatars politikası `{uid}/` klasörü istiyor (bkz. 7.5-S1).
+  - ✅ ~~**2.7-S2 [ORTA]**~~ (avatar artık `{uid}/` klasörüne yükleniyor) Avatar bucket köküne rastgele adla yükleniyor; avatars politikası `{uid}/` klasörü istiyor (bkz. 7.5-S1).
   - **2.7-S3 [DÜŞÜK]** Tüm güncelleme yükü `console.log` ile loglanıyor; eksik kolon için kalıntı try/catch.
 
 ### 2.8 Vitrin görünürlüğü (`is_showcase_visible`, "Vitrin Modu")
@@ -260,7 +260,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 ### 2.12 İlanlara başvuru
 - **Dosyalar:** `app/dashboard/influencer/advert/{page,actions}.ts(x)`, `components/dashboard/{InfluencerAdvertTabs,AdvertProjectsList,AdvertApplicationsList}.tsx`
 - **Sorunlar:**
-  - **2.12-S1 [ORTA]** `applyToAdvert` rol ve son tarih kontrolü yapmıyor.
+  - ✅ ~~**2.12-S1 [ORTA]**~~ (aksiyon rol ve son başvuru gününü kontrol ediyor; DB kuralı `20261007000005`) `applyToAdvert` rol ve son tarih kontrolü yapmıyor.
   - **2.12-S2 [DÜŞÜK]** `cancelApplication` hiçbir yerden çağrılmıyor; tüm açık ilanlar sayfalamasız yükleniyor.
 
 ### 2.13 Gelen teklifler (influencer)
@@ -338,7 +338,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 3.9 Marka profili
 - **Dosyalar:** `brand/profile/page.tsx`, `components/brand/BrandProfileForm.tsx`, `brand/profile/actions.ts`
 - **Sorunlar:**
-  - **3.9-S1 [YÜKSEK]** Logo yükleme yolu klasörsüz (`${uuid}.ext`), avatars politikası `{uid}/` istiyor → büyük ihtimalle başarısız (bkz. 7.5-S1).
+  - ✅ ~~**3.9-S1 [YÜKSEK]**~~ (canlıda "avatars insert" kökte yüklemeye izin veriyordu; logo artık `{uid}/` klasörüne yükleniyor) Logo yükleme yolu klasörsüz (`${uuid}.ext`), avatars politikası `{uid}/` istiyor → büyük ihtimalle başarısız (bkz. 7.5-S1).
   - ✅ ~~**3.9-S2 [YÜKSEK]**~~  Sayfa `kick`, `twitter`, `twitch` alanlarını forma geçmiyor → kaydetme bunları null'a çekiyor (ya da 30 günlük kilide takılıyor).
   - ✅ ~~**3.9-S4 [YÜKSEK]**~~ `updateBrandProfile` doğrulama hatasını fırlatıyordu; production'da kullanıcı hata sayfası görüyordu (canlı Vercel kayıtlarında görüldü). Artık mesaj olarak dönüyor.
   - **3.9-S3 [DÜŞÜK]** Eksik kolon try/catch'i ölü; `brand/profile/badges/actions.ts`, brand settings re-export dosyaları kullanılmıyor.
@@ -440,7 +440,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   BrandOffersList, OffersManager, AdvertApplicationsList bunu okuyor.
 - **Sistem B:** `auth.user_metadata["last_read_<roomId>"]` — sidebar ve mesaj kutusu kullanıyor.
 - **Sorunlar:**
-  - **5.3-S1 [YÜKSEK]** Teklif ve başvuru ekranlarındaki okunmamış rozetleri hiç temizlenmiyor.
+  - ✅ ~~**5.3-S1 [YÜKSEK]**~~ (`message_reads` tablosu canlıda yok, rozetler hep 0 çıkıyordu; sayım `last_read_<roomId>` metadata ile, `lib/unread-messages.ts`) Teklif ve başvuru ekranlarındaki okunmamış rozetleri hiç temizlenmiyor.
   - **5.3-S2 [ORTA]** Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyor;
     aynı kişiyle birleşik odalardan yalnızca seçili oda okundu oluyor.
 
@@ -601,7 +601,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **7.6-S4 [DÜŞÜK]** `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`.
 
 ### 7.7 Çakışan migration'lar
-- **7.7-S1 [YÜKSEK]** Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
+- **7.7-S1 [YÜKSEK]** (advert_applications için düzeltme `20261007000005` dosyasında; canlıya elle çalıştırılmayı bekliyor) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
   doğrulanmamış influencer da başvurabiliyor.
 - **7.7-S2 [ORTA]** Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
 - **7.7-S3 [DÜŞÜK]** `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.

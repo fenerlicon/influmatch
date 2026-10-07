@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { MessageCircle, CalendarDays, X, BadgeCheck } from 'lucide-react'
 import { dismissInfluencer } from '@/app/dashboard/brand/offers/dismiss/actions'
 import type { BrandOfferItem } from '@/app/dashboard/brand/offers/page'
+import { countUnreadInRoom } from '@/lib/unread-messages'
 
 interface BrandOffersListProps {
   initialOffers: BrandOfferItem[]
@@ -153,42 +154,7 @@ export default function BrandOffersList({
       if (!currentUserId || !roomId) return 0
 
       try {
-        // Get all messages in the room
-        const { data: messages, error: messagesError } = await supabase
-          .from('messages')
-          .select('id, sender_id')
-          .eq('room_id', roomId)
-          .order('created_at', { ascending: true })
-
-        if (messagesError || !messages || messages.length === 0) {
-          return 0
-        }
-
-        // Filter only messages from the other party (not from current user)
-        const otherPartyMessages = messages.filter((m) => m.sender_id !== currentUserId)
-        if (otherPartyMessages.length === 0) {
-          return 0
-        }
-
-        // Get read receipts for current user for these messages
-        const messageIds = otherPartyMessages.map((m) => m.id)
-        const { data: readReceipts, error: readError } = await supabase
-          .from('message_reads')
-          .select('message_id')
-          .in('message_id', messageIds)
-          .eq('user_id', currentUserId)
-
-        if (readError) {
-          console.error('Error fetching read receipts:', readError)
-          return 0
-        }
-
-        const readMessageIds = new Set(readReceipts?.map((r) => r.message_id) ?? [])
-
-        // Count only unread messages from the other party
-        const unreadCount = otherPartyMessages.filter((m) => !readMessageIds.has(m.id)).length
-
-        return unreadCount
+        return await countUnreadInRoom(supabase, roomId, currentUserId)
       } catch (error) {
         console.error('Error calculating unread count:', error)
         return 0
