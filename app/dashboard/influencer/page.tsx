@@ -14,7 +14,6 @@ import { getFavoriteCount } from '@/app/actions/favorites'
 import TrustScoreCard from '@/components/dashboard/TrustScoreCard'
 import BlueTickProgressCard from '@/components/dashboard/BlueTickProgressCard'
 import { BLUE_TICK_BADGE_ID, evaluateBlueTick, type BlueTickAccount } from '@/lib/blue-tick-rules'
-import { calculateTrustScore } from '@/utils/matching'
 import { CheckCircle2, Heart, Mail, Sparkles, Calendar } from 'lucide-react'
 
 import { refreshIfStale } from '@/lib/social-stats'
@@ -131,6 +130,13 @@ export default async function InfluencerDashboardPage() {
 
   const profileCompletion = calculateProfileCompletion(profileData)
   const isProfileComplete = profileCompletion.percent >= 100
+  // Güven skoru kartı mavi tik kuralıyla aynı hesabı ve aynı skoru gösterir (2.4-S1).
+  const trustScoreDetails = {
+    spotlightActive: blueTickEvaluation.spotlightActive,
+    hasConnectedAccount: blueTickEvaluation.primaryPlatform !== null,
+    profileComplete: isProfileComplete,
+    engagementRate: blueTickEvaluation.primaryEngagementRate,
+  }
   const showProfileCompletionCard = !isProfileComplete
 
   const { data: recentOffers, error: offerError } = await supabase
@@ -359,26 +365,8 @@ export default async function InfluencerDashboardPage() {
               <ProfileCompletionCard userId={user.id} initialProfile={profileData} />
               {/* Trust Score Card for Profile Incomplete Users */}
               <TrustScoreCard
-                score={calculateTrustScore({
-                  id: user.id,
-                  full_name: profile?.full_name ?? null,
-                  username: profile?.username ?? null,
-                  avatar_url: profile?.avatar_url ?? null,
-                  verification_status: verificationStatus as any,
-                  category: profile?.category ?? null,
-                  spotlight_active: rawSpotlightActive,
-                  stats: instagramAccount ? {
-                    followers: instagramAccount.follower_count?.toString() || '0',
-                    engagement: (Number(instagramAccount.engagement_rate) || 0) + '%',
-                    avg_comments: (instagramAccount.stats_payload as any)?.avg_comments?.toString()
-                  } : undefined
-                })}
-                details={{
-                  spotlightActive: rawSpotlightActive,
-                  hasConnectedAccount: !!(instagramAccount && instagramAccount.has_stats),
-                  profileComplete: isProfileComplete,
-                  engagementRate: Number(instagramAccount?.engagement_rate) || 0
-                }}
+                score={blueTickEvaluation.trustScore}
+                details={trustScoreDetails}
               />
               <BlueTickProgressCard evaluation={blueTickEvaluation} hasBlueTick={!!blueTickBadge} />
             </div>
@@ -389,26 +377,8 @@ export default async function InfluencerDashboardPage() {
             <div className="space-y-6">
               {/* Trust Score Card for Complete Users */}
               <TrustScoreCard
-                score={calculateTrustScore({
-                  id: user.id,
-                  full_name: profile?.full_name ?? null,
-                  username: profile?.username ?? null,
-                  avatar_url: profile?.avatar_url ?? null,
-                  verification_status: verificationStatus as any,
-                  category: profile?.category ?? null,
-                  spotlight_active: rawSpotlightActive,
-                  stats: instagramAccount ? {
-                    followers: instagramAccount.follower_count?.toString() || '0',
-                    engagement: (Number(instagramAccount.engagement_rate) || 0) + '%',
-                    avg_comments: (instagramAccount.stats_payload as any)?.avg_comments?.toString()
-                  } : undefined
-                })}
-                details={{
-                  spotlightActive: rawSpotlightActive,
-                  hasConnectedAccount: !!(instagramAccount && instagramAccount.has_stats),
-                  profileComplete: isProfileComplete,
-                  engagementRate: Number(instagramAccount?.engagement_rate) || 0
-                }}
+                score={blueTickEvaluation.trustScore}
+                details={trustScoreDetails}
               />
               <BlueTickProgressCard evaluation={blueTickEvaluation} hasBlueTick={!!blueTickBadge} />
               {instagramData || tiktokData ? (
