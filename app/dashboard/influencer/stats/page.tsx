@@ -13,12 +13,14 @@ export default async function StatsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    // Get social account
-    const { data: socialAccount } = await supabase
+    // Hem Instagram hem TikTok bağlı kullanıcıda .single() hata veriyordu (2.10-S1).
+    // Geçmiş grafiği Instagram'dan beslenir; Instagram yoksa diğer hesap gösterilir.
+    const { data: socialAccounts } = await supabase
         .from('social_accounts')
-        .select('id')
+        .select('id, platform')
         .eq('user_id', user.id)
-        .single()
+    const socialAccount =
+        socialAccounts?.find((account) => account.platform === 'instagram') ?? socialAccounts?.[0] ?? null
 
     if (!socialAccount) {
         return (

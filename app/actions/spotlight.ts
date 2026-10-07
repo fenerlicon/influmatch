@@ -6,109 +6,98 @@ import { DiscoverInfluencer } from '@/types/influencer'
 import { syncBlueTick } from '@/lib/blue-tick'
 import { expireSpotlights } from '@/lib/spotlight-expiry'
 
+const formatFollowers = (count: number) =>
+    count >= 1_000_000 ? `${(count / 1_000_000).toFixed(1)}M` : count >= 1_000 ? `${(count / 1_000).toFixed(1)}K` : String(count)
+
+type VerifiedAccount = {
+    user_id: string
+    follower_count: number | null
+    engagement_rate: number | string | null
+    stats_payload: Record<string, any> | null
+}
+
+/**
+ * Aynı kategorideki, takipçi sayısı ±%30 aralığında olan Spotlight üyelerini döner.
+ * İstatistikler doğrulanmış sosyal hesaplardan (en çok takipçili hesap) okunur. Eskiden users tablosunda
+ * olmayan instagram_stats alanı okunduğu için takipçi hep 0 çıkıyordu (4.4-S1).
+ */
 export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{ data: DiscoverInfluencer[], error: string | null }> {
     const supabase = createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { data: [], error: 'Oturum açmanız gerekiyor.' }
 
-    // 1. Get Base Influencer Data
     const { data: baseUser, error: fetchError } = await supabase
         .from('users')
-        .select('id, full_name, username, category, avatar_url, spotlight_active, verification_status, displayed_badges')
+        .select('id, category')
         .eq('id', baseInfluencerId)
-        .single()
-
+        .maybeSingle()
     if (fetchError || !baseUser) {
         return { data: [], error: 'Referans profil bulunamadı' }
     }
 
-    // Parse stats
-    let followerCount = 0
-    if ((baseUser as any).instagram_stats?.followers) {
-        const raw = (baseUser as any).instagram_stats.followers.toString().toUpperCase()
-        if (raw.includes('K')) followerCount = parseFloat(raw) * 1000
-        else if (raw.includes('M')) followerCount = parseFloat(raw) * 1000000
-        else followerCount = parseFloat(raw)
-    }
-
-    const minFollowers = followerCount * 0.7 // Tighter range (+/- 30%)
-    const maxFollowers = followerCount * 1.3
-
-    // 2. Find Similars
-    // Logic: Same Category AND Similar Follower Count (+/- 30%) AND Showcase Visible
     let query = supabase
         .from('users')
         .select('id, full_name, username, category, avatar_url, spotlight_active, verification_status, displayed_badges')
-        .neq('id', baseInfluencerId) // Exclude self
+        .neq('id', baseInfluencerId)
         .eq('role', 'influencer')
-        .eq('is_showcase_visible', true) // Only visible profiles
-        .eq('spotlight_active', true) // Only show Spotlight members
-        .limit(5) // Fetch a few more to filter down
+        .eq('is_showcase_visible', true)
+        .eq('spotlight_active', true)
+        .limit(50)
+    if (baseUser.category) query = query.eq('category', baseUser.category)
 
-    // Category Filter
-    if (baseUser.category) {
-        query = query.eq('category', baseUser.category)
-    }
-
-    const { data: similars, error: searchError } = await query
-
+    const { data: candidates, error: searchError } = await query
     if (searchError) {
         return { data: [], error: 'Benzer profiller aranırken hata oluştu' }
     }
+    if (!candidates?.length) return { data: [], error: null }
 
-    // Filter by follower count manually (since stored as JSON/string often, hard to SQL filter efficiently without casting)
-    // For production, this should be done in SQL with computed columns.
-    const filtered = (similars || []).filter((u: any) => {
-        let count = 0
-        if (u.instagram_stats?.followers) {
-            const r = u.instagram_stats.followers.toString().toUpperCase()
-            if (r.includes('K')) count = parseFloat(r) * 1000
-            else if (r.includes('M')) count = parseFloat(r) * 1000000
-            else count = parseFloat(r)
-        }
-        return count >= minFollowers && count <= maxFollowers
-    })
+    const { data: accounts } = await supabase
+        .from('social_accounts')
+        .select('user_id, follower_count, engagement_rate, stats_payload')
+        .in('user_id', [baseInfluencerId, ...candidates.map((c) => c.id)])
+        .eq('is_verified', true)
 
-    // Map to DiscoverInfluencer type
-    const enriched: DiscoverInfluencer[] = filtered.slice(0, 3).map((u: any) => ({ // Return top 3 matches
-        id: u.id,
-        full_name: u.full_name,
-        username: u.username,
-        category: u.category,
-        avatar_url: u.avatar_url,
-        spotlight_active: u.spotlight_active,
-        verification_status: u.verification_status,
-        stats: u.instagram_stats ? {
-            followers: u.instagram_stats.followers || '0',
-            engagement: u.instagram_stats.engagement || '0%',
-            avg_likes: u.instagram_stats.avg_likes,
-            avg_comments: u.instagram_stats.avg_comments
-        } : undefined,
-        displayed_badges: u.displayed_badges // Assuming this column exists or needs join
-    }))
+    // Kullanıcı başına en çok takipçili doğrulanmış hesap
+    const primary = new Map<string, VerifiedAccount>()
+    for (const account of (accounts ?? []) as VerifiedAccount[]) {
+        const current = primary.get(account.user_id)
+        if (!current || (account.follower_count ?? 0) > (current.follower_count ?? 0)) primary.set(account.user_id, account)
+    }
 
-    // If filtration removed too many, fallback to just category match or spotlight
-    if (enriched.length === 0 && similars?.length) {
-        // Fallback: return the category matches even if follower count is off
+    const baseFollowers = primary.get(baseInfluencerId)?.follower_count ?? 0
+    const toInfluencer = (u: (typeof candidates)[number]): DiscoverInfluencer => {
+        const account = primary.get(u.id)
         return {
-            data: similars.slice(0, 3).map((u: any) => ({
-                id: u.id,
-                full_name: u.full_name,
-                username: u.username,
-                category: u.category,
-                avatar_url: u.avatar_url,
-                spotlight_active: u.spotlight_active,
-                verification_status: u.verification_status,
-                stats: u.instagram_stats ? {
-                    followers: u.instagram_stats.followers || '0',
-                    engagement: u.instagram_stats.engagement || '0%',
-                    avg_likes: u.instagram_stats.avg_likes,
-                    avg_comments: u.instagram_stats.avg_comments
-                } : undefined
-            })),
-            error: null
+            id: u.id,
+            full_name: u.full_name,
+            username: u.username,
+            category: u.category,
+            avatar_url: u.avatar_url,
+            spotlight_active: u.spotlight_active,
+            verification_status: u.verification_status,
+            displayed_badges: u.displayed_badges,
+            stats: account ? {
+                followers: formatFollowers(account.follower_count ?? 0),
+                engagement: `${Number(account.engagement_rate) || 0}%`,
+                avg_likes: account.stats_payload?.avg_likes?.toString(),
+                avg_comments: account.stats_payload?.avg_comments?.toString(),
+            } : undefined,
         }
     }
 
-    return { data: enriched, error: null }
+    const withStats = candidates.filter((c) => primary.has(c.id))
+    if (baseFollowers > 0) {
+        const close = withStats
+            .map((c) => ({ c, diff: Math.abs((primary.get(c.id)!.follower_count ?? 0) - baseFollowers) / baseFollowers }))
+            .filter((x) => x.diff <= 0.3)
+            .sort((a, b) => a.diff - b.diff)
+            .slice(0, 3)
+            .map((x) => toInfluencer(x.c))
+        if (close.length) return { data: close, error: null }
+    }
+
+    // Takipçi aralığında kimse yoksa aynı kategorideki (istatistiği olan) profiller
+    return { data: (withStats.length ? withStats : candidates).slice(0, 3).map(toInfluencer), error: null }
 }
 
 export async function activateSpotlightPlan(

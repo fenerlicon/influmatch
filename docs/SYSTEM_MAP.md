@@ -217,7 +217,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 ### 2.5 Güven skoru ve eşleşme skoru
 - **Dosyalar:** `utils/matching.ts`, `components/dashboard/TrustScoreCard.tsx`; mobilde ayrı kopya `mobile-app/utils/calculation.js`
 - **Sorunlar:**
-  - **2.5-S1 [YÜKSEK]** `TrustScoreCard.tsx:160-166` yüzde değeri (ör. 3.5) `0.01..0.10` aralığıyla karşılaştırıyor; "Sağlıklı Etkileşim" yalnızca ölü hesaplarda yanıyor.
+  - ✅ ~~**2.5-S1 [YÜKSEK]**~~  `TrustScoreCard.tsx:160-166` yüzde değeri (ör. 3.5) `0.01..0.10` aralığıyla karşılaştırıyor; "Sağlıklı Etkileşim" yalnızca ölü hesaplarda yanıyor.
   - **2.5-S2 [ORTA]** Spotlight olmayanlarda kart bulanık ama skor istemciye gönderiliyor.
   - **2.5-S3 [DÜŞÜK]** `InfluencerGridCard` skoru her render'da 4 kez hesaplıyor; `verification_status` parametresi yok sayılıyor.
 
@@ -251,7 +251,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 
 ### 2.10 İstatistik geçmişi
 - **Dosyalar:** `app/dashboard/influencer/stats/page.tsx`, `components/dashboard/StatsHistory.tsx`
-- **Sorunlar:** **2.10-S1 [YÜKSEK]** `social_accounts...eq('user_id').single()` platform filtresi yok; IG + TikTok'u olan kullanıcı "Hesap Bulunamadı" görüyor.
+- **Sorunlar:** ✅ ~~**2.10-S1 [YÜKSEK]**~~  `social_accounts...eq('user_id').single()` platform filtresi yok; IG + TikTok'u olan kullanıcı "Hesap Bulunamadı" görüyor.
 
 ### 2.11 Influencer vitrini (diğer influencer'ları gezme)
 - **Dosyalar:** `app/dashboard/influencer/discover/page.tsx`, `BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`
@@ -322,8 +322,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `brand/advert/page.tsx`, `components/dashboard/{BrandAdvertTabs,BrandAdvertManager,AdvertProjectsList,AdvertPerformanceChart}.tsx`,
   `brand/advert/actions.ts`, `app/actions/analytics.ts`
 - **Sorunlar:**
-  - **3.7-S1 [YÜKSEK]** İlan düzenleme bozuk: düzenlemede `heroImage` boşaltılıyor, kaydetme "Kapak fotoğrafı zorunlu" diye reddediyor.
-  - **3.7-S2 [YÜKSEK]** Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
+  - ✅ ~~**3.7-S1 [YÜKSEK]**~~ (mevcut kapak korunuyor) İlan düzenleme bozuk: düzenlemede `heroImage` boşaltılıyor, kaydetme "Kapak fotoğrafı zorunlu" diye reddediyor.
+  - ✅ ~~**3.7-S2 [YÜKSEK]**~~ (payment_type/custom_questions okunuyor, açıklama ezilmiyor) Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
   - **3.7-S3 [ORTA]** Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
   - **3.7-S4 [DÜŞÜK]** Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
 
@@ -339,7 +339,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `brand/profile/page.tsx`, `components/brand/BrandProfileForm.tsx`, `brand/profile/actions.ts`
 - **Sorunlar:**
   - **3.9-S1 [YÜKSEK]** Logo yükleme yolu klasörsüz (`${uuid}.ext`), avatars politikası `{uid}/` istiyor → büyük ihtimalle başarısız (bkz. 7.5-S1).
-  - **3.9-S2 [YÜKSEK]** Sayfa `kick`, `twitter`, `twitch` alanlarını forma geçmiyor → kaydetme bunları null'a çekiyor (ya da 30 günlük kilide takılıyor).
+  - ✅ ~~**3.9-S2 [YÜKSEK]**~~  Sayfa `kick`, `twitter`, `twitch` alanlarını forma geçmiyor → kaydetme bunları null'a çekiyor (ya da 30 günlük kilide takılıyor).
   - ✅ ~~**3.9-S4 [YÜKSEK]**~~ `updateBrandProfile` doğrulama hatasını fırlatıyordu; production'da kullanıcı hata sayfası görüyordu (canlı Vercel kayıtlarında görüldü). Artık mesaj olarak dönüyor.
   - **3.9-S3 [DÜŞÜK]** Eksik kolon try/catch'i ölü; `brand/profile/badges/actions.ts`, brand settings re-export dosyaları kullanılmıyor.
 
@@ -398,7 +398,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ### 4.4 Benzer profiller
 - **Dosyalar:** `app/actions/spotlight.ts` (`getSimilarInfluencers`), `SimilarProfilesModal.tsx`
-- **Sorunlar:** **4.4-S1 [YÜKSEK]** Var olmayan `instagram_stats` kolonunu okuyor → takipçi hep 0, filtre neredeyse hiçbir şey döndürmüyor.
+- **Sorunlar:** ✅ ~~**4.4-S1 [YÜKSEK]**~~ (doğrulanmış hesaplardan okunuyor, oturum gerekli) Var olmayan `instagram_stats` kolonunu okuyor → takipçi hep 0, filtre neredeyse hiçbir şey döndürmüyor.
   Yetki/Spotlight kontrolü yok, `limit(5)` filtreden önce.
 
 ### 4.5 Herkese açık profil `/profile/[username]`

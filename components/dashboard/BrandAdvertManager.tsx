@@ -100,7 +100,7 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
       budgetMin: project.budgetMin ? String(project.budgetMin) : '',
       budgetMax: project.budgetMax ? String(project.budgetMax) : '',
       location: project.location,
-      heroImage: '',
+      heroImage: project.heroImage ?? '', // mevcut kapak korunur; yeniden yükleme zorunlu değil
       deadline: project.deadline ?? '',
       status: (project.status as AdvertStatus) ?? 'open',
       paymentType: project.paymentType ?? 'cash',
