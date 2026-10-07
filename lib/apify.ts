@@ -12,6 +12,9 @@ import {
 } from '@/lib/api-keys'
 
 const APIFY_BASE = 'https://api.apify.com/v2'
+// Senkron çalıştırma üst sınırı (sn). fetchExternal zaman aşımının (50 sn) altında; aşılırsa Apify
+// çalıştırmayı durdurur ve 408 döner (servis hatası sayılır, anahtar cezalandırılmaz).
+const APIFY_RUN_TIMEOUT_SECS = 45
 
 /** Kalan kredi bu değerin altına düşünce anahtar "kredi azaldı" sayılır. */
 const LOW_CREDIT_MIN_USD = 1
@@ -63,8 +66,9 @@ async function classifyApifyError(response: Response): Promise<Error> {
 /** Actor'ı senkron çalıştırır ve veri kümesindeki kayıtları döndürür. */
 export async function runApifyActor<T = any>(actorId: string, input: unknown): Promise<T[]> {
   return withApiKey('apify', async (token) => {
+    // timeout: Apify çalıştırmayı da durdurur; biz isteği bıraktıktan sonra ücret yazmaya devam etmez.
     const response = await fetchExternal(
-      `${APIFY_BASE}/acts/${actorId}/run-sync-get-dataset-items`,
+      `${APIFY_BASE}/acts/${actorId}/run-sync-get-dataset-items?timeout=${APIFY_RUN_TIMEOUT_SECS}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

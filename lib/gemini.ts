@@ -11,7 +11,6 @@ import {
   ApiRequestError,
   ApiServiceError,
   fetchExternal,
-  withApiKey,
   type KeyCheckResult,
 } from '@/lib/api-keys'
 
@@ -20,22 +19,6 @@ const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 export function getGeminiModel() {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL
-}
-
-export interface GeminiPart {
-  text?: string
-  inlineData?: { mimeType: string; data: string }
-}
-
-export interface GeminiRequest {
-  contents: { role?: 'user' | 'model'; parts: GeminiPart[] }[]
-  systemInstruction?: { parts: GeminiPart[] }
-  generationConfig?: Record<string, unknown>
-}
-
-export interface GeminiResponse {
-  candidates?: { content?: { parts?: GeminiPart[] }; finishReason?: string }[]
-  promptFeedback?: { blockReason?: string }
 }
 
 /** Gemini günlük kotaları Pasifik saatiyle gece yarısı sıfırlanır. */
@@ -83,25 +66,8 @@ async function classifyGeminiError(response: Response): Promise<Error> {
   return new ApiRequestError(`Gemini isteği reddedildi (HTTP ${response.status}): ${message}`)
 }
 
-export async function generateGeminiContent(request: GeminiRequest, model = getGeminiModel()): Promise<GeminiResponse> {
-  return withApiKey('gemini', async (key) => {
-    const response = await fetchExternal(
-      `${GEMINI_BASE}/models/${encodeURIComponent(model)}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify(request),
-      },
-      'Gemini',
-    )
-    if (!response.ok) throw await classifyGeminiError(response)
-    return (await response.json()) as GeminiResponse
-  })
-}
-
-export function getGeminiText(response: GeminiResponse): string {
-  return (response.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('')
-}
+// İçerik üretme çağrısı bilinçli olarak yok: vergi belgeleri ve kişisel veriler dış yapay zekâ
+// servislerine gönderilmez (vergi kontrolü yerelde yapılır). Burada yalnızca anahtar sağlık kontrolü var.
 
 /** Anahtarın geçerliliğini ve yapılandırılan modelin erişilebilirliğini kontrol eder (kota harcamaz). */
 export async function checkGeminiKey(key: string): Promise<KeyCheckResult> {

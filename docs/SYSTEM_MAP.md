@@ -660,9 +660,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.3 API anahtar havuzu
 - **Dosyalar:** `lib/api-keys.ts` (`withApiKey`, otomatik geçiş, bekleme süreleri), `lib/apify.ts`, `lib/gemini.ts`, `lib/api-key-health.ts`
 - **Sorunlar:**
-  - **8.3-S1 [DÜŞÜK]** `isKeyUsable` bekleme süresi olmayan `exhausted`/`error` anahtarları yine deniyor.
-  - **8.3-S2 [DÜŞÜK]** `generateGeminiContent` ve `@google/generative-ai` paketi kullanılmıyor (vergi kontrolü yerelde).
-  - **8.3-S3 [DÜŞÜK]** `fetch` çağrılarında zaman aşımı yok.
+  - ✅ ~~**8.3-S1 [DÜŞÜK]**~~ (anahtarlar duruma göre sıralanıyor: sağlıklılar önce, kredisi biten/hata verenler sona) `isKeyUsable` bekleme süresi olmayan `exhausted`/`error` anahtarları yine deniyor.
+  - ✅ ~~**8.3-S2 [DÜŞÜK]**~~ (içerik üretme fonksiyonu ve tipleri kaldırıldı; yalnızca anahtar sağlık kontrolü kaldı) `generateGeminiContent` ve `@google/generative-ai` paketi kullanılmıyor (vergi kontrolü yerelde).
+  - ✅ ~~**8.3-S3 [DÜŞÜK]**~~ (`fetchExternal` 50 sn, Resend 15 sn; Apify `?timeout=45` ile çalıştırmayı da durduruyor) `fetch` çağrılarında zaman aşımı yok.
 
 ### 8.4 E-posta (Resend)
 - **Dosya:** `lib/email.ts` (`sendEmail`, `sendAdminAlertEmail`). Kullanım: admin uyarıları, kurumsal e-posta kodları.

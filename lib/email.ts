@@ -65,6 +65,7 @@ export async function sendEmail({ to, subject, text }: { to: string[]; subject: 
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from, to, subject, text, html }),
       cache: 'no-store',
+      signal: AbortSignal.timeout(15_000),
     })
     if (!response.ok) {
       const body = await response.text()
