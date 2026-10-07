@@ -139,6 +139,8 @@ export interface NormalizedTikTokData {
   video_count: number
   avatar_url: string | null
   signature: string
+  /** TikTok'un değişmeyen hesap kimliği (varsa); kullanıcı adı değişebilir. */
+  platform_id: string | null
 }
 
 // Sadece geçici servis hataları tekrar denenir (her deneme Apify kredisi harcar).
@@ -223,6 +225,7 @@ async function fetchTikTokFromApify(username: string): Promise<NormalizedTikTokD
     profile.bio ?? 
     authorMeta.signature ?? 
     '';
+  const rawPlatformId = authorMeta.id ?? profile.authorId ?? profile.userId ?? null;
   const displayName = 
     profile.nickname ?? 
     profile.displayName ?? 
@@ -238,6 +241,7 @@ async function fetchTikTokFromApify(username: string): Promise<NormalizedTikTokD
     likes_count: likesCount,
     video_count: videoCount,
     avatar_url: avatarUrl,
+    platform_id: rawPlatformId ? String(rawPlatformId) : null,
     signature: signature
   };
 }

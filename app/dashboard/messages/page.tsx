@@ -28,10 +28,6 @@ export default async function DashboardMessagesPage({
 
   const role = (userProfile?.role ?? 'influencer') as 'influencer' | 'brand'
 
-  // ... (rest of file)
-
-
-
   // Get all rooms for this user
   const { data: rooms, error: roomsError } = await supabase
     .from('rooms')
@@ -59,60 +55,49 @@ export default async function DashboardMessagesPage({
     console.error('[DashboardMessagesPage] participants error', participantsError.message)
   }
 
-  // Get last message for each room
+  // Her oda için yalnızca son mesaj ve okunmamış sayısı çekilir. Tüm mesajları tek sorguda
+  // almak PostgREST'in 1000 satır sınırına takılıyor, son mesajlar ve sayılar kesiliyordu.
   const roomIds = rooms?.map((r) => r.id) ?? []
-  let lastMessages: any[] = []
-  if (roomIds.length > 0) {
-    const { data, error: lastMessagesError } = await supabase
-      .from('messages')
-      .select('id, room_id, sender_id, content, created_at')
-      .in('room_id', roomIds)
-      .order('created_at', { ascending: false })
-
-    if (lastMessagesError) {
-      console.error('[DashboardMessagesPage] lastMessages error', lastMessagesError.message)
-    } else {
-      lastMessages = data ?? []
-    }
-  }
-
-  // Group last messages by room_id
-  const lastMessageMap = new Map<string, typeof lastMessages[0]>()
-  lastMessages?.forEach((msg) => {
-    if (!lastMessageMap.has(msg.room_id)) {
-      lastMessageMap.set(msg.room_id, msg)
-    }
-  })
-
-  // Calculate unread counts per room
-  let allMessages: any[] = []
-  if (roomIds.length > 0) {
-    const { data, error: allMessagesError } = await supabase
-      .from('messages')
-      .select('id, room_id, sender_id, created_at')
-      .in('room_id', roomIds)
-
-    if (allMessagesError) {
-      console.error('[DashboardMessagesPage] allMessages error', allMessagesError.message)
-    } else {
-      allMessages = data ?? []
-    }
-  }
-
   const userMetadata = user.user_metadata || {}
+  const lastMessageMap = new Map<string, { id: string; room_id: string; sender_id: string; content: string; created_at: string }>()
   const unreadCounts = new Map<string, number>()
 
-  allMessages?.forEach((msg) => {
-    if (msg.sender_id !== user.id) {
-      const lastReadTime = userMetadata[`last_read_${msg.room_id}`]
+  const ROOM_BATCH = 20
+  for (let i = 0; i < roomIds.length; i += ROOM_BATCH) {
+    await Promise.all(
+      roomIds.slice(i, i + ROOM_BATCH).map(async (roomId) => {
+        const lastRead = userMetadata[`last_read_${roomId}`] as string | undefined
+        let unreadQuery = supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('room_id', roomId)
+          .neq('sender_id', user.id)
+        if (lastRead) unreadQuery = unreadQuery.gt('created_at', lastRead)
 
-      // Mesajın tarihi, o odadaki son okuma tarihinden büyükse (veya hiç okuma yoksa) okunmamış say
-      if (!lastReadTime || new Date(msg.created_at) > new Date(lastReadTime)) {
-        const current = unreadCounts.get(msg.room_id) ?? 0
-        unreadCounts.set(msg.room_id, current + 1)
-      }
-    }
-  })
+        const [lastResult, unreadResult] = await Promise.all([
+          supabase
+            .from('messages')
+            .select('id, room_id, sender_id, content, created_at')
+            .eq('room_id', roomId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          unreadQuery,
+        ])
+
+        if (lastResult.error) {
+          console.error('[DashboardMessagesPage] last message error', lastResult.error.message)
+        } else if (lastResult.data) {
+          lastMessageMap.set(roomId, lastResult.data)
+        }
+        if (unreadResult.error) {
+          console.error('[DashboardMessagesPage] unread count error', unreadResult.error.message)
+        } else if (unreadResult.count) {
+          unreadCounts.set(roomId, unreadResult.count)
+        }
+      }),
+    )
+  }
 
   // Build conversations list - group by participant to avoid duplicates
   const conversationsMap = new Map<string, {

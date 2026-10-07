@@ -110,7 +110,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **İş:** Profil + (marka için) vergi bilgileri, web sitesi ve kurumsal e-posta. Taslak localStorage'da.
   Kaydettikten sonra influencer `/onboarding/verify`'a, marka `/dashboard`'a gider. Marka için kurumsal e-postaya kod gönderilir.
 - **Sorunlar:**
-  - **1.6-S1 [ORTA]** localStorage taslağı DB değerlerinin üzerine yazıyor; eski taslak yeni profili ezebilir.
+  - ✅ ~~**1.6-S1 [ORTA]**~~ (taslak yalnızca DB'de boş alanları dolduruyor; varsayılanlar birleştirmeden sonra; DB avatarı öncelikli) localStorage taslağı DB değerlerinin üzerine yazıyor; eski taslak yeni profili ezebilir.
   - **1.6-S2 [DÜŞÜK]** Marka kategorisi `'tech'` olarak sabit (`page.tsx`).
   - **1.6-S3 [DÜŞÜK]** RLS hata metni kullanıcıya gösteriliyor; `avatar_url` istemciden gelen herhangi bir string.
 
@@ -177,12 +177,12 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   - ✅ ~~**2.1-S1 [KRİTİK]**~~ (kazıma kilidi + saatte 6 deneme + doğrulanmış hesapta günde 1 kullanıcı yenilemesi; migration 20261007000002) Sunucu tarafında sınır yok: her "doğrula/yenile" çağrısı ücretli Apify koşusu (yeniden denemeyle 3'e kadar).
     7 günlük bekleme yalnızca istemcide ve `updated_at`'e bakıyor. Mobil uç noktalar da sınırsız → Apify kredisi tüketme saldırısı.
   - ✅ ~~**2.1-S2 [ORTA]**~~ (gönderi modu boş/hata dönerse profil "details" moduyla alınıyor; gizli/bulunamadı ayrı mesaj) Gönderisi olmayan Instagram hesabı doğrulanamıyor (scraper gönderi yoksa hata atıyor).
-  - **2.1-S3 [ORTA]** TikTok yenilemesi `social_account_history` yazmıyor → TikTok grafikleri boş.
+  - ✅ ~~**2.1-S3 [ORTA]**~~ (TikTok yenilemesi `social_account_history` yazıyor: takipçi + yaklaşık etkileşim) TikTok yenilemesi `social_account_history` yazmıyor → TikTok grafikleri boş.
   - **2.1-S4 [ORTA]** TikTok etkileşim oranı uydurma: `(toplam beğeni / takipçi) * 10`, 1.5–18.5 aralığına kırpılıyor.
     Bu sayı güven skorunu ve mavi tiki besliyor.
-  - **2.1-S5 [ORTA]** TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
+  - ✅ ~~**2.1-S5 [ORTA]**~~ (Apify `authorMeta.id` varsa `tt-id-<id>` kullanılıyor ve başka kullanıcıyla çakışma kontrol ediliyor; yoksa eski biçim) TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
   - **2.1-S6 [DÜŞÜK]** Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.
-  - **2.1-S7 [ORTA]** Doğrulanmış hesapta yeniden kod üretmek hesabı doğrulanmamışa çeviriyor; tek hesapsa kullanıcı dashboard'dan kilitlenir.
+  - ✅ ~~**2.1-S7 [ORTA]**~~ (aynı doğrulanmış hesap için yeni kod üretilmiyor, doğrulama düşmüyor; farklı hesaba geçiş bilinçli değişiklik) Doğrulanmış hesapta yeniden kod üretmek hesabı doğrulanmamışa çeviriyor; tek hesapsa kullanıcı dashboard'dan kilitlenir.
   - **2.1-S8 [DÜŞÜK]** `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
 
 ### 2.2 Otomatik istatistik yenileme
@@ -267,7 +267,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `app/dashboard/offers/page.tsx`, `components/dashboard/{OffersManager,OfferActivityCard,OfferActionButtons}.tsx`,
   `app/dashboard/influencer/offers/actions.ts` (`updateOfferStatus`), `.../dismiss/actions.ts`
 - **Sorunlar:**
-  - **2.13-S1 [ORTA]** "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor.
+  - **2.13-S1 [ORTA]** (bilinçli görünüyor: teklif beklemede kalır, görüşmek için sohbet açılır; ürün kararı bekliyor) "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor.
   - **2.13-S2 [DÜŞÜK]** `OffersManager` her "gizle"de realtime'a yeniden aboneleniyor; `undismissOffer` ve `InfluencerOffersFeed` ölü.
 
 ---
@@ -384,7 +384,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     (o zaman `createList` / `toggleInList` sunucuda da kontrol etmeli).
   - **3.13-N6** İleride gönderisi olmayan Instagram/TikTok hesapları doğrulamada kabul edilmeyecek (bugün 2.1-S2 düzeltmesiyle
     kabul ediliyor). Kural eklenince `media_count = 0` veya son gönderi yoksa net mesajla reddet; mevcut gönderisiz doğrulanmış
-    hesaplar için ne yapılacağına karar ver.
+    hesaplar kalır (karar, 7 Ekim).
 
 ---
 
@@ -445,7 +445,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - **5.1-S1 [YÜKSEK]** Doğrudan sohbet başlatma bozuk: `MessagesPage.tsx` `offer_id`/`advert_application_id` olmadan oda ekliyor,
     `restrict_rooms_insert` trigger'ı reddediyor; `?userId=` ile mevcut oda yoksa yalnızca konsola hata düşüyor. Mobilde de aynı (10.3-S4).
-  - **5.1-S2 [YÜKSEK]** Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
+  - ✅ ~~**5.1-S2 [YÜKSEK]**~~ (her oda için yalnızca son mesaj ve okunmamış sayısı; 20'lik gruplar halinde paralel) Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
   - **5.1-S3 [ORTA]** Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
   - **5.1-S4 [ORTA]** Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
   - **5.1-S5 [ORTA]** `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
@@ -527,7 +527,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 6.5 Destek yönetimi `/admin/support`
 - **Dosyalar:** `app/admin/support/{page,actions}.ts(x)`, `components/admin/SupportTicketsPanel.tsx`
-- **Sorunlar:** **6.5-S1 [ORTA]** `addAdminResponse` kapalı talebi bile `in_progress`'e çekiyor; kullanıcıya bildirim/e-posta gitmiyor.
+- **Sorunlar:** **6.5-S1 [ORTA]** (kapatılmış talebin yeniden açılması düzeltildi; kullanıcıya bildirim 5.4 ile) `addAdminResponse` kapalı talebi bile `in_progress`'e çekiyor; kullanıcıya bildirim/e-posta gitmiyor.
 
 ### 6.6 Mesaj şikayetleri `/admin/messages`
 - **Dosyalar:** `app/admin/messages/{page,actions}.ts(x)`, `components/admin/MessageReportsPanel.tsx`

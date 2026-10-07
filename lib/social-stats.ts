@@ -217,6 +217,18 @@ export async function issueVerificationCode(
     }
   }
 
+  // Aynı hesap zaten doğrulanmışsa yeni kod üretmek doğrulamayı düşürmemeli (tek hesabı olan
+  // influencer dashboard'dan kilitlenirdi). Farklı bir hesaba geçiş bilinçli bir değişikliktir.
+  const { data: current } = await admin
+    .from('social_accounts')
+    .select('username, is_verified, verification_code')
+    .eq('user_id', userId)
+    .eq('platform', platform)
+    .maybeSingle()
+  if (current?.is_verified && String(current.username ?? '').toLowerCase() === username) {
+    return { success: false, code: 'already_verified', error: 'Bu hesap zaten doğrulanmış.' }
+  }
+
   const code = `${platform === 'instagram' ? 'IM' : 'IM-TT'}-${randomInt(100000, 1000000)}`
 
   const { error } = await admin.from('social_accounts').upsert(
@@ -490,6 +502,20 @@ async function scrapeTikTok(admin: SupabaseClient, userId: string, account: Scra
     avatar_url: tiktokData.avatar_url,
   }
 
+  // Kalıcı TikTok kimliği varsa kullanılır (kullanıcı adı değişse de aynı hesap tanınır);
+  // aynı hesabın başka bir kullanıcıya bağlanması engellenir.
+  const platformUserId = tiktokData.platform_id ? `tt-id-${tiktokData.platform_id}` : `tt-${username}`
+  const { data: idConflict } = await admin
+    .from('social_accounts')
+    .select('user_id')
+    .eq('platform', 'tiktok')
+    .eq('platform_user_id', platformUserId)
+    .neq('user_id', userId)
+    .maybeSingle()
+  if (idConflict) {
+    return { success: false, error: 'Bu TikTok hesabı sistemde zaten kayıtlı (başka bir kullanıcıda).' }
+  }
+
   const now = new Date().toISOString()
 
   const { error: updateError } = await admin
@@ -497,7 +523,7 @@ async function scrapeTikTok(admin: SupabaseClient, userId: string, account: Scra
     .update({
       username,
       is_verified: true,
-      platform_user_id: `tt-${username}`,
+      platform_user_id: platformUserId,
       follower_count: followerCount,
       engagement_rate: boundedEngagement,
       has_stats: true,
@@ -510,6 +536,18 @@ async function scrapeTikTok(admin: SupabaseClient, userId: string, account: Scra
   if (updateError) {
     console.error('[refreshTikTokAccount] Update error:', updateError)
     return { success: false, error: 'Hesap güncellenemedi. Lütfen tekrar deneyin.' }
+  }
+
+  // Grafikler için geçmiş kaydı (Instagram ile aynı tablo). Ortalama gönderi verisi açık
+  // profilden gelmediği için yalnızca takipçi ve yaklaşık etkileşim yazılır.
+  const { error: historyError } = await admin.from('social_account_history').insert({
+    social_account_id: account.id,
+    follower_count: followerCount,
+    engagement_rate: boundedEngagement,
+    recorded_at: now,
+  })
+  if (historyError) {
+    console.warn('[refreshTikTokAccount] History error:', historyError)
   }
 
   await syncProfileAfterVerification(admin, userId, 'tiktok', `https://tiktok.com/@${username}`, tiktokData.avatar_url)
