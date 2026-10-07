@@ -58,7 +58,10 @@ export function calculateTrustScore(influencer: DiscoverInfluencer): number {
     if (influencer.stats) {
         const eng = parsePercentage(influencer.stats.engagement)
         // Healthy engagement is typically between 1% and 10%
-        if (eng >= 0.01 && eng <= 0.10) {
+        // 0 = etkileşim verisi yok (ör. video verisi gelmemiş TikTok); ceza da ödül de verilmez.
+        if (eng === 0) {
+            // veri yok
+        } else if (eng >= 0.01 && eng <= 0.10) {
             score += 20
         } else if (eng > 0.30) {
             // Suspiciously high engagement (bot rings?)
