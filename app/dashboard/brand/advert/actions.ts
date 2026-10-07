@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { createClient } from '@supabase/supabase-js'
 
 export type AdvertStatus = 'open' | 'paused' | 'closed'
 
@@ -285,12 +284,10 @@ export async function getBrandApplicationsAdmin(projectIds: string[]) {
     return { error: 'Oturum açmanız gerekiyor.', applications: [] }
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
-
+  // Okumalar oturum istemcisiyle: canlı RLS markaya yalnızca kendi ilanlarının başvurularını
+  // gösteriyor. Sahiplik ayrıca burada da kontrol edilir.
   // Sadece oturumdaki markaya ait ilanların başvuruları döndürülür.
-  const { data: ownedProjects, error: ownedError } = await supabaseAdmin
+  const { data: ownedProjects, error: ownedError } = await supabase
     .from('advert_projects')
     .select('id')
     .in('id', projectIds)
@@ -304,7 +301,7 @@ export async function getBrandApplicationsAdmin(projectIds: string[]) {
   const ownedIds = (ownedProjects ?? []).map((project) => project.id)
   if (ownedIds.length === 0) return { applications: [] }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabase
     .from('advert_applications')
     .select(`
       id, 
@@ -353,28 +350,26 @@ export async function updateApplicationStatus(applicationId: string, status: 'pe
     return { error: 'Oturum açmanız gerekiyor.' }
   }
 
-  // Verify ownership via a high-privilege check to bypass RLS issues
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
+  if (!['pending', 'shortlisted', 'rejected', 'accepted'].includes(status)) {
+    return { error: 'Geçersiz durum.' }
+  }
 
-  // Get application to find its advert
-  const { data: application, error: appError } = await supabaseAdmin
+  // Oturum istemcisiyle: RLS başvuruyu yalnızca ilan sahibine gösterir ve günceller.
+  const { data: application, error: appError } = await supabase
     .from('advert_applications')
     .select('id, advert_id')
     .eq('id', applicationId)
-    .single()
+    .maybeSingle()
 
   if (appError || !application) {
     return { error: 'Başvuru bulunamadı.' }
   }
 
-  // Check if current user owns the advert
-  const { data: advert, error: advertError } = await supabaseAdmin
+  const { data: advert, error: advertError } = await supabase
     .from('advert_projects')
     .select('id, brand_user_id')
     .eq('id', application.advert_id)
-    .single()
+    .maybeSingle()
 
   if (advertError || !advert) {
     return { error: 'İlan bulunamadı.' }
@@ -384,14 +379,17 @@ export async function updateApplicationStatus(applicationId: string, status: 'pe
     return { error: 'Bu başvuruyu güncelleme yetkiniz yok.' }
   }
 
-  // Update status
-  const { error: updateError } = await supabaseAdmin
+  const { data: updated, error: updateError } = await supabase
     .from('advert_applications')
     .update({ status })
     .eq('id', applicationId)
+    .select('id')
 
   if (updateError) {
     return { error: `Durum güncellenemedi: ${updateError.message}` }
+  }
+  if (!updated || updated.length === 0) {
+    return { error: 'Bu başvuruyu güncelleme yetkiniz yok.' }
   }
 
   revalidatePath('/dashboard/brand/advert')

@@ -331,7 +331,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 3.8 Başvuru değerlendirme (marka)
 - **Dosyalar:** `AdvertApplicationsList.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
 - **Sorunlar:**
-  - **3.8-S1 [ORTA]** Okumalar "RLS sorunu için geçici çözüm" olarak service role ile; sahiplik kodda kontrol ediliyor ama RLS devre dışı kalmış.
+  - ✅ ~~**3.8-S1 [ORTA]**~~ (okuma ve durum güncelleme oturum istemcisiyle; canlı RLS markaya yalnızca kendi ilanlarının başvurularını açıyor) Okumalar "RLS sorunu için geçici çözüm" olarak service role ile; sahiplik kodda kontrol ediliyor ama RLS devre dışı kalmış.
   - ✅ ~~**3.8-S2 [ORTA]**~~ (yalnızca bu başvurunun odası yeniden kullanılıyor; başvuru durumu artık 'pending'e çekilmiyor) `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
     `advert_application_id` güncellemesi sessizce başarısız; oda açılırken başvuruyu `pending`'e geri çekebiliyor.
   - **3.8-S3 [ORTA]** Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
@@ -396,7 +396,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   `official-business` artık yalnızca `syncOfficialBusiness` ile verilir.
 - **Sorunlar:**
   - ✅ ~~**4.1-S1 [ORTA]**~~ ('use server' kaldırıldı; yalnızca sunucu içi çağrılar) Dosya `'use server'`; `awardBadgesForUser(anyUserId)` yetki kontrolsüz çağrılabilir bir aksiyon (yalnızca hak edilen rozetleri verdiği için etki düşük).
-  - **4.1-S2 [ORTA]** `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
+  - ✅ ~~**4.1-S2 [ORTA]**~~ (okumalar ve sayım service role ile; sayım hatasında rozet verilmiyor) `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
   - **4.1-S3 [DÜŞÜK]** Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
 
 ### 4.2 Rozet seçimi ve gösterimi
@@ -623,7 +623,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 7.7 Çakışan migration'lar
 - ✅ ~~**7.7-S1 [YÜKSEK]**~~ (advert_applications için `20261007000005` canlıda uygulandı) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
   doğrulanmamış influencer da başvurabiliyor.
-- **7.7-S2 [ORTA]** Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
+- **7.7-S2 [ORTA]** (canlıda doğrulandı: şartsız INSERT/UPDATE ve `qual=true` SELECT kuralları duruyor; `20261007000009` elle çalıştırılacak) Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
 - **7.7-S3 [DÜŞÜK]** `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
 
 ---
