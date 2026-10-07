@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { isAllowedAttachmentUrl } from '@/lib/attachment-url'
 
 interface SubmitFeedbackPayload {
   description: string
@@ -21,6 +22,10 @@ export async function submitFeedback(payload: SubmitFeedbackPayload) {
 
   if (!payload.description || payload.description.trim().length === 0) {
     return { error: 'Lütfen geri bildiriminizi yazın.' }
+  }
+
+  if (!isAllowedAttachmentUrl(payload.imageUrl)) {
+    return { error: 'Görsel bağlantısı geçersiz. Lütfen görseli yeniden yükleyin.' }
   }
 
   // Get user role

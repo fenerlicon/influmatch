@@ -54,6 +54,7 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
   Çalışma dalı: `claude/web-fixes-batch` (her birleştirmeden sonra `origin/main`'e eşitlenir).
 - PR'dan önce: `npx tsc --noEmit -p .`, `npx next lint`, `npx next build` (NEXT_PUBLIC_SUPABASE_URL ve
   NEXT_PUBLIC_SUPABASE_ANON_KEY tanımlı olmalı — `.env.local`'de, commit edilmez). Route silince `rm -rf .next/types`.
+- Kurulum, ortam değişkenleri, cron ve yayın: `docs/SETUP.md`.
 - Takip panosu (claude.ai artifact, durumlar open/doing/done/skip): https://claude.ai/artifact/7JSXk5iePMgLJafpS7UsHV
   — yalnızca bulut oturumundan yazılabiliyordu; yerelde erişim yoksa SYSTEM_MAP tek doğru kaynaktır.
 - Commit mesajları İngilizce, kısa başlık + madde listesi. PR açıklamasında düzeltilen harita ID'lerini yaz.

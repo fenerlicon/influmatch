@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-07 (PR #30 sonrası) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-08 · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -64,7 +64,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.1-S1 [YÜKSEK]**~~ (kullanıcı kararı 2026-10-07: profiller yalnızca giriş yapanlara görünür; mevcut davranış doğru) `/profile` korumalı; herkese açık `/profile/[username]` sayfaları anonim ziyaretçiyi ve
     arama motorlarını `/login`'e atıyor. Sitemap ve robots bu sayfaları ilan ediyor → SEO fiilen kırık (bkz. 9.2).
-  - **1.1-S2 [ORTA]** Yalnızca oturum varlığı kontrol ediliyor, rol kontrolü yok; admin/marka/influencer ayrımı sayfalara kalmış.
+  - ✅ ~~**1.1-S2 [ORTA]**~~ (marka/influencer layout'ları zaten DB rolüne bakıyordu; `app/admin/layout.tsx` eklendi, admin bölümü de merkezi kontrolde. Middleware'e her istekte DB sorgusu eklenmedi) Yalnızca oturum varlığı kontrol ediliyor, rol kontrolü yok; admin/marka/influencer ayrımı sayfalara kalmış.
   - ✅ ~~**1.1-S3 [DÜŞÜK]**~~ (giriş sonrası `redirectedFrom` yalnızca site içi yolsa kullanılıyor) `redirectedFrom` parametresi ekleniyor ama `app/login/page.tsx` okumuyor; giriş hep `/dashboard`'a gider.
 
 ### 1.2 Supabase istemcileri
@@ -155,7 +155,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 
 ### 1.11 Geri bildirim
 - **Dosyalar:** `app/feedback/page.tsx`, `app/feedback/actions.ts`, `app/feedback/thank-you/page.tsx`
-- **Sorunlar:** **1.11-S1 [ORTA]** `imageUrl` istemciden gelen herhangi bir URL; `next/image` her host'u optimize ediyor (bkz. 8.5-S1).
+- **Sorunlar:** ✅ ~~**1.11-S1 [ORTA]**~~ (geri bildirim görseli ve destek eki yalnızca feedback-images kovasındaki `feedback-<uuid>` / `support-ticket-<uuid>` adresiyse kaydediliyor, `lib/attachment-url.ts`; destek talebinde ham DB hata metni artık gösterilmiyor) `imageUrl` istemciden gelen herhangi bir URL; `next/image` her host'u optimize ediyor (bkz. 8.5-S1).
 
 ### 1.12 Yasal sayfalar
 - **Dosya:** `app/legal/page.tsx` (KVKK, şartlar, çerezler — inline JSX)
@@ -255,13 +255,13 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 
 ### 2.11 Influencer vitrini (diğer influencer'ları gezme)
 - **Dosyalar:** `app/dashboard/influencer/discover/page.tsx`, `BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`
-- **Sorunlar:** **2.11-S1 [ORTA]** İstatistik `userAccounts[0]`'dan, doğrulanmamış olabilir; sayfalama yok; Spotlight süresi kontrol edilmiyor.
+- **Sorunlar:** ✅ ~~**2.11-S1 [ORTA]**~~ (sayfa marka keşfiyle aynı `getEnrichedInfluencers`'ı kullanıyor: yalnızca doğrulanmış hesap istatistikleri; Spotlight süresi `hasActiveSpotlight` ile; "Vitrinde görünmüyorsun" uyarısı doğrulanmış hesaba bakıyor. Sayfalama 3.2-S2 ile birlikte) İstatistik `userAccounts[0]`'dan, doğrulanmamış olabilir; sayfalama yok; Spotlight süresi kontrol edilmiyor.
 
 ### 2.12 İlanlara başvuru
 - **Dosyalar:** `app/dashboard/influencer/advert/{page,actions}.ts(x)`, `components/dashboard/{InfluencerAdvertTabs,AdvertProjectsList,AdvertApplicationsList}.tsx`
 - **Sorunlar:**
   - ✅ ~~**2.12-S1 [ORTA]**~~ (aksiyon rol ve son başvuru gününü kontrol ediyor; DB kuralı `20261007000005`) `applyToAdvert` rol ve son tarih kontrolü yapmıyor.
-  - **2.12-S2 [DÜŞÜK]** `cancelApplication` hiçbir yerden çağrılmıyor; tüm açık ilanlar sayfalamasız yükleniyor.
+  - ✅ ~~**2.12-S2 [DÜŞÜK]**~~ (influencer başvuru kartında "Başvuruyu Geri Çek"; yalnızca bekleyen başvuru, DB kuralıyla uyumlu. Açık ilanların sayfalaması 3.2-S2 ile birlikte) `cancelApplication` hiçbir yerden çağrılmıyor; tüm açık ilanlar sayfalamasız yükleniyor.
 
 ### 2.13 Gelen teklifler (influencer)
 - **Dosyalar:** `app/dashboard/offers/page.tsx`, `components/dashboard/{OffersManager,OfferActivityCard,OfferActionButtons}.tsx`,
@@ -317,7 +317,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     bütçe NaN/negatif kontrolü yok, alıcının influencer olduğu kontrol edilmiyor.
   - **3.6-S2 [YÜKSEK]** Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1).
   - ✅ ~~**3.6-S3 [ORTA]**~~ (sayımlar paralel ve yalnızca `count` dönüyor; okundu bilgisi 5.3-S1 ile metadata'dan) Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
-  - **3.6-S4 [DÜŞÜK]** `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
+  - ✅ ~~**3.6-S4 [DÜŞÜK]**~~ (`rooms` kanalı `brand_id` ile filtreli; `undismissInfluencer` ve `'hold'` daha önce kaldırılmıştı) `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
 
 ### 3.7 İlanlar (advert projects / kampanyalar)
 - **Dosyalar:** `brand/advert/page.tsx`, `components/dashboard/{BrandAdvertTabs,BrandAdvertManager,AdvertProjectsList,AdvertPerformanceChart}.tsx`,
@@ -335,7 +335,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.8-S2 [ORTA]**~~ (yalnızca bu başvurunun odası yeniden kullanılıyor; başvuru durumu artık 'pending'e çekilmiyor) `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
     `advert_application_id` güncellemesi sessizce başarısız; oda açılırken başvuruyu `pending`'e geri çekebiliyor.
   - ✅ ~~**3.8-S4 [YÜKSEK]**~~ (yeni bulundu, canlıda düzeltildi) Canlı CHECK kısıtı `shortlisted` durumunu reddediyordu; "Ön Listeye Al" hiç çalışmamış (canlıda tek bir shortlisted başvuru yok). Kısıt genişletildi, `20261007000011`.
-  - **3.8-S3 [ORTA]** Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
+  - **3.8-S3 [ORTA]** (marka tarafındaki yeni başvuru kanalı artık kendi ilanlarıyla filtreli; bildirim kısmı 5.4 ile) Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
 
 ### 3.9 Marka profili
 - **Dosyalar:** `brand/profile/page.tsx`, `components/brand/BrandProfileForm.tsx`, `brand/profile/actions.ts`
@@ -548,7 +548,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 6.8 Manuel Instagram bağlama `/admin/manual-connect`
 - **Dosya:** `app/admin/manual-connect/page.tsx`
-- **Sorunlar:** **6.8-S1 [ORTA]** Sayfada sunucu tarafı admin kontrolü yok (aksiyon kontrol ediyor); panelden bağlantı yok.
+- **Sorunlar:** **6.8-S1 [ORTA]** (sunucu kontrolü `app/admin/layout.tsx` ile geldi; panelden bağlantı hâlâ yok) Sayfada sunucu tarafı admin kontrolü yok (aksiyon kontrol ediyor); panelden bağlantı yok.
 
 ### 6.9 Vergi levhası inceleme
 - **Dosya:** `components/admin/TaxVerificationReview.tsx` (AdminPanel içinde). Onay `verifyTaxId`, red `rejectTaxVerification`. Bilinen açık sorun yok.
@@ -639,7 +639,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**7.7-S1 [YÜKSEK]**~~ (advert_applications için `20261007000005` canlıda uygulandı) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
   doğrulanmamış influencer da başvurabiliyor.
 - ✅ ~~**7.7-S2 [ORTA]**~~ (`20261007000009` 7 Ekim toplu SQL'iyle uygulandı; gevşek kurallar silindi, doğrulandı) Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
-- **7.7-S3 [DÜŞÜK]** `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
+- **7.7-S3 [DÜŞÜK]** (koddaki `'basic'|'pro'` cast'i kaldırıldı; kalan iş fonksiyon geçmişini baseline migration'da tek tanıma indirmek, 7.1-S1) `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
 
 ---
 
@@ -718,7 +718,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.8 Dokümanlar
 - Kökteki `DEPLOYMENT.md`, `FINAL_DEPLOYMENT_CHECKLIST.md`, `SUPABASE_SETUP_CHECKLIST.md`, `TRIGGER_SETUP.md`, `SUPABASE_RLS_FIX.md`,
   `MIGRATION_INSTRUCTIONS.md`, `CLEAN_START_GUIDE.md`, `GITHUB_PUSH_GUIDE.md`, `VERCEL_FIX.md`, `VERCEL_ROOT_DIRECTORY_FIX.md`, `README.md`.
-- **8.8-S1 [DÜŞÜK]** Hepsi eski; `VERCEL_FIX.md` ile `VERCEL_ROOT_DIRECTORY_FIX.md` çelişiyor; CRON_SECRET, Resend, anahtar havuzu, pg_cron, bucket'lar ve migration sırası anlatılmıyor.
+- ✅ ~~**8.8-S1 [DÜŞÜK]**~~ (eski 10 belge silindi; tek güncel rehber `docs/SETUP.md`, README ona bağlanıyor, `env.example` güncellendi) Hepsi eski; `VERCEL_FIX.md` ile `VERCEL_ROOT_DIRECTORY_FIX.md` çelişiyor; CRON_SECRET, Resend, anahtar havuzu, pg_cron, bucket'lar ve migration sırası anlatılmıyor.
 
 ---
 

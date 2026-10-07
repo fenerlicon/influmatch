@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
-import type { DiscoverInfluencer } from '@/types/influencer'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export default async function InfluencerDiscoverPage() {
   const supabase = createSupabaseServerClient()
@@ -14,115 +15,27 @@ export default async function InfluencerDiscoverPage() {
     redirect('/login')
   }
 
-  // Fetch Current User Spotlight/Plan Status
-  const { data: currentUserData } = await supabase
-    .from('users')
-    .select('spotlight_active, spotlight_plan')
-    .eq('id', user.id)
-    .single()
-
-  // Fetch current user's social accounts stats to check if they have connected accounts
-  const { data: instagramAccount } = await supabase
-    .from('social_accounts')
-    .select('has_stats')
-    .eq('user_id', user.id)
-    .eq('platform', 'instagram')
-    .maybeSingle()
-
-  const { data: tiktokAccount } = await supabase
-    .from('social_accounts')
-    .select('is_verified, has_stats')
-    .eq('user_id', user.id)
-    .eq('platform', 'tiktok')
-    .maybeSingle()
-
-  const hasConnectedAccounts = !!(
-    (instagramAccount && instagramAccount.has_stats) ||
-    (tiktokAccount && (tiktokAccount.has_stats || tiktokAccount.is_verified))
-  )
-
-  // 1. Fetch Users
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status')
-    .eq('role', 'influencer')
-    .eq('verification_status', 'verified')
-    .eq('is_showcase_visible', true)
-    .order('spotlight_active', { ascending: false })
-    .order('full_name', { ascending: true })
-
-  if (error) {
-    console.error('[InfluencerDiscoverPage] load error', error.message)
-  }
-
-  // 2. Fetch Social Accounts separately to avoid relationship errors
-  const userIds = (data ?? []).map(u => u.id)
-  let socialAccountsMap: Record<string, any[]> = {}
-
-  if (userIds.length > 0) {
-    const { data: socialData } = await supabase
+  // Kendi Spotlight durumu (süresi dolmuşsa PRO filtreleri açılmaz) ve doğrulanmış hesap durumu
+  const [{ data: currentUserData }, { data: verifiedAccounts }] = await Promise.all([
+    supabase
+      .from('users')
+      .select('spotlight_active, spotlight_plan, spotlight_expires_at')
+      .eq('id', user.id)
+      .single(),
+    supabase
       .from('social_accounts')
-      .select('user_id, platform, follower_count, engagement_rate, stats_payload')
-      .in('user_id', userIds)
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_verified', true)
+      .limit(1),
+  ])
 
-    if (socialData) {
-      socialData.forEach((account) => {
-        if (!socialAccountsMap[account.user_id]) {
-          socialAccountsMap[account.user_id] = []
-        }
-        socialAccountsMap[account.user_id].push(account)
-      })
-    }
-  }
+  // Keşif listesi yalnızca doğrulanmış sosyal hesabı olanları gösterir; banner da aynı kurala bakar.
+  const hasConnectedAccounts = (verifiedAccounts?.length ?? 0) > 0
+  const isSpotlight = hasActiveSpotlight(currentUserData)
 
-  // 3. Merge Data
-  const influencers: DiscoverInfluencer[] = (data ?? []).map((user) => {
-    let displayedBadges: string[] | null = null
-
-    if (user.displayed_badges) {
-      if (Array.isArray(user.displayed_badges)) {
-        displayedBadges = user.displayed_badges
-          .filter((id): id is string => typeof id === 'string' && id.length > 0)
-      } else if (typeof user.displayed_badges === 'string') {
-        try {
-          const parsed = JSON.parse(user.displayed_badges)
-          if (Array.isArray(parsed)) {
-            displayedBadges = parsed.filter((id): id is string => typeof id === 'string' && id.length > 0)
-          }
-        } catch {
-          displayedBadges = null
-        }
-      }
-    }
-
-    const userAccounts = socialAccountsMap[user.id] || []
-    const socialAccount = userAccounts.length > 0 ? userAccounts[0] : null
-
-    let stats = undefined
-    if (socialAccount) {
-      const payload = socialAccount.stats_payload as any
-      stats = {
-        followers: socialAccount.follower_count ? `${socialAccount.follower_count}` : '0',
-        engagement: socialAccount.engagement_rate ? `${socialAccount.engagement_rate}%` : '0%',
-        avg_likes: payload?.avg_likes ? `${payload.avg_likes}` : undefined,
-        avg_views: payload?.avg_views ? `${payload.avg_views}` : undefined,
-        avg_comments: payload?.avg_comments ? `${payload.avg_comments}` : undefined,
-      }
-    }
-
-    return {
-      id: user.id,
-      full_name: user.full_name,
-      username: user.username,
-      category: user.category,
-      avatar_url: user.avatar_url,
-      spotlight_active: user.spotlight_active,
-      displayed_badges: displayedBadges,
-      verification_status: user.verification_status as 'pending' | 'verified' | 'rejected' | null,
-      platform: socialAccount?.platform as any,
-      stats: stats
-    }
-  })
+  // Marka keşfiyle aynı kaynak: yalnızca doğrulanmış hesapların istatistikleri, seçilen rozetler.
+  const influencers = await getEnrichedInfluencers()
 
   return (
     <div className="space-y-6">
@@ -157,19 +70,13 @@ export default async function InfluencerDiscoverPage() {
         </div>
       )}
 
-      {error ? (
-        <div className="rounded-3xl border border-red-400/30 bg-red-950/30 p-6 text-sm text-red-200">
-          Influencer listesi yüklenemedi. Lütfen sayfayı yenileyin.
-        </div>
-      ) : (
-        <BrandDiscoverGrid
-          influencers={influencers}
-          currentUserId={user.id}
-          userRole="influencer"
-          isSpotlightMember={currentUserData?.spotlight_active ?? false}
-          spotlightPlan={currentUserData?.spotlight_plan as any}
-        />
-      )}
+      <BrandDiscoverGrid
+        influencers={influencers}
+        currentUserId={user.id}
+        userRole="influencer"
+        isSpotlightMember={isSpotlight}
+        spotlightPlan={isSpotlight ? (currentUserData?.spotlight_plan ?? null) : null}
+      />
     </div>
   )
 }

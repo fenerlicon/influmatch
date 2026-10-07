@@ -250,6 +250,7 @@ export default function BrandOffersList({
           event: 'INSERT',
           schema: 'public',
           table: 'rooms',
+          filter: `brand_id=eq.${currentUserId}`,
         },
         async (payload) => {
           const offerId = payload.new.offer_id as string | null

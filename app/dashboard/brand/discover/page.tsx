@@ -54,7 +54,7 @@ export default async function BrandDiscoverPage() {
         initialFavoritedIds={Array.from(favoritedIds) as string[]}
         userRole={userRole}
         isSpotlightMember={isSpotlight}
-        spotlightPlan={isSpotlight ? (userData?.spotlight_plan as 'basic' | 'pro' | null) : null}
+        spotlightPlan={isSpotlight ? (userData?.spotlight_plan ?? null) : null}
         defaultCategory={userData?.category}
       />
     </div>

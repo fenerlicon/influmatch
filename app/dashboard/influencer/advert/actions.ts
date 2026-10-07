@@ -98,34 +98,38 @@ export async function cancelApplication(applicationId: string) {
   // Fetch the application — ensure it belongs to this user
   const { data: application, error: fetchError } = await supabase
     .from('advert_applications')
-    .select('id, status, influencer_id')
+    .select('id, status, influencer_id, influencer_user_id')
     .eq('id', applicationId)
     .maybeSingle()
 
   if (fetchError || !application) return { error: 'Başvuru bulunamadı.' }
 
-  // Ownership check
-  if (application.influencer_id !== user.id) {
+  // Sahiplik: DB kuralı iki kimlik kolonundan birini kabul ediyor
+  if (application.influencer_id !== user.id && application.influencer_user_id !== user.id) {
     return { error: 'Bu başvuruyu iptal etme yetkiniz yok.' }
   }
 
-  // Only pending or shortlisted can be cancelled
-  if (!['pending', 'shortlisted'].includes(application.status)) {
+  // Yalnızca bekleyen başvuru geri çekilebilir. DB kuralı da kabul edilmiş ve ön listeye
+  // alınmış başvurunun silinmesine izin vermiyor (20261007000005).
+  if (application.status !== 'pending') {
     return {
       error: application.status === 'accepted'
         ? 'Kabul edilen bir başvuruyu geri çekemezsiniz.'
-        : 'Bu başvuru zaten iptal edilmiş.',
+        : application.status === 'shortlisted'
+          ? 'Ön listeye alınan bir başvuruyu geri çekemezsiniz. Marka ile mesajlaşarak iletebilirsiniz.'
+          : 'Bu başvuru geri çekilemez.',
     }
   }
 
-  const { error: deleteError } = await supabase
+  const { data: deleted, error: deleteError } = await supabase
     .from('advert_applications')
     .delete()
     .eq('id', applicationId)
+    .select('id')
 
-  if (deleteError) {
-    console.error('[cancelApplication] delete error', deleteError)
-    return { error: 'Başvuru iptal edilemedi: ' + deleteError.message }
+  if (deleteError || !deleted || deleted.length === 0) {
+    if (deleteError) console.error('[cancelApplication] delete error', deleteError)
+    return { error: 'Başvuru geri çekilemedi. Lütfen tekrar deneyin.' }
   }
 
   revalidatePath('/dashboard/influencer/advert')
