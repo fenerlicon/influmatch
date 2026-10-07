@@ -27,7 +27,22 @@ interface UpdateBrandProfilePayload {
   taxOfficeCity?: string | null
 }
 
-export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
+export type UpdateBrandProfileResult = { success: true } | { success: false; error: string }
+
+/**
+ * Doğrulama hataları istemciye mesaj olarak döner. Server action'dan fırlatılan hatalar
+ * production'da gizlenir ve kullanıcı uyarı yerine hata sayfası/genel mesaj görür.
+ */
+export async function updateBrandProfile(payload: UpdateBrandProfilePayload): Promise<UpdateBrandProfileResult> {
+  try {
+    return await saveBrandProfile(payload)
+  } catch (error) {
+    console.error('[updateBrandProfile]', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Profil güncellenemedi.' }
+  }
+}
+
+async function saveBrandProfile(payload: UpdateBrandProfilePayload): Promise<{ success: true }> {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -285,7 +300,7 @@ export async function updateBrandProfile(payload: UpdateBrandProfilePayload) {
   revalidatePath('/dashboard/brand/discover')
   revalidatePath(`/dashboard/brand/badges`)
 
-  return { success: true }
+  return { success: true as const }
 }
 
 

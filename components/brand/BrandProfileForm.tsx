@@ -343,7 +343,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           // Don't refresh - form state is already correct
           // The revalidatePath in the action will handle cache invalidation
         } else {
-          throw new Error('Profil güncellenemedi.')
+          throw new Error(result?.success === false ? result.error : 'Profil güncellenemedi.')
         }
       } catch (error) {
         console.error('updateBrandProfile failed', error)
@@ -700,7 +700,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 }
                 startTransition(async () => {
                   try {
-                    await updateBrandProfile({
+                    const result = await updateBrandProfile({
                       brandName: formState.brandName,
                       username: formState.username,
                       city: formState.city,
@@ -719,6 +719,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                       taxOffice: formState.taxOffice.trim() || null,
                       taxOfficeCity: formState.taxOfficeCity.trim() || null,
                     })
+                    if (!result.success) throw new Error(result.error)
                     setToast('Kurumsal bilgiler güncellendi!')
                     setIsEditingCorporate(false)
                     router.refresh()

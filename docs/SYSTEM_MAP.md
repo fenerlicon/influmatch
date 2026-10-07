@@ -340,6 +340,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - **3.9-S1 [YÜKSEK]** Logo yükleme yolu klasörsüz (`${uuid}.ext`), avatars politikası `{uid}/` istiyor → büyük ihtimalle başarısız (bkz. 7.5-S1).
   - **3.9-S2 [YÜKSEK]** Sayfa `kick`, `twitter`, `twitch` alanlarını forma geçmiyor → kaydetme bunları null'a çekiyor (ya da 30 günlük kilide takılıyor).
+  - ✅ ~~**3.9-S4 [YÜKSEK]**~~ `updateBrandProfile` doğrulama hatasını fırlatıyordu; production'da kullanıcı hata sayfası görüyordu (canlı Vercel kayıtlarında görüldü). Artık mesaj olarak dönüyor.
   - **3.9-S3 [DÜŞÜK]** Eksik kolon try/catch'i ölü; `brand/profile/badges/actions.ts`, brand settings re-export dosyaları kullanılmıyor.
 
 ### 3.10 Vergi levhası doğrulama
