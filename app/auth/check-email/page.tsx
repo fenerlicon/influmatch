@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { Mail, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
-export default function CheckEmailPage() {
+function CheckEmailPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = useSupabaseClient()
@@ -220,5 +220,13 @@ export default function CheckEmailPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function CheckEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckEmailPageContent />
+    </Suspense>
   )
 }
