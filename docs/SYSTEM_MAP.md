@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-07 · Dal: `claude/verification-and-api-key-pool`
+> Son güncelleme: 2026-10-07 (PR #30 sonrası) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -625,7 +625,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `chat-attachments` | **hiçbir yerde** | **yok** | public URL |
 
 - **Sorunlar:**
-  - **7.5-S1 [YÜKSEK]** (canlıda doğrulandı: dosya hiç uygulanmamış. Ölü "Tam Yetki" politikalarını silen `20261007000013` toplu SQL'de; "avatars insert" yayındaki mobil sürüm public/<uid>/ yüklediği için mobil sürüm çıkınca kaldırılacak) `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
+  - **7.5-S1 [YÜKSEK]** (kısmen ✅: ölü "Tam Yetki" politikaları 7 Ekim toplu SQL'iyle silindi (doğrulandı). Kalan tek iş: "avatars insert" yayındaki mobil sürüm public/<uid>/ yüklediği için mobil sürüm çıkınca kaldırılacak) `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
     (avatars politikaları, users SELECT değişikliği ve `track_analytics_event` sertleştirmesi dahil). Canlıda kontrol edilmeli.
   - **7.5-S2 [ORTA]** `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
 
@@ -638,7 +638,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 7.7 Çakışan migration'lar
 - ✅ ~~**7.7-S1 [YÜKSEK]**~~ (advert_applications için `20261007000005` canlıda uygulandı) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
   doğrulanmamış influencer da başvurabiliyor.
-- **7.7-S2 [ORTA]** (canlıda doğrulandı: şartsız INSERT/UPDATE ve `qual=true` SELECT kuralları duruyor; `20261007000009` elle çalıştırılacak) Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
+- ✅ ~~**7.7-S2 [ORTA]**~~ (`20261007000009` 7 Ekim toplu SQL'iyle uygulandı; gevşek kurallar silindi, doğrulandı) Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
 - **7.7-S3 [DÜŞÜK]** `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
 
 ---
@@ -806,11 +806,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
 - Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo.
-- `sohbet_ekleri_kurali.sql` → `20261007000007` politika kısmı (chat-attachments oda katılımcısı kuralı, 5.1-S5)
-- `geri_bildirim_gorselleri_kurali.sql` → `20261007000008` DROP POLICY kısmı (kova zaten gizli, 1.10-S1)
-- `ilan_kurallari_temizlik.sql` → `20261007000009` (gevşek advert_projects kuralları, 7.7-S2)
-- `20261007000013` ölü avatars "Tam Yetki" politikaları (7.5-S1)
-- (mobil sürüm sonrası) `DROP POLICY "avatars insert"` (7.5-S1)
+- 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
+  `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
+  oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).
+- **Bekleyen tek SQL** (mobil sürüm çıktıktan sonra): `DROP POLICY "avatars insert" ON storage.objects;` (7.5-S1)
 
 ### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07)
 - Mobil uygulamaya bir süre dokunulmayacak; önce web tamamlanacak, mobil entegrasyonlar web'e göre yapılacak.
