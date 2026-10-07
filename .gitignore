@@ -52,3 +52,10 @@ Thumbs.db
 
 # scratch
 scratch/
+
+# local data / exports (PII)
+influencers_list.*
+onayli_*.csv
+onayli_*.xlsx
+*.zip
+tsc_output.txt

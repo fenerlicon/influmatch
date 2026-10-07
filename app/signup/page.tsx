@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { UserRole } from '@/types/auth'
 
-export default function SignupPage() {
+function SignupPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = useSupabaseClient()
@@ -274,5 +274,13 @@ export default function SignupPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupPageContent />
+    </Suspense>
   )
 }
