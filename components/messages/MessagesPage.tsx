@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { parseChatImageUrl } from '@/lib/chat-image'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -576,8 +577,8 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                           >
                             {conversation.lastMessage
                               ? conversation.lastMessage.senderId === currentUserId
-                                ? `Siz: ${conversation.lastMessage.content.startsWith('![image](') ? '📷 Fotoğraf' : conversation.lastMessage.content}`
-                                : conversation.lastMessage.content.startsWith('![image](') ? '📷 Fotoğraf' : conversation.lastMessage.content
+                                ? `Siz: ${parseChatImageUrl(conversation.lastMessage.content) ? '📷 Fotoğraf' : conversation.lastMessage.content}`
+                                : parseChatImageUrl(conversation.lastMessage.content) ? '📷 Fotoğraf' : conversation.lastMessage.content
                               : 'İçerik yok'}
                           </p>
                           {isUnread && (

@@ -100,8 +100,8 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   `app/auth/verify-email/page.tsx` (yetim), `components/dashboard/EmailVerificationBanner.tsx`
 - **Sorunlar:**
   - **1.5-S1 [ORTA]** OTP yolu kullanıcıyı oturum açık bırakıp `/onboarding`'e, bağlantı yolu oturumu kapatıp `/login`'e götürüyor; iki farklı son durum.
-  - **1.5-S2 [ORTA]** Kodda "user gets 8" yorumu var, arayüz 6 hane kabul ediyor. Supabase projesinde OTP uzunluğu 8 ise doğrulama imkânsız (doğrulanmadı).
-  - **1.5-S3 [ORTA]** E-posta onayı zorunlu değil; dashboard yalnızca banner gösteriyor.
+  - ✅ ~~**1.5-S2 [ORTA]**~~ (tekrar etmiyor: canlıda son 30 günün kayıtları 6 haneli kodla onaylanmış; yorum düzeltildi) Kodda "user gets 8" yorumu var, arayüz 6 hane kabul ediyor. Supabase projesinde OTP uzunluğu 8 ise doğrulama imkânsız (doğrulanmadı).
+  - ✅ ~~**1.5-S3 [ORTA]**~~ (tekrar etmiyor: Supabase onayı zorunlu tutuyor; onaysız 20 hesabın hiçbiri giriş yapamamış) E-posta onayı zorunlu değil; dashboard yalnızca banner gösteriyor.
   - **1.5-S4 [DÜŞÜK]** `/auth/verify-email` hiçbir yerden bağlanmıyor, `alert()` kullanıyor.
 
 ### 1.6 Onboarding profil formu
@@ -178,7 +178,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
     7 günlük bekleme yalnızca istemcide ve `updated_at`'e bakıyor. Mobil uç noktalar da sınırsız → Apify kredisi tüketme saldırısı.
   - ✅ ~~**2.1-S2 [ORTA]**~~ (gönderi modu boş/hata dönerse profil "details" moduyla alınıyor; gizli/bulunamadı ayrı mesaj) Gönderisi olmayan Instagram hesabı doğrulanamıyor (scraper gönderi yoksa hata atıyor).
   - ✅ ~~**2.1-S3 [ORTA]**~~ (TikTok yenilemesi `social_account_history` yazıyor: takipçi + yaklaşık etkileşim) TikTok yenilemesi `social_account_history` yazmıyor → TikTok grafikleri boş.
-  - **2.1-S4 [ORTA]** TikTok etkileşim oranı uydurma: `(toplam beğeni / takipçi) * 10`, 1.5–18.5 aralığına kırpılıyor.
+  - ✅ ~~**2.1-S4 [ORTA]**~~ (son videoların ortalama beğeni+yorum+paylaşım / takipçi; veri yoksa null. Örnek sayısı `TIKTOK_VIDEO_SAMPLE`, varsayılan 1 = eski maliyet; Profil ekranlarındaki %4.8/%3.0 yedekleri kaldırıldı; mevcut hesaplar sonraki yenilemede düzelir) TikTok etkileşim oranı uydurma: `(toplam beğeni / takipçi) * 10`, 1.5–18.5 aralığına kırpılıyor.
     Bu sayı güven skorunu ve mavi tiki besliyor.
   - ✅ ~~**2.1-S5 [ORTA]**~~ (Apify `authorMeta.id` varsa `tt-id-<id>` kullanılıyor ve başka kullanıcıyla çakışma kontrol ediliyor; yoksa eski biçim) TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
   - **2.1-S6 [DÜŞÜK]** Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.
@@ -331,7 +331,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 3.8 Başvuru değerlendirme (marka)
 - **Dosyalar:** `AdvertApplicationsList.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
 - **Sorunlar:**
-  - **3.8-S1 [ORTA]** Okumalar "RLS sorunu için geçici çözüm" olarak service role ile; sahiplik kodda kontrol ediliyor ama RLS devre dışı kalmış.
+  - ✅ ~~**3.8-S1 [ORTA]**~~ (okuma ve durum güncelleme oturum istemcisiyle; canlı RLS markaya yalnızca kendi ilanlarının başvurularını açıyor) Okumalar "RLS sorunu için geçici çözüm" olarak service role ile; sahiplik kodda kontrol ediliyor ama RLS devre dışı kalmış.
   - ✅ ~~**3.8-S2 [ORTA]**~~ (yalnızca bu başvurunun odası yeniden kullanılıyor; başvuru durumu artık 'pending'e çekilmiyor) `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
     `advert_application_id` güncellemesi sessizce başarısız; oda açılırken başvuruyu `pending`'e geri çekebiliyor.
   - **3.8-S3 [ORTA]** Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
@@ -396,7 +396,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   `official-business` artık yalnızca `syncOfficialBusiness` ile verilir.
 - **Sorunlar:**
   - ✅ ~~**4.1-S1 [ORTA]**~~ ('use server' kaldırıldı; yalnızca sunucu içi çağrılar) Dosya `'use server'`; `awardBadgesForUser(anyUserId)` yetki kontrolsüz çağrılabilir bir aksiyon (yalnızca hak edilen rozetleri verdiği için etki düşük).
-  - **4.1-S2 [ORTA]** `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
+  - ✅ ~~**4.1-S2 [ORTA]**~~ (okumalar ve sayım service role ile; sayım hatasında rozet verilmiyor) `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
   - **4.1-S3 [DÜŞÜK]** Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
 
 ### 4.2 Rozet seçimi ve gösterimi
@@ -447,7 +447,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     `restrict_rooms_insert` trigger'ı reddediyor; `?userId=` ile mevcut oda yoksa yalnızca konsola hata düşüyor. Mobilde de aynı (10.3-S4).
   - ✅ ~~**5.1-S2 [YÜKSEK]**~~ (her oda için yalnızca son mesaj ve okunmamış sayısı; 20'lik gruplar halinde paralel) Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
   - ✅ ~~**5.1-S3 [ORTA]**~~ (thread yalnızca karşı taraf değişince yükleniyor; realtime kanalı liste güncellemesinde yeniden kurulmuyor) Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
-  - **5.1-S4 [ORTA]** Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
+  - ✅ ~~**5.1-S4 [ORTA]**~~ (yalnızca chat-attachments adresi görsel sayılıyor, diğerleri düz metin; boyut sınırı PR #19) Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
   - **5.1-S5 [ORTA]** (5 MB/görsel sınırı canlıda; oda katılımcısı politikası `20261007000007` elle çalıştırılmayı bekliyor) `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
   - **5.1-S6 [DÜŞÜK]** Her mesajda engel kontrolü için sunucu aksiyonu; `SidebarLink` iki kez render edilip aynı adlı iki kanal açıyor.
 
@@ -623,7 +623,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 7.7 Çakışan migration'lar
 - ✅ ~~**7.7-S1 [YÜKSEK]**~~ (advert_applications için `20261007000005` canlıda uygulandı) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
   doğrulanmamış influencer da başvurabiliyor.
-- **7.7-S2 [ORTA]** Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
+- **7.7-S2 [ORTA]** (canlıda doğrulandı: şartsız INSERT/UPDATE ve `qual=true` SELECT kuralları duruyor; `20261007000009` elle çalıştırılacak) Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
 - **7.7-S3 [DÜŞÜK]** `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
 
 ---
@@ -785,6 +785,11 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **T1** Marka doğrulama kilidi (1.8-S4, PR #17): doğrulanmış marka hesabıyla Keşfet, İlanlar, Favoriler, AI öneriler, Teklifler normal açılmalı;
   doğrulanmamış markada bu sayfalar kilit ekranı göstermeli, ana sayfa/profil/ayarlar/rozetler açık olmalı.
 - **T2** Instagram hızlı doğrulama (PR #12): kodla hesap ekleyip "Kontrol et" süresi.
+
+### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07)
+- Mobil uygulamaya bir süre dokunulmayacak; önce web tamamlanacak, mobil entegrasyonlar web'e göre yapılacak.
+  **Hatırlatılacak.** O zamana kadar açık mobil maddeler (bölüm 10.3) bekliyor. PR #22'deki mobil düzeltmeler
+  (favoriler, başvuru, avatar yolu, geri bildirim) repoda, bir sonraki mobil sürümle yayına çıkar.
 
 ## 12. Öncelik sırası
 

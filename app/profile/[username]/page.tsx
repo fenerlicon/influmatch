@@ -57,7 +57,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   const tiktokData = tiktokAccount && (tiktokAccount.has_stats || tiktokAccount.is_verified) ? {
     username: tiktokAccount.username,
     followerCount: tiktokAccount.follower_count || 0,
-    engagementRate: Number(tiktokAccount.engagement_rate) || 4.8,
+    engagementRate: Number(tiktokAccount.engagement_rate) || 0,
     statsPayload: tiktokAccount.stats_payload as any,
     lastUpdated: tiktokAccount.updated_at || new Date().toISOString()
   } : undefined

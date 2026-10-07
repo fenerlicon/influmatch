@@ -6,6 +6,7 @@ import { BadgeCheck, Info, MoreVertical, Phone, Video } from 'lucide-react'
 import MessageActionsMenu from './MessageActionsMenu'
 import ModernChatInput from './ModernChatInput'
 import Image from 'next/image'
+import { parseChatImageUrl } from '@/lib/chat-image'
 import { isUserBlocked } from '@/app/dashboard/users/block/actions'
 import { sendMessage } from '@/app/dashboard/messages/send/actions'
 
@@ -285,8 +286,8 @@ export default function ModernChatWindow({
                         {messages.map((message, index) => {
                             const isOwn = message.sender_id === currentUserId
                             const showAvatar = !isOwn && (index === 0 || messages[index - 1].sender_id !== message.sender_id)
-                            const isImage = message.content.startsWith('![image](') && message.content.endsWith(')')
-                            const imageUrl = isImage ? message.content.slice(9, -1) : null
+                            const imageUrl = parseChatImageUrl(message.content)
+                            const isImage = imageUrl !== null
 
                             return (
                                 <div key={message.id} className={`group flex items-end gap-3 ${isOwn ? 'justify-end' : 'justify-start'}`}>

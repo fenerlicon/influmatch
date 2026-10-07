@@ -11,9 +11,13 @@ import type { ProfileRecord } from '@/utils/profileCompletion'
  */
 export async function awardBadgesForUser(userId: string) {
   const supabase = createSupabaseServerClient()
+  // Okumalar service role ile: "ilk 1000 influencer" sayımı oturumdaki kullanıcının RLS'ine
+  // tabi olursa görünmeyen satırlar sayılmaz ve rozet fazla kişiye verilir.
+  const adminClient = createSupabaseAdminClient()
+  const reader = adminClient ?? supabase
 
   // Get user profile
-  const { data: user, error: userError } = await supabase
+  const { data: user, error: userError } = await reader
     .from('users')
     .select('id, role, verification_status, created_at, full_name, username, city, bio, category, avatar_url, social_links')
     .eq('id', userId)
@@ -28,7 +32,7 @@ export async function awardBadgesForUser(userId: string) {
   const badgesToAward: string[] = []
 
   // Check existing badges
-  const { data: existingBadges } = await supabase
+  const { data: existingBadges } = await reader
     .from('user_badges')
     .select('badge_id')
     .eq('user_id', userId)
@@ -57,13 +61,13 @@ export async function awardBadgesForUser(userId: string) {
     }
 
     // 3. Founder Member Badge (First 1000 influencers by created_at)
-    const { count: earlierUsers } = await supabase
+    const { count: earlierUsers, error: countError } = await reader
       .from('users')
       .select('id', { count: 'exact', head: true })
       .eq('role', 'influencer')
       .lt('created_at', user.created_at || new Date().toISOString())
 
-    if (earlierUsers !== null && earlierUsers < 1000 && !existingBadgeIds.includes('founder-member')) {
+    if (!countError && earlierUsers !== null && earlierUsers < 1000 && !existingBadgeIds.includes('founder-member')) {
       badgesToAward.push('founder-member')
     }
   } else if (role === 'brand') {
@@ -96,8 +100,6 @@ export async function awardBadgesForUser(userId: string) {
     console.log(`[awardBadgesForUser] Attempting to award ${badgesToAward.length} badge(s) to user ${userId}:`, badgesToAward)
 
     // Try admin client first (if available), otherwise use SQL function
-    const adminClient = createSupabaseAdminClient()
-
     if (adminClient) {
       try {
         const badgeInserts = badgesToAward.map((badgeId) => ({

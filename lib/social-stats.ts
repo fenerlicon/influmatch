@@ -489,9 +489,13 @@ async function scrapeTikTok(admin: SupabaseClient, userId: string, account: Scra
   const followerCount = tiktokData.follower_count
   const totalLikes = tiktokData.likes_count
 
-  // Açık veriden güvenilir etkileşim oranı çıkmadığı için yaklaşık bir değer, makul aralıkta tutulur.
-  const engagementRate = followerCount > 0 ? parseFloat(((totalLikes / followerCount) * 10).toFixed(2)) : 4.8
-  const boundedEngagement = Math.min(Math.max(engagementRate, 1.5), 18.5)
+  // Etkileşim oranı = son videoların ortalama (beğeni + yorum + paylaşım) / takipçi × 100.
+  // Video verisi yoksa uydurma bir değer yazılmaz (null).
+  const hasVideoStats = followerCount > 0 && tiktokData.avg_likes !== null
+  const engagementRate = hasVideoStats
+    ? ((tiktokData.avg_likes ?? 0) + (tiktokData.avg_comments ?? 0) + (tiktokData.avg_shares ?? 0)) / followerCount * 100
+    : null
+  const boundedEngagement = engagementRate === null ? null : Math.min(parseFloat(engagementRate.toFixed(2)), 100)
 
   const statsPayload = {
     total_likes: totalLikes,
@@ -500,6 +504,11 @@ async function scrapeTikTok(admin: SupabaseClient, userId: string, account: Scra
     post_count: tiktokData.video_count,
     is_verified: true,
     avatar_url: tiktokData.avatar_url,
+    avg_likes: tiktokData.avg_likes,
+    avg_comments: tiktokData.avg_comments,
+    avg_shares: tiktokData.avg_shares,
+    avg_views: tiktokData.avg_views,
+    sampled_videos: tiktokData.recent_video_count,
   }
 
   // Kalıcı TikTok kimliği varsa kullanılır (kullanıcı adı değişse de aynı hesap tanınır);
