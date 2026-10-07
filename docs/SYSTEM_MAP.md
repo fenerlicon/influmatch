@@ -65,7 +65,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   - **1.1-S1 [YÜKSEK]** `/profile` korumalı; herkese açık `/profile/[username]` sayfaları anonim ziyaretçiyi ve
     arama motorlarını `/login`'e atıyor. Sitemap ve robots bu sayfaları ilan ediyor → SEO fiilen kırık (bkz. 9.2).
   - **1.1-S2 [ORTA]** Yalnızca oturum varlığı kontrol ediliyor, rol kontrolü yok; admin/marka/influencer ayrımı sayfalara kalmış.
-  - **1.1-S3 [DÜŞÜK]** `redirectedFrom` parametresi ekleniyor ama `app/login/page.tsx` okumuyor; giriş hep `/dashboard`'a gider.
+  - ✅ ~~**1.1-S3 [DÜŞÜK]**~~ (giriş sonrası `redirectedFrom` yalnızca site içi yolsa kullanılıyor) `redirectedFrom` parametresi ekleniyor ama `app/login/page.tsx` okumuyor; giriş hep `/dashboard`'a gider.
 
 ### 1.2 Supabase istemcileri
 - **Dosyalar:** `utils/supabase/server.ts`, `client.ts`, `admin.ts` (service role, anahtar yoksa `null`),
@@ -90,7 +90,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 ### 1.4 Giriş ve şifre
 - **Dosya:** `app/login/page.tsx`
 - **Sorunlar:**
-  - **1.4-S1 [YÜKSEK]** Web'de "şifremi unuttum" akışı yok. Mobil `ForgotPasswordScreen.js` var olmayan
+  - ✅ ~~**1.4-S1 [YÜKSEK]**~~ (web akışı eklendi: `/forgot-password` → e-posta → `/auth/callback` → `/auth/update-password`; mobil ekran hâlâ hash tabanlı eski adrese gidiyor) Web'de "şifremi unuttum" akışı yok. Mobil `ForgotPasswordScreen.js` var olmayan
     `/auth/update-password` sayfasına yönlendiriyor; `/auth/callback` de her durumda oturumu kapatıyor → şifre sıfırlama kırık.
   - **1.4-S2 [DÜŞÜK]** `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
   - **1.4-S3 [DÜŞÜK]** `account_deleted` dalı ölü; kullanılmayan `supabase` değişkeni.
@@ -130,7 +130,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
     `/dashboard/brand/*` ve `/dashboard/influencer/*` altında rol koruması yok: doğrulanmış bir influencer marka
     keşif ekranını ve AI önerilerini açabilir. Etkilenen yerler: `app/dashboard/page.tsx:15`, `layout.tsx:24`,
     `brand/discover/page.tsx`, `brand/ai/page.tsx`, `app/profile/actions.ts:26`, Spotlight plan sayfaları, `feedback/thank-you`.
-  - **1.8-S2 [YÜKSEK]** Silinen hesap geri dönebiliyor: profil satırı yoksa layout yeni satır açıyor; `deleteAccount`
+  - ✅ ~~**1.8-S2 [YÜKSEK]**~~ (silmede giriş kaydı önce kilitleniyor; auth silinemezse kilitli kalıyor, `lib/account-deletion.ts`) Silinen hesap geri dönebiliyor: profil satırı yoksa layout yeni satır açıyor; `deleteAccount`
     auth silme hatasını yutuyor (bkz. 1.9-S1).
   - **1.8-S3 [ORTA]** Insert hatası her zaman `/onboarding`'e yönlendiriyor → olası döngü.
   - **1.8-S4 [ORTA]** Marka kilidi merkezi değil; her sayfa `BrandLockScreen`'i kendisi çiziyor, unutan sayfa kilitsiz kalıyor.
@@ -139,10 +139,10 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Dosyalar:** `app/dashboard/{influencer,brand}/settings/page.tsx` (birebir kopya),
   `app/dashboard/influencer/settings/actions.ts`, `components/settings/*`
 - **Sorunlar:**
-  - **1.9-S1 [YÜKSEK]** `deleteAccount` auth kullanıcısını silemezse yalnızca loglayıp başarı dönüyor; kullanıcı tekrar giriş yapabilir.
-  - **1.9-S2 [ORTA]** Hesap silinince storage dosyaları (avatars, feedback-images, tax-documents) silinmiyor (KVKK).
+  - ✅ ~~**1.9-S1 [YÜKSEK]**~~ (`lib/account-deletion.ts`: kilit → profil → dosyalar → auth; DB kuralı mesajı kullanıcıya gösteriliyor) `deleteAccount` auth kullanıcısını silemezse yalnızca loglayıp başarı dönüyor; kullanıcı tekrar giriş yapabilir.
+  - ✅ ~~**1.9-S2 [ORTA]**~~ (avatars ve tax-documents altındaki `{uid}/` dosyaları ve eski kök avatar siliniyor) Hesap silinince storage dosyaları (avatars, feedback-images, tax-documents) silinmiyor (KVKK).
   - **1.9-S3 [DÜŞÜK]** Silme modalı "abonelikleriniz iptal edilecek" diyor, Spotlight iptal edilmiyor; şifre tekrar sorulmuyor.
-  - **1.9-S4 [DÜŞÜK]** `changePassword` her hatayı "en az 6 karakter" olarak raporluyor.
+  - ✅ ~~**1.9-S4 [DÜŞÜK]**~~ (hata türüne göre mesaj) `changePassword` her hatayı "en az 6 karakter" olarak raporluyor.
   - **1.9-S5 [ORTA]** `email_notifications` tercihleri kaydediliyor ama hiçbir kod bu tercihlere göre e-posta göndermiyor (bkz. 5.4).
 
 ### 1.10 Destek talepleri (kullanıcı tarafı)
@@ -491,7 +491,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `verifyTaxId` | vergi onayı → `syncOfficialBusiness` | — |
 | `resendVerificationEmail` / `forceVerifyEmail` | auth e-posta işlemleri | site URL'si yoksa localhost'a düşüyor |
 | `resetVerifiedBadges` / `setBlueTickOverride` / `toggleBlueTick` | mavi/sarı tik | — |
-| `deleteUser` | profil + auth silme | **6.2-S1 [YÜKSEK]** profil silme hatası yalnızca loglanıyor (aktif anlaşma trigger'ı hatası yutuluyor), kendini/admini silme koruması yok |
+| `deleteUser` | profil + auth silme | ✅ ~~**6.2-S1 [YÜKSEK]**~~ (ortak silme fonksiyonu; admin kendini ve diğer adminleri panelden silemez) profil silme hatası yalnızca loglanıyor (aktif anlaşma trigger'ı hatası yutuluyor), kendini/admini silme koruması yok |
 | `getAllAdverts` / `deleteAdvertAdmin` | ilan yönetimi | dosya yolu `split('/').pop()` → alt klasördeki dosyalar artık kalıyor |
 | `adminUpdateInstagramData` | Apify ile IG güncelle | **6.2-S2 [ORTA]** her zaman `is_verified:true` yazıyor, `syncBlueTick` çağırmıyor |
 | `adminManualConnectInstagram` | IG'yi elle bağla | hedef rol kontrolü yok, geçmiş satırı yok |
@@ -511,7 +511,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 6.6 Mesaj şikayetleri `/admin/messages`
 - **Dosyalar:** `app/admin/messages/{page,actions}.ts(x)`, `components/admin/MessageReportsPanel.tsx`
-- **Sorunlar:** **6.6-S1 [YÜKSEK]** `deleteMessage` kullanıcı istemcisiyle siliyor; `messages` için DELETE politikası yok (ve silmeyi engelleyen trigger var) →
+- **Sorunlar:** ✅ ~~**6.6-S1 [YÜKSEK]**~~ (mesaj silinmiyor, içerik sabit metinle değiştiriliyor; orijinal içerik `message_reports.message_snapshot`ta saklanıyor) `deleteMessage` kullanıcı istemcisiyle siliyor; `messages` için DELETE politikası yok (ve silmeyi engelleyen trigger var) →
   0 satır silinip başarı dönüyor. Silme çalışsa bile `ON DELETE CASCADE` şikayet kaydını da siler (denetim izi kaybı).
 
 ### 6.7 API anahtar havuzu ekranı `/admin/api-keys`

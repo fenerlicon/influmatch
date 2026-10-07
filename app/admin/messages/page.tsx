@@ -49,6 +49,8 @@ export default async function AdminMessagesPage() {
       created_at,
       reviewed_at,
       reviewed_by,
+      message_snapshot,
+      message_removed_at,
       reporter:reporter_user_id(id, full_name, email, role, avatar_url),
       reported:reported_user_id(id, full_name, email, role, avatar_url),
       message:messages(id, content, sender_id, created_at),

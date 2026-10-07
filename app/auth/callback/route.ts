@@ -1,6 +1,24 @@
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import {
+  RECOVERY_COOKIE,
+  RECOVERY_MAX_AGE,
+  RESET_REQUEST_COOKIE,
+  recoveryCookieOptions,
+} from '@/lib/password-recovery'
+
+// Route Handler istemcisi oturum çerezlerini yazar; şifre sıfırlamada kullanıcı oturum açık
+// olarak yeni şifre ekranına geçer (createSupabaseServerClient çerez yazamaz).
+
+/** Şifre sıfırlama bağlantısı: oturum açık kalır, kullanıcı yeni şifre ekranına gider. */
+function redirectToPasswordUpdate(origin: string, userId: string) {
+  const response = NextResponse.redirect(new URL('/auth/update-password', origin))
+  response.cookies.set(RECOVERY_COOKIE, userId, recoveryCookieOptions(RECOVERY_MAX_AGE))
+  response.cookies.delete(RESET_REQUEST_COOKIE)
+  return response
+}
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -35,8 +53,14 @@ export async function GET(request: NextRequest) {
   // Handle code exchange (PKCE flow)
   const code = requestUrl.searchParams.get('code')
   if (code) {
-    const supabase = createSupabaseServerClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+    // PKCE kodu kayıt doğrulamasıyla aynı biçimde gelir; sıfırlama talebini talep anında
+    // bırakılan çerezden anlarız (bkz. lib/password-recovery.ts).
+    if (!error && data.user && request.cookies.get(RESET_REQUEST_COOKIE)) {
+      return redirectToPasswordUpdate(requestUrl.origin, data.user.id)
+    }
 
     if (!error) {
       console.log('[auth/callback] Code exchange successful, clearing session and redirecting to login')
@@ -48,7 +72,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = createRouteHandlerClient({ cookies })
 
   // Handle email confirmation with token_hash (OTP method)
   if (token_hash && type) {
@@ -57,6 +81,10 @@ export async function GET(request: NextRequest) {
       type: type as any,
       token_hash,
     })
+
+    if (!verifyError && type === 'recovery' && data.user) {
+      return redirectToPasswordUpdate(requestUrl.origin, data.user.id)
+    }
 
     if (!verifyError) {
       console.log('[auth/callback] OTP verification successful, clearing session and redirecting to login')

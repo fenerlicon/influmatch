@@ -34,6 +34,8 @@ interface MessageReport {
     role: 'influencer' | 'brand' | null
     avatar_url: string | null
   } | null
+  message_snapshot?: string | null
+  message_removed_at?: string | null
   message: {
     id: string
     content: string
@@ -134,7 +136,7 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
   }
 
   const handleDeleteMessage = (messageId: string) => {
-    if (!confirm('Bu mesajı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+    if (!confirm('Bu mesaj sohbetten kaldırılacak; orijinal içerik şikayet kaydında saklanır. Devam edilsin mi?')) {
       return
     }
 
@@ -144,12 +146,21 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
         setToast(result.error)
         setTimeout(() => setToast(null), 3000)
       } else {
-        setToast('Mesaj silindi.')
+        setToast('Mesaj kaldırıldı.')
         setTimeout(() => setToast(null), 3000)
-        setReports((prev) => prev.filter((r) => r.message_id !== messageId))
-        if (selectedReport?.message_id === messageId) {
-          setSelectedReport(null)
-        }
+        const removedAt = 'removedAt' in result ? result.removedAt : new Date().toISOString()
+        setReports((prev) =>
+          prev.map((r) =>
+            r.message_id === messageId
+              ? {
+                  ...r,
+                  status: 'resolved',
+                  message_snapshot: r.message_snapshot ?? r.message?.content ?? null,
+                  message_removed_at: removedAt,
+                }
+              : r,
+          ),
+        )
       }
     })
   }
@@ -293,7 +304,12 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
                         <div className="mb-4">
                           <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Raporlanan Mesaj</p>
                           <div className="rounded-xl border border-white/10 bg-[#0F1014] p-4">
-                            <p className="text-sm text-gray-300 whitespace-pre-wrap">{report.message.content}</p>
+                            <p className="text-sm text-gray-300 whitespace-pre-wrap">
+                              {report.message_snapshot ?? report.message.content}
+                            </p>
+                            {report.message_removed_at && (
+                              <p className="mt-2 text-xs font-semibold text-red-400">Sohbetten kaldırıldı</p>
+                            )}
                             <p className="text-xs text-gray-500 mt-2">
                               {new Date(report.message.created_at).toLocaleDateString('tr-TR', {
                                 day: '2-digit',
@@ -348,7 +364,7 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
                         </button>
                       </>
                     )}
-                    {report.message && (
+                    {report.message && !report.message_removed_at && (
                       <button
                         type="button"
                         onClick={() => handleDeleteMessage(report.message_id)}
@@ -356,7 +372,7 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
                         className="inline-flex items-center gap-2 rounded-2xl border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Mesajı Sil
+                        Mesajı Kaldır
                       </button>
                     )}
                   </div>

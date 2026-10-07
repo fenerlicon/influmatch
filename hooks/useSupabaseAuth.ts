@@ -34,6 +34,9 @@ export const useSupabaseAuth = () => {
     if (errorLower.includes('email not confirmed')) {
       return 'Email adresiniz henüz doğrulanmamış. Lütfen email kutunuzu kontrol edin.'
     }
+    if (errorLower.includes('banned')) {
+      return 'Bu hesap silinmiş veya askıya alınmış.'
+    }
     if (errorLower.includes('user not found')) {
       return 'Bu email adresi ile kayıtlı bir hesap bulunamadı.'
     }

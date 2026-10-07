@@ -828,7 +828,7 @@ export async function deleteUser(userId: string) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
-  // Use admin client to delete user from Auth (which should cascade to public.users)
+  // Silme service role ile yapılır (lib/account-deletion.ts).
   const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
   const supabaseAdmin = createSupabaseAdminClient()
 
@@ -837,38 +837,24 @@ export async function deleteUser(userId: string) {
     return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
   }
 
+  if (userId === user.id) {
+    return { error: 'Kendi hesabınızı admin panelinden silemezsiniz.' }
+  }
+
   try {
-    // 1. Explicitly delete from public.users first (to prevent "zombie" users if cascade fails)
-    console.log('[deleteUser] Deleting from public.users...')
-    const { error: publicDeleteError } = await supabaseAdmin
-      .from('users')
-      .delete()
-      .eq('id', userId)
-
-    if (publicDeleteError) {
-      console.error('[deleteUser] Public table delete error:', publicDeleteError)
-    } else {
-      console.log('[deleteUser] Deleted from public.users')
+    const { data: target } = await supabaseAdmin.from('users').select('role').eq('id', userId).maybeSingle()
+    if (target?.role === 'admin') {
+      return { error: 'Admin hesapları panelden silinemez.' }
     }
 
-    // 2. Delete from Auth (source of truth)
-    console.log('[deleteUser] Deleting from auth.users...')
-    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-
-    if (authDeleteError) {
-      console.error('[deleteUser] Supabase Auth Delete Error:', authDeleteError)
-
-      // If error is "User not found", it means they are already gone from Auth (Zombie user).
-      // Since we just ran the public delete above, treat it as success or just proceed.
-      // But we must return success if they are now gone.
-      if (authDeleteError.message?.includes('User not found')) {
-        console.log('[deleteUser] User already missing from Auth (Zombie), continuing...')
-      } else {
-        return { error: `Auth silme hatası: ${authDeleteError.message}` }
-      }
+    const { deleteAccountCompletely } = await import('@/lib/account-deletion')
+    const result = await deleteAccountCompletely(supabaseAdmin, userId)
+    if (!result.ok) {
+      return { error: result.error }
     }
-
-    console.log('[deleteUser] User deleted successfully from Auth')
+    if (!result.authDeleted) {
+      console.warn('[deleteUser] Giriş kaydı silinemedi; kullanıcı kilitli bırakıldı:', userId)
+    }
 
     revalidatePath('/admin')
     revalidatePath('/dashboard/influencer')
