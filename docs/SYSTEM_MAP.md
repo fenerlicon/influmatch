@@ -316,7 +316,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.6-S1 [ORTA]**~~ (rol DB'den, `fetchAccountRole`) `createOffer` rol kontrolünü `user_metadata.role` ile yapıyor (DB politikası asıl korumayı sağlıyor),
     bütçe NaN/negatif kontrolü yok, alıcının influencer olduğu kontrol edilmiyor.
   - **3.6-S2 [YÜKSEK]** Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1).
-  - **3.6-S3 [ORTA]** Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
+  - ✅ ~~**3.6-S3 [ORTA]**~~ (sayımlar paralel ve yalnızca `count` dönüyor; okundu bilgisi 5.3-S1 ile metadata'dan) Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
   - **3.6-S4 [DÜŞÜK]** `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
 
 ### 3.7 İlanlar (advert projects / kampanyalar)
@@ -362,7 +362,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   Web sitesi alan adı değişirse doğrulama ve sarı tik düşer (DB guard).
 - **Sorunlar:**
   - **3.11-S1 [ORTA]** Bu kuraldan önce verilmiş sarı tikler otomatik geri alınmadı (karar bekliyor).
-  - **3.11-S2 [ORTA]** Kod e-postası için Resend'de doğrulanmış alan adı ve `EMAIL_FROM` gerekli; yoksa yalnızca Resend hesap sahibine gider.
+  - ✅ ~~**3.11-S2 [ORTA]**~~ (üretimde `EMAIL_FROM` ve `RESEND_API_KEY` tanımlı; kayıt/kod e-postalarının geldiği kullanıcıca doğrulandı) Kod e-postası için Resend'de doğrulanmış alan adı ve `EMAIL_FROM` gerekli; yoksa yalnızca Resend hesap sahibine gider.
 
 ### 3.12 Kilit ve doğrulama ekranları
 - **Dosyalar:** `components/dashboard/BrandLockScreen.tsx`, `BrandVerificationCard.tsx`
@@ -593,6 +593,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   - ✅ ~~**7.3-S3 [ORTA]**~~ (canlıda realtime yayınında yalnızca messages var; users yok, sızıntı yolu yok) `users` realtime yayınındaysa `postgres_changes` olayları kolon yetkisine bakmadan tüm satırı gönderebilir → gizli kolon sızıntısı riski (canlıda doğrulanmalı).
 
 ### 7.4 RPC'ler ve fonksiyonlar
+- **Güvenlik denetimi (2026-10-07):** tetikleyici fonksiyonların RPC çağrı izni kaldırıldı; `get_my_private_profile` /
+  `get_offer_contact_email` anon'a kapatıldı; `website_host` search_path sabitlendi (`20261007000014`). Açık kalanlar:
+  `is_admin()` anon'a açık (RLS'te kullanılıyor, gerekli); `pg_net` public şemada (taşımak riskli);
+  **Auth → sızdırılmış şifre koruması kapalı (panelden açılmalı, kullanıcı)**.
 - Güvenli: `is_admin()`, `get_my_private_profile()`, `get_offer_contact_email()`, `award_user_badge()` (artık yalnızca admin/sunucu),
   `is_valid_tax_number()`, `website_host()`, `record_api_key_result()` (yalnızca service role).
 - **Sorunlar:**
@@ -611,7 +615,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `chat-attachments` | **hiçbir yerde** | **yok** | public URL |
 
 - **Sorunlar:**
-  - **7.5-S1 [YÜKSEK]** `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
+  - **7.5-S1 [YÜKSEK]** (canlıda doğrulandı: dosya hiç uygulanmamış. Ölü "Tam Yetki" politikalarını silen `20261007000013` toplu SQL'de; "avatars insert" yayındaki mobil sürüm public/<uid>/ yüklediği için mobil sürüm çıkınca kaldırılacak) `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
     (avatars politikaları, users SELECT değişikliği ve `track_analytics_event` sertleştirmesi dahil). Canlıda kontrol edilmeli.
   - **7.5-S2 [ORTA]** `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
 
@@ -788,14 +792,21 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **T2** Instagram hızlı doğrulama (PR #12): kodla hesap ekleyip "Kontrol et" süresi.
 
 ### 11.3 Elle çalıştırılacak SQL'ler (kullanıcı kararı: en sonda tek dosyada toplu gönderilecek)
+- **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
+  canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
+  sırasıyla toplu verilir.
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path.
 - `sohbet_ekleri_kurali.sql` → `20261007000007` politika kısmı (chat-attachments oda katılımcısı kuralı, 5.1-S5)
 - `geri_bildirim_gorselleri_kurali.sql` → `20261007000008` DROP POLICY kısmı (kova zaten gizli, 1.10-S1)
 - `ilan_kurallari_temizlik.sql` → `20261007000009` (gevşek advert_projects kuralları, 7.7-S2)
+- `20261007000013` ölü avatars "Tam Yetki" politikaları (7.5-S1)
+- (mobil sürüm sonrası) `DROP POLICY "avatars insert"` (7.5-S1)
 
 ### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07)
 - Mobil uygulamaya bir süre dokunulmayacak; önce web tamamlanacak, mobil entegrasyonlar web'e göre yapılacak.
   **Hatırlatılacak.** O zamana kadar açık mobil maddeler (bölüm 10.3) bekliyor. PR #22'deki mobil düzeltmeler
   (favoriler, başvuru, avatar yolu, geri bildirim) repoda, bir sonraki mobil sürümle yayına çıkar.
+  Mobil sürüm çıkınca: `avatars insert` politikası kaldırılacak (7.5-S1).
 
 ## 12. Öncelik sırası
 
