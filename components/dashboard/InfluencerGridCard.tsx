@@ -88,6 +88,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
     const isVerified = influencer.displayed_badges?.includes('verified-account')
 
     const isSpotlightUser = isSpotlightMember
+    const trustScore = hasStats && userRole !== 'influencer' ? calculateTrustScore(influencer) : 0
 
     // Handle Similar Profiles Click
     const handleSimilarProfilesClick = (e: React.MouseEvent) => {
@@ -292,19 +293,19 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                                 <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Güven Skoru</span>
                                                 <span className={cn(
                                                     "text-xs font-bold",
-                                                    calculateTrustScore(influencer) > 70 ? "text-emerald-400" :
-                                                        calculateTrustScore(influencer) > 40 ? "text-yellow-400" : "text-red-400"
+                                                    trustScore > 70 ? "text-emerald-400" :
+                                                        trustScore > 40 ? "text-yellow-400" : "text-red-400"
                                                 )}>
-                                                    {calculateTrustScore(influencer)}/100
+                                                    {trustScore}/100
                                                 </span>
                                             </div>
                                             <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                                 <div
                                                     className={cn("h-full rounded-full transition-all duration-500",
-                                                        calculateTrustScore(influencer) > 70 ? "bg-emerald-500" :
-                                                            calculateTrustScore(influencer) > 40 ? "bg-yellow-500" : "bg-red-500"
+                                                        trustScore > 70 ? "bg-emerald-500" :
+                                                            trustScore > 40 ? "bg-yellow-500" : "bg-red-500"
                                                     )}
-                                                    style={{ width: `${calculateTrustScore(influencer)}%` }}
+                                                    style={{ width: `${trustScore}%` }}
                                                 />
                                             </div>
                                         </div>

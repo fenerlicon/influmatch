@@ -11,6 +11,22 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 import RejectedScreen from '@/components/dashboard/RejectedScreen'
 
+const PROFILE_SELECT = 'role, verification_status, social_links, bio, category, city, avatar_url, username, full_name'
+
+function ProfileLoadError() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0C10] p-4 text-white">
+      <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
+        <h1 className="mb-4 text-2xl font-bold text-red-400">Profil yüklenemedi</h1>
+        <p className="mb-6 text-gray-300">Hesap bilgilerinize şu anda ulaşamıyoruz. Lütfen birkaç saniye sonra tekrar deneyin.</p>
+        <a href="/dashboard" className="rounded-xl bg-white/10 px-6 py-3 font-semibold transition hover:bg-white/20">
+          Tekrar dene
+        </a>
+      </div>
+    </div>
+  )
+}
+
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = createSupabaseServerClient()
   const {
@@ -27,16 +43,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const isEmailConfirmed = !!user.email_confirmed_at
 
   // Check verification status and profile completeness
-  const { data: userProfile, error: profileError } = await supabase
+  const { data: existingProfile, error: profileError } = await supabase
     .from('users')
-    .select('role, verification_status, social_links, bio, category, city, avatar_url, username, full_name')
+    .select(PROFILE_SELECT)
     .eq('id', user.id)
     .maybeSingle()
 
-  // Log any errors for debugging
+  // Sorgu hatası "profil yok" demek değildir: bu durumda satır açmaya ya da onboarding'e
+  // göndermeye çalışmak, geçici bir veritabanı hatasında dashboard ↔ onboarding döngüsü yaratıyordu.
   if (profileError) {
     console.error('[DashboardLayout] Profile query error:', profileError)
+    return <ProfileLoadError />
   }
+
+  let userProfile = existingProfile
 
   // If user profile doesn't exist in public.users
   if (!userProfile) {
@@ -46,31 +66,28 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       .insert({
         id: user.id,
         email: user.email || '',
-        role: user.user_metadata?.role || 'influencer',
+        role: user.user_metadata?.role === 'brand' ? 'brand' : 'influencer',
         full_name: user.user_metadata?.full_name || null,
         username: user.user_metadata?.username || null,
       })
 
-    if (insertError) {
-      // Insert failed - check the error type
+    // Çakışma: satır bu arada (ör. tetikleyiciyle) oluşmuş olabilir; bir kez daha okunur.
+    if (insertError && insertError.code !== '23505') {
       console.error('[DashboardLayout] Profile insert error:', insertError)
-
-      // If it's a conflict (profile already exists but query failed), try to fetch again
-      if (insertError.code === '23505' || insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
-        // Profile might exist but query failed - redirect to onboarding to let user complete it
-        redirect('/onboarding')
-      } else if (insertError.message.includes('row-level security') || insertError.code === '42501') {
-        // RLS issue - redirect to onboarding
-        redirect('/onboarding')
-      } else {
-        // Other error - assume profile doesn't exist and redirect to onboarding
-        // Don't sign out - let user complete onboarding
-        redirect('/onboarding')
-      }
-    } else {
-      // Profile created successfully, reload the page to get the profile
-      redirect('/dashboard')
+      return <ProfileLoadError />
     }
+
+    const { data: createdProfile, error: refetchError } = await supabase
+      .from('users')
+      .select(PROFILE_SELECT)
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (refetchError || !createdProfile) {
+      console.error('[DashboardLayout] Profile refetch error:', refetchError ?? 'profile still missing')
+      return <ProfileLoadError />
+    }
+    userProfile = createdProfile
   }
 
   // Use the profile we found
