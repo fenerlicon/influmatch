@@ -30,7 +30,7 @@ export async function submitFeedback(payload: SubmitFeedbackPayload) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const role = (userProfile?.role ?? 'influencer') as 'influencer' | 'brand'
+  const role = (userProfile?.role ?? 'influencer') as 'influencer' | 'brand' | 'admin'
 
   const { error: insertError } = await supabase.from('feedback_submissions').insert({
     user_id: user.id,

@@ -788,6 +788,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **T2** Instagram hızlı doğrulama (PR #12): kodla hesap ekleyip "Kontrol et" süresi.
 
 ### 11.3 Elle çalıştırılacak SQL'ler (kullanıcı kararı: en sonda tek dosyada toplu gönderilecek)
+- **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
+  canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
+  sırasıyla toplu verilir.
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü.
 - `sohbet_ekleri_kurali.sql` → `20261007000007` politika kısmı (chat-attachments oda katılımcısı kuralı, 5.1-S5)
 - `geri_bildirim_gorselleri_kurali.sql` → `20261007000008` DROP POLICY kısmı (kova zaten gizli, 1.10-S1)
 - `ilan_kurallari_temizlik.sql` → `20261007000009` (gevşek advert_projects kuralları, 7.7-S2)
