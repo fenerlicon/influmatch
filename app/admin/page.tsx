@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { ADMIN_USER_SELECT } from '@/lib/user-columns'
 import { loadLatestTaxVerifications } from '@/lib/tax-verification'
+import { loadLastSeen } from '@/lib/presence'
 
 
 export default async function AdminPage() {
@@ -92,7 +93,6 @@ export default async function AdminPage() {
         const isRateLimit =
           result.error.message?.toLowerCase().includes('rate limit') ||
           result.error.message?.includes('429') ||
-          result.error.code === 'PGRST116' ||
           result.error.message?.toLowerCase().includes('too many requests') ||
           (result.error as unknown as { status?: number }).status === 429
 
@@ -105,7 +105,7 @@ export default async function AdminPage() {
         // If rate limit on last attempt or other error, throw
         if (isRateLimit) {
           throw new Error(
-            'Supabase maintenance nedeniyle geçici olarak erişim sorunu yaşanıyor. Supabase şu anda scheduled maintenance yapıyor (21-23 Kasım). Lütfen birkaç dakika bekleyip tekrar deneyin. Maintenance bitene kadar bazı gecikmeler normaldir.'
+            'Veritabanı şu an yoğun (rate limit). Lütfen birkaç dakika bekleyip tekrar deneyin.'
           )
         }
 
@@ -120,7 +120,10 @@ export default async function AdminPage() {
 
     // Filter and count on server side (single query instead of 6)
     const brandIds = (allUsers ?? []).filter((user) => user.role === 'brand').map((user) => user.id)
-    const taxVerifications = await loadLatestTaxVerifications(supabaseAdmin, brandIds)
+    const [taxVerifications, lastSeen] = await Promise.all([
+      loadLatestTaxVerifications(supabaseAdmin, brandIds),
+      loadLastSeen(supabaseAdmin),
+    ])
     const allUsersList = (allUsers ?? []).map((user) => ({ ...user, tax_verification: taxVerifications[user.id] ?? null }))
 
     // Filter by verification status
@@ -149,6 +152,7 @@ export default async function AdminPage() {
         totalUsers={totalUsers ?? 0}
         influencerCount={influencerCount ?? 0}
         brandCount={brandCount ?? 0}
+        initialLastSeen={lastSeen}
       />
     )
   } catch (error) {

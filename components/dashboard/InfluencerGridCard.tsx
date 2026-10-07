@@ -98,7 +98,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
         if (!isSpotlightUser) {
             // Redirect to appropriate spotlight page based on role
             if (userRole === 'influencer') {
-                window.location.href = '/dashboard/influencer/spotlight'
+                window.location.href = '/dashboard/spotlight/influencer'
             } else {
                 window.location.href = '/dashboard/spotlight/brand'
             }

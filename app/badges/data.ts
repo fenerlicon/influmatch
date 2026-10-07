@@ -53,6 +53,13 @@ export const influencerBadges: Badge[] = [
     phase: 'mvp',
   },
   {
+    id: 'million-club',
+    name: 'Milyon Kulübü',
+    description: 'Doğrulanmış Instagram veya TikTok hesabında 1 milyon ve üzeri takipçi.',
+    icon: Trophy,
+    phase: 'mvp',
+  },
+  {
     id: 'brand-ambassador',
     name: 'Marka Elçisi',
     description: 'Markalarla uzun süreli işbirlikleri yapan.',
@@ -82,13 +89,6 @@ export const influencerBadges: Badge[] = [
     phase: 'v1.2',
   },
   // v1.3 (Purple)
-  {
-    id: 'million-club',
-    name: 'Milyon Kulübü',
-    description: 'Milyonlarca erişime sahip.',
-    icon: Trophy,
-    phase: 'v1.3',
-  },
   {
     id: 'conversion-wizard',
     name: 'Dönüşüm Sihirbazı',

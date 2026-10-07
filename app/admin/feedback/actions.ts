@@ -36,10 +36,38 @@ export async function updateFeedbackStatus(
     .eq('id', feedbackId)
 
   if (error) {
-    return { error: `Durum güncellenemedi: ${error.message}` }
+    console.error('[updateFeedbackStatus] error:', error)
+    return { error: 'Durum güncellenemedi.' }
   }
 
   revalidatePath('/admin/feedback')
   return { success: true }
 }
 
+
+export async function updateFeedbackNote(feedbackId: string, note: string) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Oturum bulunamadı.' }
+
+  const { data: adminProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+  if (adminProfile?.role !== 'admin') return { error: 'Bu işlem için yetkiniz yok.' }
+
+  const cleanNote = note.trim()
+  if (cleanNote.length > 2000) return { error: 'Not en fazla 2000 karakter olabilir.' }
+
+  const { error } = await supabase
+    .from('feedback_submissions')
+    .update({ admin_notes: cleanNote || null })
+    .eq('id', feedbackId)
+
+  if (error) {
+    console.error('[updateFeedbackNote] error:', error)
+    return { error: 'Not kaydedilemedi.' }
+  }
+
+  revalidatePath('/admin/feedback')
+  return { success: true }
+}
