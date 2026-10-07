@@ -68,18 +68,27 @@ export async function addAdminResponse(
       return { success: false, error: adminCheck.error || 'Yetkisiz erişim' }
     }
 
+    const trimmed = response?.trim()
+    if (!trimmed) {
+      return { success: false, error: 'Yanıt boş olamaz' }
+    }
+
     const supabase = createSupabaseServerClient()
-    const { error } = await supabase
-      .from('support_tickets')
-      .update({
-        admin_response: response,
-        status: 'in_progress', // Auto update status when admin responds
-      })
-      .eq('id', ticketId)
+    const { error } = await supabase.from('support_tickets').update({ admin_response: trimmed }).eq('id', ticketId)
 
     if (error) {
       console.error('[addAdminResponse] error:', error)
       return { success: false, error: error.message || 'Yanıt eklenemedi' }
+    }
+
+    // Yalnızca açık talep "işlemde"ye alınır; kapatılmış talep yanıt eklenince yeniden açılmaz.
+    const { error: statusError } = await supabase
+      .from('support_tickets')
+      .update({ status: 'in_progress' })
+      .eq('id', ticketId)
+      .eq('status', 'open')
+    if (statusError) {
+      console.error('[addAdminResponse] status error:', statusError)
     }
 
     revalidatePath('/admin/support')

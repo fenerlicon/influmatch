@@ -44,6 +44,14 @@ const defaultInfluencerForm: InfluencerFormState = {
   creatorType: 'influencer',
 }
 
+function withInfluencerDefaults(form: InfluencerFormState): InfluencerFormState {
+  return {
+    ...form,
+    category: form.category || defaultInfluencerForm.category,
+    creatorType: form.creatorType || defaultInfluencerForm.creatorType,
+  }
+}
+
 const defaultBrandForm: BrandFormState = {
   brandName: '',
   username: '',
@@ -92,10 +100,20 @@ export default function OnboardingPage() {
       if (!savedState) return dbState
 
       try {
-        const parsedState = JSON.parse(savedState)
-        // Merge database state with local storage, giving priority to local storage 
-        // (assuming local storage has the latest 'draft' edits)
-        return { ...dbState, ...parsedState }
+        const parsedState = JSON.parse(savedState) as Record<string, unknown>
+        // Taslak yalnızca DB'de boş olan alanları doldurur: eski bir taslak kaydedilmiş
+        // profilin üzerine yazmamalı (başka cihazda güncellenmiş profil vb.).
+        const merged: Record<string, unknown> = { ...(dbState as Record<string, unknown>) }
+        for (const [key, draftValue] of Object.entries(parsedState)) {
+          const dbValue = merged[key]
+          const dbEmpty =
+            dbValue === null ||
+            dbValue === undefined ||
+            dbValue === '' ||
+            (Array.isArray(dbValue) && dbValue.length === 0)
+          if (dbEmpty) merged[key] = draftValue
+        }
+        return merged as T
       } catch (e) {
         console.error(`Failed to parse saved state for ${storageKey}`, e)
         return dbState
@@ -125,7 +143,7 @@ export default function OnboardingPage() {
           : { data: null }
 
         // Default states (what we have if DB returns nothing)
-        let newInfluencerForm = defaultInfluencerForm
+        let newInfluencerForm: InfluencerFormState = { ...defaultInfluencerForm, category: '' as InfluencerFormState['category'], creatorType: '' as any }
         let newBrandForm = defaultBrandForm
         let newAvatarUrl: string | null = null
 
@@ -145,12 +163,14 @@ export default function OnboardingPage() {
             fullName: data.full_name ?? '',
             username: data.username ?? '',
             bio: data.bio ?? '',
-            category: (data.category as InfluencerFormState['category']) ?? 'beauty',
+            // Varsayılanlar taslak birleştirmesinden sonra uygulanır (withInfluencerDefaults);
+            // aksi halde dolu görünen varsayılan, taslaktaki seçimi ezerdi.
+            category: (data.category as InfluencerFormState['category']) ?? ('' as InfluencerFormState['category']),
             city: data.city ?? '',
             instagram: socialLinks.instagram ?? '',
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
-            creatorType: (data.creator_type as any) ?? (session?.user?.user_metadata?.creator_type as any) ?? 'influencer',
+            creatorType: (data.creator_type as any) ?? (session?.user?.user_metadata?.creator_type as any) ?? '',
           }
 
           newBrandForm = {
@@ -169,17 +189,19 @@ export default function OnboardingPage() {
         }
 
         // Merge with LocalStorage (this ensures draft is preserved over DB data)
-        setInfluencerForm(getMergedState(newInfluencerForm, 'onboarding_influencer_form'))
+        setInfluencerForm(withInfluencerDefaults(getMergedState(newInfluencerForm, 'onboarding_influencer_form')))
         setBrandForm(getMergedState(newBrandForm, 'onboarding_brand_form'))
 
         // Handle avatar URL from localStorage
         const savedAvatarUrl = typeof window !== 'undefined' ? localStorage.getItem('onboarding_avatar_url') : null
-        setAvatarUrl(savedAvatarUrl || newAvatarUrl)
+        setAvatarUrl(newAvatarUrl || savedAvatarUrl)
 
       } catch (err) {
         console.error('[OnboardingPage] Unexpected error:', err)
         // Even on error, we try to restore from localStorage so user doesn't lose work
-        setInfluencerForm(prev => getMergedState(prev, 'onboarding_influencer_form'))
+        setInfluencerForm(prev =>
+          withInfluencerDefaults(getMergedState({ ...prev, category: '' as InfluencerFormState['category'], creatorType: '' as any }, 'onboarding_influencer_form')),
+        )
         setBrandForm(prev => getMergedState(prev, 'onboarding_brand_form'))
 
         const savedAvatarUrl = typeof window !== 'undefined' ? localStorage.getItem('onboarding_avatar_url') : null
