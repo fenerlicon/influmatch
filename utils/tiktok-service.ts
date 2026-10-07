@@ -160,7 +160,8 @@ export async function fetchTikTokPublicProfile(username: string): Promise<Normal
   } catch (error: any) {
     console.error(`[TikTokService] Apify fetch failed: ${error.message || error}`);
     const msg = error.message || 'Apify servis hatası';
-    throw new Error(msg.includes('TikTok') ? msg : `TikTok verileri alınamadı: ${msg}`);
+    // Asıl hata cause olarak korunur: servis kesintisi (kredi bitti vb.) hesaba özel hatadan ayırt edilir.
+        throw Object.assign(new Error(msg.includes('TikTok') ? msg : `TikTok verileri alınamadı: ${msg}`), { cause: error });
   }
 }
 
