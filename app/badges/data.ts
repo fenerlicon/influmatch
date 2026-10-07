@@ -62,18 +62,18 @@ export const influencerBadges: Badge[] = [
   {
     id: 'brand-ambassador',
     name: 'Marka Elçisi',
-    description: 'Markalarla uzun süreli işbirlikleri yapan.',
+    description: 'Aynı markayla en az 3 kabul edilmiş işbirliği.',
     icon: Megaphone,
-    phase: 'v1.2',
+    phase: 'mvp',
   },
-  // v1.2 (Silver)
   {
     id: 'lightning-fast',
     name: 'Hızlı Dönüş',
-    description: 'Mesajlara çok hızlı yanıt veren.',
+    description: 'Son 90 günde mesajlara ortalama 2 saatin altında yanıt (en az 5 yanıt).',
     icon: Zap,
-    phase: 'v1.2',
+    phase: 'mvp',
   },
+  // v1.2 (Silver)
   {
     id: 'five-star',
     name: '5 Yıldız',
@@ -121,21 +121,21 @@ export const brandBadges: Badge[] = [
     icon: LayoutTemplate,
     phase: 'mvp',
   },
-  // v1.2 (Silver)
   {
     id: 'jet-approval',
     name: 'Jet Onay',
-    description: 'Başvuruları hızlı onaylayan.',
+    description: 'Başvurulara ortalama 24 saat içinde yanıt (en az 3 başvuru).',
     icon: Zap,
-    phase: 'v1.2',
+    phase: 'mvp',
   },
   {
     id: 'elite-budget',
     name: 'Elit Bütçe',
-    description: 'Yüksek bütçeli kampanyalar.',
+    description: '50.000 TL ve üzeri bütçeli ilan veya teklif.',
     icon: Gem,
-    phase: 'v1.2',
+    phase: 'mvp',
   },
+  // v1.2 (Silver)
   {
     id: 'communication-expert',
     name: 'İletişim Uzmanı',

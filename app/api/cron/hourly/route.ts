@@ -4,6 +4,7 @@ import { runApiKeyHealthCheck } from '@/lib/api-key-health'
 import { expireSpotlights } from '@/lib/spotlight-expiry'
 import { sweepBlueTicks } from '@/lib/blue-tick'
 import { sweepMillionClub } from '@/lib/million-club'
+import { sweepActivityBadges } from '@/lib/activity-badges'
 import { refreshStaleAccounts } from '@/lib/social-stats'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,7 @@ export const maxDuration = 60
  *
  * - Apify / Gemini anahtarlarının sağlık ve kredi kontrolü; sorun varsa admin'e özet e-posta.
  * - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar, eşiğin altına düşenler).
- * - Milyon Kulübü rozeti (doğrulanmış hesapta 1M+ takipçi).
+ * - Milyon Kulübü rozeti (doğrulanmış hesapta 1M+ takipçi) ve etkinlik rozetleri (lib/activity-badges.ts).
  */
 export async function GET(req: Request) {
   const startedAt = Date.now()
@@ -69,6 +70,13 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] Milyon Kulübü değerlendirmesi başarısız:', error)
     result.millionClubError = error instanceof Error ? error.message : String(error)
+  }
+
+  try {
+    result.activityBadges = await sweepActivityBadges(admin)
+  } catch (error) {
+    console.error('[cron/hourly] Etkinlik rozetleri değerlendirilemedi:', error)
+    result.activityBadgesError = error instanceof Error ? error.message : String(error)
   }
 
   // Bayat istatistikleri kalan zamanda küçük parçalar halinde yenile (yeni koşu en geç 25. saniyede başlar).
