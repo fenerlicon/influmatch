@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 import { fetchInstagramData } from '@/utils/instagram-service'
 import { validateTaxNumber } from '@/lib/tax-id'
 import { syncBlueTick, sweepBlueTicks, type BlueTickOverride } from '@/lib/blue-tick'
+import { grantOfficialBusiness, loadLatestTaxVerifications, TAX_DOCUMENTS_BUCKET } from '@/lib/tax-verification'
 
 
 export async function verifyUser(userId: string) {
@@ -441,59 +442,19 @@ export async function verifyTaxId(userId: string) {
     return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
   }
 
-  // Update tax_id_verified
-  const { error: updateError } = await supabaseAdmin
-    .from('users')
-    .update({ tax_id_verified: true })
-    .eq('id', userId)
-
-  if (updateError) {
-    console.error('[verifyTaxId] Supabase error:', updateError)
-    return { error: `Vergi numarası onaylama hatası: ${updateError.message}` }
-  }
-
-  // Award official-business badge
   try {
-    const { error: rpcError } = await supabase.rpc('award_user_badge', {
-      target_user_id: userId,
-      badge_id_to_award: 'official-business',
-    })
-
-    if (rpcError) {
-      console.error('[verifyTaxId] Badge awarding error:', rpcError)
-      // Don't fail if badge awarding fails, but log it
-      return {
-        success: true,
-        warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${rpcError.message}`
-      }
-    }
-  } catch (badgeError) {
-    console.error('[verifyTaxId] Badge awarding exception:', badgeError)
-    return {
-      success: true,
-      warning: `Vergi numarası onaylandı ancak rozet verme hatası: ${badgeError instanceof Error ? badgeError.message : 'Bilinmeyen hata'}`
-    }
+    await grantOfficialBusiness(supabaseAdmin, userId)
+  } catch (grantError) {
+    console.error('[verifyTaxId] Error:', grantError)
+    return { error: grantError instanceof Error ? grantError.message : 'Vergi numarası onaylanamadı.' }
   }
 
-  // Sync displayed_badges in users table to show the yellow tick
-  try {
-    const { data: allBadges } = await supabaseAdmin
-      .from('user_badges')
-      .select('badge_id')
-      .eq('user_id', userId)
-
-    const badgeArray = allBadges?.map((b) => b.badge_id).filter(Boolean) || []
-    if (!badgeArray.includes('official-business')) {
-      badgeArray.push('official-business')
-    }
-
-    await supabaseAdmin
-      .from('users')
-      .update({ displayed_badges: badgeArray })
-      .eq('id', userId)
-  } catch (syncErr) {
-    console.error('[verifyTaxId] Displayed badges sync error:', syncErr)
-  }
+  // İncelemede bekleyen vergi levhası doğrulaması varsa admin onayı olarak kapatılır.
+  await supabaseAdmin
+    .from('tax_verifications')
+    .update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .in('status', ['needs_review', 'processing'])
 
   revalidatePath('/admin')
   revalidatePath('/dashboard/brand/badges')
@@ -1524,5 +1485,64 @@ export async function getAdminUserCard(userId: string) {
   const { data, error } = await supabaseAdmin.from('users').select(ADMIN_USER_SELECT).eq('id', userId).maybeSingle()
   if (error || !data) return { error: 'Kullanıcı bulunamadı.' }
 
-  return { user: data }
+  const taxVerifications = data.role === 'brand' ? await loadLatestTaxVerifications(supabaseAdmin, [userId]) : {}
+  return { user: { ...data, tax_verification: taxVerifications[userId] ?? null } }
+}
+
+async function requireAdminClient() {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Oturum açmanız gerekiyor.' as const }
+
+  const { data: adminProfile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+  if (adminProfile?.role !== 'admin') return { error: 'Bu işlem için yetkiniz yok.' as const }
+
+  const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
+  const supabaseAdmin = createSupabaseAdminClient()
+  if (!supabaseAdmin) return { error: 'Sistem yapılandırma hatası.' as const }
+  return { user, supabaseAdmin }
+}
+
+// Vergi levhası belgesini admin için 10 dakikalık imzalı bağlantıyla açar.
+export async function getTaxDocumentUrl(verificationId: string) {
+  const auth = await requireAdminClient()
+  if ('error' in auth) return { error: auth.error }
+
+  const { data: verification } = await auth.supabaseAdmin
+    .from('tax_verifications')
+    .select('file_path')
+    .eq('id', verificationId)
+    .maybeSingle()
+  if (!verification) return { error: 'Belge bulunamadı.' }
+
+  const { data, error } = await auth.supabaseAdmin.storage
+    .from(TAX_DOCUMENTS_BUCKET)
+    .createSignedUrl(verification.file_path, 600)
+  if (error || !data) return { error: 'Belge bağlantısı oluşturulamadı.' }
+  return { url: data.signedUrl }
+}
+
+// İncelemedeki vergi levhasını reddeder; marka yeni belge yükleyebilir.
+export async function rejectTaxVerification(verificationId: string, note: string) {
+  const auth = await requireAdminClient()
+  if ('error' in auth) return { error: auth.error }
+
+  const reason = note.trim() || 'Belge admin tarafından kabul edilmedi.'
+  const { error } = await auth.supabaseAdmin
+    .from('tax_verifications')
+    .update({
+      status: 'rejected',
+      reasons: [reason],
+      review_note: reason,
+      reviewed_by: auth.user.id,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', verificationId)
+  if (error) return { error: `Reddedilemedi: ${error.message}` }
+
+  revalidatePath('/admin')
+  return { success: true, message: 'Vergi levhası reddedildi; marka yeni belge yükleyebilir.' }
 }

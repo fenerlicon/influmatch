@@ -48,6 +48,7 @@ export default function LegalPage() {
                   <li><strong>İletişim Verileri:</strong> E-posta adresi, telefon numarası, ikamet adresi.</li>
                   <li><strong>Mesleki Veriler:</strong> Sosyal medya hesapları, takipçi istatistikleri, içerik kategorileri, marka işbirlikleri geçmişi.</li>
                   <li><strong>Finansal Veriler:</strong> IBAN, banka hesap bilgileri, vergi numarası.</li>
+                  <li><strong>İşletme Doğrulama Verileri:</strong> Markaların yüklediği vergi levhası belgesi ve bu belgeden okunan bilgiler (vergi numarası, unvan, vergi dairesi).</li>
                   <li><strong>İşlem Güvenliği:</strong> IP adresleri, giriş-çıkış logları, cihaz bilgileri.</li>
                 </ul>
               </div>

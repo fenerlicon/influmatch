@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { type ReactNode, useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info, Edit2, X, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info, Edit2, X, CheckCircle, AlertCircle } from 'lucide-react'
 import { updateBrandProfile } from '@/app/dashboard/brand/profile/actions'
 import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
@@ -12,6 +12,7 @@ import BadgeSelector from '@/components/badges/BadgeSelector'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { BRAND_CATEGORIES, BRAND_CATEGORY_KEYS } from '@/utils/categories'
 import { validateTaxNumber } from '@/lib/tax-id'
+import TaxCertificateUpload, { type TaxVerificationSummary } from '@/components/brand/TaxCertificateUpload'
 const LOGO_BUCKET = 'avatars'
 
 interface BrandProfileFormProps {
@@ -36,6 +37,7 @@ interface BrandProfileFormProps {
     socialLinksLastUpdated?: string | null
     taxOffice?: string
     taxOfficeCity?: string
+    latestTaxVerification?: TaxVerificationSummary | null
   }
 }
 
@@ -642,30 +644,25 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         )}
 
         {/* Vergi Numarası Durumu */}
-        {formState.taxId && formState.taxId.trim() && (
-          <div className={`mt-2 rounded-xl border p-3 ${initialData.taxIdVerified
-            ? 'border-emerald-500/40 bg-emerald-500/10'
-            : 'border-yellow-500/40 bg-yellow-500/10'
-            }`}>
-            <div className="flex items-center gap-2">
-              {initialData.taxIdVerified ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-emerald-400" />
-                  <span className="text-xs font-semibold text-emerald-300">Doğrulandı</span>
-                </>
-              ) : (
-                <>
-                  <Clock className="h-4 w-4 text-yellow-400" />
-                  <span className="text-xs font-semibold text-yellow-300">Onay Bekliyor</span>
-                </>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-gray-400">
-              {initialData.taxIdVerified
-                ? 'Vergi numaranız doğrulandı.'
-                : 'Vergi numaranız inceleniyor.'}
-            </p>
+        {initialData.taxIdVerified && (
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
+            <CheckCircle className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs font-semibold text-emerald-300">Vergi numaranız doğrulandı.</span>
           </div>
+        )}
+
+        {!isEditingCorporate && (
+          <TaxCertificateUpload
+            userId={userId}
+            taxIdVerified={!!initialData.taxIdVerified}
+            canSubmit={
+              !!initialData.taxId &&
+              validateTaxNumber(initialData.taxId).isValid &&
+              !!initialData.taxOffice &&
+              !!initialData.taxOfficeCity
+            }
+            latest={initialData.latestTaxVerification ?? null}
+          />
         )}
 
         {isEditingCorporate && (

@@ -1,4 +1,6 @@
 export const revalidate = 0
+// Vergi levhası okuma (Gemini) bu sayfanın server action'ında çalışır.
+export const maxDuration = 60
 
 import { redirect } from 'next/navigation'
 import BrandProfileForm from '@/components/brand/BrandProfileForm'
@@ -29,6 +31,15 @@ export default async function BrandProfileSettingsPage() {
       .select('badge_id')
       .eq('user_id', user.id),
   ])
+
+  // Son vergi levhası doğrulaması (RLS: kullanıcı sadece kendi kayıtlarını görür).
+  const { data: latestTaxVerification } = await supabase
+    .from('tax_verifications')
+    .select('status, reasons, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
   if (error) {
     console.error('[BrandProfileSettingsPage] profile load error', error.message)
@@ -65,6 +76,7 @@ export default async function BrandProfileSettingsPage() {
     socialLinksLastUpdated: profile?.social_links_last_updated ?? null,
     taxOffice: (profile as any)?.tax_office ?? '',
     taxOfficeCity: (profile as any)?.tax_office_city ?? '',
+    latestTaxVerification: latestTaxVerification ?? null,
   }
 
   return (

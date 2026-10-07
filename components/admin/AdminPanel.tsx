@@ -10,6 +10,8 @@ import Link from 'next/link'
 import { getCategoryLabel } from '@/utils/categories'
 import { validateTaxNumber } from '@/lib/tax-id'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
+import TaxVerificationReview from '@/components/admin/TaxVerificationReview'
+import type { AdminTaxVerification } from '@/lib/tax-verification'
 import NotificationsPanel from '@/components/admin/NotificationsPanel'
 import { toast } from 'sonner'
 
@@ -38,6 +40,7 @@ interface User {
   tax_id_verified?: boolean | null
   email_verified_at?: string | null
   blue_tick_override?: 'granted' | 'revoked' | null
+  tax_verification?: AdminTaxVerification | null
 }
 
 interface Advert {
@@ -561,25 +564,10 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           console.error('Tax ID verification error:', result.error)
         } else {
           alert(result.message || 'Vergi numarası başarıyla onaylandı.')
-          if (result.warning) {
-            console.warn('Tax ID verification warning:', result.warning)
-          }
-          // Update local state
+          // Sunucudaki güncel hali (rozetler, levha doğrulama durumu) ile yenile
+          const { user: updatedUser } = await getAdminUserCard(userId)
           const updateUserInState = (users: User[]) =>
-            users.map((u) => {
-              if (u.id === userId) {
-                const currentBadges = u.displayed_badges || []
-                const newBadges = currentBadges.includes('official-business')
-                  ? currentBadges
-                  : [...currentBadges, 'official-business']
-                return {
-                  ...u,
-                  tax_id_verified: true,
-                  displayed_badges: newBadges
-                }
-              }
-              return u
-            })
+            users.map((u) => (u.id === userId ? ((updatedUser as User | undefined) ?? { ...u, tax_id_verified: true }) : u))
 
           setPendingUsersState(updateUserInState)
           setVerifiedUsersState(updateUserInState)
@@ -1465,7 +1453,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                               ⚠️ Vergi No Onayı Bekliyor
                             </div>
                             <p className="text-xs text-yellow-200/90">
-                              Bu marka vergi numarasını girdi ancak henüz onaylanmadı.
+                              {user.tax_verification?.status === 'needs_review'
+                                ? 'Vergi levhası yüklendi; otomatik kontrol bazı noktalarda takıldı, incelemeniz gerekiyor.'
+                                : 'Bu marka vergi numarasını girdi ancak henüz onaylanmadı.'}
                             </p>
                           </div>
                         )
@@ -1573,6 +1563,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                   <p className="text-xs text-red-300">⚠️ Algoritma kontrolünden geçmiyor: geçersiz numara</p>
                                 )
                               })()}
+                              {user.tax_verification ? (
+                                <TaxVerificationReview key={user.tax_verification.id} verification={user.tax_verification} />
+                              ) : (
+                                user.tax_id && !user.tax_id_verified && (
+                                  <p className="text-xs text-gray-500">Vergi levhası henüz yüklenmedi.</p>
+                                )
+                              )}
                             </div>
 
                             {/* Company Legal Name */}
