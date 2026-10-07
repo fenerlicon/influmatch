@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import Image from 'next/image'
+import { getAttachmentUrl } from '@/app/admin/attachments/actions'
 import Link from 'next/link'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { updateSupportTicketStatus, addAdminResponse } from '@/app/admin/support/actions'
@@ -384,15 +385,24 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
                   {selectedTicket.file_url && (
                     <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
                       <p className="mb-3 text-xs uppercase tracking-[0.2em] text-soft-gold">Ekli Dosya</p>
-                      <a
-                        href={selectedTicket.file_url}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          // Ek özel kovada; kısa süreli imzalı bağlantı istenir. Sekme tıklama anında açılır
+                          // (açılır pencere engelleyicisine takılmaması için), adres sonra verilir.
+                          const tab = window.open('', '_blank')
+                          const result = await getAttachmentUrl(selectedTicket.file_url as string)
+                          if (result.url && tab) tab.location.href = result.url
+                          else {
+                            tab?.close()
+                            alert(result.error ?? 'Dosya açılamadı.')
+                          }
+                        }}
                         className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300 transition hover:border-soft-gold/50 hover:text-soft-gold"
                       >
                         <Eye className="h-4 w-4" />
                         Görüntüyü Aç
-                      </a>
+                      </button>
                     </div>
                   )}
 

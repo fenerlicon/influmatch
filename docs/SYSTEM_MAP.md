@@ -149,7 +149,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Dosyalar:** `components/settings/{SupportSection,SupportTicketForm,SupportTicketsList}.tsx`,
   `app/dashboard/influencer/settings/support/actions.ts`
 - **Sorunlar:**
-  - **1.10-S1 [ORTA]** Ekler herkese açık `feedback-images` bucket'ına gidiyor ve public URL alıyor (gizlilik).
+  - **1.10-S1 [ORTA]** (admin ekranları imzalı bağlantı kullanıyor; kovayı özel yapan `20261007000008` merge sonrası uygulanacak) Ekler herkese açık `feedback-images` bucket'ına gidiyor ve public URL alıyor (gizlilik).
   - **1.10-S2 [DÜŞÜK]** "Talep numarası" kullanıcının talep sayısı + 1; saklanmıyor, yarış durumuna açık.
   - **1.10-S3 [DÜŞÜK]** Yeni talep realtime gelene kadar listede görünmüyor; seçim değişince realtime yeniden aboneleniyor.
 

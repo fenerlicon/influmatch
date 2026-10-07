@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { getAttachmentUrl } from '@/app/admin/attachments/actions'
 import { CheckCircle, XCircle, Archive, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
 import { updateFeedbackStatus } from '@/app/admin/feedback/actions'
 import Link from 'next/link'
@@ -44,6 +44,7 @@ export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdmi
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'reviewed' | 'resolved' | 'archived'>('all')
   const [isPending, startTransition] = useTransition()
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
 
   const filteredSubmissions =
     activeTab === 'all'
@@ -163,7 +164,17 @@ export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdmi
                         <div className="mb-3">
                           <button
                             type="button"
-                            onClick={() => setExpandedId(expandedId === submission.id ? null : submission.id)}
+                            onClick={async () => {
+                              if (expandedId === submission.id) {
+                                setExpandedId(null)
+                                return
+                              }
+                              setExpandedId(submission.id)
+                              if (!signedUrls[submission.id] && submission.imageUrl) {
+                                const result = await getAttachmentUrl(submission.imageUrl)
+                                if (result.url) setSignedUrls((prev) => ({ ...prev, [submission.id]: result.url as string }))
+                              }
+                            }}
                             className="flex items-center gap-2 text-sm text-soft-gold hover:underline"
                           >
                             {expandedId === submission.id ? (
@@ -180,13 +191,13 @@ export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdmi
                           </button>
                           {expandedId === submission.id && (
                             <div className="mt-2 rounded-xl border border-white/10 bg-[#11121A] p-4">
-                              <Image
-                                src={submission.imageUrl}
-                                alt="Feedback screenshot"
-                                width={800}
-                                height={600}
-                                className="w-full rounded-lg object-contain"
-                              />
+                              {signedUrls[submission.id] ? (
+                                // İmzalı bağlantı kısa ömürlü ve özel kovadan; görsel optimizasyonundan geçirilmez.
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={signedUrls[submission.id]} alt="Feedback screenshot" className="w-full rounded-lg object-contain" />
+                              ) : (
+                                <p className="text-sm text-gray-400">Görsel yükleniyor...</p>
+                              )}
                             </div>
                           )}
                         </div>
