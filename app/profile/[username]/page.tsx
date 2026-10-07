@@ -73,6 +73,9 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   const isInfluencer = profile.role === 'influencer'
   const isBrand = profile.role === 'brand'
   const canSendOffer = viewerRole === 'brand' && isInfluencer && viewer?.id !== profile.id
+  // Geri dönüş izleyicinin kendi keşif ekranına (influencer marka keşfine düşmemeli).
+  const backHref =
+    viewerRole === 'brand' ? '/dashboard/brand/discover' : viewerRole === 'influencer' ? '/dashboard/influencer/discover' : viewerRole === 'admin' ? '/admin' : '/dashboard'
 
   const rawSocialLinks = (profile.social_links as Record<string, string> | null) ?? {}
   const enrichedSocialLinks = { ...rawSocialLinks }
@@ -159,7 +162,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
         {/* Header Profile Card */}
         <section className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-[#15161F] to-[#0C0D10] p-6 sm:p-10 shadow-glow">
           <Link
-            href="/dashboard/brand/discover"
+            href={backHref}
             className="group absolute -left-3 -top-3 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold lg:-left-4 lg:-top-4 z-10"
           >
             <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />

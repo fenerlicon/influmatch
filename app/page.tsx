@@ -50,6 +50,7 @@ export default async function Home({ searchParams }: HomeProps) {
         .eq('role', 'influencer')
         .eq('verification_status', 'verified')
         .eq('spotlight_active', true)
+        .eq('is_showcase_visible', true) // vitrinden gizlenen profiller ana sayfada da çıkmaz
         .not('username', 'is', null)
         .order('created_at', { ascending: false })
         .limit(10)

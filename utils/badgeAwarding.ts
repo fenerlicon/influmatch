@@ -1,4 +1,5 @@
-'use server'
+// Sunucu içi yardımcı: 'use server' DEĞİLDİR. Aksi halde awardBadgesForUser(herhangiBirId)
+// istemciden doğrudan çağrılabilen bir sunucu aksiyonu olurdu. Çağıranlar yetkiyi kendisi kontrol eder.
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'

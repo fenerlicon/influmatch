@@ -3,6 +3,7 @@ import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import InflistManager from '@/components/dashboard/InflistManager'
 
 export const revalidate = 0
@@ -15,7 +16,7 @@ export default async function BrandFavoritesPage() {
     // Fetch user profile verification status
     const { data: userData } = await supabase
         .from('users')
-        .select('verification_status')
+        .select('verification_status, spotlight_active, spotlight_expires_at, spotlight_plan')
         .eq('id', user.id)
         .single()
 
@@ -72,6 +73,8 @@ export default async function BrandFavoritesPage() {
                     influencers={influencers}
                     initialFavoritedIds={favoritedIds}
                     userRole="brand" // Enable filters
+                    isSpotlightMember={hasActiveSpotlight(userData)}
+                    spotlightPlan={hasActiveSpotlight(userData) ? (userData?.spotlight_plan ?? null) : null}
                 />
             )}
         </div>

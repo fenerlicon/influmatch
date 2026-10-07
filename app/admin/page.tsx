@@ -9,15 +9,18 @@ import { loadLatestTaxVerifications } from '@/lib/tax-verification'
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient()
 
-  try {
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+  // redirect() bir istisna fırlatarak çalışır; try içinde kalırsa aşağıdaki catch onu yakalayıp
+  // "Bir Hata Oluştu" ekranı gösteriyordu. Oturum kontrolü bu yüzden try dışında.
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
 
-    if (authError || !user) {
-      redirect('/login')
-    }
+  if (authError || !user) {
+    redirect('/login?redirectedFrom=/admin')
+  }
+
+  try {
 
     // Check if user is admin
     const { data: adminProfile, error: adminError } = await supabase
@@ -35,9 +38,7 @@ export default async function AdminPage() {
         adminError.code === 'PGRST116'
 
       if (isRateLimit) {
-        throw new Error(
-          'Supabase maintenance nedeniyle geçici olarak erişim sorunu yaşanıyor. Supabase şu anda scheduled maintenance yapıyor (21-23 Kasım). Lütfen birkaç dakika bekleyip tekrar deneyin.'
-        )
+        throw new Error('Veritabanı geçici olarak yanıt vermiyor (rate limit). Lütfen birkaç dakika bekleyip tekrar deneyin.')
       }
     }
 
