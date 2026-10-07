@@ -562,7 +562,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   bazıları yalnızca tanı SELECT'i) + 20241129 → 20261007 zaman damgalı dosyalar. Migration çalıştırıcı yok.
 - `supabase/cron/hourly_jobs.sql` — pg_cron + Vault, elle çalıştırılır.
 - **Sorunlar:**
-  - **7.1-S1 [YÜKSEK]** (kısmen: bilinen sapmalar `20261007000011` ile kapatıldı, `20260316000001` artık influencer_id'yi kendisi ekliyor. Tam doğrulama için repo dosyalarını boş bir veritabanında sırayla çalıştıran bir deneme gerekir) Canlı DB repodan neredeyse kesin sapmış (bkz. 7.6); migration'lar sıfırdan sırayla oynatılamıyor (`20260316000001` var olmayan `influencer_id`'yi kullanıyor).
+  - ✅ ~~**7.1-S1 [YÜKSEK]**~~ (2026-10-09: canlı şemadan katalog sorgularıyla tam temel üretildi, `20261009000000_schema_baseline.sql`: 26 tablo, kısıtlar, 99 indeks, 33 fonksiyon, 20 trigger, 74 politika, tablo/kolon/fonksiyon yetkileri, realtime, kovalar. Eski dosyalar `_archive/`. Yeni kurulum: temel + sonraki migration'lar, `supabase/README.md`. Önceki not: kısmen: bilinen sapmalar `20261007000011` ile kapatıldı, `20260316000001` artık influencer_id'yi kendisi ekliyor. Tam doğrulama için repo dosyalarını boş bir veritabanında sırayla çalıştıran bir deneme gerekir) Canlı DB repodan neredeyse kesin sapmış (bkz. 7.6); migration'lar sıfırdan sırayla oynatılamıyor (`20260316000001` var olmayan `influencer_id`'yi kullanıyor).
   - ✅ ~~**7.1-S2 [ORTA]**~~ (`20241209023500` IF NOT EXISTS; `create_user_badges_table` politikaları DROP IF EXISTS + kısıt DO bloğu, rozet ekleme canlıdaki gibi yalnızca admin) Bazı migration'lar idempotent değil (`20241209023500` IF NOT EXISTS'siz, `create_user_badges_table` korumasız ADD CONSTRAINT).
   - ✅ ~~**7.1-S3 [ORTA]**~~ (tasarım gereği güvenli varsayılan: yeni kolon gizli doğar. Kural: herkese açık yeni bir `users` kolonu eklenirken aynı migration'da `GRANT SELECT (kolon) ON public.users TO anon, authenticated;` yazılır) Kolon bazlı yetki (`20260930000001`) sonradan eklenen her kolonu gizliyor; yeni herkese açık kolon için GRANT bloğu tekrar çalıştırılmalı (unutması kolay).
 
@@ -617,6 +617,12 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
     doğrudan yazıyordu ve tablo herkese yazılabilirdi (marka analitiği şişirilebiliyordu). Fonksiyon düzeltildi, doğrudan yazım kapatıldı.
   - ✅ ~~**7.4-S6 [ORTA]**~~ `users` için "Public profiles are viewable by everyone" anon'a açıktı ve anon kolon yetkileri vardı:
     giriş yapmadan profiller API'den okunabiliyordu (kural 2'ye aykırı). Kural authenticated'a daraltıldı, anon okuma yetkisi kaldırıldı.
+  - **7.4-S8 [DÜŞÜK]** (2026-10-09, `20261009000002`) `restrict_social_accounts_columns` ve `protect_social_account_metrics`
+    trigger'ları tabloda olmayan kolonlara (`following_count`, `verified_at`, `avg_likes`) yazıyordu; istemci UPDATE kuralı
+    olmadığı için tetiklenmiyordu. Doğru kolonlarla yeniden yazıldı (kullanıcı SQL'i çalıştırınca ✅).
+  - **7.4-S9 [DÜŞÜK]** Kullanılmayan fonksiyonlar: `protect_user_critical_data`, `restrict_users_sensitive_columns` (trigger'ı yok),
+    `log_message` (uygulama çağırmıyor). `offers` üzerinde aynı işi yapan iki trigger (`restrict_offers_trigger`,
+    `secure_offers_trigger`). DROP gerektirdiği için toplu temizlik SQL'ine bırakıldı.
   - ✅ ~~**7.4-S7 [DÜŞÜK]**~~ `rooms` "System can create rooms" `WITH CHECK (true)`; `message_logs` herkese yazılabilirdi.
 - Güvenli: `is_admin()`, `get_my_private_profile()`, `get_offer_contact_email()`, `award_user_badge()` (artık yalnızca admin/sunucu),
   `is_valid_tax_number()`, `website_host()`, `record_api_key_result()` (yalnızca service role).
@@ -644,13 +650,13 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**7.6-S1 [YÜKSEK]**~~ (`20261007000011` ile repoya eklendi) `advert_applications.influencer_id` — politikalarda, web ve mobilde kullanılıyor, hiç oluşturulmamış.
 - ✅ ~~**7.6-S2 [ORTA]**~~ (`20261007000011`) `social_accounts.verification_code`, `has_stats`, `last_scraped_at` — kod yazıyor; canlıda var olmalı, repoda yok.
 - ✅ ~~**7.6-S3 [ORTA]**~~ (`20261007000011`) `users.role='admin'` — `schema.sql` CHECK yalnızca influencer/brand'e izin veriyor; hiçbir migration genişletmiyor.
-- **7.6-S4 [DÜŞÜK]** `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`.
+- ✅ ~~**7.6-S4 [DÜŞÜK]**~~ (temel dosyası canlıyı birebir yansıtıyor; kodda geçen olmayan kolonlar 5.5-S1 ile kaldırılmıştı, mobil `feedback` 10.3-S8 ile düzeltildi) `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`.
 
 ### 7.7 Çakışan migration'lar
 - ✅ ~~**7.7-S1 [YÜKSEK]**~~ (advert_applications için `20261007000005` canlıda uygulandı) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
   doğrulanmamış influencer da başvurabiliyor.
 - ✅ ~~**7.7-S2 [ORTA]**~~ (`20261007000009` 7 Ekim toplu SQL'iyle uygulandı; gevşek kurallar silindi, doğrulandı) Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
-- **7.7-S3 [DÜŞÜK]** (koddaki `'basic'|'pro'` cast'i kaldırıldı; kalan iş fonksiyon geçmişini baseline migration'da tek tanıma indirmek, 7.1-S1) `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
+- ✅ ~~**7.7-S3 [DÜŞÜK]**~~ (temel dosyasında `handle_new_auth_user` tek tanım; enum `spotlight_plan_enum` (ibasic, mbasic, ipro, mpro). Önceki not: koddaki `'basic'|'pro'` cast'i kaldırıldı; kalan iş fonksiyon geçmişini baseline migration'da tek tanıma indirmek, 7.1-S1) `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
 
 ---
 

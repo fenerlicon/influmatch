@@ -118,7 +118,7 @@
 | #29 | Clear a batch of small issues from the system map |
 | #30 | Web fixes: delete re-auth, list validation, avatar URL check, realtime cleanup |
 
-Canlı veritabanına uygulanan migration'lar `supabase/migrations/2026100*` dosyalarında; ne zaman, nasıl uygulandıkları SYSTEM_MAP 11.3'te.
+Canlı şemanın temeli `supabase/migrations/20261009000000_schema_baseline.sql`; önceki migration'lar `supabase/migrations/_archive/` altında; ne zaman, nasıl uygulandıkları SYSTEM_MAP 11.3'te.
 Saatlik görev Supabase pg_cron ile çalışıyor. `supabase/cron/hourly_jobs.sql` repoda yer tutucuyla duruyor; gerçek secret yalnızca Supabase'de.
 
 ## 6. Açık maddeler (SYSTEM_MAP'ten, 2026-10-07)

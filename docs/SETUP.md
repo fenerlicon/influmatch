@@ -46,15 +46,16 @@ Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yaz�
 
 - **Proje:** `aiftdpagcnwqzzemtkwt`. Auth'ta e-posta onayı açık, OTP 6 hane, Passkeys açık.
   "Leaked password protection" Pro planda açılacak.
-- **Şema:** `supabase/schema.sql` + `supabase/migrations/`. Zaman damgalı dosyalar (`2024…`–`2026…`) sırayla
-  uygulanmış kabul edilir; zaman damgasız eski dosyalar elle yapıştırılmış tarihî düzeltmelerdir, yeni kurulumda
-  çalıştırılmaz. Repo dosyaları sıfırdan bir veritabanında henüz sırayla oynatılamıyor (SYSTEM_MAP 7.1-S1);
-  tam bir temel (baseline) migration hazırlanana kadar yeni ortam canlı şemadan kopyalanmalıdır.
-- **Yeni migration kuralı:** risksiz değişiklikler (indeks, kısıt genişletme, GRANT/REVOKE, idempotent kolon,
-  ALTER POLICY ile daraltma) canlıya uygulanır **ve** `supabase/migrations/<zaman damgası>_<ad>.sql` olarak yazılır.
-  Riskliler (DROP POLICY, veri silme, kısıt daraltma) toplu SQL olarak SQL Editor'de elle çalıştırılır.
+- **Şema:** `supabase/migrations/20261009000000_schema_baseline.sql` canlı şemanın tam temelidir; yeni bir veritabanı
+  bu dosya + sonraki zaman damgalı migration'larla kurulur. Eski dosyalar `supabase/migrations/_archive/` altında
+  (çalıştırılmaz). Ayrıntı ve yazım kuralları: `supabase/README.md`.
+- **Değişiklik kuralı:** risksiz değişiklikler (indeks, kısıt genişletme, GRANT/REVOKE, idempotent kolon, ALTER POLICY
+  ile daraltma) `supabase/migrations/<zaman damgası>_<ad>.sql` olarak yazılır. Yerel oturum canlıya migration
+  uygulayamadığı için bunlar da `supabase/manual/` altında toplu SQL olarak kullanıcıya verilir; riskliler
+  (DROP POLICY, veri silme, kısıt daraltma) her durumda böyle verilir.
   Herkese açık yeni bir `users` kolonu eklenirken aynı migration'da
-  `GRANT SELECT (kolon) ON public.users TO anon, authenticated;` yazılır (yeni kolonlar gizli doğar).
+  `GRANT SELECT (kolon) ON public.users TO authenticated;` yazılır (yeni kolonlar gizli doğar; giriş yapmamış
+  ziyaretçi `users` okuyamaz).
 - **Storage kovaları:**
 
   | Kova | Erişim | Yol |
