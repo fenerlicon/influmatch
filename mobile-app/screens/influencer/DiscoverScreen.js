@@ -57,14 +57,13 @@ const MiniBadge = ({ text, color = '#3b82f6' }) => (
     </View>
 );
 
-const InfluencerCard = memo(({ item, onPress, horizontal = false }) => {
+const InfluencerCard = memo(({ item, onPress, horizontal = false, canFavorite = false }) => {
     const isVerified = item.isVerified;
     const [isFav, setIsFav] = useState(item.isFavorited);
     
     const currentWidth = horizontal ? width * 0.45 : COLUMN_WIDTH;
     const cardHeight = horizontal ? 300 : (item.id.charCodeAt(0) % 2 === 0 ? 320 : 360);
     const firstName = (item.full_name || item.username || 'Influencer').split(' ')[0];
-    const trustScore = Math.floor(75 + (item.id.charCodeAt(0) % 22));
 
     const toggleFavorite = async (e) => {
         e.stopPropagation();
@@ -72,13 +71,18 @@ const InfluencerCard = memo(({ item, onPress, horizontal = false }) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return Alert.alert('Hata', 'Favorilere eklemek için giriş yapmalısınız.');
             if (isFav) {
-                await supabase.from('favorites').delete().eq('user_id', user.id).eq('influencer_id', item.id);
+                const { error } = await supabase.from('favorites').delete().eq('brand_id', user.id).eq('influencer_id', item.id);
+                if (error) throw error;
                 setIsFav(false);
             } else {
-                await supabase.from('favorites').insert({ user_id: user.id, influencer_id: item.id });
+                const { error } = await supabase.from('favorites').insert({ brand_id: user.id, influencer_id: item.id });
+                if (error) throw error;
                 setIsFav(true);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Hata', 'Favoriler güncellenemedi.');
+        }
     };
 
     return (
@@ -99,9 +103,9 @@ const InfluencerCard = memo(({ item, onPress, horizontal = false }) => {
                 <LinearGradient colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.9)']} className="absolute inset-0" />
                 
                 {/* Favorite */}
-                <TouchableOpacity onPress={toggleFavorite} className="z-50 absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 items-center justify-center border border-white/10 backdrop-blur-md">
+                {canFavorite && <TouchableOpacity onPress={toggleFavorite} className="z-50 absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 items-center justify-center border border-white/10 backdrop-blur-md">
                     <Heart color={isFav ? "#ef4444" : "white"} fill={isFav ? "#ef4444" : "transparent"} size={16} />
-                </TouchableOpacity>
+                </TouchableOpacity>}
 
                 <View className="absolute bottom-5 left-5 right-5">
                     <View className="flex-row items-center gap-1.5 mb-1.5">
@@ -119,7 +123,7 @@ const InfluencerCard = memo(({ item, onPress, horizontal = false }) => {
     );
 });
 
-const CategorySection = memo(({ title, data, onProfilePress }) => (
+const CategorySection = memo(({ title, data, onProfilePress, canFavorite }) => (
     <View className="mb-10">
         <View className="flex-row items-center justify-between px-6 mb-5">
             <Text className="text-white font-black text-xl tracking-tight uppercase" style={{ letterSpacing: 1 }}>
@@ -132,7 +136,7 @@ const CategorySection = memo(({ title, data, onProfilePress }) => (
         <FlatList
             horizontal
             data={data}
-            renderItem={({ item }) => <InfluencerCard item={item} onPress={() => onProfilePress(item)} horizontal={true} />}
+            renderItem={({ item }) => <InfluencerCard item={item} onPress={() => onProfilePress(item)} horizontal={true} canFavorite={canFavorite} />}
             keyExtractor={item => item.id}
             contentContainerStyle={{ paddingHorizontal: 24 }}
             showsHorizontalScrollIndicator={false}
@@ -145,6 +149,7 @@ export default function DiscoverScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isBrand, setIsBrand] = useState(false);
 
     const fetchInfluencers = async () => {
         try {
@@ -166,11 +171,17 @@ export default function DiscoverScreen({ navigation }) {
                 .select('user_id, platform, follower_count, engagement_rate, stats_payload')
                 .in('user_id', users.map(u => u.id));
 
-            // Fetch Favorites
-            const { data: myFavs } = myId ? await supabase
+            // Favoriler yalnızca markalar içindir (tablo brand_id ile tutulur).
+            const { data: me } = myId
+                ? await supabase.from('users').select('role').eq('id', myId).maybeSingle()
+                : { data: null };
+            const viewerIsBrand = me?.role === 'brand';
+            setIsBrand(viewerIsBrand);
+
+            const { data: myFavs } = viewerIsBrand ? await supabase
                 .from('favorites')
                 .select('influencer_id')
-                .eq('user_id', myId) : { data: [] };
+                .eq('brand_id', myId) : { data: [] };
 
             const favIds = new Set(myFavs?.map(f => f.influencer_id));
 
@@ -269,6 +280,7 @@ export default function DiscoverScreen({ navigation }) {
                             <CategorySection 
                                 title={item.title} 
                                 data={item.data} 
+                                canFavorite={isBrand}
                                 onProfilePress={(inf) => navigation.navigate('InfluencerDetail', { influencer: inf })} 
                             />
                         )}
