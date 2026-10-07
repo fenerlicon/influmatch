@@ -390,7 +390,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `app/actions/spotlight.ts`, `app/dashboard/spotlight/**`, `app/spotlight/page.tsx`, `components/spotlight/*`
 - **İş:** Planlar `ibasic`, `ipro`, `mbasic`, `mpro`. Satın alma kapalı; yalnızca admin açar (`toggleUserSpotlight`).
 - **Sorunlar:**
-  - **4.3-S1 [YÜKSEK]** Süresi dolan Spotlight hiç kapanmıyor: `checkSpotlightStatus` kullanıcı istemcisiyle `spotlight_active` yazıyor,
+  - ✅ ~~**4.3-S1 [YÜKSEK]**~~ (saatlik görev `lib/spotlight-expiry.ts` ile kapatıyor; canlıda 12 kullanıcı etkileniyordu) Süresi dolan Spotlight hiç kapanmıyor: `checkSpotlightStatus` kullanıcı istemcisiyle `spotlight_active` yazıyor,
     kolon beyaz listede olmadığı için sessizce düşüyor; cron da kapatmıyor. Süresi dolanlar sıralamada önde, +10 güven puanı ve mavi tik hakkı sürüyor.
     Fonksiyon ayrıca istemciden gelen `userId`'ye güveniyor.
   - **4.3-S2 [ORTA]** Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor.
@@ -626,7 +626,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.2 Zamanlanmış işler
 - **Vercel cron** (`vercel.json`): `refresh-stats` her gün 09:00 UTC.
 - **Supabase pg_cron** (`supabase/cron/hourly_jobs.sql`): her saat `/api/cron/hourly`, gizli anahtar Vault'ta.
-- **Sorunlar:** **8.2-S1 [YÜKSEK]** Süresi dolan Spotlight'ı kapatan bir iş yok (4.3-S1); `refresh-stats` zaman aşımı (2.2-S2).
+- **Sorunlar:** ✅ ~~**8.2-S1 [YÜKSEK]**~~ (Spotlight kısmı) Süresi dolan Spotlight'ı kapatan bir iş yok (4.3-S1); `refresh-stats` zaman aşımı (2.2-S2).
 
 ### 8.3 API anahtar havuzu
 - **Dosyalar:** `lib/api-keys.ts` (`withApiKey`, otomatik geçiş, bekleme süreleri), `lib/apify.ts`, `lib/gemini.ts`, `lib/api-key-health.ts`

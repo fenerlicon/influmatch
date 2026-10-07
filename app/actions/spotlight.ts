@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { DiscoverInfluencer } from '@/types/influencer'
 import { syncBlueTick } from '@/lib/blue-tick'
+import { expireSpotlights } from '@/lib/spotlight-expiry'
 
 export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{ data: DiscoverInfluencer[], error: string | null }> {
     const supabase = createSupabaseServerClient()
@@ -123,36 +124,21 @@ export async function activateSpotlightPlan(
     };
 }
 
+/**
+ * Oturumdaki kullanıcının Spotlight üyeliği dolmuşsa kapatır. userId parametresi geriye dönük uyum için
+ * duruyor; işlem her zaman oturumdaki kullanıcıya uygulanır (başkası adına çağrılamaz).
+ */
 export async function checkSpotlightStatus(userId: string): Promise<void> {
     const supabase = createSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.id !== userId) return
 
-    const { data } = await supabase
-        .from('users')
-        .select('spotlight_active, spotlight_expires_at, verification_status')
-        .eq('id', userId)
-        .single()
+    const admin = createSupabaseAdminClient()
+    if (!admin) return
 
-    if (data && data.spotlight_active) {
-        // Deactivate if verification is lost
-        if (data.verification_status !== 'verified') {
-            await supabase
-                .from('users')
-                .update({ spotlight_active: false })
-                .eq('id', userId)
-            await syncBlueTick(userId)
-            return
-        }
-
-        if (data.spotlight_expires_at) {
-            const expires = new Date(data.spotlight_expires_at)
-            if (expires < new Date()) {
-                await supabase
-                    .from('users')
-                    .update({ spotlight_active: false })
-                    .eq('id', userId)
-                await syncBlueTick(userId)
-            }
-        }
+    const result = await expireSpotlights(admin, { userId: user.id })
+    if (result.expired.length || result.unverified.length) {
+        await syncBlueTick(user.id, admin)
     }
 }
 
