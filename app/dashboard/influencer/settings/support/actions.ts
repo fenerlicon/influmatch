@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { ticketCode } from '@/lib/support-ticket'
+import { isAllowedAttachmentUrl } from '@/lib/attachment-url'
 import { revalidatePath } from 'next/cache'
 
 export interface CreateSupportTicketPayload {
@@ -34,6 +35,10 @@ export async function createSupportTicket(
       return { success: false, error: 'Mesaj en az 10 karakter olmalıdır' }
     }
 
+    if (!isAllowedAttachmentUrl(payload.fileUrl)) {
+      return { success: false, error: 'Dosya bağlantısı geçersiz. Lütfen dosyayı yeniden yükleyin.' }
+    }
+
     // Create support ticket
     const { data: ticket, error } = await supabase
       .from('support_tickets')
@@ -50,7 +55,7 @@ export async function createSupportTicket(
 
     if (error) {
       console.error('[createSupportTicket] error:', error)
-      return { success: false, error: error.message || 'Destek talebi oluşturulamadı' }
+      return { success: false, error: 'Destek talebi oluşturulamadı. Lütfen tekrar deneyin.' }
     }
 
     revalidatePath('/dashboard/influencer/settings')

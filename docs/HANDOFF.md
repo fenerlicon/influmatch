@@ -23,18 +23,16 @@
    Birleştirme gerektirenler (DROP POLICY) toplu SQL'e girer. Bkz. SYSTEM_MAP 7.4.
 2. **7.1-S1 tam şema (baseline) migration'ı:** canlı şemayı okuyup repoya tek bir temel dosya çıkar.
    Eski migration'lar çakışıyor, ayrıntı 7.1 ve 7.7'de.
-3. **8.8-S1 eski dokümanlar:** kökteki `DEPLOYMENT.md`, `VERCEL_FIX.md` vb. eski ve birbiriyle çelişiyor.
-   Tek bir güncel kurulum belgesine indir. Belgede şunlar olmalı: env değişkenleri, CRON_SECRET, Resend, anahtar havuzu, pg_cron, bucket'lar, migration sırası.
-4. **Küçük kalanlar:**
+3. **Küçük kalanlar:**
    - 7.4-S3 boş `handle_delete_auth_user` (DROP FUNCTION → toplu SQL'e)
-   - 7.7-S3 spotlight_plan cast'i
-   - 4.1-S3 mantığı olmayan rozetler
-   - 4.5-S3 / 4.6-S2 analitik olayları
-   - 1.1-S2 middleware rol kontrolü
-   - 1.11-S1 geri bildirim imageUrl doğrulaması (avatar için `lib/avatar-url.ts` örneği var)
-   - 2.12-S2 `cancelApplication`
-   - 3.6-S4 filtresiz `rooms` kanalı
-   - 7.3-S1
+   - 4.1-S3 mantığı olmayan rozetler (katalogdan kaldırmak arayüzü değiştirir; kullanıcıya sor)
+   - 4.5-S3 / 4.6-S2 analitik olayları (`analytics_events` marka odaklı; influencer profili görüntülenmesi için kimin okuyacağı tasarlanmalı)
+   - 7.3-S1 (DB beyaz listesi; canlı erişim gerekiyor)
+4. 2026-10-08 yerel oturumda yapılanlar (PR'da): 1.1-S2 admin layout'u, 1.11-S1 ek adresi doğrulaması,
+   2.11-S1 influencer vitrini ortak kaynağa bağlandı, 2.12-S2 başvuruyu geri çekme, 3.6-S4 / 3.8-S3 realtime filtreleri,
+   7.7-S3 kod cast'i, 8.8-S1 tek kurulum rehberi (`docs/SETUP.md`).
+   **Yerel oturumun Influmatch Supabase projesine MCP erişimi yok**; 1. ve 2. maddeler (canlı DB) erişim
+   kurulunca ya da bulut oturumunda yapılmalı.
 5. Karar bekleyenlere (bölüm 4) kullanıcı karar verdikçe geç.
 
 ## 3. Kullanıcının verdiği kararlar (kronolojik, 6–7 Ekim 2026)
@@ -119,7 +117,6 @@ Ayrıntı ve bağlam için haritadaki ilgili satıra bak. "NOT" satırları ür�
 
 | ID | Seviye | Özet |
 |---|---|---|
-| 1.1-S2 | ORTA | Yalnızca oturum varlığı kontrol ediliyor, rol kontrolü yok; admin/marka/influencer ayrımı sayfalara kalmış. |
 | 1.9-S5 | ORTA | `email_notifications` tercihleri kaydediliyor ama hiçbir kod bu tercihlere göre e-posta göndermiyor (bkz. 5.4). |
 | 2.1-S8 | DÜŞÜK | (canlıda kontrol edildi: jeton kolonu yok; okunabilen doğrulama kodu başkasının biyografisine yazılamayacağı için işe yaramaz. Düşük) `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir. |
 | 2.3-S2 | YÜKSEK | (OAuth kapatıldığı için etkisiz; açılmadan önce `user.info.profile` kapsamı + `username` alanı gerekli. Canlıda OAuth ile bağlanmış hesap yok) TikTok OAuth kullanıcı adı yerine `display_name` kaydediyor, `syncBlueTick` çağırmıyor; sonraki yenileme yanlış he… |
@@ -129,12 +126,10 @@ Ayrıntı ve bağlam için haritadaki ilgili satıra bak. "NOT" satırları ür�
 | 2.9-S1 | ORTA | "AI analiz" yerel kural motoru + rastgele karıştırma + sahte 800 ms gecikme; LLM yok. Pazarlama dili yanıltıcı. |
 | 2.9-S2 | ORTA | Her marka ücretsiz BRAND_PRO seviyesini alıyor; seviye eşlemesi dosyalar arasında farklı (`ipro`/`mpro`, eski `pro`/`elite`). |
 | 2.9-S3 | DÜŞÜK | ("TikTok Resmi Entegrasyonu Aktif" → "Herkese açık TikTok profilinden alındı") `match_score` / `profile_coach` "Çok yakında" ile kapalı; `statsPayload.changes` hiç yazılmıyor; "TikTok Resmi Entegrasyonu Aktif" yazısı yanlış. |
-| 2.12-S2 | DÜŞÜK | `cancelApplication` hiçbir yerden çağrılmıyor; tüm açık ilanlar sayfalamasız yükleniyor. |
 | 2.13-S1 | ORTA | (bilinçli görünüyor: teklif beklemede kalır, görüşmek için sohbet açılır; ürün kararı bekliyor) "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor. |
 | 3.2-S2 | ORTA | (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor. |
 | 3.5-S2 | DÜŞÜK | "%95+ uyumlu" sabit iddia; marka ve influencer kategorileri farklı listelerden geldiği için eşleşme genelde boş havuza düşüyor; sınırsız `.in('id', ids)`. |
 | 3.6-S2 | YÜKSEK | Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1). |
-| 3.6-S4 | DÜŞÜK | `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik. |
 | 3.8-S3 | ORTA | Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor. |
 | 3.11-S1 | ORTA | Bu kuraldan önce verilmiş sarı tikler otomatik geri alınmadı (karar bekliyor). |
 | 4.1-S3 | DÜŞÜK | Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri. |
@@ -155,7 +150,6 @@ Ayrıntı ve bağlam için haritadaki ilgili satıra bak. "NOT" satırları ür�
 | 7.6-S4 | DÜŞÜK | `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`. |
 | 7.7-S3 | DÜŞÜK | `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'\|'pro'` cast'i var. |
 | 8.4-S1 | YÜKSEK | Ücretsiz plan günde 100, ayda 3000 e-posta. Kurumsal e-posta kodları ve admin uyarıları aynı kotayı paylaşıyor; kota dolunca markalara kod gitmez. İzleme ve uyarı eklendi, risk sürüyor (çözüm: ücretli plan veya ikinci sağlayıcı). |
-| 8.8-S1 | DÜŞÜK | Hepsi eski; `VERCEL_FIX.md` ile `VERCEL_ROOT_DIRECTORY_FIX.md` çelişiyor; CRON_SECRET, Resend, anahtar havuzu, pg_cron, bucket'lar ve migration sırası anlatılmıyor. |
 | 9.1-S2 | ORTA | PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski). |
 | 9.1-S3 | DÜŞÜK | (Footer `/discover` → `/spotlight`; gizlilik linki zaten düzgün) Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`. |
 | 10.3-S1 | YÜKSEK | Influencer sosyal doğrulama zorunluluğu mobilde yok (web'de de yalnızca arayüz kapısı; DB zorlamıyor). |

@@ -7,6 +7,7 @@ import { AdvertProject } from './AdvertProjectsList'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { getOrCreateAdvertApplicationRoom, updateApplicationStatus } from '@/app/dashboard/brand/advert/actions'
+import { cancelApplication } from '@/app/dashboard/influencer/advert/actions'
 import { toast } from 'sonner'
 import { countUnreadInRoom } from '@/lib/unread-messages'
 
@@ -157,6 +158,8 @@ export default function AdvertApplicationsList({
           event: 'INSERT',
           schema: 'public',
           table: 'advert_applications',
+          // Realtime `in` filtresi en fazla 100 değer alır; daha fazlasında kod içindeki kontrol yeterli.
+          ...(myProjectIds.length <= 100 ? { filter: `advert_id=in.(${myProjectIds.join(',')})` } : {}),
         },
         async (payload) => {
           const newApp = payload.new as any
@@ -379,6 +382,25 @@ export default function AdvertApplicationsList({
     })
   }
 
+  const handleCancelApplication = async (applicationId: string) => {
+    if (!window.confirm('Başvurunu geri çekmek istediğine emin misin? Bu işlem geri alınamaz.')) return
+    setChatLoadingId(applicationId)
+    try {
+      const result = await cancelApplication(applicationId)
+      if (result.success) {
+        toast.success('Başvurun geri çekildi.')
+        setLocalApplications((prev) => prev.filter((app) => app.id !== applicationId))
+        router.refresh()
+      } else {
+        toast.error(result.error || 'Başvuru geri çekilemedi.')
+      }
+    } catch {
+      toast.error('Bir hata oluştu.')
+    } finally {
+      setChatLoadingId(null)
+    }
+  }
+
   const handleStatusUpdate = async (applicationId: string, status: 'pending' | 'shortlisted' | 'rejected' | 'accepted') => {
     setChatLoadingId(applicationId) // Use chatLoadingId as a generic loading state for now
     try {
@@ -562,6 +584,23 @@ export default function AdvertApplicationsList({
                         )}
                       </>
                     )}
+                  </button>
+                )}
+
+                {/* Influencer: bekleyen başvuruyu geri çek */}
+                {isInfluencerView && application.status === 'pending' && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelApplication(application.id)}
+                    disabled={chatLoadingId === application.id || isPending}
+                    className="flex items-center gap-1.5 rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-gray-300 transition hover:border-red-500/50 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {chatLoadingId === application.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    Başvuruyu Geri Çek
                   </button>
                 )}
 
