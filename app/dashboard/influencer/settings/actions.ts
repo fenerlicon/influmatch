@@ -100,12 +100,18 @@ export async function changePassword(
     if (updateError) {
       console.error('[changePassword] error:', updateError)
       
-      // Check for password strength errors
-      if (updateError.message.includes('Password') || updateError.message.includes('password')) {
+      const message = updateError.message.toLowerCase()
+      if (message.includes('different from the old')) {
+        return { success: false, error: 'Yeni şifre mevcut şifrenizden farklı olmalıdır' }
+      }
+      if (message.includes('weak') || message.includes('pwned') || message.includes('leaked')) {
+        return { success: false, error: 'Bu şifre çok zayıf veya sızdırılmış şifre listelerinde yer alıyor' }
+      }
+      if (message.includes('at least') || message.includes('too short')) {
         return { success: false, error: 'Yeni şifre en az 6 karakter olmalıdır' }
       }
-      
-      return { success: false, error: updateError.message || 'Şifre güncellenemedi' }
+
+      return { success: false, error: 'Şifre güncellenemedi. Lütfen tekrar deneyin.' }
     }
 
     return { success: true }
@@ -133,21 +139,10 @@ export async function deleteAccount(): Promise<{ success: boolean; error?: strin
       return { success: false, error: 'Sistem yapılandırma hatası. Lütfen destek ile iletişime geçin.' }
     }
 
-    // Önce profil silinir: aktif anlaşması olan kullanıcıyı DB trigger'ı burada durdurur.
-    const { error: dbDeleteError } = await supabaseAdmin
-      .from('users')
-      .delete()
-      .eq('id', user.id)
-
-    if (dbDeleteError) {
-      console.error('[deleteAccount] db delete error:', dbDeleteError)
-      return { success: false, error: dbDeleteError.message || 'Hesap silinirken bir hata oluştu.' }
-    }
-
-    // Giriş kaydı da silinir; aksi halde kullanıcı tekrar giriş yapıp profil oluşturabilir.
-    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
-    if (authDeleteError) {
-      console.error('[deleteAccount] auth delete error:', authDeleteError)
+    const { deleteAccountCompletely } = await import('@/lib/account-deletion')
+    const result = await deleteAccountCompletely(supabaseAdmin, user.id)
+    if (!result.ok) {
+      return { success: false, error: result.error }
     }
 
     await supabase.auth.signOut()

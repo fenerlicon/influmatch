@@ -22,7 +22,10 @@ function LoginPageContent() {
     const message = searchParams.get('message')
     const verified = searchParams.get('verified')
 
-    if (verified === 'true') {
+    if (searchParams.get('password_reset') === 'true') {
+      setSuccessMessage('Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.')
+      router.replace('/login', { scroll: false })
+    } else if (verified === 'true') {
       setSuccessMessage('Mail adresiniz doğrulanmıştır, lütfen tekrar giriş yapın.')
       router.replace('/login', { scroll: false })
     } else if (error === 'account_deleted') {
@@ -56,7 +59,10 @@ function LoginPageContent() {
     if (!error && data.user) {
       setSuccessMessage('Giriş başarılı! Yönlendiriliyorsunuz...')
       setTimeout(() => {
-        router.push('/dashboard')
+        // Yalnızca site içi yollar (açık yönlendirme olmasın).
+        const from = searchParams.get('redirectedFrom')
+        const target = from && from.startsWith('/') && !from.startsWith('//') && !from.startsWith('/\\') ? from : '/dashboard'
+        router.push(target)
       }, 1200)
     }
   }
@@ -85,9 +91,14 @@ function LoginPageContent() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="text-sm text-gray-300">
-                Şifre
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm text-gray-300">
+                  Şifre
+                </label>
+                <Link href="/forgot-password" className="text-sm text-soft-gold underline-offset-4 hover:underline">
+                  Şifremi unuttum
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"
