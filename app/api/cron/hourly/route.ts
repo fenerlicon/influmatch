@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { runApiKeyHealthCheck } from '@/lib/api-key-health'
 import { expireSpotlights } from '@/lib/spotlight-expiry'
 import { sweepBlueTicks } from '@/lib/blue-tick'
+import { refreshStaleAccounts } from '@/lib/social-stats'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -16,6 +17,7 @@ export const maxDuration = 60
  * - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar, eşiğin altına düşenler).
  */
 export async function GET(req: Request) {
+  const startedAt = Date.now()
   const cronSecret = process.env.CRON_SECRET
   if (!cronSecret || req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
     return new NextResponse('Unauthorized', { status: 401 })
@@ -58,6 +60,14 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] Mavi tik değerlendirmesi başarısız:', error)
     result.blueTicksError = error instanceof Error ? error.message : String(error)
+  }
+
+  // Bayat istatistikleri kalan zamanda küçük parçalar halinde yenile (yeni koşu en geç 25. saniyede başlar).
+  try {
+    result.statsRefresh = await refreshStaleAccounts(admin, { deadline: startedAt + 25_000, limit: 10 })
+  } catch (error) {
+    console.error('[cron/hourly] İstatistik yenileme başarısız:', error)
+    result.statsRefreshError = error instanceof Error ? error.message : String(error)
   }
 
   return NextResponse.json(result)

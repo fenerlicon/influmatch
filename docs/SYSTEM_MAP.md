@@ -191,8 +191,8 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Sorunlar:**
   - ✅ ~~**2.2-S1 [KRİTİK]**~~ (dashboard yenilemesi aynı kilidi kullanıyor, eşzamanlı ikinci koşu başlamıyor) Dashboard her render'da kilitsiz "ateşle-unut" yenileme başlatıyor; kazıma sürerken her sayfa yenilemesi yeni ücretli koşu demek.
     Serverless'ta beklenmeyen iş yanıt sonrası öldürülebilir.
-  - **2.2-S2 [YÜKSEK]** Cron 100 hesaba kadar sırayla senkron Apify koşusu yapıyor, `maxDuration` yok → birkaç hesaptan sonra zaman aşımı.
-  - **2.2-S3 [ORTA]** Cron eşiği "bugün 09:00'dan eski", cron da 09:00'da koşuyor → her hesap her gün bayat sayılıyor (3 günlük kuralla çelişiyor).
+  - ✅ ~~**2.2-S2 [YÜKSEK]**~~ (yeni koşu en geç 25. saniyede başlar, `maxDuration=60`; iş saatlik göreve de yayıldı) Cron 100 hesaba kadar sırayla senkron Apify koşusu yapıyor, `maxDuration` yok → birkaç hesaptan sonra zaman aşımı.
+  - ✅ ~~**2.2-S3 [ORTA]**~~ (eşik artık 3 günden eski veri) Cron eşiği "bugün 09:00'dan eski", cron da 09:00'da koşuyor → her hesap her gün bayat sayılıyor (3 günlük kuralla çelişiyor).
 
 ### 2.3 OAuth ile hesap bağlama (Meta / TikTok)
 - **Dosyalar:** `app/api/auth/{instagram,tiktok}/{login,callback}/route.ts`, `utils/meta-service.ts`, `utils/tiktok-service.ts`,

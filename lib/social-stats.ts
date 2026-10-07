@@ -530,3 +530,67 @@ export async function refreshIfStale(userId: string, platform: SocialPlatform) {
 
   return platform === 'tiktok' ? refreshTikTokAccount(userId, 'auto') : refreshInstagramAccount(userId, 'auto')
 }
+
+export interface StaleRefreshReport {
+  attempted: number
+  succeeded: number
+  failed: number
+  remaining: number // zaman bütçesi bittiği için bu turda yenilenmeyen bayat hesap sayısı
+  stoppedEarly: boolean // art arda hata (ör. Apify kredisi bitti) nedeniyle erken durdu
+}
+
+/**
+ * Verisi 3 günden eski doğrulanmış hesapları en eskiden başlayarak yeniler. Yeni bir ücretli koşuya
+ * yalnızca `deadline` öncesinde başlanır; böylece cron fonksiyonu zaman aşımına düşmez ve iş
+ * saatlik turlara yayılır. Art arda 2 hata alınırsa (kredi bitti vb.) boşuna denemeden durur.
+ */
+export async function refreshStaleAccounts(
+  admin: SupabaseClient,
+  { deadline, limit = 25 }: { deadline: number; limit?: number },
+): Promise<StaleRefreshReport> {
+  const cutoff = new Date(Date.now() - STALE_AFTER_MS).toISOString()
+  const { data: accounts, error } = await admin
+    .from('social_accounts')
+    .select('user_id, platform')
+    .in('platform', ['instagram', 'tiktok'])
+    .eq('is_verified', true)
+    .or(`last_scraped_at.lt.${cutoff},last_scraped_at.is.null`)
+    .order('last_scraped_at', { ascending: true, nullsFirst: true })
+    .limit(limit)
+  if (error) throw new Error(`Bayat hesaplar alınamadı: ${error.message}`)
+
+  const report: StaleRefreshReport = { attempted: 0, succeeded: 0, failed: 0, remaining: 0, stoppedEarly: false }
+  let consecutiveFailures = 0
+  const list = accounts ?? []
+  for (let i = 0; i < list.length; i++) {
+    if (Date.now() >= deadline) {
+      report.remaining = list.length - i
+      break
+    }
+    const account = list[i]
+    report.attempted++
+    let ok = false
+    try {
+      const result =
+        account.platform === 'tiktok'
+          ? await refreshTikTokAccount(account.user_id, 'auto')
+          : await refreshInstagramAccount(account.user_id, 'auto')
+      ok = result.success || result.code === 'rate_limited' // başka bir tur zaten yeniliyor
+    } catch (refreshError) {
+      console.error(`[refreshStaleAccounts] ${account.platform}/${account.user_id}:`, refreshError)
+    }
+    if (ok) {
+      report.succeeded++
+      consecutiveFailures = 0
+    } else {
+      report.failed++
+      if (++consecutiveFailures >= 2) {
+        report.stoppedEarly = true
+        report.remaining = list.length - i - 1
+        break
+      }
+    }
+  }
+  return report
+}
+
