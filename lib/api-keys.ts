@@ -129,6 +129,20 @@ export function maskSecret(secret: string): string {
   return `${secret.slice(0, 6)}••••${secret.slice(-4)}`
 }
 
+const STATUS_RANK: Record<ApiKeyStatus, number> = {
+  active: 0,
+  unknown: 0,
+  low_credit: 1,
+  rate_limited: 2,
+  error: 3,
+  exhausted: 4,
+  invalid: 5,
+}
+
+function statusRank(status: ApiKeyStatus | null | undefined) {
+  return status ? STATUS_RANK[status] ?? 3 : 0
+}
+
 export function isKeyUsable(key: Pick<ApiKeyRow, 'is_enabled' | 'status' | 'cooldown_until'>, now = Date.now()): boolean {
   if (!key.is_enabled || key.status === 'invalid') return false
   return !key.cooldown_until || new Date(key.cooldown_until).getTime() <= now
@@ -199,10 +213,16 @@ async function loadPoolKeys(admin: SupabaseClient | null, provider: ApiProvider)
     return envKey
   }
 
-  // Sıra: öncelik, sonra eklenme zamanı. Son çağrısı hata almış anahtarlar sona alınır.
+  // Sıra: önce sağlıklı durumdaki anahtarlar (kredisi biten / hata verenler bekleme süresi
+  // olmasa da sona), sonra son çağrısı hata almamış olanlar; eşitlikte öncelik ve eklenme zamanı
+  // (sort kararlıdır, sorgu sırası korunur).
   return rows
     .filter((row) => isKeyUsable(row))
-    .sort((a, b) => Number(a.consecutive_failures > 0) - Number(b.consecutive_failures > 0))
+    .sort(
+      (a, b) =>
+        statusRank(a.status) - statusRank(b.status) ||
+        Number(a.consecutive_failures > 0) - Number(b.consecutive_failures > 0),
+    )
     .map((row) => ({ id: row.id, label: row.label, secret: row.secret }))
 }
 
@@ -286,12 +306,21 @@ export async function withApiKey<T>(provider: ApiProvider, task: (secret: string
   throw new ApiPoolExhaustedError(provider, failures)
 }
 
-/** fetch hatalarını (ağ, zaman aşımı) ApiServiceError olarak sarar. */
-export async function fetchExternal(url: string, init: RequestInit, serviceName: string): Promise<Response> {
+/** Varsayılan dış istek zaman aşımı: Vercel fonksiyon süresinin (60 sn) altında kalır. */
+export const EXTERNAL_FETCH_TIMEOUT_MS = 50_000
+
+/** fetch hatalarını (ağ, zaman aşımı) ApiServiceError olarak sarar. Takılan istek fonksiyonu süre sınırına kadar bekletmez. */
+export async function fetchExternal(
+  url: string,
+  init: RequestInit,
+  serviceName: string,
+  timeoutMs: number = EXTERNAL_FETCH_TIMEOUT_MS,
+): Promise<Response> {
   try {
-    return await fetch(url, { ...init, cache: 'no-store' })
+    return await fetch(url, { ...init, cache: 'no-store', signal: init.signal ?? AbortSignal.timeout(timeoutMs) })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const timedOut = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')
+    const message = timedOut ? `${Math.round(timeoutMs / 1000)} sn içinde yanıt gelmedi` : error instanceof Error ? error.message : String(error)
     throw new ApiServiceError(`${serviceName} bağlantı hatası: ${message}`)
   }
 }

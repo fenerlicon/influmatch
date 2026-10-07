@@ -268,7 +268,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   `app/dashboard/influencer/offers/actions.ts` (`updateOfferStatus`), `.../dismiss/actions.ts`
 - **Sorunlar:**
   - **2.13-S1 [ORTA]** (bilinçli görünüyor: teklif beklemede kalır, görüşmek için sohbet açılır; ürün kararı bekliyor) "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor.
-  - **2.13-S2 [DÜŞÜK]** `OffersManager` her "gizle"de realtime'a yeniden aboneleniyor; `undismissOffer` ve `InfluencerOffersFeed` ölü.
+  - **2.13-S2 [DÜŞÜK]** (`undismissOffer`/`undismissInfluencer` silindi) `OffersManager` her "gizle"de realtime'a yeniden aboneleniyor; `undismissOffer` ve `InfluencerOffersFeed` ölü.
 
 ---
 
@@ -405,7 +405,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **İş:** En fazla 3 rozet gösterilir; DB trigger'ı kazanılmamış rozetin gösterilmesini engeller.
 - **Sorunlar:**
   - ✅ ~~**4.2-S1 [ORTA]**~~ (keşif kartları seçilen rozetleri gösteriyor, yalnızca kazanılmışlar; mavi tik her zaman; profil sayfası tüm rozet listesini bilinçli gösteriyor) `/profile/[username]` ve `utils/fetchInfluencers.ts` kullanıcının seçtiği `displayed_badges` yerine tüm kazanılmış rozetleri gösteriyor.
-  - **4.2-S2 [DÜŞÜK]** `influencer/profile/badges/actions.ts` (`updateDisplayedBadges`) ölü; marka rozet sayfası kazanılanları göstermiyor.
+  - **4.2-S2 [DÜŞÜK]** (ölü `profile/badges/actions.ts` dosyaları silindi) `influencer/profile/badges/actions.ts` (`updateDisplayedBadges`) ölü; marka rozet sayfası kazanılanları göstermiyor.
 
 ### 4.3 Spotlight üyeliği
 - **Dosyalar:** `app/actions/spotlight.ts`, `app/dashboard/spotlight/**`, `app/spotlight/page.tsx`, `components/spotlight/*`
@@ -454,7 +454,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ### 5.2 Eski sohbet sayfası
 - **Dosyalar:** `app/chat/[roomId]/page.tsx`, `components/chat/ChatWindow.tsx`
-- **Sorunlar:** **5.2-S1 [DÜŞÜK]** Hiçbir yerden bağlanmıyor (yetim), dashboard layout'u dışında; robots'ta engellenmemiş.
+- **Sorunlar:** ✅ ~~**5.2-S1 [DÜŞÜK]**~~ (yetim `/chat` sayfası ve `ChatWindow` silindi) Hiçbir yerden bağlanmıyor (yetim), dashboard layout'u dışında; robots'ta engellenmemiş.
 
 ### 5.3 Okundu takibi (iki ayrı sistem)
 - **Sistem A:** `message_reads` tablosu — yalnızca yetim `/chat` sayfası ve ölü `markRoomAsRead` yazıyor;
@@ -464,6 +464,12 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.3-S1 [YÜKSEK]**~~ (`message_reads` tablosu canlıda yok, rozetler hep 0 çıkıyordu; sayım `last_read_<roomId>` metadata ile, `lib/unread-messages.ts`) Teklif ve başvuru ekranlarındaki okunmamış rozetleri hiç temizlenmiyor.
   - **5.3-S2 [ORTA]** (canlıda ölçüldü: en büyük metadata 550 bayt, en çok 4 oda anahtarı; acil değil, mesajlaşma tasarımıyla birlikte `room_reads` tablosuna taşınacak) Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyor;
     aynı kişiyle birleşik odalardan yalnızca seçili oda okundu oluyor.
+
+### 5.3b Realtime yayını (2026-10-07)
+- ✅ Canlıda yayında yalnızca `messages` vardı: teklif, başvuru, oda, gizlenen teklif, bildirim, destek, şikâyet ve rozet
+  dinleyicilerine hiç olay gelmiyordu. 8 tablo eklendi (`20261007000016`; hepsinde RLS açık, kolon gizleme yok).
+  `users` bilerek eklenmedi (gizli kolonlar). Var olmayan `message_reads` dinleyicileri (aynı kanaldaki `messages`
+  aboneliğini bozabiliyordu) kaldırıldı. `users` tablosunu dinleyen 4 kanal hâlâ olay almaz (tasarım gereği).
 
 ### 5.4 Bildirimler
 - **Dosyalar:** `components/dashboard/NotificationsPopover.tsx`, `app/actions/notifications.ts`, tablo `notifications`
@@ -484,7 +490,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **İş:** Çift yönlü engel kontrolü (trigger + aksiyon), mesajlar değiştirilemez (trigger), şikayetler admin'e.
 - **Sorunlar:**
   - ✅ ~~**5.6-S1 [ORTA]**~~ (uygulama artık çağırmıyor; istemci rollerinden yetki kaldırıldı) `log_message` RPC'si anon dahil herkese açık; mesaj içeriğini (200 karakter) ve kullanıcı id'lerini Postgres loglarına yazıyor (loglarda kişisel veri, spam edilebilir).
-  - **5.6-S2 [DÜŞÜK]** `checkIfBlocked` ve `isUserBlocked` aynı işi yapıyor.
+  - ✅ ~~**5.6-S2 [DÜŞÜK]**~~ (`checkIfBlocked` silindi, `isUserBlocked` kaldı) `checkIfBlocked` ve `isUserBlocked` aynı işi yapıyor.
 
 ---
 
@@ -660,9 +666,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.3 API anahtar havuzu
 - **Dosyalar:** `lib/api-keys.ts` (`withApiKey`, otomatik geçiş, bekleme süreleri), `lib/apify.ts`, `lib/gemini.ts`, `lib/api-key-health.ts`
 - **Sorunlar:**
-  - **8.3-S1 [DÜŞÜK]** `isKeyUsable` bekleme süresi olmayan `exhausted`/`error` anahtarları yine deniyor.
-  - **8.3-S2 [DÜŞÜK]** `generateGeminiContent` ve `@google/generative-ai` paketi kullanılmıyor (vergi kontrolü yerelde).
-  - **8.3-S3 [DÜŞÜK]** `fetch` çağrılarında zaman aşımı yok.
+  - ✅ ~~**8.3-S1 [DÜŞÜK]**~~ (anahtarlar duruma göre sıralanıyor: sağlıklılar önce, kredisi biten/hata verenler sona) `isKeyUsable` bekleme süresi olmayan `exhausted`/`error` anahtarları yine deniyor.
+  - ✅ ~~**8.3-S2 [DÜŞÜK]**~~ (içerik üretme fonksiyonu ve tipleri kaldırıldı; yalnızca anahtar sağlık kontrolü kaldı) `generateGeminiContent` ve `@google/generative-ai` paketi kullanılmıyor (vergi kontrolü yerelde).
+  - ✅ ~~**8.3-S3 [DÜŞÜK]**~~ (`fetchExternal` 50 sn, Resend 15 sn; Apify `?timeout=45` ile çalıştırmayı da durduruyor) `fetch` çağrılarında zaman aşımı yok.
 
 ### 8.4 E-posta (Resend)
 - **Dosya:** `lib/email.ts` (`sendEmail`, `sendAdminAlertEmail`). Kullanım: admin uyarıları, kurumsal e-posta kodları.
@@ -799,7 +805,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi.
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo.
 - `sohbet_ekleri_kurali.sql` → `20261007000007` politika kısmı (chat-attachments oda katılımcısı kuralı, 5.1-S5)
 - `geri_bildirim_gorselleri_kurali.sql` → `20261007000008` DROP POLICY kısmı (kova zaten gizli, 1.10-S1)
 - `ilan_kurallari_temizlik.sql` → `20261007000009` (gevşek advert_projects kuralları, 7.7-S2)
