@@ -296,9 +296,10 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   silmek yerine bir kopya daha ekliyor.
 
 ### 3.4 Inflist (adlandırılmış listeler)
+- **Karar (7 Ekim):** listeler favoriler sayfasında (`/dashboard/brand/favorites`) favorilerle birlikte yönetilir; marka panelindeki ayrı bölüm kaldırıldı.
 - **Dosyalar:** `components/dashboard/InflistManager.tsx`, `AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`
 - **Sorunlar:**
-  - **3.4-S1 [ORTA]** (ücretsiz markanın liste oluşturup oluşturamayacağı belirsiz: arayüz oluşturmaya izin verip yönetimi kilitliyor; 3.13 kararıyla birlikte) Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
+  - ✅ ~~**3.4-S1 [ORTA]**~~ (karar: listeler şimdilik ücretsiz, kilit kaldırıldı; ileride Spotlight, bkz. 3.13-N5) Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
   - **3.4-S2 [DÜŞÜK]** "Tümünü Yönet" favoriler sayfasına gidiyor, liste yönetim sayfası yok; isim sunucuda doğrulanmıyor;
     revalidate yanlış yolu hedefliyor; `InflistCard.tsx` ve `getLists` ölü.
 
@@ -379,6 +380,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.13-N4** Ücret ödemeyen markalar tüm listeyi göremesin. Sistem markanın ihtiyacını (kategori, bütçe, ilanlar, hedef kitle)
     analiz edip ücretsiz olarak belli oranda/kotada profil önersin. Kısıt sunucuda uygulanmalı (bugün premium veri istemciye
     gidip yalnızca CSS ile bulanıklaştırılıyor, bkz. 3.1-S1).
+  - **3.13-N5** Listeler (Inflist) şimdilik tüm doğrulanmış markalara ücretsiz; ileride Spotlight'a dahil edilecek
+    (o zaman `createList` / `toggleInList` sunucuda da kontrol etmeli).
 
 ---
 
