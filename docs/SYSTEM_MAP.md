@@ -100,8 +100,8 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   `app/auth/verify-email/page.tsx` (yetim), `components/dashboard/EmailVerificationBanner.tsx`
 - **Sorunlar:**
   - **1.5-S1 [ORTA]** OTP yolu kullanıcıyı oturum açık bırakıp `/onboarding`'e, bağlantı yolu oturumu kapatıp `/login`'e götürüyor; iki farklı son durum.
-  - **1.5-S2 [ORTA]** Kodda "user gets 8" yorumu var, arayüz 6 hane kabul ediyor. Supabase projesinde OTP uzunluğu 8 ise doğrulama imkânsız (doğrulanmadı).
-  - **1.5-S3 [ORTA]** E-posta onayı zorunlu değil; dashboard yalnızca banner gösteriyor.
+  - ✅ ~~**1.5-S2 [ORTA]**~~ (tekrar etmiyor: canlıda son 30 günün kayıtları 6 haneli kodla onaylanmış; yorum düzeltildi) Kodda "user gets 8" yorumu var, arayüz 6 hane kabul ediyor. Supabase projesinde OTP uzunluğu 8 ise doğrulama imkânsız (doğrulanmadı).
+  - ✅ ~~**1.5-S3 [ORTA]**~~ (tekrar etmiyor: Supabase onayı zorunlu tutuyor; onaysız 20 hesabın hiçbiri giriş yapamamış) E-posta onayı zorunlu değil; dashboard yalnızca banner gösteriyor.
   - **1.5-S4 [DÜŞÜK]** `/auth/verify-email` hiçbir yerden bağlanmıyor, `alert()` kullanıyor.
 
 ### 1.6 Onboarding profil formu

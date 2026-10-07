@@ -31,8 +31,8 @@ function CheckEmailPageContent() {
 
   const handleVerify = async () => {
     const otp = code.join('')
-    // Allow verify if length is 6 or 8 (Supabase standard is usually 6, but user gets 8)
-    if (otp.length < 6 || !email) return
+    // Projede doğrulama kodu 6 hane (canlıda kayıtlar bu kodla onaylanıyor).
+    if (otp.length !== 6 || !email) return
 
     setIsLoading(true)
     setErrorMessage(null)
