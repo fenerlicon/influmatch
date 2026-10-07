@@ -75,7 +75,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
     (`SidebarLink.tsx`, `NotificationsPopover.tsx`, `AdvertApplicationsList.tsx`) → ayrı realtime soketleri.
   - **1.2-S2 [DÜŞÜK]** Service‑role istemcisi farklı yollarla kuruluyor (`createClient(..., SERVICE_ROLE_KEY!)`:
     `app/admin/actions.ts`, `app/dashboard/brand/advert/actions.ts`).
-  - **1.2-S3 [DÜŞÜK]** `SupabaseProvider` yalnızca ölü `app/[locale]/layout.tsx` tarafından kullanılıyor.
+  - ✅ ~~**1.2-S3 [DÜŞÜK]**~~ (ölü `[locale]` layout'u ve `SupabaseProvider` silindi) `SupabaseProvider` yalnızca ölü `app/[locale]/layout.tsx` tarafından kullanılıyor.
   - **1.2-S4 [ORTA]** `@supabase/auth-helpers-nextjs` 0.10 kullanımdan kalkmış paket; `@supabase/ssr`'a geçilmeli.
 
 ### 1.3 Kayıt (rol seçimi + form)
@@ -665,9 +665,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.5 Konfigürasyon
 - `next.config.js`, `vercel.json`, `package.json`, `middleware.ts`
 - **Sorunlar:**
-  - **8.5-S1 [ORTA]** `images.remotePatterns hostname: '**'` → görsel optimizasyonu açık proxy (maliyet/kötüye kullanım).
-  - **8.5-S2 [ORTA]** Next 14.0.4 eski ve güvenlik yamaları eksik; yükseltilmeli.
-  - **8.5-S3 [DÜŞÜK]** Kullanılmayan bağımlılıklar: `@google/generative-ai`, `pg`, `xlsx` (bilinen açıkları var), `uuid`; `next-intl` yalnızca ölü layout'ta.
+  - ✅ ~~**8.5-S1 [ORTA]**~~ (yalnızca Supabase deposu ve Instagram/TikTok CDN'leri; optimize görseller 31 gün önbellekte) `images.remotePatterns hostname: '**'` → görsel optimizasyonu açık proxy (maliyet/kötüye kullanım).
+  - ✅ ~~**8.5-S2 [ORTA]**~~ (main'de Next 14.2.35) Next 14.0.4 eski ve güvenlik yamaları eksik; yükseltilmeli.
+  - ✅ ~~**8.5-S3 [DÜŞÜK]**~~ (next-intl, pg, xlsx, uuid kaldırıldı; dev script'i platformdan bağımsız) Kullanılmayan bağımlılıklar: `@google/generative-ai`, `pg`, `xlsx` (bilinen açıkları var), `uuid`; `next-intl` yalnızca ölü layout'ta.
     `dev` script'i Windows'a özel `set` sözdizimi.
 
 ### 8.6 Ortam değişkenleri
@@ -688,8 +688,17 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**8.7-S1 [KRİTİK]**~~ (dosya silindi; anahtarın sağlayıcıda iptali kullanıcıda) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
   dosya silinmeli (git geçmişinde kalacağı için iptal şart).
 - ✅ ~~**8.7-S2 [DÜŞÜK]**~~ (takipten çıkarıldı) `.env.local.txt` `.gitignore`'a rağmen takip ediliyor (yalnızca URL + anon key).
-- **8.7-S3 [DÜŞÜK]** Başıboş dosyalar: `validate_json.js`, `fix_turkish.js`, `crop_icon.py`, boş `types.ts`, `tsc_output.txt`, `tasarim-sistemi-analizi.txt`.
-- **8.7-S4 [ORTA]** Alan adı tutarsızlığı: sitemap/robots/JSON-LD `influmatch.com`, geri kalan her şey `influmatch.net`.
+- ✅ ~~**8.7-S3 [DÜŞÜK]**~~ (başıboş dosyalar silindi) Başıboş dosyalar: `validate_json.js`, `fix_turkish.js`, `crop_icon.py`, boş `types.ts`, `tsc_output.txt`, `tasarim-sistemi-analizi.txt`.
+- ✅ ~~**8.7-S4 [ORTA]**~~ (JSON-LD, sitemap ve robots influmatch.net) Alan adı tutarsızlığı: sitemap/robots/JSON-LD `influmatch.com`, geri kalan her şey `influmatch.net`.
+
+### 8.9 Ürün notu: dosya depolama ("Drive" yapısı)
+- **8.9-N1** Siteye Drive benzeri bir dosya yapısı kurulacak (karar, 7 Ekim): görseller ve dosyalar (avatar, logo, ilan kapakları,
+  sohbet ekleri, vergi belgeleri) için düzenli klasör yapısı ve daha düşük depolama/aktarım maliyeti. Bugünkü durum: Supabase
+  Storage'da `avatars` (çoğu `{uid}/` klasöründe, eskiler kökte), `advert-hero-images` ve `feedback-images` (kökte, rastgele ad),
+  `chat-attachments` (`{uid}/{oda}/...`), `tax-documents` (özel). Hepsi herkese açık URL ile servis ediliyor (vergi hariç),
+  görsel boyutlandırma Vercel'de. Tasarımda düşünülecekler: yüklemede boyut/format küçültme (ör. WebP, en fazla 1080 px),
+  kullanıcı/varlık bazlı klasörler, silinen kayıtların dosyalarının temizlenmesi (hesap silmede yapılıyor), gizli dosyalar için
+  imzalı URL, gerekirse ucuz depolama (ör. Cloudflare R2) ve CDN.
 
 ### 8.8 Dokümanlar
 - Kökteki `DEPLOYMENT.md`, `FINAL_DEPLOYMENT_CHECKLIST.md`, `SUPABASE_SETUP_CHECKLIST.md`, `TRIGGER_SETUP.md`, `SUPABASE_RLS_FIX.md`,
