@@ -6,7 +6,10 @@ const PROTECTED_ROUTES = ['/dashboard', '/admin', '/onboarding', '/profile']
 const AUTH_ROUTES = ['/login', '/signup', '/signup-role']
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  // Sunucu layout'ları (ör. marka doğrulama kilidi) istenen yolu bu başlıktan okur.
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set('x-pathname', req.nextUrl.pathname)
+  const res = NextResponse.next({ request: { headers: requestHeaders } })
   const supabase = createMiddlewareClient({ req, res })
 
   // Refresh session cookie (required for SSR)

@@ -593,7 +593,7 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
               name="instagram"
               value={formState.instagram}
               onChange={handleChange}
-              disabled={!isEditing}
+              disabled={!isEditing || connectedPlatforms.includes('instagram')}
               placeholder="@kullaniciadi veya https://instagram.com/..."
               className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.instagram
                 ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
