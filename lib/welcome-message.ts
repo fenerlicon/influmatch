@@ -4,7 +4,8 @@
 
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
-const ADMIN_EMAIL = 'destek@influmatch.net'
+// Gönderen: platformun admin hesabı (role = 'admin', en eski). Eskiden var olmayan
+// destek@influmatch.net adresi aranıyordu; hoş geldin mesajı hiç gönderilmiyordu.
 
 /**
  * Sends a welcome message to a newly registered user from the Admin.
@@ -20,11 +21,13 @@ export async function sendWelcomeMessage(userId: string, userRole: 'brand' | 'in
     const { data: adminUser } = await adminSupabase
         .from('users')
         .select('id')
-        .eq('email', ADMIN_EMAIL)
+        .eq('role', 'admin')
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle()
 
-    if (!adminUser) {
-        console.warn(`[sendWelcomeMessage] Admin user (${ADMIN_EMAIL}) not found. Skipping welcome message.`)
+    if (!adminUser || adminUser.id === userId) {
+        console.warn('[sendWelcomeMessage] Admin user not found. Skipping welcome message.')
         return
     }
 
@@ -77,7 +80,6 @@ Herhangi bir sorun olursa veya desteğe ihtiyacın olursa buradan bize ulaşabil
             .insert({
                 brand_id: brandId,
                 influencer_id: influencerId,
-                last_message_at: new Date().toISOString()
             })
             .select('id')
             .single()
@@ -96,9 +98,7 @@ Herhangi bir sorun olursa veya desteğe ihtiyacın olursa buradan bize ulaşabil
             .insert({
                 room_id: roomId,
                 sender_id: adminId,
-                receiver_id: userId,
                 content: messageContent,
-                is_read: false,
                 created_at: new Date().toISOString()
             })
 

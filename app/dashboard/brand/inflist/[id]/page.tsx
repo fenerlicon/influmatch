@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Layers } from 'lucide-react'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export const revalidate = 0
 
@@ -23,7 +24,7 @@ export default async function InflistDetailsPage({ params }: InflistDetailsPageP
     // Fetch user profile verification status
     const { data: userData } = await supabase
         .from('users')
-        .select('verification_status')
+        .select('verification_status, spotlight_active, spotlight_expires_at, spotlight_plan')
         .eq('id', user.id)
         .single()
 
@@ -98,6 +99,8 @@ export default async function InflistDetailsPage({ params }: InflistDetailsPageP
                     influencers={influencers}
                     initialFavoritedIds={favoritedIds}
                     userRole="brand"
+                    isSpotlightMember={hasActiveSpotlight(userData)}
+                    spotlightPlan={hasActiveSpotlight(userData) ? (userData?.spotlight_plan ?? null) : null}
                 />
             )}
         </div>

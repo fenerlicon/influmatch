@@ -211,7 +211,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   Admin istisnası `users.blue_tick_override`. Rozet her zaman ilk sırada gösterilir.
 - **Sorunlar:**
   - **2.4-S1 [ORTA]** Kural en çok takipçili hesabı (TikTok olabilir) kullanıyor; dashboard TrustScoreCard yalnızca Instagram'ı kullanıyor → iki kart farklı skor gösterebilir.
-  - **2.4-S2 [ORTA]** Spotlight süresi dolanlar `spotlight_active=true` kaldığı için mavi tik kuralını geçmeye devam ediyor (bkz. 4.3-S1).
+  - ✅ ~~**2.4-S2 [ORTA]**~~ (4.3-S1 ile: süresi dolan Spotlight saatlik görevde kapanıyor) Spotlight süresi dolanlar `spotlight_active=true` kaldığı için mavi tik kuralını geçmeye devam ediyor (bkz. 4.3-S1).
   - **2.4-S3 [DÜŞÜK]** Eski yorumlar tiki bio doğrulamaya bağlı anlatıyor (`badgeAwarding.ts`, `InfluencerGridCard.tsx`).
 
 ### 2.5 Güven skoru ve eşleşme skoru
@@ -287,7 +287,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 3.2 Keşfet (influencer ızgarası)
 - **Dosyalar:** `discover/page.tsx`, `components/dashboard/BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`, `AddToListModal`, `SimilarProfilesModal`
 - **Sorunlar:**
-  - **3.2-S1 [ORTA]** Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
+  - ✅ ~~**3.2-S1 [ORTA]**~~ (favoriler ve liste sayfaları aktif Spotlight planını geçiriyor) Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
   - **3.2-S2 [ORTA]** Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
 
 ### 3.3 Favoriler
@@ -395,7 +395,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **İş:** Influencer: `profile-expert`, `founder-member` (ilk 1000). Marka: `showcase-brand`, `pioneer-brand`.
   `official-business` artık yalnızca `syncOfficialBusiness` ile verilir.
 - **Sorunlar:**
-  - **4.1-S1 [ORTA]** Dosya `'use server'`; `awardBadgesForUser(anyUserId)` yetki kontrolsüz çağrılabilir bir aksiyon (yalnızca hak edilen rozetleri verdiği için etki düşük).
+  - ✅ ~~**4.1-S1 [ORTA]**~~ ('use server' kaldırıldı; yalnızca sunucu içi çağrılar) Dosya `'use server'`; `awardBadgesForUser(anyUserId)` yetki kontrolsüz çağrılabilir bir aksiyon (yalnızca hak edilen rozetleri verdiği için etki düşük).
   - **4.1-S2 [ORTA]** `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
   - **4.1-S3 [DÜŞÜK]** Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
 
@@ -425,13 +425,13 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `app/profile/[username]/page.tsx`, `app/profile/actions.ts`
 - **Sorunlar:**
   - **4.5-S1 [YÜKSEK]** Giriş zorunlu (bkz. 1.1-S1); anon kullanıcının `users` SELECT politikası da yok (bkz. 7.3-S2).
-  - **4.5-S2 [ORTA]** `is_showcase_visible=false` profiller açılabiliyor; geri linki influencer izleyici için bile `/dashboard/brand/discover`.
+  - ✅ ~~**4.5-S2 [ORTA]**~~ (geri linki izleyicinin rolüne göre; gizli profilin doğrudan açılması bilinçli bırakıldı) `is_showcase_visible=false` profiller açılabiliyor; geri linki influencer izleyici için bile `/dashboard/brand/discover`.
   - **4.5-S3 [DÜŞÜK]** `view_profile` / `click_profile` analitik olayları hiç gönderilmiyor.
 
 ### 4.6 Analitik olaylar
 - **Dosyalar:** `app/actions/analytics.ts`, RPC `track_analytics_event`, tablo `analytics_events`
 - **Sorunlar:**
-  - **4.6-S1 [ORTA]** RPC anon dahil herkese açık ve `search_path`'siz; `click_*` olayları için yalnızca markanın varlığına bakıyor → herkes istediği markanın analitiğini şişirebilir.
+  - ✅ ~~**4.6-S1 [ORTA]**~~ (anon yetkisi kaldırıldı, search_path sabit; `20261007000006`) RPC anon dahil herkese açık ve `search_path`'siz; `click_*` olayları için yalnızca markanın varlığına bakıyor → herkes istediği markanın analitiğini şişirebilir.
   - **4.6-S2 [DÜŞÜK]** Yalnızca `view_advert` izleniyor; influencer tarafında analitik yok.
 
 ---
@@ -474,15 +474,15 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 5.5 Otomatik mesajlar / hoş geldin mesajı
 - **Dosyalar:** `lib/welcome-message.ts`, `app/actions/automated-messages.ts`
 - **Sorunlar:**
-  - **5.5-S1 [ORTA]** Hoş geldin mesajı migration'larda olmayan kolonlara yazıyor (`messages.receiver_id`, `is_read`, `rooms.last_message_at`) → büyük ihtimalle sessizce başarısız (doğrulanmadı).
-  - **5.5-S2 [ORTA]** İki destek kimliği: kod `destek@influmatch.net`'i arıyor, migration `support@influmatch.com` (id `000…0`) ekliyor.
+  - ✅ ~~**5.5-S1 [ORTA]**~~ (olmayan kolonlar kaldırıldı) Hoş geldin mesajı migration'larda olmayan kolonlara yazıyor (`messages.receiver_id`, `is_read`, `rooms.last_message_at`) → büyük ihtimalle sessizce başarısız (doğrulanmadı).
+  - ✅ ~~**5.5-S2 [ORTA]**~~ (gönderen en eski admin hesabı; destek@ hesabı hiç yoktu, mesaj hiç gitmiyordu) İki destek kimliği: kod `destek@influmatch.net`'i arıyor, migration `support@influmatch.com` (id `000…0`) ekliyor.
   - **5.5-S3 [DÜŞÜK]** `sendNotification` adı iki modülde farklı imzayla export ediliyor; Spotlight bildirim metni influencer'a yönelik.
 
 ### 5.6 Engelleme ve şikayet
 - **Dosyalar:** `app/dashboard/users/block/actions.ts`, `app/dashboard/messages/report/actions.ts`, tablolar `user_blocks`, `message_reports`
 - **İş:** Çift yönlü engel kontrolü (trigger + aksiyon), mesajlar değiştirilemez (trigger), şikayetler admin'e.
 - **Sorunlar:**
-  - **5.6-S1 [ORTA]** `log_message` RPC'si anon dahil herkese açık; mesaj içeriğini (200 karakter) ve kullanıcı id'lerini Postgres loglarına yazıyor (loglarda kişisel veri, spam edilebilir).
+  - ✅ ~~**5.6-S1 [ORTA]**~~ (uygulama artık çağırmıyor; istemci rollerinden yetki kaldırıldı) `log_message` RPC'si anon dahil herkese açık; mesaj içeriğini (200 karakter) ve kullanıcı id'lerini Postgres loglarına yazıyor (loglarda kişisel veri, spam edilebilir).
   - **5.6-S2 [DÜŞÜK]** `checkIfBlocked` ve `isUserBlocked` aynı işi yapıyor.
 
 ---
@@ -496,9 +496,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **İş:** Tüm kullanıcılar (service role, `ADMIN_USER_SELECT`), onay bekleyen / doğrulanmış / reddedilmiş sekmeleri, toplu işlemler,
   Spotlight ve rozet modalları, vergi levhası incelemesi, kurumsal e-posta durumu, ilanlar, başvurular, bildirim gönderimi.
 - **Sorunlar:**
-  - **6.1-S1 [ORTA]** `redirect('/login')` `try` içinde; NEXT_REDIRECT yakalanıp "Bir Hata Oluştu" ekranı gösteriliyor.
+  - ✅ ~~**6.1-S1 [ORTA]**~~ (oturum kontrolü try dışında; bakım mesajı genelleştirildi) `redirect('/login')` `try` içinde; NEXT_REDIRECT yakalanıp "Bir Hata Oluştu" ekranı gösteriliyor.
   - **6.1-S2 [DÜŞÜK]** `PGRST116` rate limit sayılıyor; eski "21-23 Kasım bakım" mesajı sabit; başka statüdeki kullanıcılar hiçbir listede yok.
-  - **6.1-S3 [ORTA]** Toplu silme kendini veya başka bir admini silmeye karşı korumasız.
+  - ✅ ~~**6.1-S3 [ORTA]**~~ (toplu silme deleteUser kullanıyor; kendini/admini silme koruması PR #7) Toplu silme kendini veya başka bir admini silmeye karşı korumasız.
 
 ### 6.2 Admin aksiyonları (`app/admin/actions.ts`)
 
@@ -595,8 +595,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - Güvenli: `is_admin()`, `get_my_private_profile()`, `get_offer_contact_email()`, `award_user_badge()` (artık yalnızca admin/sunucu),
   `is_valid_tax_number()`, `website_host()`, `record_api_key_result()` (yalnızca service role).
 - **Sorunlar:**
-  - **7.4-S1 [ORTA]** `track_analytics_event` ve `log_message` anon dahil herkese açık (bkz. 4.6-S1, 5.6-S1).
-  - **7.4-S2 [ORTA]** SECURITY DEFINER trigger fonksiyonlarının çoğunda `search_path` sabitlenmemiş.
+  - ✅ ~~**7.4-S1 [ORTA]**~~ (her iki RPC de anon'a kapalı) `track_analytics_event` ve `log_message` anon dahil herkese açık (bkz. 4.6-S1, 5.6-S1).
+  - ✅ ~~**7.4-S2 [ORTA]**~~ (public şemasındaki tüm SECURITY DEFINER fonksiyonlarında search_path = public) SECURITY DEFINER trigger fonksiyonlarının çoğunda `search_path` sabitlenmemiş.
   - **7.4-S3 [DÜŞÜK]** `handle_delete_auth_user` boş taslak, trigger'ı yorumda.
 
 ### 7.5 Storage bucket'ları
@@ -713,7 +713,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Dosyalar:** `app/page.tsx`, `components/landing/*` (Hero, PartnersSection, Spotlight, FeaturesSection, DetailedStatsSection, VerificationCTA,
   ValueProposition, FAQSection, BadgesSection, Footer)
 - **Sorunlar:**
-  - **9.1-S1 [ORTA]** Vitrin `is_showcase_visible`'ı yok sayıyor; gizlenmiş profiller ana sayfada çıkabilir.
+  - ✅ ~~**9.1-S1 [ORTA]**~~ (ana sayfa vitrini is_showcase_visible=true filtreliyor) Vitrin `is_showcase_visible`'ı yok sayıyor; gizlenmiş profiller ana sayfada çıkabilir.
   - **9.1-S2 [ORTA]** PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski).
   - **9.1-S3 [DÜŞÜK]** Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`.
 
@@ -725,7 +725,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 9.3 Statik ve ölü sayfalar
 - `/spotlight` (fiyatlar), `/badges` (katalog), `/cekilis` (404'e yönlendiriyor).
-- **9.3-S1 [ORTA]** `app/cekilis/actions.ts`: `'use server'` dosyasında altı gerçek isim ve sabit 6 haneli PIN'ler. Kullanılmıyor; silinmeli.
+- ✅ ~~**9.3-S1 [ORTA]**~~ (app/cekilis silindi) `app/cekilis/actions.ts`: `'use server'` dosyasında altı gerçek isim ve sabit 6 haneli PIN'ler. Kullanılmıyor; silinmeli.
 - **9.3-S2 [DÜŞÜK]** `app/[locale]/layout.tsx` yalnızca layout, sayfası yok, ikinci `<html>` üretir; next-intl yapılandırılmamış.
 
 ---
