@@ -1,5 +1,4 @@
-import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import {
@@ -53,7 +52,7 @@ export async function GET(request: NextRequest) {
   // Handle code exchange (PKCE flow)
   const code = requestUrl.searchParams.get('code')
   if (code) {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createSupabaseServerClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     // PKCE kodu kayıt doğrulamasıyla aynı biçimde gelir; sıfırlama talebini talep anında
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createSupabaseServerClient()
 
   // Handle email confirmation with token_hash (OTP method)
   if (token_hash && type) {

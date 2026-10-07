@@ -62,7 +62,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **İş:** Her istekte oturum çerezini yeniler. Oturumsuz kullanıcıyı `/dashboard`, `/admin`,
   `/onboarding`, `/profile` için `/login`'e; oturumlu kullanıcıyı `/login`, `/signup`, `/signup-role`'dan `/dashboard`'a yollar.
 - **Sorunlar:**
-  - **1.1-S1 [YÜKSEK]** `/profile` korumalı; herkese açık `/profile/[username]` sayfaları anonim ziyaretçiyi ve
+  - ✅ ~~**1.1-S1 [YÜKSEK]**~~ (kullanıcı kararı 2026-10-07: profiller yalnızca giriş yapanlara görünür; mevcut davranış doğru) `/profile` korumalı; herkese açık `/profile/[username]` sayfaları anonim ziyaretçiyi ve
     arama motorlarını `/login`'e atıyor. Sitemap ve robots bu sayfaları ilan ediyor → SEO fiilen kırık (bkz. 9.2).
   - **1.1-S2 [ORTA]** Yalnızca oturum varlığı kontrol ediliyor, rol kontrolü yok; admin/marka/influencer ayrımı sayfalara kalmış.
   - ✅ ~~**1.1-S3 [DÜŞÜK]**~~ (giriş sonrası `redirectedFrom` yalnızca site içi yolsa kullanılıyor) `redirectedFrom` parametresi ekleniyor ama `app/login/page.tsx` okumuyor; giriş hep `/dashboard`'a gider.
@@ -71,12 +71,12 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Dosyalar:** `utils/supabase/server.ts`, `client.ts`, `admin.ts` (service role, anahtar yoksa `null`),
   `components/providers/AuthProvider.tsx`, `SupabaseProvider.tsx`
 - **Sorunlar:**
-  - **1.2-S1 [DÜŞÜK]** İki farklı tarayıcı istemci fabrikası; bazı bileşenler her render'da yeni istemci açıyor
+  - ✅ ~~**1.2-S1 [DÜŞÜK]**~~ (`@supabase/ssr` `createBrowserClient` tarayıcıda tek örnek; AuthProvider ve doğrudan çağıranlar aynı istemciyi paylaşıyor) İki farklı tarayıcı istemci fabrikası; bazı bileşenler her render'da yeni istemci açıyor
     (`SidebarLink.tsx`, `NotificationsPopover.tsx`, `AdvertApplicationsList.tsx`) → ayrı realtime soketleri.
   - **1.2-S2 [DÜŞÜK]** Service‑role istemcisi farklı yollarla kuruluyor (`createClient(..., SERVICE_ROLE_KEY!)`:
     `app/admin/actions.ts`, `app/dashboard/brand/advert/actions.ts`).
   - ✅ ~~**1.2-S3 [DÜŞÜK]**~~ (ölü `[locale]` layout'u ve `SupabaseProvider` silindi) `SupabaseProvider` yalnızca ölü `app/[locale]/layout.tsx` tarafından kullanılıyor.
-  - **1.2-S4 [ORTA]** `@supabase/auth-helpers-nextjs` 0.10 kullanımdan kalkmış paket; `@supabase/ssr`'a geçilmeli.
+  - ✅ ~~**1.2-S4 [ORTA]**~~ (`@supabase/ssr` 0.8: sunucu, middleware ve tarayıcı istemcileri geçirildi; eski dizi biçimli oturum çerezleri middleware'de `lib/supabase/legacy-session-cookie.ts` ile yeni biçime çevriliyor, kimse çıkış yapmıyor. `auth-helpers-react` yalnızca bağlam/kanca olarak kaldı) `@supabase/auth-helpers-nextjs` 0.10 kullanımdan kalkmış paket; `@supabase/ssr`'a geçilmeli.
 
 ### 1.3 Kayıt (rol seçimi + form)
 - **Dosyalar:** `app/signup-role/page.tsx`, `app/signup/page.tsx`, `hooks/useSupabaseAuth.ts`
@@ -425,7 +425,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 4.5 Herkese açık profil `/profile/[username]`
 - **Dosyalar:** `app/profile/[username]/page.tsx`, `app/profile/actions.ts`
 - **Sorunlar:**
-  - **4.5-S1 [YÜKSEK]** Giriş zorunlu (bkz. 1.1-S1); anon kullanıcının `users` SELECT politikası da yok (bkz. 7.3-S2).
+  - ✅ ~~**4.5-S1 [YÜKSEK]**~~ (kullanıcı kararı 2026-10-07: profiller yalnızca giriş yapanlara görünür; mevcut davranış doğru) Giriş zorunlu (bkz. 1.1-S1); anon kullanıcının `users` SELECT politikası da yok (bkz. 7.3-S2).
   - ✅ ~~**4.5-S2 [ORTA]**~~ (geri linki izleyicinin rolüne göre; gizli profilin doğrudan açılması bilinçli bırakıldı) `is_showcase_visible=false` profiller açılabiliyor; geri linki influencer izleyici için bile `/dashboard/brand/discover`.
   - **4.5-S3 [DÜŞÜK]** `view_profile` / `click_profile` analitik olayları hiç gönderilmiyor.
 
@@ -595,7 +595,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   `check_user_deletion_integrity`, auth tarafında `handle_new_auth_user`, `on_auth_user_email_verified`, `sync_user_email_from_auth`.
 - **Sorunlar:**
   - **7.3-S1 [ORTA]** Beyaz listede `push_notifications_enabled`, `website` var ama bu kolonlar yok; `push_token` ise ne kolon ne beyaz listede (mobil push hiç kaydedilmiyor).
-  - **7.3-S2 [YÜKSEK]** (`/api/check-username` düzeldi: service role + oturumdaki kullanıcı; herkese açık profil 1.1-S1 kararına bağlı) Anon SELECT politikası olmadığı için herkese açık profil ve `/api/check-username` (kayıt öncesi her zaman "müsait" der) çalışmıyor.
+  - ✅ ~~**7.3-S2 [YÜKSEK]**~~ (`/api/check-username` düzeldi; anon profil okuma kullanıcı kararıyla kapalı kalıyor) Anon SELECT politikası olmadığı için herkese açık profil ve `/api/check-username` (kayıt öncesi her zaman "müsait" der) çalışmıyor.
   - ✅ ~~**7.3-S3 [ORTA]**~~ (canlıda realtime yayınında yalnızca messages var; users yok, sızıntı yolu yok) `users` realtime yayınındaysa `postgres_changes` olayları kolon yetkisine bakmadan tüm satırı gönderebilir → gizli kolon sızıntısı riski (canlıda doğrulanmalı).
 
 ### 7.4 RPC'ler ve fonksiyonlar

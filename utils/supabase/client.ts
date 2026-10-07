@@ -1,7 +1,6 @@
 'use client'
 
-import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const getSupabaseEnv = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -16,12 +15,9 @@ const getSupabaseEnv = () => {
   return { supabaseUrl, supabaseAnonKey }
 }
 
+// @supabase/ssr tarayıcıda tek bir istemci örneği döndürür (her çağrıda yenisi açılmaz);
+// AuthProvider ve doğrudan bu fonksiyonu çağıran bileşenler aynı oturumu paylaşır.
 export const createSupabaseBrowserClient = () => {
   const { supabaseUrl, supabaseAnonKey } = getSupabaseEnv()
-
-  return createPagesBrowserClient({
-    supabaseUrl,
-    supabaseKey: supabaseAnonKey,
-  })
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
-

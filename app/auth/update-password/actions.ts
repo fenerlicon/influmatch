@@ -1,7 +1,7 @@
 'use server'
 
 import { cookies } from 'next/headers'
-import { createServerActionClient } from '@supabase/auth-helpers-nextjs'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { RECOVERY_COOKIE } from '@/lib/password-recovery'
 
 export async function completePasswordReset(
@@ -16,7 +16,7 @@ export async function completePasswordReset(
   }
 
   // Çerez yazabilen istemci: şifre değişimi ve çıkış oturum çerezlerini günceller.
-  const supabase = createServerActionClient({ cookies })
+  const supabase = createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
