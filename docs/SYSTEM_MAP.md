@@ -588,7 +588,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   `check_user_deletion_integrity`, auth tarafında `handle_new_auth_user`, `on_auth_user_email_verified`, `sync_user_email_from_auth`.
 - **Sorunlar:**
   - **7.3-S1 [ORTA]** Beyaz listede `push_notifications_enabled`, `website` var ama bu kolonlar yok; `push_token` ise ne kolon ne beyaz listede (mobil push hiç kaydedilmiyor).
-  - **7.3-S2 [YÜKSEK]** Anon SELECT politikası olmadığı için herkese açık profil ve `/api/check-username` (kayıt öncesi her zaman "müsait" der) çalışmıyor.
+  - **7.3-S2 [YÜKSEK]** (`/api/check-username` düzeldi: service role + oturumdaki kullanıcı; herkese açık profil 1.1-S1 kararına bağlı) Anon SELECT politikası olmadığı için herkese açık profil ve `/api/check-username` (kayıt öncesi her zaman "müsait" der) çalışmıyor.
   - ✅ ~~**7.3-S3 [ORTA]**~~ (canlıda realtime yayınında yalnızca messages var; users yok, sızıntı yolu yok) `users` realtime yayınındaysa `postgres_changes` olayları kolon yetkisine bakmadan tüm satırı gönderebilir → gizli kolon sızıntısı riski (canlıda doğrulanmalı).
 
 ### 7.4 RPC'ler ve fonksiyonlar
