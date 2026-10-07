@@ -92,7 +92,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.4-S1 [YÜKSEK]**~~ (web akışı eklendi ve canlıda kullanıcı tarafından doğrulandı: `/forgot-password` → e-posta → `/auth/callback` → `/auth/update-password`; mobil ekran hâlâ hash tabanlı eski adrese gidiyor) Web'de "şifremi unuttum" akışı yok. Mobil `ForgotPasswordScreen.js` var olmayan
     `/auth/update-password` sayfasına yönlendiriyor; `/auth/callback` de her durumda oturumu kapatıyor → şifre sıfırlama kırık.
-  - **1.4-S2 [DÜŞÜK]** `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
+  - ✅ ~~**1.4-S2 [DÜŞÜK]**~~ (sabit metin gösteriliyor) `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
   - **1.4-S3 [DÜŞÜK]** `account_deleted` dalı ölü; kullanılmayan `supabase` değişkeni.
 
 ### 1.5 E-posta doğrulama
@@ -183,7 +183,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   - ✅ ~~**2.1-S5 [ORTA]**~~ (Apify `authorMeta.id` varsa `tt-id-<id>` kullanılıyor ve başka kullanıcıyla çakışma kontrol ediliyor; yoksa eski biçim) TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
   - **2.1-S6 [DÜŞÜK]** Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.
   - ✅ ~~**2.1-S7 [ORTA]**~~ (aynı doğrulanmış hesap için yeni kod üretilmiyor, doğrulama düşmüyor; farklı hesaba geçiş bilinçli değişiklik) Doğrulanmış hesapta yeniden kod üretmek hesabı doğrulanmamışa çeviriyor; tek hesapsa kullanıcı dashboard'dan kilitlenir.
-  - **2.1-S8 [DÜŞÜK]** `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
+  - **2.1-S8 [DÜŞÜK]** (canlıda kontrol edildi: jeton kolonu yok; okunabilen doğrulama kodu başkasının biyografisine yazılamayacağı için işe yaramaz. Düşük) `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
 
 ### 2.2 Otomatik istatistik yenileme
 - **Dosyalar:** `app/dashboard/influencer/page.tsx:104-109` (`refreshIfStale`, beklenmeden), `lib/social-stats.ts`,
@@ -470,7 +470,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - **5.4-S1 [YÜKSEK]** Yeni teklif, teklif durumu, yeni başvuru, başvuru durumu, yeni mesaj, destek yanıtı için hiçbir bildirim ya da e-posta üretilmiyor.
     Tek üreticiler admin paneli ve Spotlight bildirimi.
-  - **5.4-S2 [DÜŞÜK]** Header herkese sabit "PREMIUM" etiketi gösteriyor.
+  - ✅ ~~**5.4-S2 [DÜŞÜK]**~~ (etiket kaldırıldı) Header herkese sabit "PREMIUM" etiketi gösteriyor.
 
 ### 5.5 Otomatik mesajlar / hoş geldin mesajı
 - **Dosyalar:** `lib/welcome-message.ts`, `app/actions/automated-messages.ts`
@@ -724,13 +724,13 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Sorunlar:**
   - ✅ ~~**9.1-S1 [ORTA]**~~ (ana sayfa vitrini is_showcase_visible=true filtreliyor) Vitrin `is_showcase_visible`'ı yok sayıyor; gizlenmiş profiller ana sayfada çıkabilir.
   - **9.1-S2 [ORTA]** PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski).
-  - **9.1-S3 [DÜŞÜK]** Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`.
+  - **9.1-S3 [DÜŞÜK]** (Footer `/discover` → `/spotlight`; gizlilik linki zaten düzgün) Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`.
 
 ### 9.2 Sitemap ve robots
 - **Dosyalar:** `app/sitemap.ts`, `app/robots.ts`
 - **Sorunlar:**
   - ✅ ~~**9.2-S1 [YÜKSEK]**~~ (profiller site haritasından çıkarıldı, robots `/profile/` engelliyor; varsayılan alan adı influmatch.net) `/profile/*` ilan ediliyor ama giriş istiyor (1.1-S1); sitemap gizli profilleri de listeliyor ve sınırsız.
-  - **9.2-S2 [DÜŞÜK]** robots var olmayan `/verify-phone`'u engelliyor, `/chat/`'i engellemiyor.
+  - ✅ ~~**9.2-S2 [DÜŞÜK]**~~ (`/verify-phone` çıkarıldı; `/chat/`, `/auth/`, `/feedback`, `/forgot-password` engellendi) robots var olmayan `/verify-phone`'u engelliyor, `/chat/`'i engellemiyor.
 
 ### 9.3 Statik ve ölü sayfalar
 - `/spotlight` (fiyatlar), `/badges` (katalog), `/cekilis` (404'e yönlendiriyor).

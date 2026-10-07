@@ -19,7 +19,6 @@ function LoginPageContent() {
 
   useEffect(() => {
     const error = searchParams.get('error')
-    const message = searchParams.get('message')
     const verified = searchParams.get('verified')
 
     if (searchParams.get('password_reset') === 'true') {
@@ -31,8 +30,9 @@ function LoginPageContent() {
     } else if (error === 'account_deleted') {
       setAccountDeletedError('Hesabınız silinmiştir.')
       router.replace('/login', { scroll: false })
-    } else if (error === 'rate_limit' && message) {
-      setAccountDeletedError(decodeURIComponent(message))
+    } else if (error === 'rate_limit') {
+      // URL'deki metin gösterilmez: herkes ?message= ile giriş sayfasında istediği yazıyı gösterebiliyordu.
+      setAccountDeletedError('Sistem şu anda yoğun. Lütfen birkaç dakika sonra tekrar deneyin.')
       router.replace('/login', { scroll: false })
     } else if (error === 'email_link_expired') {
       setAccountDeletedError('E-posta bağlantısının süresi dolmuş veya bağlantı daha önce kullanılmış. Şifre sıfırlıyorsanız yeni bağlantı isteyin.')

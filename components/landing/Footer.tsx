@@ -20,7 +20,7 @@ export default function Footer() {
           {/* Links */}
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-gray-400">
             <Link href="/" className="hover:text-soft-gold">Ana Sayfa</Link>
-            <Link href="/discover" className="hover:text-soft-gold">Keşfet</Link>
+            <Link href="/spotlight" className="hover:text-soft-gold">Spotlight</Link>
             <Link href="/badges" className="hover:text-soft-gold">Rozetler</Link>
             <Link href="/#sss" className="hover:text-soft-gold">S.S.S</Link>
             <Link href="/legal?tab=privacy" className="hover:text-soft-gold">Gizlilik Politikası</Link>
