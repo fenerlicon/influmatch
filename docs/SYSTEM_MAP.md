@@ -176,7 +176,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Sorunlar:**
   - ✅ ~~**2.1-S1 [KRİTİK]**~~ (kazıma kilidi + saatte 6 deneme + doğrulanmış hesapta günde 1 kullanıcı yenilemesi; migration 20261007000002) Sunucu tarafında sınır yok: her "doğrula/yenile" çağrısı ücretli Apify koşusu (yeniden denemeyle 3'e kadar).
     7 günlük bekleme yalnızca istemcide ve `updated_at`'e bakıyor. Mobil uç noktalar da sınırsız → Apify kredisi tüketme saldırısı.
-  - **2.1-S2 [ORTA]** Gönderisi olmayan Instagram hesabı doğrulanamıyor (scraper gönderi yoksa hata atıyor).
+  - ✅ ~~**2.1-S2 [ORTA]**~~ (gönderi modu boş/hata dönerse profil "details" moduyla alınıyor; gizli/bulunamadı ayrı mesaj) Gönderisi olmayan Instagram hesabı doğrulanamıyor (scraper gönderi yoksa hata atıyor).
   - **2.1-S3 [ORTA]** TikTok yenilemesi `social_account_history` yazmıyor → TikTok grafikleri boş.
   - **2.1-S4 [ORTA]** TikTok etkileşim oranı uydurma: `(toplam beğeni / takipçi) * 10`, 1.5–18.5 aralığına kırpılıyor.
     Bu sayı güven skorunu ve mavi tiki besliyor.
@@ -601,7 +601,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **7.6-S4 [DÜŞÜK]** `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`.
 
 ### 7.7 Çakışan migration'lar
-- **7.7-S1 [YÜKSEK]** (advert_applications için düzeltme `20261007000005` dosyasında; canlıya elle çalıştırılmayı bekliyor) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
+- ✅ ~~**7.7-S1 [YÜKSEK]**~~ (advert_applications için `20261007000005` canlıda uygulandı) Permissive politikalar OR'lanıyor: `advert_applications` için "kabul edilmişse silinemez" kuralı eski serbest politika düşürülmediği için etkisiz;
   doğrulanmamış influencer da başvurabiliyor.
 - **7.7-S2 [ORTA]** Eski `fix_advert_projects_rls.sql` uygulanmışsa doğrulanmamış markalar ilan açabilir.
 - **7.7-S3 [DÜŞÜK]** `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'|'pro'` cast'i var.
@@ -691,7 +691,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 9.2 Sitemap ve robots
 - **Dosyalar:** `app/sitemap.ts`, `app/robots.ts`
 - **Sorunlar:**
-  - **9.2-S1 [YÜKSEK]** `/profile/*` ilan ediliyor ama giriş istiyor (1.1-S1); sitemap gizli profilleri de listeliyor ve sınırsız.
+  - ✅ ~~**9.2-S1 [YÜKSEK]**~~ (profiller site haritasından çıkarıldı, robots `/profile/` engelliyor; varsayılan alan adı influmatch.net) `/profile/*` ilan ediliyor ama giriş istiyor (1.1-S1); sitemap gizli profilleri de listeliyor ve sınırsız.
   - **9.2-S2 [DÜŞÜK]** robots var olmayan `/verify-phone`'u engelliyor, `/chat/`'i engellemiyor.
 
 ### 9.3 Statik ve ölü sayfalar

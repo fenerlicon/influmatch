@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://influmatch.com'
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://influmatch.net').replace(/\/$/, '')
 
   return {
     rules: {
@@ -9,10 +9,10 @@ export default function robots(): MetadataRoute.Robots {
       allow: [
         '/',
         '/spotlight',
-        '/profile/',
       ],
       disallow: [
         '/dashboard/',
+        '/profile/',
         '/admin/',
         '/api/',
         '/onboarding/',
