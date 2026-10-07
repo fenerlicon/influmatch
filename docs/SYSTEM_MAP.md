@@ -132,7 +132,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
     `brand/discover/page.tsx`, `brand/ai/page.tsx`, `app/profile/actions.ts:26`, Spotlight plan sayfaları, `feedback/thank-you`.
   - ✅ ~~**1.8-S2 [YÜKSEK]**~~ (silmede giriş kaydı önce kilitleniyor; auth silinemezse kilitli kalıyor, `lib/account-deletion.ts`) Silinen hesap geri dönebiliyor: profil satırı yoksa layout yeni satır açıyor; `deleteAccount`
     auth silme hatasını yutuyor (bkz. 1.9-S1).
-  - **1.8-S3 [ORTA]** Insert hatası her zaman `/onboarding`'e yönlendiriyor → olası döngü.
+  - ✅ ~~**1.8-S3 [ORTA]**~~ (sorgu/insert hatasında "Tekrar dene" ekranı; çakışmada satır yeniden okunuyor) Insert hatası her zaman `/onboarding`'e yönlendiriyor → olası döngü.
   - ✅ ~~**1.8-S4 [ORTA]**~~ (kilit marka layout'unda merkezi; doğrulanmamış marka yalnızca ana sayfa, profil, ayarlar, rozetler) Marka kilidi merkezi değil; her sayfa `BrandLockScreen`'i kendisi çiziyor, unutan sayfa kilitsiz kalıyor.
 
 ### 1.9 Ayarlar (bildirim tercihi, şifre, hesap silme)
@@ -149,7 +149,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Dosyalar:** `components/settings/{SupportSection,SupportTicketForm,SupportTicketsList}.tsx`,
   `app/dashboard/influencer/settings/support/actions.ts`
 - **Sorunlar:**
-  - **1.10-S1 [ORTA]** (admin ekranları imzalı bağlantı kullanıyor; kovayı özel yapan `20261007000008` merge sonrası uygulanacak) Ekler herkese açık `feedback-images` bucket'ına gidiyor ve public URL alıyor (gizlilik).
+  - ✅ ~~**1.10-S1 [ORTA]**~~ (admin ekranları 10 dk imzalı bağlantı kullanıyor; kova gizli, herkese okuma kuralının silinmesi elle çalıştırılacak) Ekler herkese açık `feedback-images` bucket'ına gidiyor ve public URL alıyor (gizlilik).
   - **1.10-S2 [DÜŞÜK]** "Talep numarası" kullanıcının talep sayısı + 1; saklanmıyor, yarış durumuna açık.
   - **1.10-S3 [DÜŞÜK]** Yeni talep realtime gelene kadar listede görünmüyor; seçim değişince realtime yeniden aboneleniyor.
 
@@ -218,8 +218,8 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `utils/matching.ts`, `components/dashboard/TrustScoreCard.tsx`; mobilde ayrı kopya `mobile-app/utils/calculation.js`
 - **Sorunlar:**
   - ✅ ~~**2.5-S1 [YÜKSEK]**~~  `TrustScoreCard.tsx:160-166` yüzde değeri (ör. 3.5) `0.01..0.10` aralığıyla karşılaştırıyor; "Sağlıklı Etkileşim" yalnızca ölü hesaplarda yanıyor.
-  - **2.5-S2 [ORTA]** Spotlight olmayanlarda kart bulanık ama skor istemciye gönderiliyor.
-  - **2.5-S3 [DÜŞÜK]** `InfluencerGridCard` skoru her render'da 4 kez hesaplıyor; `verification_status` parametresi yok sayılıyor.
+  - ✅ ~~**2.5-S2 [ORTA]**~~ (Spotlight olmayana öneri verisi hiç gönderilmiyor, yer tutucu kartlar) Spotlight olmayanlarda kart bulanık ama skor istemciye gönderiliyor.
+  - ✅ ~~**2.5-S3 [DÜŞÜK]**~~ (skor render başına bir kez) `InfluencerGridCard` skoru her render'da 4 kez hesaplıyor; `verification_status` parametresi yok sayılıyor.
 
 ### 2.6 Profil tamamlama
 - **Dosyalar:** `utils/profileCompletion.ts`, `components/dashboard/ProfileCompletionCard.tsx`
@@ -446,7 +446,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **5.1-S1 [YÜKSEK]** Doğrudan sohbet başlatma bozuk: `MessagesPage.tsx` `offer_id`/`advert_application_id` olmadan oda ekliyor,
     `restrict_rooms_insert` trigger'ı reddediyor; `?userId=` ile mevcut oda yoksa yalnızca konsola hata düşüyor. Mobilde de aynı (10.3-S4).
   - ✅ ~~**5.1-S2 [YÜKSEK]**~~ (her oda için yalnızca son mesaj ve okunmamış sayısı; 20'lik gruplar halinde paralel) Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
-  - **5.1-S3 [ORTA]** Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
+  - ✅ ~~**5.1-S3 [ORTA]**~~ (thread yalnızca karşı taraf değişince yükleniyor; realtime kanalı liste güncellemesinde yeniden kurulmuyor) Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
   - **5.1-S4 [ORTA]** Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
   - **5.1-S5 [ORTA]** (5 MB/görsel sınırı canlıda; oda katılımcısı politikası `20261007000007` elle çalıştırılmayı bekliyor) `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
   - **5.1-S6 [DÜŞÜK]** Her mesajda engel kontrolü için sunucu aksiyonu; `SidebarLink` iki kez render edilip aynı adlı iki kanal açıyor.

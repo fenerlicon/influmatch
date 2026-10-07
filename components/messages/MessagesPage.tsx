@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -69,6 +69,13 @@ export default function MessagesPage({ currentUserId, role, initialConversations
   } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [lastBlockUpdate, setLastBlockUpdate] = useState(0)
+
+  // Mesaj yükleme yalnızca seçili karşı taraf değişince çalışmalı. Konuşma listesi her yeni
+  // mesajda güncellendiği için doğrudan bağımlılık olursa thread temizlenip baştan yükleniyordu.
+  const conversationsRef = useRef(conversations)
+  conversationsRef.current = conversations
+  const selectedParticipantKey =
+    conversations.find((c) => c.roomId === selectedRoomId)?.otherParticipant?.id ?? null
 
   // Load all rooms and build participant map on mount
   useEffect(() => {
@@ -213,11 +220,13 @@ export default function MessagesPage({ currentUserId, role, initialConversations
       return
     }
 
+    let cancelled = false
+
     const loadMessages = async () => {
       // Clear previous messages first
       setSelectedRoomMessages([])
       // First, get the selected conversation to find the other participant
-      const conversation = conversations.find((c) => c.roomId === selectedRoomId)
+      const conversation = conversationsRef.current.find((c) => c.roomId === selectedRoomId)
       if (!conversation?.otherParticipant) return
 
       const otherParticipantId = conversation.otherParticipant.id
@@ -230,6 +239,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         .select('id, brand_id, influencer_id, created_at')
         .or(`brand_id.eq.${currentUserId},influencer_id.eq.${currentUserId}`)
 
+      if (cancelled) return
       if (roomsError) {
         console.error('Failed to load rooms:', roomsError)
         return
@@ -264,6 +274,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
         .in('room_id', relevantRoomIds)
         .order('created_at', { ascending: true })
 
+      if (cancelled) return
       if (messagesError) {
         console.error('Failed to load messages:', messagesError)
         return
@@ -295,7 +306,10 @@ export default function MessagesPage({ currentUserId, role, initialConversations
     }
 
     loadMessages()
-  }, [selectedRoomId, supabase, currentUserId, conversations])
+    return () => {
+      cancelled = true
+    }
+  }, [selectedRoomId, selectedParticipantKey, supabase, currentUserId])
 
   // Real-time updates for conversations
   useEffect(() => {
@@ -318,13 +332,6 @@ export default function MessagesPage({ currentUserId, role, initialConversations
             // (it will be added when user selects the conversation)
             return
           }
-
-          // Find conversation with this participant
-          const conversation = conversations.find((conv) =>
-            conv.otherParticipant?.id === messageParticipantId
-          )
-
-          if (!conversation) return
 
           // Update conversation list
           setConversations((prev) =>
@@ -368,7 +375,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, conversations, currentUserId, selectedRoomId, activeRoomIds, otherParticipantId, roomParticipantMap])
+  }, [supabase, currentUserId, selectedRoomId, activeRoomIds, otherParticipantId, roomParticipantMap])
 
   const formatTime = (dateString: string) => {
     try {
