@@ -24,7 +24,6 @@ export default function DashboardHeader({ fullName, role, userId }: DashboardHea
           <span className="rounded-full border border-white/15 px-4 py-1 text-xs uppercase tracking-[0.2em] text-soft-gold">
             {role === 'brand' ? 'Marka' : 'Influencer'}
           </span>
-          <span className="text-xs uppercase tracking-[0.3em] text-gray-400">PREMIUM</span>
         </div>
       </div>
     </header>

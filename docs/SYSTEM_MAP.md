@@ -92,14 +92,14 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.4-S1 [YÜKSEK]**~~ (web akışı eklendi ve canlıda kullanıcı tarafından doğrulandı: `/forgot-password` → e-posta → `/auth/callback` → `/auth/update-password`; mobil ekran hâlâ hash tabanlı eski adrese gidiyor) Web'de "şifremi unuttum" akışı yok. Mobil `ForgotPasswordScreen.js` var olmayan
     `/auth/update-password` sayfasına yönlendiriyor; `/auth/callback` de her durumda oturumu kapatıyor → şifre sıfırlama kırık.
-  - **1.4-S2 [DÜŞÜK]** `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
+  - ✅ ~~**1.4-S2 [DÜŞÜK]**~~ (sabit metin gösteriliyor) `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
   - **1.4-S3 [DÜŞÜK]** `account_deleted` dalı ölü; kullanılmayan `supabase` değişkeni.
 
 ### 1.5 E-posta doğrulama
 - **Dosyalar:** `app/auth/check-email/page.tsx` (OTP), `app/auth/callback/route.ts` (bağlantı),
   `app/auth/verify-email/page.tsx` (yetim), `components/dashboard/EmailVerificationBanner.tsx`
 - **Sorunlar:**
-  - **1.5-S1 [ORTA]** OTP yolu kullanıcıyı oturum açık bırakıp `/onboarding`'e, bağlantı yolu oturumu kapatıp `/login`'e götürüyor; iki farklı son durum.
+  - ✅ ~~**1.5-S1 [ORTA]**~~ (PKCE bağlantısı da oturumu açık bırakıp /dashboard'a gidiyor; token_hash/access_token yolları giriş CSRF'ine karşı oturumu kapatmaya devam ediyor) OTP yolu kullanıcıyı oturum açık bırakıp `/onboarding`'e, bağlantı yolu oturumu kapatıp `/login`'e götürüyor; iki farklı son durum.
   - ✅ ~~**1.5-S2 [ORTA]**~~ (tekrar etmiyor: canlıda son 30 günün kayıtları 6 haneli kodla onaylanmış; yorum düzeltildi) Kodda "user gets 8" yorumu var, arayüz 6 hane kabul ediyor. Supabase projesinde OTP uzunluğu 8 ise doğrulama imkânsız (doğrulanmadı).
   - ✅ ~~**1.5-S3 [ORTA]**~~ (tekrar etmiyor: Supabase onayı zorunlu tutuyor; onaysız 20 hesabın hiçbiri giriş yapamamış) E-posta onayı zorunlu değil; dashboard yalnızca banner gösteriyor.
   - **1.5-S4 [DÜŞÜK]** `/auth/verify-email` hiçbir yerden bağlanmıyor, `alert()` kullanıyor.
@@ -183,7 +183,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   - ✅ ~~**2.1-S5 [ORTA]**~~ (Apify `authorMeta.id` varsa `tt-id-<id>` kullanılıyor ve başka kullanıcıyla çakışma kontrol ediliyor; yoksa eski biçim) TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
   - **2.1-S6 [DÜŞÜK]** Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.
   - ✅ ~~**2.1-S7 [ORTA]**~~ (aynı doğrulanmış hesap için yeni kod üretilmiyor, doğrulama düşmüyor; farklı hesaba geçiş bilinçli değişiklik) Doğrulanmış hesapta yeniden kod üretmek hesabı doğrulanmamışa çeviriyor; tek hesapsa kullanıcı dashboard'dan kilitlenir.
-  - **2.1-S8 [DÜŞÜK]** `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
+  - **2.1-S8 [DÜŞÜK]** (canlıda kontrol edildi: jeton kolonu yok; okunabilen doğrulama kodu başkasının biyografisine yazılamayacağı için işe yaramaz. Düşük) `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
 
 ### 2.2 Otomatik istatistik yenileme
 - **Dosyalar:** `app/dashboard/influencer/page.tsx:104-109` (`refreshIfStale`, beklenmeden), `lib/social-stats.ts`,
@@ -470,7 +470,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - **5.4-S1 [YÜKSEK]** Yeni teklif, teklif durumu, yeni başvuru, başvuru durumu, yeni mesaj, destek yanıtı için hiçbir bildirim ya da e-posta üretilmiyor.
     Tek üreticiler admin paneli ve Spotlight bildirimi.
-  - **5.4-S2 [DÜŞÜK]** Header herkese sabit "PREMIUM" etiketi gösteriyor.
+  - ✅ ~~**5.4-S2 [DÜŞÜK]**~~ (etiket kaldırıldı) Header herkese sabit "PREMIUM" etiketi gösteriyor.
 
 ### 5.5 Otomatik mesajlar / hoş geldin mesajı
 - **Dosyalar:** `lib/welcome-message.ts`, `app/actions/automated-messages.ts`
@@ -556,9 +556,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   bazıları yalnızca tanı SELECT'i) + 20241129 → 20261007 zaman damgalı dosyalar. Migration çalıştırıcı yok.
 - `supabase/cron/hourly_jobs.sql` — pg_cron + Vault, elle çalıştırılır.
 - **Sorunlar:**
-  - **7.1-S1 [YÜKSEK]** Canlı DB repodan neredeyse kesin sapmış (bkz. 7.6); migration'lar sıfırdan sırayla oynatılamıyor (`20260316000001` var olmayan `influencer_id`'yi kullanıyor).
-  - **7.1-S2 [ORTA]** Bazı migration'lar idempotent değil (`20241209023500` IF NOT EXISTS'siz, `create_user_badges_table` korumasız ADD CONSTRAINT).
-  - **7.1-S3 [ORTA]** Kolon bazlı yetki (`20260930000001`) sonradan eklenen her kolonu gizliyor; yeni herkese açık kolon için GRANT bloğu tekrar çalıştırılmalı (unutması kolay).
+  - **7.1-S1 [YÜKSEK]** (kısmen: bilinen sapmalar `20261007000011` ile kapatıldı, `20260316000001` artık influencer_id'yi kendisi ekliyor. Tam doğrulama için repo dosyalarını boş bir veritabanında sırayla çalıştıran bir deneme gerekir) Canlı DB repodan neredeyse kesin sapmış (bkz. 7.6); migration'lar sıfırdan sırayla oynatılamıyor (`20260316000001` var olmayan `influencer_id`'yi kullanıyor).
+  - ✅ ~~**7.1-S2 [ORTA]**~~ (`20241209023500` IF NOT EXISTS; `create_user_badges_table` politikaları DROP IF EXISTS + kısıt DO bloğu, rozet ekleme canlıdaki gibi yalnızca admin) Bazı migration'lar idempotent değil (`20241209023500` IF NOT EXISTS'siz, `create_user_badges_table` korumasız ADD CONSTRAINT).
+  - ✅ ~~**7.1-S3 [ORTA]**~~ (tasarım gereği güvenli varsayılan: yeni kolon gizli doğar. Kural: herkese açık yeni bir `users` kolonu eklenirken aynı migration'da `GRANT SELECT (kolon) ON public.users TO anon, authenticated;` yazılır) Kolon bazlı yetki (`20260930000001`) sonradan eklenen her kolonu gizliyor; yeni herkese açık kolon için GRANT bloğu tekrar çalıştırılmalı (unutması kolay).
 
 ### 7.2 Tablolar
 
@@ -597,6 +597,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   `get_offer_contact_email` anon'a kapatıldı; `website_host` search_path sabitlendi (`20261007000014`). Açık kalanlar:
   `is_admin()` anon'a açık (RLS'te kullanılıyor, gerekli); `pg_net` public şemada (taşımak riskli);
   **Auth → sızdırılmış şifre koruması kapalı (panelden açılmalı, kullanıcı)**.
+- **Performans denetimi (2026-10-07):** 17 indekssiz yabancı anahtar indekslendi (`20261007000015`). Ertelenenler (mevcut
+  ölçekte etkisiz, kural yeniden yazımı riskli): 66 politikada `auth.uid()` satır başına değerlendiriliyor (`(select auth.uid())`
+  ile sarılmalı), 123 "çoklu permissive politika" (aynı işlem için birden çok kural; 7.7 temizliğiyle birlikte birleştirilmeli),
+  15 kullanılmayan indeks (veri az, yanıltıcı).
 - Güvenli: `is_admin()`, `get_my_private_profile()`, `get_offer_contact_email()`, `award_user_badge()` (artık yalnızca admin/sunucu),
   `is_valid_tax_number()`, `website_host()`, `record_api_key_result()` (yalnızca service role).
 - **Sorunlar:**
@@ -720,13 +724,13 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Sorunlar:**
   - ✅ ~~**9.1-S1 [ORTA]**~~ (ana sayfa vitrini is_showcase_visible=true filtreliyor) Vitrin `is_showcase_visible`'ı yok sayıyor; gizlenmiş profiller ana sayfada çıkabilir.
   - **9.1-S2 [ORTA]** PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski).
-  - **9.1-S3 [DÜŞÜK]** Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`.
+  - **9.1-S3 [DÜŞÜK]** (Footer `/discover` → `/spotlight`; gizlilik linki zaten düzgün) Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`.
 
 ### 9.2 Sitemap ve robots
 - **Dosyalar:** `app/sitemap.ts`, `app/robots.ts`
 - **Sorunlar:**
   - ✅ ~~**9.2-S1 [YÜKSEK]**~~ (profiller site haritasından çıkarıldı, robots `/profile/` engelliyor; varsayılan alan adı influmatch.net) `/profile/*` ilan ediliyor ama giriş istiyor (1.1-S1); sitemap gizli profilleri de listeliyor ve sınırsız.
-  - **9.2-S2 [DÜŞÜK]** robots var olmayan `/verify-phone`'u engelliyor, `/chat/`'i engellemiyor.
+  - ✅ ~~**9.2-S2 [DÜŞÜK]**~~ (`/verify-phone` çıkarıldı; `/chat/`, `/auth/`, `/feedback`, `/forgot-password` engellendi) robots var olmayan `/verify-phone`'u engelliyor, `/chat/`'i engellemiyor.
 
 ### 9.3 Statik ve ölü sayfalar
 - `/spotlight` (fiyatlar), `/badges` (katalog), `/cekilis` (404'e yönlendiriyor).
@@ -795,7 +799,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path.
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi.
 - `sohbet_ekleri_kurali.sql` → `20261007000007` politika kısmı (chat-attachments oda katılımcısı kuralı, 5.1-S5)
 - `geri_bildirim_gorselleri_kurali.sql` → `20261007000008` DROP POLICY kısmı (kova zaten gizli, 1.10-S1)
 - `ilan_kurallari_temizlik.sql` → `20261007000009` (gevşek advert_projects kuralları, 7.7-S2)

@@ -63,9 +63,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (!error) {
-      console.log('[auth/callback] Code exchange successful, clearing session and redirecting to login')
-      await supabase.auth.signOut()
-      return NextResponse.redirect(new URL('/login?verified=true', requestUrl.origin))
+      // PKCE kodu yalnızca isteği başlatan tarayıcıdaki doğrulayıcı çerezle çalışır; başkasının
+      // bağlantısıyla oturum açtırılamaz. Bu yüzden oturum açık bırakılır ve kullanıcı kodla
+      // doğrulamadaki gibi devam eder (dashboard, profil eksikse onboarding'e yönlendirir).
+      // token_hash / access_token yolları aşağıda oturumu kapatmaya devam eder (giriş CSRF'i).
+      return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
     } else {
       console.error('[auth/callback] Code exchange error:', error)
       return NextResponse.redirect(new URL('/login?error=verification_failed', requestUrl.origin))

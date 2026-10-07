@@ -1,6 +1,6 @@
 -- Add is_priority column to offers table
 ALTER TABLE offers
-ADD COLUMN is_priority BOOLEAN DEFAULT FALSE;
+ADD COLUMN IF NOT EXISTS is_priority BOOLEAN DEFAULT FALSE;
 
 -- Create policy or index if needed (optional for small usage)
 -- IDX for sorting efficiency

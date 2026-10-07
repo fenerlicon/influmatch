@@ -43,6 +43,10 @@ create policy "Users can update their own profile"
 -- AÇIK 3: Onaylı olmayan (verified olmayan) Influencerlar ilanlara başvurabiliyordu.
 -- ==============================================================================
 
+-- Aşağıdaki politikalar influencer_id kolonunu kullanıyor; canlıda var ama daha önceki hiçbir
+-- migration oluşturmuyordu (sıfırdan kurulum burada hata veriyordu). Bkz. 20261007000011.
+ALTER TABLE public.advert_applications ADD COLUMN IF NOT EXISTS influencer_id uuid REFERENCES public.users(id) ON DELETE CASCADE;
+
 DROP POLICY IF EXISTS "Influencers manage their applications" ON public.advert_applications;
 DROP POLICY IF EXISTS "Brands view applications to their adverts" ON public.advert_applications;
 DROP POLICY IF EXISTS "Influencers can apply to adverts" ON public.advert_applications;
