@@ -43,8 +43,8 @@ export async function GET(req: Request) {
     for (const account of staleAccounts) {
         try {
             const result = account.platform === 'tiktok'
-                ? await refreshTikTokAccount(account.user_id)
-                : await refreshInstagramAccount(account.user_id)
+                ? await refreshTikTokAccount(account.user_id, 'auto')
+                : await refreshInstagramAccount(account.user_id, 'auto')
             results.push({ username: account.username, platform: account.platform, status: result.success ? 'success' : 'failed' })
         } catch (err) {
             console.error(`[Auto-Sync] ${account.platform}/${account.username} failed:`, err)

@@ -174,7 +174,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **İş:** `IM-xxxxxx` kodu bio'ya konur → Apify kazıması kodu arar → `social_accounts.is_verified=true`, istatistikler,
   `social_account_history`, profil senkronu, `syncBlueTick`. Tüm yazımlar service role ile.
 - **Sorunlar:**
-  - **2.1-S1 [KRİTİK]** Sunucu tarafında sınır yok: her "doğrula/yenile" çağrısı ücretli Apify koşusu (yeniden denemeyle 3'e kadar).
+  - ✅ ~~**2.1-S1 [KRİTİK]**~~ (kazıma kilidi + saatte 6 deneme + doğrulanmış hesapta günde 1 kullanıcı yenilemesi; migration 20261007000002) Sunucu tarafında sınır yok: her "doğrula/yenile" çağrısı ücretli Apify koşusu (yeniden denemeyle 3'e kadar).
     7 günlük bekleme yalnızca istemcide ve `updated_at`'e bakıyor. Mobil uç noktalar da sınırsız → Apify kredisi tüketme saldırısı.
   - **2.1-S2 [ORTA]** Gönderisi olmayan Instagram hesabı doğrulanamıyor (scraper gönderi yoksa hata atıyor).
   - **2.1-S3 [ORTA]** TikTok yenilemesi `social_account_history` yazmıyor → TikTok grafikleri boş.
@@ -189,7 +189,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `app/dashboard/influencer/page.tsx:104-109` (`refreshIfStale`, beklenmeden), `lib/social-stats.ts`,
   `app/api/cron/refresh-stats/route.ts` (Vercel cron, her gün 09:00 UTC)
 - **Sorunlar:**
-  - **2.2-S1 [KRİTİK]** Dashboard her render'da kilitsiz "ateşle-unut" yenileme başlatıyor; kazıma sürerken her sayfa yenilemesi yeni ücretli koşu demek.
+  - ✅ ~~**2.2-S1 [KRİTİK]**~~ (dashboard yenilemesi aynı kilidi kullanıyor, eşzamanlı ikinci koşu başlamıyor) Dashboard her render'da kilitsiz "ateşle-unut" yenileme başlatıyor; kazıma sürerken her sayfa yenilemesi yeni ücretli koşu demek.
     Serverless'ta beklenmeyen iş yanıt sonrası öldürülebilir.
   - **2.2-S2 [YÜKSEK]** Cron 100 hesaba kadar sırayla senkron Apify koşusu yapıyor, `maxDuration` yok → birkaç hesaptan sonra zaman aşımı.
   - **2.2-S3 [ORTA]** Cron eşiği "bugün 09:00'dan eski", cron da 09:00'da koşuyor → her hesap her gün bayat sayılıyor (3 günlük kuralla çelişiyor).

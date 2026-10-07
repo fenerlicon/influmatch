@@ -23,6 +23,118 @@ export type SocialResult = {
 
 const STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000
 
+// Apify harcama sınırları (her kazıma ücretli bir koşudur).
+const SCRAPE_LOCK_MS = 3 * 60 * 1000 // aynı hesap için aynı anda tek koşu
+const ATTEMPT_WINDOW_MS = 60 * 60 * 1000
+const MAX_ATTEMPTS_PER_WINDOW = 6 // hesap başına saatte en fazla 6 koşu
+const MIN_USER_REFRESH_MS = 24 * 60 * 60 * 1000 // doğrulanmış hesap: kullanıcı isteğiyle günde 1 yenileme
+
+/** 'user': kullanıcı tetikledi (sıkı sınırlar). 'auto': dashboard/cron bayat veri yenilemesi. */
+export type ScrapeSource = 'user' | 'auto'
+
+const ACCOUNT_COLUMNS =
+  'id, username, verification_code, is_verified, last_scraped_at, scrape_lock_until, scrape_attempts, scrape_window_started_at'
+
+type ScrapeAccount = {
+  id: string
+  username: string
+  verification_code: string | null
+  is_verified: boolean | null
+  last_scraped_at: string | null
+  scrape_lock_until: string | null
+  scrape_attempts: number | null
+  scrape_window_started_at: string | null
+}
+
+function minutesUntil(ms: number) {
+  return Math.max(1, Math.ceil(ms / 60000))
+}
+
+/**
+ * Ücretli kazıma için hesabın kilidini alır. Kilit tek bir koşullu UPDATE ile alınır, yani
+ * aynı anda gelen iki istekten yalnızca biri kazanır. Deneme sayacı kilit tutulurken artırılır.
+ */
+export async function acquireScrapeSlot(
+  admin: SupabaseClient,
+  account: ScrapeAccount,
+  source: ScrapeSource,
+  now = Date.now(),
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (source === 'user' && account.is_verified && account.last_scraped_at) {
+    const sinceLast = now - new Date(account.last_scraped_at).getTime()
+    if (sinceLast < MIN_USER_REFRESH_MS) {
+      const hours = Math.max(1, Math.ceil((MIN_USER_REFRESH_MS - sinceLast) / 3600000))
+      return { ok: false, error: `İstatistikler günde en fazla bir kez yenilenebilir. Yaklaşık ${hours} saat sonra tekrar deneyin.` }
+    }
+  }
+
+  const windowStart = account.scrape_window_started_at ? new Date(account.scrape_window_started_at).getTime() : 0
+  const inWindow = now - windowStart < ATTEMPT_WINDOW_MS
+  const attempts = inWindow ? account.scrape_attempts ?? 0 : 0
+  if (attempts >= MAX_ATTEMPTS_PER_WINDOW) {
+    return {
+      ok: false,
+      error: `Çok fazla deneme yapıldı. Lütfen ${minutesUntil(windowStart + ATTEMPT_WINDOW_MS - now)} dakika sonra tekrar deneyin.`,
+    }
+  }
+
+  const nowIso = new Date(now).toISOString()
+  const { data, error } = await admin
+    .from('social_accounts')
+    .update({
+      scrape_lock_until: new Date(now + SCRAPE_LOCK_MS).toISOString(),
+      scrape_attempts: attempts + 1,
+      scrape_window_started_at: inWindow ? account.scrape_window_started_at : nowIso,
+    })
+    .eq('id', account.id)
+    .or(`scrape_lock_until.is.null,scrape_lock_until.lt.${nowIso}`)
+    .select('id')
+
+  if (error) {
+    console.error('[acquireScrapeSlot] DB error:', error)
+    return { ok: false, error: 'Hesap şu anda güncellenemiyor. Lütfen biraz sonra tekrar deneyin.' }
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: 'Hesabınız şu anda güncelleniyor. Lütfen bir dakika sonra tekrar deneyin.' }
+  }
+  return { ok: true }
+}
+
+async function releaseScrapeSlot(admin: SupabaseClient, accountId: string) {
+  const { error } = await admin.from('social_accounts').update({ scrape_lock_until: null }).eq('id', accountId)
+  if (error) console.error('[releaseScrapeSlot] DB error:', error)
+}
+
+const BASIC_ACCOUNT_COLUMNS = 'id, username, verification_code, is_verified, last_scraped_at'
+
+/** Hesabı okur. Kilit kolonları henüz yoksa (migration 20261007000002 çalışmadıysa) sınırsız moda düşer. */
+async function fetchScrapeAccount(admin: SupabaseClient, userId: string, platform: SocialPlatform) {
+  const full = await admin.from('social_accounts').select(ACCOUNT_COLUMNS).eq('user_id', userId).eq('platform', platform).maybeSingle()
+  if (full.error?.code === '42703') {
+    console.warn('[social-stats] scrape throttle columns missing; run migration 20261007000002_scrape_throttle.sql')
+    const basic = await admin.from('social_accounts').select(BASIC_ACCOUNT_COLUMNS).eq('user_id', userId).eq('platform', platform).maybeSingle()
+    return { account: basic.data as ScrapeAccount | null, error: basic.error, throttled: false }
+  }
+  return { account: full.data as ScrapeAccount | null, error: full.error, throttled: true }
+}
+
+async function withScrapeSlot(
+  admin: SupabaseClient,
+  account: ScrapeAccount,
+  source: ScrapeSource,
+  task: () => Promise<SocialResult>,
+  throttled = true,
+): Promise<SocialResult> {
+  if (!throttled) return task()
+  const slot = await acquireScrapeSlot(admin, account, source)
+  if (!slot.ok) return { success: false, code: 'rate_limited', error: slot.error }
+  try {
+    return await task()
+  } finally {
+    await releaseScrapeSlot(admin, account.id)
+  }
+}
+
 function getAdminClient(): SupabaseClient {
   const client = createSupabaseAdminClient()
   if (!client) {
@@ -149,20 +261,19 @@ async function syncProfileAfterVerification(
  * Instagram hesabını doğrular (ilk sefer: biyografide kod aranır) veya
  * doğrulanmış hesabın istatistiklerini yeniler.
  */
-export async function refreshInstagramAccount(userId: string): Promise<SocialResult> {
+export async function refreshInstagramAccount(userId: string, source: ScrapeSource = 'user'): Promise<SocialResult> {
   const admin = getAdminClient()
 
-  const { data: account, error: fetchError } = await admin
-    .from('social_accounts')
-    .select('id, username, verification_code, is_verified')
-    .eq('user_id', userId)
-    .eq('platform', 'instagram')
-    .maybeSingle()
+  const { account, error: fetchError, throttled } = await fetchScrapeAccount(admin, userId, 'instagram')
 
   if (fetchError || !account) {
     return { success: false, error: 'Hesap bulunamadı.' }
   }
 
+  return withScrapeSlot(admin, account, source, () => scrapeInstagram(admin, userId, account), throttled)
+}
+
+async function scrapeInstagram(admin: SupabaseClient, userId: string, account: ScrapeAccount): Promise<SocialResult> {
   let normalizedData
   try {
     normalizedData = await fetchInstagramData(account.username)
@@ -314,20 +425,19 @@ export async function refreshInstagramAccount(userId: string): Promise<SocialRes
  * TikTok hesabını doğrular (ilk sefer: biyografide kod aranır) veya
  * doğrulanmış hesabın istatistiklerini yeniler.
  */
-export async function refreshTikTokAccount(userId: string): Promise<SocialResult> {
+export async function refreshTikTokAccount(userId: string, source: ScrapeSource = 'user'): Promise<SocialResult> {
   const admin = getAdminClient()
 
-  const { data: account, error: fetchError } = await admin
-    .from('social_accounts')
-    .select('id, username, verification_code, is_verified')
-    .eq('user_id', userId)
-    .eq('platform', 'tiktok')
-    .maybeSingle()
+  const { account, error: fetchError, throttled } = await fetchScrapeAccount(admin, userId, 'tiktok')
 
   if (fetchError || !account) {
     return { success: false, error: 'Hesap bulunamadı.' }
   }
 
+  return withScrapeSlot(admin, account, source, () => scrapeTikTok(admin, userId, account), throttled)
+}
+
+async function scrapeTikTok(admin: SupabaseClient, userId: string, account: ScrapeAccount): Promise<SocialResult> {
   let tiktokData
   try {
     tiktokData = await fetchTikTokPublicProfile(account.username)
@@ -418,5 +528,5 @@ export async function refreshIfStale(userId: string, platform: SocialPlatform) {
     return { status: 'fresh' as const }
   }
 
-  return platform === 'tiktok' ? refreshTikTokAccount(userId) : refreshInstagramAccount(userId)
+  return platform === 'tiktok' ? refreshTikTokAccount(userId, 'auto') : refreshInstagramAccount(userId, 'auto')
 }
