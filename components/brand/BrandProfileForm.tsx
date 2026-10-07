@@ -13,6 +13,7 @@ import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { BRAND_CATEGORIES, BRAND_CATEGORY_KEYS } from '@/utils/categories'
 import { validateTaxNumber } from '@/lib/tax-id'
 import TaxCertificateUpload, { type TaxVerificationSummary } from '@/components/brand/TaxCertificateUpload'
+import CorporateEmailVerification from '@/components/brand/CorporateEmailVerification'
 const LOGO_BUCKET = 'avatars'
 
 interface BrandProfileFormProps {
@@ -38,6 +39,8 @@ interface BrandProfileFormProps {
     taxOffice?: string
     taxOfficeCity?: string
     latestTaxVerification?: TaxVerificationSummary | null
+    corporateEmail?: string | null
+    corporateEmailVerified?: boolean
   }
 }
 
@@ -649,6 +652,14 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
             <CheckCircle className="h-4 w-4 text-emerald-400" />
             <span className="text-xs font-semibold text-emerald-300">Vergi numaranız doğrulandı.</span>
           </div>
+        )}
+
+        {!isEditingCorporate && (
+          <CorporateEmailVerification
+            initialEmail={initialData.corporateEmail ?? null}
+            verified={!!initialData.corporateEmailVerified}
+            website={initialData.website}
+          />
         )}
 
         {!isEditingCorporate && (

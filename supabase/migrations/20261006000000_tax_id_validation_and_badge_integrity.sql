@@ -53,8 +53,24 @@ AS $$
 $$;
 
 -- ------------------------------------------------------------------------------
+-- 1b. Web sitesi adresinden alan adı ("https://www.Marka.com.tr/x" -> "marka.com.tr").
+-- Not: SQL Editor uyumu için soru işareti karakteri kullanılmıyor (chr(63)).
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.website_host(p_url text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT nullif(
+    split_part(split_part(split_part(split_part(
+      regexp_replace(regexp_replace(lower(trim(coalesce(p_url, ''))), '^[a-z]+://', ''), '^www[.]', ''),
+    '/', 1), chr(63), 1), '#', 1), ':', 1),
+  '')
+$$;
+
+-- ------------------------------------------------------------------------------
 -- 2. USERS: INSERT kilidi (20260929000000_security_hardening.sql ile aynı + vergi no kontrolü;
---    blue_tick_override kolonu 20261006000002 ile eklenir, yoksa yok sayılır)
+--    blue_tick_override ve corporate_email kolonları sonraki migrationlarla eklenir, yoksa yok sayılır)
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.users_before_insert_guard()
 RETURNS TRIGGER
@@ -82,7 +98,9 @@ BEGIN
       'admin_notes', NULL,
       'is_verified', false,
       'displayed_badges', '{}'::text[],
-      'blue_tick_override', NULL
+      'blue_tick_override', NULL,
+      'corporate_email', NULL,
+      'corporate_email_verified_at', NULL
     ));
 
     IF NEW.tax_id IS NOT NULL AND NOT public.is_valid_tax_number(NEW.tax_id) THEN
@@ -143,6 +161,17 @@ BEGIN
     NEW := jsonb_populate_record(NEW, jsonb_build_object(
       'verification_status', CASE WHEN OLD.verification_status = 'verified' THEN 'pending' ELSE OLD.verification_status END,
       'tax_id_verified', false,
+      'displayed_badges', array_remove(coalesce(NEW.displayed_badges, '{}'::text[]), 'official-business')
+    ));
+    DELETE FROM public.user_badges WHERE user_id = NEW.id AND badge_id = 'official-business';
+  END IF;
+
+  -- Marka web sitesini değiştirirse kurumsal e-postanın alan adı kontrolü geçersiz kalır:
+  -- kurumsal e-posta doğrulaması ve Resmi İşletme rozeti düşer.
+  IF OLD.role = 'brand'
+     AND public.website_host(NEW.social_links ->> 'website') IS DISTINCT FROM public.website_host(OLD.social_links ->> 'website') THEN
+    NEW := jsonb_populate_record(NEW, jsonb_build_object(
+      'corporate_email_verified_at', NULL,
       'displayed_badges', array_remove(coalesce(NEW.displayed_badges, '{}'::text[]), 'official-business')
     ));
     DELETE FROM public.user_badges WHERE user_id = NEW.id AND badge_id = 'official-business';

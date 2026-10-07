@@ -14,7 +14,7 @@ export async function awardBadgesForUser(userId: string) {
   // Get user profile
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, role, verification_status, tax_id_verified, created_at, full_name, username, city, bio, category, avatar_url, social_links')
+    .select('id, role, verification_status, created_at, full_name, username, city, bio, category, avatar_url, social_links')
     .eq('id', userId)
     .maybeSingle()
 
@@ -66,11 +66,8 @@ export async function awardBadgesForUser(userId: string) {
       badgesToAward.push('founder-member')
     }
   } else if (role === 'brand') {
-    // 1. Official Business Badge: sadece vergi numarası doğrulanmış markalar ("Vergi levhası doğrulanmış işletme").
-    // Hesap onayı (verification_status) tek başına sarı tik vermez.
-    if (user.tax_id_verified === true && !existingBadgeIds.includes('official-business')) {
-      badgesToAward.push('official-business')
-    }
+    // 1. Official Business Badge (sarı tik) burada verilmez: vergi onayı + doğrulanmış kurumsal
+    // e-posta kuralı lib/official-business.ts içindeki syncOfficialBusiness ile uygulanır.
 
     // 2. Showcase Brand Badge (Complete profile)
     const profileData: ProfileRecord = {

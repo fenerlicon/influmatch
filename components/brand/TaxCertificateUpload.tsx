@@ -91,7 +91,7 @@ export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit,
         <p className="text-sm font-semibold text-white">Vergi Levhası</p>
         <p className="mt-1 text-xs text-gray-400">
           e-Devlet veya GİB İnternet Vergi Dairesi&apos;nden indirdiğiniz vergi levhası PDF&apos;ini yükleyin. Belgeniz otomatik
-          kontrol edilir ve ekibimiz onayladığında &quot;Resmi İşletme&quot; rozeti verilir. Fotoğraf ve taramalar da kabul edilir
+          kontrol edilir; ekibimiz onayladığında ve kurumsal e-postanız doğrulandığında &quot;Resmi İşletme&quot; rozeti verilir. Fotoğraf ve taramalar da kabul edilir
           ancak incelemesi daha uzun sürebilir.
         </p>
       </div>

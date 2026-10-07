@@ -16,13 +16,12 @@ import {
   type ExtractedTaxCertificate,
   type TaxDecision,
 } from '@/lib/tax-certificate-match'
+import { syncOfficialBusiness } from '@/lib/official-business'
 
 export const TAX_DOCUMENTS_BUCKET = 'tax-documents'
 export const MAX_TAX_DOCUMENT_BYTES = 5 * 1024 * 1024
 export const MAX_SUBMISSIONS_PER_DAY = 5
 const PARSER_VERSION = 'local-pdf-v1'
-const OFFICIAL_BADGE = 'official-business'
-const MAX_DISPLAYED_BADGES = 3
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
@@ -61,21 +60,14 @@ const EMPTY_EXTRACTION: ExtractedTaxCertificate = {
   suspicious_signs: [],
 }
 
-/** Vergi numarasını onaylar ve Resmi İşletme (sarı tik) rozetini vitrinin başına ekler. */
-export async function grantOfficialBusiness(admin: SupabaseClient, userId: string, extra: Record<string, unknown> = {}) {
-  const { data: profile } = await admin.from('users').select('displayed_badges').eq('id', userId).maybeSingle()
-  const displayed = ((profile?.displayed_badges as string[] | null) ?? []).filter((badge) => badge !== OFFICIAL_BADGE)
-
-  const { error: updateError } = await admin
-    .from('users')
-    .update({ ...extra, tax_id_verified: true, displayed_badges: [OFFICIAL_BADGE, ...displayed].slice(0, MAX_DISPLAYED_BADGES) })
-    .eq('id', userId)
+/**
+ * Vergi numarasını onaylar. Sarı tik ayrıca doğrulanmış kurumsal e-posta ister
+ * (lib/official-business.ts); rozet verildiyse 'granted' döner.
+ */
+export async function grantOfficialBusiness(admin: SupabaseClient, userId: string) {
+  const { error: updateError } = await admin.from('users').update({ tax_id_verified: true }).eq('id', userId)
   if (updateError) throw new Error(`Vergi numarası onaylanamadı: ${updateError.message}`)
-
-  const { error: badgeError } = await admin
-    .from('user_badges')
-    .upsert({ user_id: userId, badge_id: OFFICIAL_BADGE, earned_at: new Date().toISOString() }, { onConflict: 'user_id,badge_id' })
-  if (badgeError) throw new Error(`Resmi İşletme rozeti verilemedi: ${badgeError.message}`)
+  return syncOfficialBusiness(admin, userId)
 }
 
 export interface TaxVerificationOutcome {

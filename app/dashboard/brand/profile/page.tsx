@@ -5,6 +5,7 @@ export const maxDuration = 60
 import { redirect } from 'next/navigation'
 import BrandProfileForm from '@/components/brand/BrandProfileForm'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
 export default async function BrandProfileSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -31,6 +32,12 @@ export default async function BrandProfileSettingsPage() {
       .select('badge_id')
       .eq('user_id', user.id),
   ])
+
+  // Kurumsal e-posta gizli kolonlarda; sadece kendi satırı sunucuda service role ile okunur.
+  const supabaseAdmin = createSupabaseAdminClient()
+  const { data: corporate } = supabaseAdmin
+    ? await supabaseAdmin.from('users').select('corporate_email, corporate_email_verified_at').eq('id', user.id).maybeSingle()
+    : { data: null }
 
   // Son vergi levhası doğrulaması (RLS: kullanıcı sadece kendi kayıtlarını görür).
   const { data: latestTaxVerification } = await supabase
@@ -77,6 +84,8 @@ export default async function BrandProfileSettingsPage() {
     taxOffice: (profile as any)?.tax_office ?? '',
     taxOfficeCity: (profile as any)?.tax_office_city ?? '',
     latestTaxVerification: latestTaxVerification ?? null,
+    corporateEmail: corporate?.corporate_email ?? null,
+    corporateEmailVerified: !!corporate?.corporate_email_verified_at,
   }
 
   return (

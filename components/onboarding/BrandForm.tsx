@@ -7,12 +7,14 @@ import { validateUsername } from '@/utils/usernameValidation'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { validateTaxNumber } from '@/lib/tax-id'
+import { validateCorporateEmail } from '@/lib/corporate-email'
 
 export interface BrandFormState {
   brandName: string
   username: string
   city: string
   website: string
+  corporateEmail: string
   instagram: string
   tiktok: string
   youtube: string
@@ -150,6 +152,8 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
         }
       }
 
+  const corporateEmailValidation = form.corporateEmail?.trim() ? validateCorporateEmail(form.corporateEmail, form.website) : null
+  const corporateEmailError = corporateEmailValidation && !corporateEmailValidation.isValid ? corporateEmailValidation.error : null
   const taxIdValidation = form.taxId?.trim() ? validateTaxNumber(form.taxId) : null
   const taxIdError = taxIdValidation && !taxIdValidation.isValid ? taxIdValidation.error : null
 
@@ -220,7 +224,7 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
         </div>
         <div>
           <label htmlFor="website" className="text-sm text-gray-300">
-            Web Sitesi
+            Web Sitesi <span className="text-red-400">*</span>
           </label>
           <input
             id="website"
@@ -237,6 +241,29 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
             <p className="mt-1 text-xs text-red-300">{validationErrors.website}</p>
           )}
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="corporateEmail" className="text-sm text-gray-300">
+          Kurumsal E-posta <span className="text-red-400">*</span>
+        </label>
+        <input
+          id="corporateEmail"
+          type="email"
+          autoComplete="email"
+          value={form.corporateEmail}
+          onChange={handleInput('corporateEmail')}
+          placeholder="ad@markaniz.com"
+          className={`mt-2 w-full rounded-2xl border bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${corporateEmailError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-soft-gold'}`}
+        />
+        {corporateEmailError ? (
+          <p className="mt-1 text-xs text-red-300">{corporateEmailError}</p>
+        ) : (
+          <p className="mt-1 text-xs text-gray-400">
+            Web sitenizin alan adına ait bir e-posta olmalı (giriş e-postanızdan farklı olabilir). &quot;Resmi İşletme&quot; rozeti
+            için bu adrese gönderilen kodla doğrulanır.
+          </p>
+        )}
       </div>
 
       <div>

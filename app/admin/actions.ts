@@ -8,6 +8,7 @@ import { fetchInstagramData } from '@/utils/instagram-service'
 import { validateTaxNumber } from '@/lib/tax-id'
 import { syncBlueTick, sweepBlueTicks, type BlueTickOverride } from '@/lib/blue-tick'
 import { grantOfficialBusiness, loadLatestTaxVerifications, TAX_DOCUMENTS_BUCKET } from '@/lib/tax-verification'
+import { evaluateOfficialBusiness, syncOfficialBusiness } from '@/lib/official-business'
 
 
 export async function verifyUser(userId: string) {
@@ -442,8 +443,9 @@ export async function verifyTaxId(userId: string) {
     return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
   }
 
+  let badgeChange: 'granted' | 'revoked' | null = null
   try {
-    await grantOfficialBusiness(supabaseAdmin, userId)
+    badgeChange = await grantOfficialBusiness(supabaseAdmin, userId)
   } catch (grantError) {
     console.error('[verifyTaxId] Error:', grantError)
     return { error: grantError instanceof Error ? grantError.message : 'Vergi numarası onaylanamadı.' }
@@ -460,7 +462,13 @@ export async function verifyTaxId(userId: string) {
   revalidatePath('/dashboard/brand/badges')
   revalidatePath('/dashboard/brand')
 
-  return { success: true, message: 'Vergi numarası onaylandı ve "Resmi İşletme" rozeti verildi.' }
+  return {
+    success: true,
+    message:
+      badgeChange === 'granted'
+        ? 'Vergi numarası onaylandı ve "Resmi İşletme" rozeti verildi.'
+        : 'Vergi numarası onaylandı. Sarı tik için markanın şirket alan adındaki kurumsal e-postasını doğrulaması bekleniyor.',
+  }
 }
 
 // Resend verification email to a user (admin only)
@@ -742,80 +750,43 @@ export async function toggleBlueTick(userId: string) {
       return { success: true, message: result.message, action: blueTick ? 'removed' : 'added' }
     }
 
-    const badgeId = 'official-business'
-    const badgeName = 'Resmi İşletme (Sarı Tik)'
-
-    // Check if user has the badge
-    const { data: existingBadge } = await supabase
-      .from('user_badges')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('badge_id', badgeId)
-      .maybeSingle()
-
-    // Use Admin Client to bypass RLS
+    // Sarı tik kurala bağlı (vergi onayı + doğrulanmış kurumsal e-posta). Admin düğmesi vergi onayını
+    // verir / geri alır; rozet lib/official-business.ts kuralıyla eşitlenir.
     const { createSupabaseAdminClient } = await import('@/utils/supabase/admin')
     const supabaseAdmin = createSupabaseAdminClient()
-
     if (!supabaseAdmin) {
       return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
     }
+
+    const { data: brand } = await supabaseAdmin
+      .from('users')
+      .select('tax_id_verified, corporate_email, corporate_email_verified_at, social_links')
+      .eq('id', userId)
+      .single()
+    const state = evaluateOfficialBusiness(brand ?? { tax_id_verified: false, corporate_email: null, corporate_email_verified_at: null, social_links: null })
+    const { data: existingBadge } = await supabaseAdmin
+      .from('user_badges')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('badge_id', 'official-business')
+      .maybeSingle()
 
     let action = ''
     let message = ''
 
     if (existingBadge) {
-      // Remove badge
-      const { error: deleteError } = await supabaseAdmin
-        .from('user_badges')
-        .delete()
-        .eq('user_id', userId)
-        .eq('badge_id', badgeId)
-
-      if (deleteError) {
-        throw deleteError
-      }
+      const { error: revokeError } = await supabaseAdmin.from('users').update({ tax_id_verified: false }).eq('id', userId)
+      if (revokeError) throw revokeError
+      await syncOfficialBusiness(supabaseAdmin, userId)
       action = 'removed'
-      message = `${badgeName} kaldırıldı.`
+      message = 'Sarı tik kaldırıldı (vergi onayı geri alındı).'
     } else {
-      // Add badge
-      const { error: insertError } = await supabaseAdmin
-        .from('user_badges')
-        .insert({
-          user_id: userId,
-          badge_id: badgeId,
-          earned_at: new Date().toISOString()
-        })
-
-      if (insertError) {
-        throw insertError
+      if (!state.corporateEmailVerified || !state.domainMatches) {
+        return { error: 'Sarı tik için markanın şirket alan adına ait kurumsal e-postasını doğrulaması gerekiyor.' }
       }
+      await grantOfficialBusiness(supabaseAdmin, userId)
       action = 'added'
-      message = `${badgeName} verildi.`
-    }
-
-    // IMPORTANT: Sync displayed_badges in users table
-    // Fetch all current badges for the user
-    // (Still using standard client for select is usually fine as SELECT policies are "true")
-    const { data: allBadges } = await supabase
-      .from('user_badges')
-      .select('badge_id')
-      .eq('user_id', userId)
-
-    const badgeArray = allBadges?.map((b) => b.badge_id).filter(Boolean) || []
-
-    const { error: updateError } = await supabaseAdmin
-      .from('users')
-      .update({ displayed_badges: badgeArray })
-      .eq('id', userId)
-
-    if (updateError) {
-      console.error('[toggleBlueTick] Admin update error:', updateError)
-      // Fallback (redundant but safe if we are already here)
-      await supabase
-        .from('users')
-        .update({ displayed_badges: badgeArray })
-        .eq('id', userId)
+      message = 'Vergi numarası onaylandı ve sarı tik verildi.'
     }
 
     revalidatePath('/admin')
@@ -1541,6 +1512,7 @@ export async function rejectTaxVerification(verificationId: string, note: string
       updated_at: new Date().toISOString(),
     })
     .eq('id', verificationId)
+    .in('status', ['needs_review', 'processing'])
   if (error) return { error: `Reddedilemedi: ${error.message}` }
 
   revalidatePath('/admin')

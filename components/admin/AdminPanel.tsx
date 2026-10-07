@@ -41,6 +41,8 @@ interface User {
   email_verified_at?: string | null
   blue_tick_override?: 'granted' | 'revoked' | null
   tax_verification?: AdminTaxVerification | null
+  corporate_email?: string | null
+  corporate_email_verified_at?: string | null
 }
 
 interface Advert {
@@ -1569,6 +1571,23 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                                 user.tax_id && !user.tax_id_verified && (
                                   <p className="text-xs text-gray-500">Vergi levhası henüz yüklenmedi.</p>
                                 )
+                              )}
+                            </div>
+
+                            {/* Kurumsal e-posta (sarı tik için zorunlu) */}
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-xs text-gray-400">Kurumsal E-posta:</span>
+                              {user.corporate_email ? (
+                                <span className="flex items-center gap-2 text-sm text-white">
+                                  {user.corporate_email}
+                                  {user.corporate_email_verified_at ? (
+                                    <span className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">Doğrulandı</span>
+                                  ) : (
+                                    <span className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-semibold text-yellow-300">Doğrulanmadı</span>
+                                  )}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-500">Girilmedi (sarı tik verilemez)</span>
                               )}
                             </div>
 

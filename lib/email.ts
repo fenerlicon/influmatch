@@ -45,25 +45,23 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-export async function sendAdminAlertEmail({ subject, text }: { subject: string; text: string }): Promise<EmailResult> {
+/** Genel e-posta gönderimi (Resend). Gönderen: EMAIL_FROM, yoksa ALERT_EMAIL_FROM, yoksa test göndericisi. */
+export async function sendEmail({ to, subject, text }: { to: string[]; subject: string; text: string }): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim()
   if (!apiKey) {
-    console.warn(`[email] RESEND_API_KEY tanımlı değil, uyarı gönderilmedi: ${subject}`)
+    console.warn(`[email] RESEND_API_KEY tanımlı değil, e-posta gönderilmedi: ${subject}`)
     return { sent: false, reason: 'RESEND_API_KEY tanımlı değil.' }
   }
+  if (to.length === 0) return { sent: false, reason: 'Alıcı yok.' }
 
-  const to = await resolveAlertRecipients()
-  if (to.length === 0) {
-    return { sent: false, reason: 'Alıcı bulunamadı (ALERT_EMAIL_TO boş ve admin e-postası yok).' }
-  }
-
+  const from = process.env.EMAIL_FROM?.trim() || process.env.ALERT_EMAIL_FROM?.trim() || DEFAULT_FROM
   const html = `<pre style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(text)}</pre>`
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.ALERT_EMAIL_FROM?.trim() || DEFAULT_FROM, to, subject, text, html }),
+      body: JSON.stringify({ from, to, subject, text, html }),
       cache: 'no-store',
     })
     if (!response.ok) {
@@ -77,4 +75,16 @@ export async function sendAdminAlertEmail({ subject, text }: { subject: string; 
     console.error('[email] Gönderim hatası:', message)
     return { sent: false, reason: message }
   }
+}
+
+export async function sendAdminAlertEmail({ subject, text }: { subject: string; text: string }): Promise<EmailResult> {
+  if (!isAlertEmailConfigured()) {
+    console.warn(`[email] RESEND_API_KEY tanımlı değil, uyarı gönderilmedi: ${subject}`)
+    return { sent: false, reason: 'RESEND_API_KEY tanımlı değil.' }
+  }
+  const to = await resolveAlertRecipients()
+  if (to.length === 0) {
+    return { sent: false, reason: 'Alıcı bulunamadı (ALERT_EMAIL_TO boş ve admin e-postası yok).' }
+  }
+  return sendEmail({ to, subject, text })
 }
