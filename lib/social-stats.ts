@@ -568,9 +568,12 @@ const RETRY_BACKOFF_DAYS = [1, 2, 4, 7]
  * saatlik turlara yayılır. Art arda 2 servis kesintisi (kredi bitti vb.) alınırsa boşuna denemeden durur.
  * Hesaba özel hatada (gizli, silinmiş hesap) hesap 1/2/4/7 gün kuyruktan çıkarılır; kuyruğu tıkamaz.
  */
+/** Otomatik yenilemede aynı anda çalışan Apify koşusu (fonksiyon süresi 60 sn). */
+const REFRESH_CONCURRENCY = 3
+
 export async function refreshStaleAccounts(
   admin: SupabaseClient,
-  { deadline, limit = 25 }: { deadline: number; limit?: number },
+  { deadline, limit = 25, concurrency = REFRESH_CONCURRENCY }: { deadline: number; limit?: number; concurrency?: number },
 ): Promise<StaleRefreshReport> {
   const nowIso = new Date().toISOString()
   const cutoff = new Date(Date.now() - STALE_AFTER_MS).toISOString()
@@ -587,14 +590,14 @@ export async function refreshStaleAccounts(
 
   const report: StaleRefreshReport = { attempted: 0, succeeded: 0, failed: 0, remaining: 0, stoppedEarly: false, deferred: 0 }
   let consecutiveOutages = 0
+  let stop = false
+  let next = 0
   const list = accounts ?? []
-  for (let i = 0; i < list.length; i++) {
-    if (Date.now() >= deadline) {
-      report.remaining = list.length - i
-      break
-    }
-    const account = list[i]
-    report.attempted++
+
+  // Bir Apify koşusu 20-45 sn sürer; sırayla gidildiğinde saatlik tur yalnızca 1 hesap
+  // yenileyebiliyordu. Hesaplar REFRESH_CONCURRENCY kadar paralel işlenir; süre bütçesi
+  // yalnızca yeni hesap başlatmayı durdurur, başlamış koşular tamamlanır.
+  const processAccount = async (account: (typeof list)[number]) => {
     let result: SocialResult
     try {
       result =
@@ -613,17 +616,16 @@ export async function refreshStaleAccounts(
       if (result.success && account.scrape_fail_count) {
         await admin.from('social_accounts').update({ scrape_fail_count: 0, scrape_retry_after: null }).eq('id', account.id)
       }
-      continue
+      return
     }
 
     report.failed++
     if (result.code === 'service_unavailable') {
       if (++consecutiveOutages >= 2) {
+        stop = true
         report.stoppedEarly = true
-        report.remaining = list.length - i - 1
-        break
       }
-      continue
+      return
     }
 
     // Hesaba özel hata: hesabı artan sürelerle kuyruktan çıkar, sıradakine geç.
@@ -637,6 +639,16 @@ export async function refreshStaleAccounts(
     if (deferError) console.error('[refreshStaleAccounts] Bekletme kaydedilemedi:', deferError.message)
     else report.deferred++
   }
+
+  const worker = async () => {
+    while (!stop && next < list.length && Date.now() < deadline) {
+      const account = list[next++]
+      report.attempted++
+      await processAccount(account)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, list.length) }, worker))
+  report.remaining = list.length - next
   return report
 }
 
