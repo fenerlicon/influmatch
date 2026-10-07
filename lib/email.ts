@@ -10,10 +10,11 @@
 // BU DOSYA KASITLI OLARAK 'use server' DEĞİLDİR: istemciden çağrılamamalıdır.
 
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { recordResendResult, resolveFromAddress } from '@/lib/resend-status'
 
-const DEFAULT_FROM = 'Influmatch <onboarding@resend.dev>'
-
-export type EmailResult = { sent: true; recipients: string[] } | { sent: false; reason: string }
+export type EmailResult =
+  | { sent: true; recipients: string[] }
+  | { sent: false; reason: string; code?: 'not_configured' | 'quota_exceeded' | 'error' }
 
 export function adminPanelUrl(path = '/admin') {
   const base = (process.env.NEXT_PUBLIC_SITE_URL || 'https://influmatch.net').replace(/\/$/, '')
@@ -50,11 +51,12 @@ export async function sendEmail({ to, subject, text }: { to: string[]; subject: 
   const apiKey = process.env.RESEND_API_KEY?.trim()
   if (!apiKey) {
     console.warn(`[email] RESEND_API_KEY tanımlı değil, e-posta gönderilmedi: ${subject}`)
-    return { sent: false, reason: 'RESEND_API_KEY tanımlı değil.' }
+    return { sent: false, reason: 'RESEND_API_KEY tanımlı değil.', code: 'not_configured' }
   }
   if (to.length === 0) return { sent: false, reason: 'Alıcı yok.' }
 
-  const from = process.env.EMAIL_FROM?.trim() || process.env.ALERT_EMAIL_FROM?.trim() || DEFAULT_FROM
+  const from = resolveFromAddress()
+  const admin = createSupabaseAdminClient()
   const html = `<pre style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(text)}</pre>`
 
   try {
@@ -66,14 +68,25 @@ export async function sendEmail({ to, subject, text }: { to: string[]; subject: 
     })
     if (!response.ok) {
       const body = await response.text()
+      let errorName: string | null = null
+      let errorMessage: string | null = null
+      try {
+        const parsed = JSON.parse(body) as { name?: string; message?: string }
+        errorName = parsed.name ?? null
+        errorMessage = parsed.message ?? null
+      } catch {}
+      await recordResendResult(admin, { response, errorName, errorMessage: errorMessage || body.slice(0, 300), recipients: to.length })
       console.error(`[email] Resend HTTP ${response.status}:`, body)
-      return { sent: false, reason: `Resend HTTP ${response.status}: ${body.slice(0, 300)}` }
+      const quota = errorName === 'daily_quota_exceeded' || errorName === 'monthly_quota_exceeded'
+      return { sent: false, reason: `Resend HTTP ${response.status}: ${body.slice(0, 300)}`, code: quota ? 'quota_exceeded' : 'error' }
     }
+    await recordResendResult(admin, { response, recipients: to.length })
     return { sent: true, recipients: to }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
+    await recordResendResult(admin, { errorMessage: message, recipients: to.length })
     console.error('[email] Gönderim hatası:', message)
-    return { sent: false, reason: message }
+    return { sent: false, reason: message, code: 'error' }
   }
 }
 

@@ -115,6 +115,9 @@ export async function sendCorporateEmailCode(admin: SupabaseClient, userId: stri
   })
   if (!result.sent) {
     console.error('[corporate-email] Kod gönderilemedi:', result.reason)
+    if (result.code === 'quota_exceeded') {
+      return { success: false, error: 'E-posta gönderim limitimiz bugünlük doldu. Lütfen yarın tekrar deneyin.' }
+    }
     return { success: false, error: 'Doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.' }
   }
   return { success: true, message: `Doğrulama kodu ${validation.email} adresine gönderildi.` }

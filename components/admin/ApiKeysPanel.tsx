@@ -14,6 +14,7 @@ import {
 } from '@/app/admin/api-keys/actions'
 import type { ApiKeyDashboard, ApiKeyView } from '@/app/admin/api-keys/data'
 import type { ApiKeyStatus, ApiProvider } from '@/lib/api-keys'
+import ResendStatusCard from '@/components/admin/ResendStatusCard'
 
 const PROVIDERS: { id: ApiProvider; name: string; usage: string; placeholder: string }[] = [
   {
@@ -192,6 +193,8 @@ export default function ApiKeysPanel({ initialDashboard }: { initialDashboard: A
               </button>
             </div>
           </div>
+
+          <ResendStatusCard status={dashboard.resend} />
 
           {/* Servisler */}
           <div className="mt-10 space-y-10">

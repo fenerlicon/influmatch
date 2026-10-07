@@ -23,6 +23,7 @@ import {
 import { checkApifyKey } from '@/lib/apify'
 import { checkGeminiKey } from '@/lib/gemini'
 import { adminPanelUrl, sendAdminAlertEmail, type EmailResult } from '@/lib/email'
+import { getResendStatus, type ResendStatus } from '@/lib/resend-status'
 
 export const LAST_RUN_STATE_KEY = 'api_key_health_last_run'
 const ALERT_STATE_KEY = 'api_key_health_alert'
@@ -45,6 +46,7 @@ export interface ProviderHealth {
 export interface HealthReport {
   checkedAt: string
   providers: ProviderHealth[]
+  resend: ResendStatus
   hasProblems: boolean
   email: EmailResult | null
 }
@@ -115,7 +117,7 @@ function summarize(provider: ApiProvider, keys: ApiKeyRow[]): ProviderHealth {
   }
 }
 
-function buildEmailText(providers: ProviderHealth[], checkedAt: string, hasProblems: boolean) {
+function buildEmailText(providers: ProviderHealth[], resend: ResendStatus, checkedAt: string, hasProblems: boolean) {
   const lines = [
     hasProblems
       ? `Influmatch API anahtarlarında sorun var (${formatDate(checkedAt)}).`
@@ -130,6 +132,15 @@ function buildEmailText(providers: ProviderHealth[], checkedAt: string, hasProbl
     for (const k of p.problemKeys) {
       lines.push(`  - ${k.label} (${k.masked}): ${STATUS_LABELS[k.status]}${k.message ? ` — ${k.message}` : ''}`)
     }
+    lines.push('')
+  }
+  if (resend.level !== 'ok' || resend.usage) {
+    const u = resend.usage
+    lines.push(
+      `E-POSTA (RESEND): ${u ? `bugün ${u.daily_used}/${resend.limits.daily}, bu ay ${u.monthly_used}/${resend.limits.monthly}` : 'kullanım verisi yok'}`,
+    )
+    for (const p of resend.problems) lines.push(`  !! ${p}`)
+    for (const w of resend.warnings) lines.push(`  - ${w}`)
     lines.push('')
   }
   lines.push(`Anahtar eklemek / değiştirmek için: ${adminPanelUrl('/admin/api-keys')}`)
@@ -149,25 +160,28 @@ export async function runApiKeyHealthCheck(admin: SupabaseClient, { sendEmail }:
 
   const checkedAt = new Date().toISOString()
   const providers = API_PROVIDERS.map((provider) => summarize(provider, checked.filter((k) => k.provider === provider)))
-  const hasProblems = providers.some((p) => p.poolProblem || p.problemKeys.length > 0)
+  const resend = await getResendStatus(admin)
+  const hasProblems = providers.some((p) => p.poolProblem || p.problemKeys.length > 0) || resend.level !== 'ok'
 
   let email: EmailResult | null = null
   if (sendEmail) {
-    const fingerprint = JSON.stringify(
+    // Resend için yalnızca seviye parmak izine girer (sayaçlar her saat değişir, e-posta tekrarlanmasın).
+    const fingerprint = JSON.stringify([
       providers.map((p) => [p.provider, !!p.poolProblem, p.problemKeys.map((k) => `${k.id}:${k.status}`).sort()]),
-    )
+      ['resend', resend.level, resend.problems.length],
+    ])
     const lastAlert = await getSystemState<{ fingerprint?: string; sent_at?: string; had_problems?: boolean }>(admin, ALERT_STATE_KEY)
     const changed = lastAlert?.fingerprint !== fingerprint
     const reminderDue = !lastAlert?.sent_at || Date.now() - new Date(lastAlert.sent_at).getTime() >= REMINDER_INTERVAL_MS
     const shouldSend = hasProblems ? changed || reminderDue : changed && !!lastAlert?.had_problems
 
     if (shouldSend) {
-      const urgent = providers.some((p) => p.poolProblem)
+      const urgent = providers.some((p) => p.poolProblem) || resend.level === 'critical'
       email = await sendAdminAlertEmail({
         subject: hasProblems
           ? `[Influmatch] ${urgent ? 'ACİL: ' : ''}API anahtar uyarısı`
           : '[Influmatch] API anahtarları tekrar sağlıklı',
-        text: buildEmailText(providers, checkedAt, hasProblems),
+        text: buildEmailText(providers, resend, checkedAt, hasProblems),
       })
       if (email.sent) {
         await setSystemState(admin, ALERT_STATE_KEY, { fingerprint, sent_at: checkedAt, had_problems: hasProblems })
@@ -182,5 +196,5 @@ export async function runApiKeyHealthCheck(admin: SupabaseClient, { sendEmail }:
     })
   }
 
-  return { checkedAt, providers, hasProblems, email }
+  return { checkedAt, providers, resend, hasProblems, email }
 }

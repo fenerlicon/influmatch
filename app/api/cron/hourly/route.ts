@@ -36,6 +36,7 @@ export async function GET(req: Request) {
         ...summary,
         problems: problemKeys.map((k) => `${k.label}: ${k.status}`),
       })),
+      resend: { level: report.resend.level, problems: report.resend.problems, warnings: report.resend.warnings },
     }
   } catch (error) {
     console.error('[cron/hourly] API anahtar kontrolü başarısız:', error)

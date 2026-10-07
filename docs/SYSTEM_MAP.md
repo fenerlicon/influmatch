@@ -636,7 +636,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 8.4 E-posta (Resend)
 - **Dosya:** `lib/email.ts` (`sendEmail`, `sendAdminAlertEmail`). Kullanım: admin uyarıları, kurumsal e-posta kodları.
-- **Sorunlar:** bkz. 3.11-S2 ve 5.4-S1 (kullanıcıya işlem e-postası yok).
+- **İzleme:** `lib/resend-status.ts` — her gönderimde Resend kota başlıkları kaydedilir; anahtar, gönderici alan adı ve kota durumu `/admin/api-keys` sayfasında ve saatlik kontrolde.
+- **Sorunlar:**
+  - **8.4-S1 [YÜKSEK]** Ücretsiz plan günde 100, ayda 3000 e-posta. Kurumsal e-posta kodları ve admin uyarıları aynı kotayı paylaşıyor; kota dolunca markalara kod gitmez. İzleme ve uyarı eklendi, risk sürüyor (çözüm: ücretli plan veya ikinci sağlayıcı).
+  - bkz. 3.11-S2 ve 5.4-S1 (kullanıcıya işlem e-postası yok).
 
 ### 8.5 Konfigürasyon
 - `next.config.js`, `vercel.json`, `package.json`, `middleware.ts`
