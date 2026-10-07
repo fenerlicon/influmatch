@@ -548,7 +548,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                                       hasOfficial ? 'text-soft-gold' : 'text-blue-400'
                                       }`} />
                                     <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                                      {isAdmin ? 'Yönetici' : (hasOfficial ? 'Onaylı İşletme' : 'Onaylı Hesap')}
+                                      {isAdmin ? 'Yönetici' : (hasOfficial ? 'Resmi İşletme' : 'Mavi Tik')}
                                     </div>
                                   </div>
                                 )
@@ -720,7 +720,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
                                   }`} />
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
                                   <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
-                                    {isAdmin ? 'Yönetici' : (hasOfficial ? 'Onaylı İşletme' : 'Onaylı Hesap')}
+                                    {isAdmin ? 'Yönetici' : (hasOfficial ? 'Resmi İşletme' : 'Mavi Tik')}
                                     <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
                                       <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
                                     </div>

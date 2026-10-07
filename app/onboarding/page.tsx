@@ -10,6 +10,7 @@ import type { UserRole } from '@/types/auth'
 import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } from '@/utils/socialLinkValidation'
 import { saveOnboardingProfile } from './actions'
 import { validateUsername } from '@/utils/usernameValidation'
+import { validateCorporateEmail } from '@/lib/corporate-email'
 
 type SocialLinks = {
   instagram?: string | null
@@ -48,6 +49,7 @@ const defaultBrandForm: BrandFormState = {
   username: '',
   city: '',
   website: '',
+  corporateEmail: '',
   instagram: '',
   tiktok: '',
   youtube: '',
@@ -155,6 +157,7 @@ export default function OnboardingPage() {
             username: data.username ?? '',
             city: data.city ?? '',
             website: socialLinks.website ?? '',
+            corporateEmail: '',
             instagram: socialLinks.instagram ?? '',
             tiktok: socialLinks.tiktok ?? '',
             youtube: socialLinks.youtube ?? '',
@@ -322,15 +325,15 @@ export default function OnboardingPage() {
       const tiktokResult = validateTikTok(brandForm.tiktok)
       const youtubeResult = validateYouTube(brandForm.youtube)
 
-      // Check if at least one social media account or website is provided
-      const hasAtLeastOneSocial =
-        (brandForm.website && websiteResult.isValid) ||
-        (brandForm.instagram && instagramResult.isValid) ||
-        (brandForm.tiktok && tiktokResult.isValid) ||
-        (brandForm.youtube && youtubeResult.isValid)
-
-      if (!hasAtLeastOneSocial) {
-        setErrorMessage('En az bir sosyal medya hesabı veya web sitesi gerekli.')
+      // Markalar için web sitesi ve sitenin alan adına ait kurumsal e-posta zorunlu.
+      if (!brandForm.website?.trim() || !websiteResult.isValid) {
+        setErrorMessage('Şirketinizin web sitesi gerekli.')
+        setIsSaving(false)
+        return
+      }
+      const corporateEmailResult = validateCorporateEmail(brandForm.corporateEmail ?? '', websiteResult.normalizedUrl || brandForm.website)
+      if (!corporateEmailResult.isValid) {
+        setErrorMessage(corporateEmailResult.error)
         setIsSaving(false)
         return
       }
@@ -399,6 +402,7 @@ export default function OnboardingPage() {
       taxId: role === 'brand' ? brandForm.taxId : null,
       taxOffice: role === 'brand' ? brandForm.taxOffice : null,
       taxOfficeCity: role === 'brand' ? brandForm.taxOfficeCity : null,
+      corporateEmail: role === 'brand' ? brandForm.corporateEmail : null,
       category: role === 'influencer' ? influencerForm.category : 'tech', // Default category for brands
       avatarUrl: avatarUrl,
       socialLinks: socialLinks,
@@ -413,9 +417,10 @@ export default function OnboardingPage() {
 
     console.log('[Onboarding] Profile saved successfully via server action')
 
-    // Force a router refresh to update server components, then navigate
+    // Force a router refresh to update server components, then navigate.
+    // Influencer / UGC hesapları panelden önce sosyal medya hesabını doğrular.
     router.refresh()
-    router.replace('/dashboard')
+    router.replace(role === 'influencer' ? '/onboarding/verify' : '/dashboard')
     setIsSaving(false)
 
     // Clear localStorage on successful submission

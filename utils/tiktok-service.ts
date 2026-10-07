@@ -1,5 +1,7 @@
 
 import { createSupabaseAdminClient } from './supabase/admin'
+import { runApifyActor } from '@/lib/apify'
+import { ApiServiceError } from '@/lib/api-keys'
 
 /**
  * TikTok Service for handling OAuth and Data Fetching via TikTok for Developers (API v2)
@@ -139,11 +141,12 @@ export interface NormalizedTikTokData {
   signature: string
 }
 
+// Sadece geçici servis hataları tekrar denenir (her deneme Apify kredisi harcar).
 async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number = 1000): Promise<T> {
   try {
     return await fn();
   } catch (error) {
-    if (retries <= 0) throw error;
+    if (retries <= 0 || !(error instanceof ApiServiceError)) throw error;
     console.warn(`[TikTokService] Retrying operation... Attempts left: ${retries}`);
     await new Promise(resolve => setTimeout(resolve, delay));
     return withRetry(fn, retries - 1, delay * 1.5);
@@ -151,10 +154,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number
 }
 
 export async function fetchTikTokPublicProfile(username: string): Promise<NormalizedTikTokData> {
-  if (!process.env.APIFY_API_TOKEN) {
-    throw new Error('APIFY_API_TOKEN eksik. Lütfen sistem yöneticisi ile görüşün.');
-  }
-
   try {
     console.log(`[TikTokService] Fetching TikTok data for ${username} via Apify...`);
     return await withRetry(() => fetchTikTokFromApify(username), 2);
@@ -166,29 +165,13 @@ export async function fetchTikTokPublicProfile(username: string): Promise<Normal
 }
 
 async function fetchTikTokFromApify(username: string): Promise<NormalizedTikTokData> {
-  const token = process.env.APIFY_API_TOKEN;
   const cleanUsername = username.replace('@', '').trim();
 
-  // Call official Clockworks TikTok Profile Scraper
-  const response = await fetch(`https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items?token=${token}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      "profiles": [cleanUsername],
-      "resultsPerPage": 1
-    }),
+  // Call official Clockworks TikTok Profile Scraper (anahtar havuzu patlayan anahtarı otomatik değiştirir)
+  const items = await runApifyActor('clockworks~tiktok-profile-scraper', {
+    "profiles": [cleanUsername],
+    "resultsPerPage": 1
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    if (response.status === 401) throw new Error('Apify API Token geçersiz.');
-    if (response.status === 402) throw new Error('Apify bakiye yetersiz.');
-    throw new Error(`Apify HTTP ${response.status}: ${errorText}`);
-  }
-
-  const items = await response.json();
   if (!items || items.length === 0) {
     throw new Error('TikTok profil verisi bulunamadı. Kullanıcı adı hatalı olabilir veya hesap gizli olabilir.');
   }

@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { fetchAccountRole } from '@/lib/viewer-role'
 
 interface CreateOfferPayload {
   receiverId: string
@@ -23,7 +24,7 @@ export async function createOffer(payload: CreateOfferPayload) {
     return { error: 'Oturum bulunamadı. Lütfen yeniden giriş yapın.' }
   }
 
-  if (user.user_metadata?.role !== 'brand') {
+  if ((await fetchAccountRole(supabase, user.id)) !== 'brand') {
     return { error: 'Sadece marka hesapları teklif gönderebilir.' }
   }
 

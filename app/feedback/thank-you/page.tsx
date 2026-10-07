@@ -25,8 +25,10 @@ export default function ThankYouPage() {
           return
         }
 
-        const role = user.user_metadata?.role ?? 'influencer'
-        const path = role === 'brand' ? '/dashboard/brand' : '/dashboard/influencer'
+        // Rol DB'den okunur; user_metadata kullanıcı tarafından değiştirilebilir.
+        const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+        const role = profile?.role ?? 'influencer'
+        const path = role === 'brand' ? '/dashboard/brand' : role === 'admin' ? '/admin' : '/dashboard/influencer'
         setDashboardPath(path)
         setIsLoading(false)
 

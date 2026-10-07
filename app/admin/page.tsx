@@ -3,6 +3,7 @@ import AdminPanel from '@/components/admin/AdminPanel'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { ADMIN_USER_SELECT } from '@/lib/user-columns'
+import { loadLatestTaxVerifications } from '@/lib/tax-verification'
 
 
 export default async function AdminPage() {
@@ -118,7 +119,9 @@ export default async function AdminPage() {
     }
 
     // Filter and count on server side (single query instead of 6)
-    const allUsersList = allUsers ?? []
+    const brandIds = (allUsers ?? []).filter((user) => user.role === 'brand').map((user) => user.id)
+    const taxVerifications = await loadLatestTaxVerifications(supabaseAdmin, brandIds)
+    const allUsersList = (allUsers ?? []).map((user) => ({ ...user, tax_verification: taxVerifications[user.id] ?? null }))
 
     // Filter by verification status
     const pendingUsers = allUsersList

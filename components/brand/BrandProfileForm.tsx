@@ -4,13 +4,16 @@ import Image from 'next/image'
 import { type ReactNode, useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info, Edit2, X, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info, Edit2, X, CheckCircle, AlertCircle } from 'lucide-react'
 import { updateBrandProfile } from '@/app/dashboard/brand/profile/actions'
 import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { BRAND_CATEGORIES, BRAND_CATEGORY_KEYS } from '@/utils/categories'
+import { validateTaxNumber } from '@/lib/tax-id'
+import TaxCertificateUpload, { type TaxVerificationSummary } from '@/components/brand/TaxCertificateUpload'
+import CorporateEmailVerification from '@/components/brand/CorporateEmailVerification'
 const LOGO_BUCKET = 'avatars'
 
 interface BrandProfileFormProps {
@@ -35,6 +38,9 @@ interface BrandProfileFormProps {
     socialLinksLastUpdated?: string | null
     taxOffice?: string
     taxOfficeCity?: string
+    latestTaxVerification?: TaxVerificationSummary | null
+    corporateEmail?: string | null
+    corporateEmailVerified?: boolean
   }
 }
 
@@ -300,6 +306,14 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
       return
     }
 
+    if (formState.taxId.trim()) {
+      const taxValidation = validateTaxNumber(formState.taxId)
+      if (!taxValidation.isValid) {
+        setErrorMsg(`${taxValidation.error} (Kurumsal Kimlik bölümünden düzeltebilirsiniz.)`)
+        return
+      }
+    }
+
     startTransition(async () => {
       try {
         const result = await updateBrandProfile({
@@ -318,6 +332,8 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           displayedBadges: selectedBadges,
           companyLegalName: formState.companyLegalName.trim() || null,
           taxId: formState.taxId.trim() || null,
+          taxOffice: formState.taxOffice.trim() || null,
+          taxOfficeCity: formState.taxOfficeCity.trim() || null,
         })
 
         if (result?.success) {
@@ -327,7 +343,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           // Don't refresh - form state is already correct
           // The revalidatePath in the action will handle cache invalidation
         } else {
-          throw new Error('Profil güncellenemedi.')
+          throw new Error(result?.success === false ? result.error : 'Profil güncellenemedi.')
         }
       } catch (error) {
         console.error('updateBrandProfile failed', error)
@@ -376,6 +392,9 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
       </div>
     </label>
   )
+
+  const taxIdValidation = formState.taxId.trim() ? validateTaxNumber(formState.taxId) : null
+  const taxIdError = taxIdValidation && !taxIdValidation.isValid ? taxIdValidation.error : null
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -608,6 +627,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           'Vergi numaranızı girin',
           !isEditingCorporate ? true : undefined
         )}
+        {taxIdError && <p className="-mt-3 text-xs text-red-300">{taxIdError}</p>}
 
         {renderInput(
           'Vergi Dairesi',
@@ -627,30 +647,34 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         )}
 
         {/* Vergi Numarası Durumu */}
-        {formState.taxId && formState.taxId.trim() && (
-          <div className={`mt-2 rounded-xl border p-3 ${initialData.taxIdVerified
-            ? 'border-emerald-500/40 bg-emerald-500/10'
-            : 'border-yellow-500/40 bg-yellow-500/10'
-            }`}>
-            <div className="flex items-center gap-2">
-              {initialData.taxIdVerified ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-emerald-400" />
-                  <span className="text-xs font-semibold text-emerald-300">Doğrulandı</span>
-                </>
-              ) : (
-                <>
-                  <Clock className="h-4 w-4 text-yellow-400" />
-                  <span className="text-xs font-semibold text-yellow-300">Onay Bekliyor</span>
-                </>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-gray-400">
-              {initialData.taxIdVerified
-                ? 'Vergi numaranız doğrulandı.'
-                : 'Vergi numaranız inceleniyor.'}
-            </p>
+        {initialData.taxIdVerified && (
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
+            <CheckCircle className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs font-semibold text-emerald-300">Vergi numaranız doğrulandı.</span>
           </div>
+        )}
+
+        {!isEditingCorporate && (
+          <CorporateEmailVerification
+            initialEmail={initialData.corporateEmail ?? null}
+            verified={!!initialData.corporateEmailVerified}
+            website={initialData.website}
+          />
+        )}
+
+        {!isEditingCorporate && (
+          <TaxCertificateUpload
+            userId={userId}
+            taxIdVerified={!!initialData.taxIdVerified}
+            canSubmit={
+              !!initialData.companyLegalName?.trim() &&
+              !!initialData.taxId &&
+              validateTaxNumber(initialData.taxId).isValid &&
+              !!initialData.taxOffice &&
+              !!initialData.taxOfficeCity
+            }
+            latest={initialData.latestTaxVerification ?? null}
+          />
         )}
 
         {isEditingCorporate && (
@@ -660,6 +684,11 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
               onClick={async () => {
                 setErrorMsg(null)
                 if (formState.taxId.trim()) {
+                  const taxValidation = validateTaxNumber(formState.taxId)
+                  if (!taxValidation.isValid) {
+                    setErrorMsg(taxValidation.error)
+                    return
+                  }
                   if (!formState.taxOffice.trim()) {
                     setErrorMsg('Vergi numarası girildiğinde vergi dairesi girmek zorunludur.')
                     return
@@ -671,7 +700,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                 }
                 startTransition(async () => {
                   try {
-                    await updateBrandProfile({
+                    const result = await updateBrandProfile({
                       brandName: formState.brandName,
                       username: formState.username,
                       city: formState.city,
@@ -690,6 +719,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                       taxOffice: formState.taxOffice.trim() || null,
                       taxOfficeCity: formState.taxOfficeCity.trim() || null,
                     })
+                    if (!result.success) throw new Error(result.error)
                     setToast('Kurumsal bilgiler güncellendi!')
                     setIsEditingCorporate(false)
                     router.refresh()

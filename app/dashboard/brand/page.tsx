@@ -57,7 +57,7 @@ export default async function BrandDashboardPage() {
     .from('offers')
     .select(
       `id, campaign_name, campaign_type, budget, message, status, created_at,
-      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status)`,
+      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status, displayed_badges)`,
     )
     .eq('sender_user_id', user.id)
     .order('created_at', { ascending: false })
@@ -140,7 +140,7 @@ export default async function BrandDashboardPage() {
   // Fetch AI Recommendations (Shared Logic)
   const recommendations = await getAIRecommendations(user.id, profileData.category, 4)
 
-  const userRole = user.user_metadata?.role || 'brand'
+  const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
   const isSpotlight = profile?.spotlight_active || false
 
   return (

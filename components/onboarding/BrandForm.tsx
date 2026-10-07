@@ -6,12 +6,15 @@ import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } f
 import { validateUsername } from '@/utils/usernameValidation'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
+import { validateTaxNumber } from '@/lib/tax-id'
+import { validateCorporateEmail } from '@/lib/corporate-email'
 
 export interface BrandFormState {
   brandName: string
   username: string
   city: string
   website: string
+  corporateEmail: string
   instagram: string
   tiktok: string
   youtube: string
@@ -149,6 +152,11 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
         }
       }
 
+  const corporateEmailValidation = form.corporateEmail?.trim() ? validateCorporateEmail(form.corporateEmail, form.website) : null
+  const corporateEmailError = corporateEmailValidation && !corporateEmailValidation.isValid ? corporateEmailValidation.error : null
+  const taxIdValidation = form.taxId?.trim() ? validateTaxNumber(form.taxId) : null
+  const taxIdError = taxIdValidation && !taxIdValidation.isValid ? taxIdValidation.error : null
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -216,7 +224,7 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
         </div>
         <div>
           <label htmlFor="website" className="text-sm text-gray-300">
-            Web Sitesi
+            Web Sitesi <span className="text-red-400">*</span>
           </label>
           <input
             id="website"
@@ -236,20 +244,49 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
       </div>
 
       <div>
+        <label htmlFor="corporateEmail" className="text-sm text-gray-300">
+          Kurumsal E-posta <span className="text-red-400">*</span>
+        </label>
+        <input
+          id="corporateEmail"
+          type="email"
+          autoComplete="email"
+          value={form.corporateEmail}
+          onChange={handleInput('corporateEmail')}
+          placeholder="ad@markaniz.com"
+          className={`mt-2 w-full rounded-2xl border bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${corporateEmailError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-soft-gold'}`}
+        />
+        {corporateEmailError ? (
+          <p className="mt-1 text-xs text-red-300">{corporateEmailError}</p>
+        ) : (
+          <p className="mt-1 text-xs text-gray-400">
+            Web sitenizin alan adına ait bir e-posta olmalı (giriş e-postanızdan farklı olabilir). &quot;Resmi İşletme&quot; rozeti
+            için bu adrese gönderilen kodla doğrulanır.
+          </p>
+        )}
+      </div>
+
+      <div>
         <label htmlFor="taxId" className="text-sm text-gray-300">
           Vergi Numarası <span className="text-gray-500 text-xs">(Opsiyonel)</span>
         </label>
         <input
           id="taxId"
           type="text"
+          inputMode="numeric"
+          maxLength={14}
           value={form.taxId}
           onChange={handleInput('taxId')}
           placeholder="1234567890"
-          className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+          className={`mt-2 w-full rounded-2xl border bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${taxIdError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-soft-gold'}`}
         />
-        <p className="mt-1 text-xs text-gray-400">
-          Kurumsal fatura için gereklidir.
-        </p>
+        {taxIdError ? (
+          <p className="mt-1 text-xs text-red-300">{taxIdError}</p>
+        ) : (
+          <p className="mt-1 text-xs text-gray-400">
+            Şirketler 10 haneli vergi numarasını, şahıs şirketleri 11 haneli T.C. kimlik numarasını girer. Kurumsal fatura için gereklidir.
+          </p>
+        )}
       </div>
 
       {form.taxId && form.taxId.trim() && (

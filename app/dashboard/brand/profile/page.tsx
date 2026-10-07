@@ -1,8 +1,11 @@
 export const revalidate = 0
+// Vergi levhası PDF okuma bu sayfanın server action'ında (sunucuda) çalışır.
+export const maxDuration = 60
 
 import { redirect } from 'next/navigation'
 import BrandProfileForm from '@/components/brand/BrandProfileForm'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
 export default async function BrandProfileSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -29,6 +32,21 @@ export default async function BrandProfileSettingsPage() {
       .select('badge_id')
       .eq('user_id', user.id),
   ])
+
+  // Kurumsal e-posta gizli kolonlarda; sadece kendi satırı sunucuda service role ile okunur.
+  const supabaseAdmin = createSupabaseAdminClient()
+  const { data: corporate } = supabaseAdmin
+    ? await supabaseAdmin.from('users').select('corporate_email, corporate_email_verified_at').eq('id', user.id).maybeSingle()
+    : { data: null }
+
+  // Son vergi levhası doğrulaması (RLS: kullanıcı sadece kendi kayıtlarını görür).
+  const { data: latestTaxVerification } = await supabase
+    .from('tax_verifications')
+    .select('status, reasons, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
   if (error) {
     console.error('[BrandProfileSettingsPage] profile load error', error.message)
@@ -65,6 +83,9 @@ export default async function BrandProfileSettingsPage() {
     socialLinksLastUpdated: profile?.social_links_last_updated ?? null,
     taxOffice: (profile as any)?.tax_office ?? '',
     taxOfficeCity: (profile as any)?.tax_office_city ?? '',
+    latestTaxVerification: latestTaxVerification ?? null,
+    corporateEmail: corporate?.corporate_email ?? null,
+    corporateEmailVerified: !!corporate?.corporate_email_verified_at,
   }
 
   return (

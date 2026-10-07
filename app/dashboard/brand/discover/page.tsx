@@ -33,7 +33,7 @@ export default async function BrandDiscoverPage() {
   // ...
   const favoritedIds = new Set(favorites?.map((f: { influencer_id: string }) => f.influencer_id) || [])
 
-  const userRole = user.user_metadata?.role || 'brand' // fallback or fetch from DB if metadata is unreliable
+  const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
 
   return (
     <div className="space-y-6">

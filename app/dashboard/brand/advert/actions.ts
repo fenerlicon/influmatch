@@ -344,7 +344,8 @@ export async function getBrandApplicationsAdmin(projectIds: string[]) {
         full_name,
         username,
         avatar_url,
-        verification_status
+        verification_status,
+        displayed_badges
       ),
       advert:advert_id (
         title,

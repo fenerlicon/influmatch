@@ -15,6 +15,7 @@ interface SaveOnboardingPayload {
   taxId?: string | null
   taxOffice?: string | null
   taxOfficeCity?: string | null
+  corporateEmail?: string | null
   creatorType?: 'influencer' | 'ugc' | 'both'
   socialLinks: {
     instagram?: string | null
@@ -30,6 +31,10 @@ interface SaveOnboardingPayload {
 
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { sendWelcomeMessage } from '@/lib/welcome-message'
+import { validateTaxNumber } from '@/lib/tax-id'
+import { validateCorporateEmail } from '@/lib/corporate-email'
+import { saveCorporateEmail, sendCorporateEmailCode } from '@/lib/corporate-email-verification'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
 export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   const supabase = createSupabaseServerClient()
@@ -46,12 +51,26 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   console.log('[saveOnboardingProfile] Attempting to save profile for user:', payload.userId)
 
   // Validate tax details if taxId is provided
+  let normalizedTaxId: string | null = null
   if (payload.taxId && payload.taxId.trim()) {
+    const taxValidation = validateTaxNumber(payload.taxId)
+    if (!taxValidation.isValid) {
+      return { success: false, error: taxValidation.error }
+    }
+    normalizedTaxId = taxValidation.normalized
     if (!payload.taxOffice || !payload.taxOffice.trim()) {
       return { success: false, error: 'Vergi numarası girildiğinde vergi dairesi girmek zorunludur.' }
     }
     if (!payload.taxOfficeCity || !payload.taxOfficeCity.trim()) {
       return { success: false, error: 'Vergi numarası girildiğinde şirketin bağlı olduğu il seçilmelidir.' }
+    }
+  }
+
+  // Markalar: web sitesinin alan adına ait kurumsal e-posta zorunlu (sarı tik için kodla doğrulanır).
+  if (payload.role === 'brand') {
+    const corporateEmailCheck = validateCorporateEmail(payload.corporateEmail ?? '', payload.socialLinks.website)
+    if (!corporateEmailCheck.isValid) {
+      return { success: false, error: corporateEmailCheck.error }
     }
   }
 
@@ -68,7 +87,7 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
     bio: normalizedBio,
     category: payload.category || null,
     avatar_url: payload.avatarUrl,
-    tax_id: payload.taxId?.trim() || null,
+    tax_id: normalizedTaxId,
     tax_office: payload.taxOffice?.trim() || null,
     tax_office_city: payload.taxOfficeCity?.trim() || null,
     social_links: payload.socialLinks,
@@ -110,6 +129,21 @@ export async function saveOnboardingProfile(payload: SaveOnboardingPayload) {
   }
 
   console.log('[saveOnboardingProfile] Profile saved successfully for user:', payload.userId)
+
+  // Kurumsal e-posta gizli bir kolondur; sunucu yazar ve doğrulama kodunu gönderir.
+  // Kod gönderilemese bile kayıt tamamlanır; marka profilinden yeni kod isteyebilir.
+  if (data?.role === 'brand' && payload.corporateEmail) {
+    const admin = createSupabaseAdminClient()
+    if (admin) {
+      try {
+        const saved = await saveCorporateEmail(admin, payload.userId, payload.corporateEmail)
+        if (saved.success) await sendCorporateEmailCode(admin, payload.userId)
+        else console.error('[saveOnboardingProfile] Corporate email:', saved.error)
+      } catch (corporateError) {
+        console.error('[saveOnboardingProfile] Corporate email error:', corporateError)
+      }
+    }
+  }
 
   // Award badges directly on server side (no extra HTTP request needed)
   try {

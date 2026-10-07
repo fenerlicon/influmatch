@@ -9,7 +9,6 @@ import PageTransition from '@/components/layout/PageTransition'
 import type { UserRole } from '@/types/auth'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-import InstagramVerificationBanner from '@/components/dashboard/InstagramVerificationBanner'
 import RejectedScreen from '@/components/dashboard/RejectedScreen'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -22,7 +21,6 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect('/login')
   }
 
-  const role = (user.user_metadata?.role ?? 'influencer') as UserRole
   const fullName = user.user_metadata?.full_name ?? user.email ?? 'Kullanıcı'
 
   // Check email confirmation status
@@ -31,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Check verification status and profile completeness
   const { data: userProfile, error: profileError } = await supabase
     .from('users')
-    .select('verification_status, social_links, bio, category, city, avatar_url, username, full_name')
+    .select('role, verification_status, social_links, bio, category, city, avatar_url, username, full_name')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -77,6 +75,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   // Use the profile we found
   const finalUserProfile = userProfile
+  // Rol her zaman DB'den: user_metadata.role kullanıcı tarafından değiştirilebilir.
+  const role = (finalUserProfile.role ?? 'influencer') as UserRole
 
   // Check if profile is complete (has username and full_name)
   // If not, redirect to onboarding to complete the profile
@@ -85,32 +85,29 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   const verificationStatus = finalUserProfile.verification_status ?? 'pending'
-  // Only show generic verification banner if NOT showing Instagram banner (to avoid clutter)
-  // We'll calculate showInstagramBanner below
+  const showGenericVerificationBanner = verificationStatus === 'pending'
   const socialLinks = (finalUserProfile.social_links as Record<string, string | null> | null) ?? {}
-
-  // Check Instagram connection for influencers
-  let showInstagramBanner = false
-  if (role === 'influencer') {
-    const { data: instagramAccount } = await supabase
-      .from('social_accounts')
-      .select('has_stats')
-      .eq('user_id', user.id)
-      .eq('platform', 'instagram')
-      .maybeSingle()
-
-    if (!instagramAccount?.has_stats) {
-      showInstagramBanner = true
-    }
-  }
-
-  // Only show generic pending banner if we are not showing the specific Instagram banner
-  // This prevents double banners for new users
-  const showGenericVerificationBanner = verificationStatus === 'pending' && !showInstagramBanner
 
   // Check if account is rejected/banned
   if (verificationStatus === 'rejected') {
     return <RejectedScreen />
+  }
+
+  // Influencer / UGC hesapları Instagram veya TikTok hesaplarından en az birini
+  // doğrulamadan panele giremez (yeni ve mevcut kullanıcılar için aynı kural).
+  if (finalUserProfile.role === 'influencer') {
+    const { data: verifiedAccount } = await supabase
+      .from('social_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .in('platform', ['instagram', 'tiktok'])
+      .eq('is_verified', true)
+      .limit(1)
+      .maybeSingle()
+
+    if (!verifiedAccount) {
+      redirect('/onboarding/verify')
+    }
   }
 
   return (
@@ -124,9 +121,6 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           )}
           <MVPBanner />
 
-          {showInstagramBanner && (
-            <InstagramVerificationBanner />
-          )}
 
           {showGenericVerificationBanner && (
             <div className="border-b border-yellow-500/30 bg-yellow-500/10 px-4 py-3 sm:px-6 lg:px-10">

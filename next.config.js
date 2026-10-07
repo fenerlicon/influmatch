@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Vergi levhası PDF okuyucusu webpack ile paketlenmeden Node tarafından yüklenir.
+    serverComponentsExternalPackages: ['unpdf'],
+  },
   images: {
     remotePatterns: [
       {

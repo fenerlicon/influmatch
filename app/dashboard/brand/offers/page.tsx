@@ -20,6 +20,7 @@ export interface BrandOfferItem {
     avatar_url: string | null
     username: string | null
     verification_status?: 'pending' | 'verified' | 'rejected' | null
+    displayed_badges?: string[] | null
   } | null
 }
 
@@ -50,7 +51,7 @@ export default async function BrandOffersPage() {
     .from('offers')
     .select(
       `id, campaign_name, campaign_type, budget, message, status, created_at,
-      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status)`,
+      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status, displayed_badges)`,
     )
     .eq('sender_user_id', user.id)
     .order('created_at', { ascending: false })

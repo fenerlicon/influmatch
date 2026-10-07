@@ -145,6 +145,7 @@ export default async function BrandAdvertPage() {
       username: row.influencer?.username ?? null,
       avatar_url: row.influencer?.avatar_url ?? null,
       verification_status: row.influencer?.verification_status ?? null,
+      displayed_badges: row.influencer?.displayed_badges ?? null,
     },
     // For brand view, we don't necessarily need brand details in the application object 
     // as we are the brand, but we can populate it if needed or leave undefined.

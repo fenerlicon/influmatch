@@ -60,7 +60,6 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="top-center" richColors />
-          <SpeedInsights />
         </AuthProvider>
       </body>
     </html>

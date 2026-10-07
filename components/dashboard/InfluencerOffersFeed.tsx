@@ -226,11 +226,8 @@ export default function InfluencerOffersFeed({ initialOffers, currentUserId }: I
                     const role = sender?.role
                     const badges = sender?.displayed_badges ?? []
                     const isAdmin = role === 'admin'
-                    const hasOfficial = badges.includes('official-business') || sender?.verification_status === 'verified'
-                    // Note: In old logic, verification_status === 'verified' meant Gold. Now we check specific badges but keep fallback if needed.
-                    // Actually, let's trust displayed_badges more, but verification_status is still a good fallback for old data.
-                    // If isAdmin -> Purple
-                    // If Official -> Gold
+                    // Sarı tik sadece vergi numarası doğrulanmış markalarda (official-business rozeti) gösterilir.
+                    const hasOfficial = badges.includes('official-business')
 
                     if (isAdmin) {
                       return (

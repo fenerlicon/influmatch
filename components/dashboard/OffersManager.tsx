@@ -74,7 +74,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
         .from('offers')
         .select(
           `id, campaign_name, campaign_type, budget, message, status, created_at,
-        sender:sender_user_id(id, full_name, avatar_url, username, social_links)`,
+        sender:sender_user_id(id, full_name, avatar_url, username, social_links, displayed_badges)`,
         )
         .eq('id', offerId)
         .single()
@@ -506,11 +506,11 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               <p className="text-sm font-semibold text-white">{offer.campaign_name ?? 'İsimsiz kampanya'}</p>
               <div className="mt-2 flex items-center gap-2">
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-400">{sender?.full_name ?? 'Marka'}</p>
-                {sender?.verification_status === 'verified' && (
+                {sender?.displayed_badges?.includes('official-business') && (
                   <div className="group relative">
                     <BadgeCheck className="h-3.5 w-3.5 text-soft-gold" />
                     <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                      Onaylanmış İşletme
+                      Resmi İşletme
                     </div>
                   </div>
                 )}
@@ -569,11 +569,11 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               <p className="text-xs uppercase tracking-[0.25em] text-soft-gold">Marka</p>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold text-white">{sender?.full_name ?? 'Marka'}</h2>
-                {sender?.verification_status === 'verified' && (
+                {sender?.displayed_badges?.includes('official-business') && (
                   <div className="group relative">
                     <BadgeCheck className="h-5 w-5 text-soft-gold" />
                     <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                      Onaylanmış İşletme
+                      Resmi İşletme
                     </div>
                   </div>
                 )}

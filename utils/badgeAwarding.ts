@@ -66,10 +66,8 @@ export async function awardBadgesForUser(userId: string) {
       badgesToAward.push('founder-member')
     }
   } else if (role === 'brand') {
-    // 1. Official Business Badge
-    if (user.verification_status === 'verified' && !existingBadgeIds.includes('official-business')) {
-      badgesToAward.push('official-business')
-    }
+    // 1. Official Business Badge (sarı tik) burada verilmez: vergi onayı + doğrulanmış kurumsal
+    // e-posta kuralı lib/official-business.ts içindeki syncOfficialBusiness ile uygulanır.
 
     // 2. Showcase Brand Badge (Complete profile)
     const profileData: ProfileRecord = {

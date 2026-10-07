@@ -11,9 +11,11 @@ interface InstagramConnectProps {
     isVerified?: boolean;
     initialUsername?: string | null;
     lastUpdated?: string | null;
+    /** Doğrulama başarılı olunca çağrılır (kayıt adımı). */
+    onVerified?: () => void;
 }
 
-export default function InstagramConnect({ userId, isVerified = false, initialUsername = '', lastUpdated = null }: InstagramConnectProps) {
+export default function InstagramConnect({ userId, isVerified = false, initialUsername = '', lastUpdated = null, onVerified }: InstagramConnectProps) {
     const [step, setStep] = useState<'input' | 'code' | 'success'>(isVerified ? 'success' : 'input');
     const [username, setUsername] = useState(initialUsername || '');
     const [verificationCode, setVerificationCode] = useState('');
@@ -132,6 +134,7 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
             if (result.success) {
                 setStep('success');
                 localStorage.removeItem(STORAGE_KEY);
+                onVerified?.();
             } else {
                 setError(result.error || 'Kod biyografide bulunamadı. Lütfen eklediğinizden emin olun.');
             }
@@ -205,7 +208,7 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                         <ul className="list-inside list-disc space-y-1">
                             <li>Profil istatistikleriniz anlık çekilir.</li>
                             <li>Etkileşim oranınız otomatik hesaplanır.</li>
-                            <li>Marka aramalarında "Doğrulanmış" rozetiyle öne çıkarsınız.</li>
+                            <li>Markalara gerçek ve doğrulanmış verilerle görünürsünüz.</li>
                         </ul>
                     </div>
 

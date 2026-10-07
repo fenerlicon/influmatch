@@ -26,7 +26,7 @@ export default async function AIRecommendationsPage() {
         return <BrandLockScreen status={verificationStatus} />
     }
 
-    const userRole = user.user_metadata?.role || 'brand'
+    const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
     const category = profile?.category
 
     // Use the shared AI logic to get recommendations
