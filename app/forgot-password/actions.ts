@@ -1,7 +1,7 @@
 'use server'
 
 import { cookies, headers } from 'next/headers'
-import { createServerActionClient } from '@supabase/auth-helpers-nextjs'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import {
   RESET_REQUEST_COOKIE,
   RESET_REQUEST_MAX_AGE,
@@ -17,9 +17,9 @@ export async function requestPasswordReset(rawEmail: string): Promise<{ success:
     return { success: false, error: 'Lütfen geçerli bir e-posta adresi girin.' }
   }
 
-  // Server Action istemcisi PKCE doğrulayıcısını çereze yazar (createSupabaseServerClient çerez
-  // yazamaz); bu yüzden bağlantı aynı tarayıcıda açılmalıdır.
-  const supabase = createServerActionClient({ cookies })
+  // Server action içinde istemci PKCE doğrulayıcısını çereze yazar; bu yüzden bağlantı
+  // aynı tarayıcıda açılmalıdır.
+  const supabase = createSupabaseServerClient()
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${requestBaseUrl(headers().get('x-forwarded-host') ?? headers().get('host'), headers().get('x-forwarded-proto'))}/auth/callback`,
   })
