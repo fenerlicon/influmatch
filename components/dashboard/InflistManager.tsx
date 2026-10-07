@@ -12,12 +12,12 @@ interface InflistItem {
     name: string
 }
 
+// Listeler şimdilik tüm doğrulanmış markalara ücretsiz (ileride Spotlight'a dahil edilebilir, bkz. SYSTEM_MAP 3.4).
 interface InflistManagerProps {
     initialLists: InflistItem[]
-    isSpotlight: boolean
 }
 
-export default function InflistManager({ initialLists, isSpotlight }: InflistManagerProps) {
+export default function InflistManager({ initialLists }: InflistManagerProps) {
     const router = useRouter()
     const [lists, setLists] = useState<InflistItem[]>(initialLists)
     const [showForm, setShowForm] = useState(false)
@@ -66,18 +66,10 @@ export default function InflistManager({ initialLists, isSpotlight }: InflistMan
             {/* Header */}
             <div className="mb-5 flex items-center justify-between">
                 <div>
-                    <p className="text-xs uppercase tracking-[0.4em] text-cyan-400">Influencer Listelerin</p>
-                    <h2 className="mt-2 text-xl font-semibold text-white">Inflist</h2>
+                    <p className="text-xs uppercase tracking-[0.4em] text-cyan-400">Listelerim</p>
+                    <h2 className="mt-2 text-xl font-semibold text-white">Favorilerini listelere ayır</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                    {lists.length > 0 && (
-                        <Link
-                            href="/dashboard/brand/favorites"
-                            className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-gray-400 transition hover:border-white/30 hover:text-white"
-                        >
-                            Tümünü Yönet
-                        </Link>
-                    )}
                     <button
                         onClick={() => setShowForm(v => !v)}
                         className="flex items-center gap-1.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-400 transition hover:border-cyan-500/70 hover:bg-cyan-500/20"
@@ -132,7 +124,7 @@ export default function InflistManager({ initialLists, isSpotlight }: InflistMan
                     </button>
                 </div>
             ) : (
-                <div className={`grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5 ${!isSpotlight ? 'opacity-40 pointer-events-none select-none blur-sm' : ''}`}>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                     {lists.map(list => (
                         <Link
                             key={list.id}
@@ -161,22 +153,6 @@ export default function InflistManager({ initialLists, isSpotlight }: InflistMan
                 </div>
             )}
 
-            {/* Spotlight paywall overlay when not spotlight */}
-            {!isSpotlight && lists.length > 0 && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-3xl text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-500 mb-3 border border-cyan-500/30">
-                        <Layers className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-lg font-bold text-white">Inflist'e Özel Erişim</h3>
-                    <p className="text-xs text-gray-400 mt-1 mb-4 max-w-[220px]">Listelerinizi yönetmek için Spotlight ayrıcalıklarına sahip olun.</p>
-                    <Link
-                        href="/dashboard/spotlight/brand"
-                        className="text-xs font-bold text-cyan-500 hover:text-cyan-400 transition-colors uppercase tracking-wider border-b border-cyan-500/30 pb-0.5 hover:border-cyan-500"
-                    >
-                        Spotlight'a Geç
-                    </Link>
-                </div>
-            )}
         </section>
     )
 }

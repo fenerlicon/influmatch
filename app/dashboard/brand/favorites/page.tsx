@@ -3,6 +3,7 @@ import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
+import InflistManager from '@/components/dashboard/InflistManager'
 
 export const revalidate = 0
 
@@ -31,6 +32,13 @@ export default async function BrandFavoritesPage() {
 
     const favoritedIds = favorites?.map((f) => f.influencer_id) || []
 
+    // Favorilerin ayrıldığı listeler aynı sayfada yönetilir.
+    const { data: userLists } = await supabase
+        .from('favorite_lists')
+        .select('id, name')
+        .eq('brand_id', user.id)
+        .order('created_at', { ascending: false })
+
     // 2. Fetch Influencer Data
     let influencers: DiscoverInfluencer[] = []
     if (favoritedIds.length > 0) {
@@ -41,11 +49,13 @@ export default async function BrandFavoritesPage() {
         <div className="space-y-6">
             <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
                 <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Favoriler</p>
-                <h1 className="mt-2 text-2xl font-semibold">Favorilediğiniz Influencerlar</h1>
+                <h1 className="mt-2 text-2xl font-semibold">Favoriler ve Listeler</h1>
                 <p className="mt-2 text-gray-300 max-w-2xl">
-                    Favorilerinize eklediğiniz profilleri burada filtreleyebilir ve inceleyebilirsiniz.
+                    Favorilerinize eklediğiniz profilleri inceleyebilir, isimli listelere ayırabilirsiniz.
                 </p>
             </header>
+
+            <InflistManager initialLists={(userLists ?? []) as { id: string; name: string }[]} />
 
             {influencers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 py-20 text-center">

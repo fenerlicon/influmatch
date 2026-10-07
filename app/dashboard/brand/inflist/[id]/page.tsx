@@ -41,7 +41,7 @@ export default async function InflistDetailsPage({ params }: InflistDetailsPageP
         .single()
 
     if (listError || !list) {
-        redirect('/dashboard/brand')
+        redirect('/dashboard/brand/favorites')
     }
 
     // 2. Get List Items
@@ -65,9 +65,9 @@ export default async function InflistDetailsPage({ params }: InflistDetailsPageP
     return (
         <div className="space-y-6">
             <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
-                <Link href="/dashboard/brand" className="mb-4 inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+                <Link href="/dashboard/brand/favorites" className="mb-4 inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
                     <ArrowLeft className="h-4 w-4" />
-                    Panele Dön
+                    Favorilere ve Listelere Dön
                 </Link>
                 <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-500">

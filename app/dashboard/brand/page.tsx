@@ -12,7 +12,6 @@ import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import { calculateMatchScore, getMatchReason } from '@/utils/matching'
 import { Sparkles, Layers, Lock } from 'lucide-react'
-import InflistManager from '@/components/dashboard/InflistManager'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export default async function BrandDashboardPage() {
@@ -123,13 +122,6 @@ export default async function BrandDashboardPage() {
     .order('created_at', { ascending: false })
     .limit(4)
 
-  // Fetch User Lists (Inflist)
-  const { data: userLists } = await supabase
-    .from('favorite_lists')
-    .select('id, name')
-    .eq('brand_id', user.id)
-    .order('created_at', { ascending: false })
-
   let favoriteInfluencers: DiscoverInfluencer[] = []
   if (recentFavs && recentFavs.length > 0) {
     const ids = recentFavs.map((f: any) => f.influencer_id)
@@ -215,16 +207,8 @@ export default async function BrandDashboardPage() {
         </section>
       )}
 
-      {/* Inflist (User Lists) Section - always visible */}
-      {verificationStatus === 'verified' && (
-        <InflistManager
-          initialLists={(userLists ?? []) as { id: string; name: string }[]}
-          isSpotlight={isSpotlight}
-        />
-      )}
-
       {/* AI Recommendations Section */}
-      {verificationStatus === 'verified' && recommendations.length > 0 && (
+      {verificationStatus === 'verified' && (recommendations.length > 0 || !isSpotlight) && (
         <section className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6 shadow-glow relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none">
             <Sparkles className="h-32 w-32 text-blue-500" />
