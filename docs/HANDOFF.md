@@ -10,7 +10,10 @@
 - Tüm işler `main`'de ve Vercel'de canlı. Açık PR yok. Çalışma dalı `claude/web-fixes-batch` = `main`.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak. Ara testler istemiyor.
 - Mobil uygulama donduruldu (bkz. CLAUDE.md kural 3). Web bitince kullanıcıya **hatırlat**.
-- Canlı veritabanı repo ile uyumlu. Kullanıcının elle çalıştırması gereken tek SQL var:
+- **Bekleyen toplu SQL (2026-10-08):** `supabase/manual/2026-10-08_toplu.sql` (RLS performansı, erişim açıkları, profil
+  görüntülenmeleri, çevrimiçi durumu, kopya politikalar). Kullanıcı SQL Editor'de çalıştırınca ilgili PR birleştirilir.
+  Yerel oturum canlıya migration uygulayamıyor (izin sistemi "production deploy" diye engelliyor); okuma sorguları çalışıyor.
+- Mobil sürüm sonrası çalıştırılacak SQL:
   `DROP POLICY "avatars insert" ON storage.objects;` Bu SQL yalnızca yeni mobil sürüm yayınlandıktan sonra çalıştırılacak.
 
 ## 2. Sıradaki önerilen işler (sırayla)
@@ -61,6 +64,11 @@
 | Canlı DB | Risksiz düzeltmeleri Claude doğrudan uygular. Riskliler en sonda sırasıyla toplu SQL olarak verilir. Daha önce yapılan üç canlı değişiklik (shortlisted/paused CHECK'leri, favoriler tekil indeksi) kalıyor. |
 | @supabase/ssr | Geçiş önerisi kabul edildi; yapıldı (PR #27). Giriş sorunsuz. |
 | Test | Liste bitince toplu test. Ara testler istenmiyor. |
+| Yetki (8 Ekim) | "Bana sormadan düzenleyebileceğin her şeyi düzenle, en iyi haliyle; parça parça yapabilirsin. Bana yalnızca soracağın işler kalsın." Ardından strateji konuşulacak. |
+| Milyon Kulübü (8 Ekim) | Doğrulanmış hesapta 1 milyon+ takipçi. Uygulandı (saatlik görev). |
+| 5 Yıldız (8 Ekim) | Kullanıcı: "iş tesliminden sonra markaların verdiği puanlama olabilir, emin değilim". Puanlama sistemi yok; tasarım bekliyor. |
+| Profil görüntülenme (8 Ekim) | Sayı kaydedilsin; yalnızca Spotlight sahibi influencer/UGC görür. Uygulandı. |
+| Çevrimiçi / son görülme (8 Ekim) | Admin panelinde her kullanıcı için. Uygulandı (dakikalık sinyal + son giriş zamanı). |
 
 ## 4. Karar bekleyenler (kullanıcı: "biraz daha beklesin") — kendi başına uygulama
 

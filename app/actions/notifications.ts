@@ -5,6 +5,9 @@ import { revalidatePath } from 'next/cache'
 
 export type NotificationType = 'system' | 'info' | 'warning' | 'success'
 
+const MAX_RECIPIENTS = 5000
+const INSERT_CHUNK = 500
+
 export async function sendNotification(
     userIds: string[],
     title: string,
@@ -28,20 +31,50 @@ export async function sendNotification(
         return { success: false, error: 'Sadece admin yetkisi olanlar bildirim gönderebilir.' }
     }
 
+    const cleanTitle = title?.trim() ?? ''
+    const cleanMessage = message?.trim() ?? ''
+    if (!cleanTitle || cleanTitle.length > 120) {
+        return { success: false, error: 'Başlık 1-120 karakter olmalı.' }
+    }
+    if (!cleanMessage || cleanMessage.length > 1000) {
+        return { success: false, error: 'Mesaj 1-1000 karakter olmalı.' }
+    }
+    if (!['system', 'info', 'warning', 'success'].includes(type)) {
+        return { success: false, error: 'Geçersiz bildirim türü.' }
+    }
+    // Bağlantı yalnızca site içi bir yol olabilir (dış adres veya javascript: kabul edilmez).
+    const cleanLink = link?.trim() || null
+    if (cleanLink && (!cleanLink.startsWith('/') || cleanLink.startsWith('//') || /[\s<>"']/.test(cleanLink))) {
+        return { success: false, error: 'Bağlantı site içi bir yol olmalı (ör. /dashboard/offers).' }
+    }
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const recipients = Array.from(new Set(userIds)).filter((id) => uuidPattern.test(id))
+    if (recipients.length === 0) {
+        return { success: false, error: 'Alıcı seçilmedi.' }
+    }
+    if (recipients.length > MAX_RECIPIENTS) {
+        return { success: false, error: `Tek seferde en fazla ${MAX_RECIPIENTS} kişiye gönderilebilir.` }
+    }
+
     try {
-        const notifications = userIds.map((userId) => ({
-            user_id: userId,
-            title,
-            message,
-            type,
-            link,
-        }))
+        for (let i = 0; i < recipients.length; i += INSERT_CHUNK) {
+            const notifications = recipients.slice(i, i + INSERT_CHUNK).map((userId) => ({
+                user_id: userId,
+                title: cleanTitle,
+                message: cleanMessage,
+                type,
+                link: cleanLink,
+            }))
 
-        const { error } = await supabase.from('notifications').insert(notifications)
+            const { error } = await supabase.from('notifications').insert(notifications)
 
-        if (error) {
-            console.error('Error sending notifications:', error)
-            return { success: false, error: error.message }
+            if (error) {
+                console.error('Error sending notifications:', error)
+                return {
+                    success: false,
+                    error: i === 0 ? 'Bildirim gönderilemedi.' : `Bildirim ${i} kişiye gönderildi, kalanlar gönderilemedi.`,
+                }
+            }
         }
 
         revalidatePath('/dashboard')

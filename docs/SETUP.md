@@ -62,7 +62,7 @@ Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yaz�
   | `avatars` | herkese açık okuma | `{uid}/…` |
   | `advert-hero-images` | herkese açık okuma | kök |
   | `feedback-images` | gizli; admin imzalı URL ile açar | `feedback-<uuid>`, `support-ticket-<uuid>` |
-  | `chat-attachments` | herkese açık okuma; yükleme oda katılımcısına | `{uid}/{oda}/…` |
+  | `chat-attachments` | gizli; okuma ve yükleme oda taraflarına, imzalı URL | `{oda}/{uid}/…` |
   | `tax-documents` | gizli | `{uid}/…` |
 
 - **Realtime yayını:** messages, offers, advert_applications, rooms, dismissed_offers, notifications,

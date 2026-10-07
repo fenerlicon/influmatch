@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-08 · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-08 (2. tur) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -183,7 +183,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
   - ✅ ~~**2.1-S5 [ORTA]**~~ (Apify `authorMeta.id` varsa `tt-id-<id>` kullanılıyor ve başka kullanıcıyla çakışma kontrol ediliyor; yoksa eski biçim) TikTok `platform_user_id` = `tt-${username}`; kimlik değişebilen kullanıcı adına bağlı, başka kullanıcıyla çakışma kontrolü yok.
   - ✅ ~~**2.1-S6 [DÜŞÜK]**~~ (yanıltıcı "Son 21 Gün" / "Son 6 gönderi" etiketleri kaldırıldı) Analiz penceresi (30 gün / 24 gönderi) ile scraper limiti (15) ve arayüz etiketleri ("Son 21 Gün", "Son 6 gönderi") uyuşmuyor.
   - ✅ ~~**2.1-S7 [ORTA]**~~ (aynı doğrulanmış hesap için yeni kod üretilmiyor, doğrulama düşmüyor; farklı hesaba geçiş bilinçli değişiklik) Doğrulanmış hesapta yeniden kod üretmek hesabı doğrulanmamışa çeviriyor; tek hesapsa kullanıcı dashboard'dan kilitlenir.
-  - **2.1-S8 [DÜŞÜK]** (canlıda kontrol edildi: jeton kolonu yok; okunabilen doğrulama kodu başkasının biyografisine yazılamayacağı için işe yaramaz. Düşük) `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
+  - **2.1-S8 [DÜŞÜK]** (2026-10-08: kolon yetkisiyle kapatılamıyor; yayındaki mobil sürüm `social_accounts`'u `select('*')` ile okuyor, kolon kapatılırsa mobil bozulur. Mobil sürümle birlikte. canlıda kontrol edildi: jeton kolonu yok; okunabilen doğrulama kodu başkasının biyografisine yazılamayacağı için işe yaramaz. Düşük) `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir.
 
 ### 2.2 Otomatik istatistik yenileme
 - **Dosyalar:** `app/dashboard/influencer/page.tsx:104-109` (`refreshIfStale`, beklenmeden), `lib/social-stats.ts`,
@@ -398,7 +398,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**4.1-S1 [ORTA]**~~ ('use server' kaldırıldı; yalnızca sunucu içi çağrılar) Dosya `'use server'`; `awardBadgesForUser(anyUserId)` yetki kontrolsüz çağrılabilir bir aksiyon (yalnızca hak edilen rozetleri verdiği için etki düşük).
   - ✅ ~~**4.1-S2 [ORTA]**~~ (okumalar ve sayım service role ile; sayım hatasında rozet verilmiyor) `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
-  - **4.1-S3 [DÜŞÜK]** Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
+  - **4.1-S3 [DÜŞÜK]** (kısmen ✅: `million-club` artık otomatik: doğrulanmış hesapta 1M+ takipçi, saatlik görev verir/geri alır, `lib/million-club.ts`. Kalanların eşikleri/veri kaynağı karar bekliyor: `five-star` puanlama sistemi gerektiriyor) Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
 
 ### 4.2 Rozet seçimi ve gösterimi
 - **Dosyalar:** `components/badges/{BadgeSelector,BadgeDisplay,BadgeDetailList,BadgeCompactList,BadgeProgressInfo,BadgeCard,BadgeToggle}.tsx`
@@ -415,7 +415,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     kolon beyaz listede olmadığı için sessizce düşüyor; cron da kapatmıyor. Süresi dolanlar sıralamada önde, +10 güven puanı ve mavi tik hakkı sürüyor.
     Fonksiyon ayrıca istemciden gelen `userId`'ye güveniyor.
   - **4.3-S2 [ORTA]** Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor.
-  - **4.3-S3 [DÜŞÜK]** `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
+  - **4.3-S3 [DÜŞÜK]** (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. Ajans sayfası ürün kararı) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller
 - **Dosyalar:** `app/actions/spotlight.ts` (`getSimilarInfluencers`), `SimilarProfilesModal.tsx`
@@ -427,7 +427,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**4.5-S1 [YÜKSEK]**~~ (kullanıcı kararı 2026-10-07: profiller yalnızca giriş yapanlara görünür; mevcut davranış doğru) Giriş zorunlu (bkz. 1.1-S1); anon kullanıcının `users` SELECT politikası da yok (bkz. 7.3-S2).
   - ✅ ~~**4.5-S2 [ORTA]**~~ (geri linki izleyicinin rolüne göre; gizli profilin doğrudan açılması bilinçli bırakıldı) `is_showcase_visible=false` profiller açılabiliyor; geri linki influencer izleyici için bile `/dashboard/brand/discover`.
-  - **4.5-S3 [DÜŞÜK]** `view_profile` / `click_profile` analitik olayları hiç gönderilmiyor.
+  - ✅ ~~**4.5-S3 [DÜŞÜK]**~~ (kullanıcı kararı 2026-10-08: profil görüntülenmeleri `profile_views` tablosuna kişi başına günde bir kaydediliyor, `record_profile_view`; sayılar yalnızca Spotlight üyesi influencer panelinde `ProfileViewsCard` ile, sunucuda okunuyor. `20261008000002`) `view_profile` / `click_profile` analitik olayları hiç gönderilmiyor.
 
 ### 4.6 Analitik olaylar
 - **Dosyalar:** `app/actions/analytics.ts`, RPC `track_analytics_event`, tablo `analytics_events`
@@ -504,33 +504,33 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   Spotlight ve rozet modalları, vergi levhası incelemesi, kurumsal e-posta durumu, ilanlar, başvurular, bildirim gönderimi.
 - **Sorunlar:**
   - ✅ ~~**6.1-S1 [ORTA]**~~ (oturum kontrolü try dışında; bakım mesajı genelleştirildi) `redirect('/login')` `try` içinde; NEXT_REDIRECT yakalanıp "Bir Hata Oluştu" ekranı gösteriliyor.
-  - **6.1-S2 [DÜŞÜK]** (PGRST116 artık rate limit sayılmıyor; bakım mesajı genelleştirildi) `PGRST116` rate limit sayılıyor; eski "21-23 Kasım bakım" mesajı sabit; başka statüdeki kullanıcılar hiçbir listede yok.
+  - ✅ ~~**6.1-S2 [DÜŞÜK]**~~ (2026-10-08: `/admin` sayfasında da PGRST116 çıkarıldı, sabit "21-23 Kasım" mesajı genel mesaja çevrildi) `PGRST116` rate limit sayılıyor; eski "21-23 Kasım bakım" mesajı sabit; başka statüdeki kullanıcılar hiçbir listede yok.
   - ✅ ~~**6.1-S3 [ORTA]**~~ (toplu silme deleteUser kullanıyor; kendini/admini silme koruması PR #7) Toplu silme kendini veya başka bir admini silmeye karşı korumasız.
 
 ### 6.2 Admin aksiyonları (`app/admin/actions.ts`)
 
 | Aksiyon | İş | Bilinen sorun |
 |---|---|---|
-| `verifyUser` / `rejectUser` / `updateAdminNotes` | statü ve not | rozet hatasında `revalidatePath` atlanıyor |
+| `verifyUser` / `rejectUser` / `updateAdminNotes` | statü ve not | ✅ rozet hatasında da sayfalar tazeleniyor |
 | `manuallyAwardBadges` | — | **ölü** |
 | `manuallyAwardSpecificBadge` | rozet ver (mavi tik → override) | — |
-| `toggleUserSpotlight` | Spotlight aç/kapa, kullanıcıyı otomatik doğrular | hata metninde admin e-postası |
+| `toggleUserSpotlight` | Spotlight aç/kapa, kullanıcıyı otomatik doğrular | ✅ hata metninden admin e-postası çıkarıldı |
 | `verifyTaxId` | vergi onayı → `syncOfficialBusiness` | — |
-| `resendVerificationEmail` / `forceVerifyEmail` | auth e-posta işlemleri | site URL'si yoksa localhost'a düşüyor |
+| `resendVerificationEmail` / `forceVerifyEmail` | auth e-posta işlemleri | ✅ site URL'si yoksa influmatch.net |
 | `resetVerifiedBadges` / `setBlueTickOverride` / `toggleBlueTick` | mavi/sarı tik | — |
 | `deleteUser` | profil + auth silme | ✅ ~~**6.2-S1 [YÜKSEK]**~~ (ortak silme fonksiyonu; admin kendini ve diğer adminleri panelden silemez) profil silme hatası yalnızca loglanıyor (aktif anlaşma trigger'ı hatası yutuluyor), kendini/admini silme koruması yok |
 | `getAllAdverts` / `deleteAdvertAdmin` | ilan yönetimi | dosya yolu `split('/').pop()` → alt klasördeki dosyalar artık kalıyor |
-| `adminUpdateInstagramData` | Apify ile IG güncelle | **6.2-S2 [ORTA]** her zaman `is_verified:true` yazıyor, `syncBlueTick` çağırmıyor |
-| `adminManualConnectInstagram` | IG'yi elle bağla | hedef rol kontrolü yok, geçmiş satırı yok |
+| `adminUpdateInstagramData` | Apify ile IG güncelle | ✅ ~~**6.2-S2 [ORTA]**~~ (kullanıcı yenilemesiyle aynı `refreshInstagramAccount`: kilit, geçmiş, profil ve mavi tik senkronu; doğrulanmamış hesabı doğrulamaz) her zaman `is_verified:true` yazıyor, `syncBlueTick` çağırmıyor |
+| `adminManualConnectInstagram` | IG'yi elle bağla | ✅ hedef rol, kullanıcı adı çakışması, geçmiş satırı |
 | `getAllApplications` / `getAdminUserCard` / `getTaxDocumentUrl` / `rejectTaxVerification` | okuma, imzalı URL, red | — |
 
 ### 6.3 Bildirim gönderimi
 - **Dosyalar:** `components/admin/NotificationsPanel.tsx`, `app/actions/notifications.ts`
-- **Sorunlar:** **6.3-S1 [DÜŞÜK]** Toplu gönderimde boyut sınırı yok, `link` doğrulanmıyor; "tüm kullanıcılar" sunucu props'undan geliyor.
+- **Sorunlar:** ✅ ~~**6.3-S1 [DÜŞÜK]**~~ (başlık/mesaj uzunluğu, tür, yalnızca site içi bağlantı, en fazla 5000 alıcı, 500'lük parçalar) Toplu gönderimde boyut sınırı yok, `link` doğrulanmıyor; "tüm kullanıcılar" sunucu props'undan geliyor.
 
 ### 6.4 Geri bildirim yönetimi `/admin/feedback`
 - **Dosyalar:** `app/admin/feedback/{page,actions}.ts(x)`, `components/admin/FeedbackAdminPanel.tsx`
-- **Sorunlar:** **6.4-S1 [DÜŞÜK]** `admin_notes` gösteriliyor ama yazan aksiyon yok.
+- **Sorunlar:** ✅ ~~**6.4-S1 [DÜŞÜK]**~~ (`updateFeedbackNote`; panelde not ekle/düzenle) `admin_notes` gösteriliyor ama yazan aksiyon yok.
 
 ### 6.5 Destek yönetimi `/admin/support`
 - **Dosyalar:** `app/admin/support/{page,actions}.ts(x)`, `components/admin/SupportTicketsPanel.tsx`
@@ -548,7 +548,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 6.8 Manuel Instagram bağlama `/admin/manual-connect`
 - **Dosya:** `app/admin/manual-connect/page.tsx`
-- **Sorunlar:** **6.8-S1 [ORTA]** (sunucu kontrolü `app/admin/layout.tsx` ile geldi; panelden bağlantı hâlâ yok) Sayfada sunucu tarafı admin kontrolü yok (aksiyon kontrol ediyor); panelden bağlantı yok.
+- **Sorunlar:** ✅ ~~**6.8-S1 [ORTA]**~~ (sunucu kontrolü `app/admin/layout.tsx`; admin panelinde "Manuel Instagram Bağlama" bağlantısı. Aksiyon artık hedefin influencer olduğunu, kullanıcı adının başka hesapta olmadığını kontrol ediyor, geçmiş satırı yazıyor) Sayfada sunucu tarafı admin kontrolü yok (aksiyon kontrol ediyor); panelden bağlantı yok.
 
 ### 6.9 Vergi levhası inceleme
 - **Dosya:** `components/admin/TaxVerificationReview.tsx` (AdminPanel içinde). Onay `verifyTaxId`, red `rejectTaxVerification`. Bilinen açık sorun yok.
@@ -594,7 +594,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   yasal bilgi değişince onay/sarı tik sıfırlama, kazanılmamış rozet gösterimini engelleme, web sitesi alan adı değişince kurumsal e-posta onayını düşürme),
   `check_user_deletion_integrity`, auth tarafında `handle_new_auth_user`, `on_auth_user_email_verified`, `sync_user_email_from_auth`.
 - **Sorunlar:**
-  - **7.3-S1 [ORTA]** Beyaz listede `push_notifications_enabled`, `website` var ama bu kolonlar yok; `push_token` ise ne kolon ne beyaz listede (mobil push hiç kaydedilmiyor).
+  - ✅ ~~**7.3-S1 [ORTA]**~~ (`20261008000001`: olmayan kolonlar listeden çıktı, mobil push için `push_token` eklendi; `push_token` artık hiçbir istemciye okunmuyor) Beyaz listede `push_notifications_enabled`, `website` var ama bu kolonlar yok; `push_token` ise ne kolon ne beyaz listede (mobil push hiç kaydedilmiyor).
   - ✅ ~~**7.3-S2 [YÜKSEK]**~~ (`/api/check-username` düzeldi; anon profil okuma kullanıcı kararıyla kapalı kalıyor) Anon SELECT politikası olmadığı için herkese açık profil ve `/api/check-username` (kayıt öncesi her zaman "müsait" der) çalışmıyor.
   - ✅ ~~**7.3-S3 [ORTA]**~~ (canlıda realtime yayınında yalnızca messages var; users yok, sızıntı yolu yok) `users` realtime yayınındaysa `postgres_changes` olayları kolon yetkisine bakmadan tüm satırı gönderebilir → gizli kolon sızıntısı riski (canlıda doğrulanmalı).
 
@@ -607,12 +607,23 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   ölçekte etkisiz, kural yeniden yazımı riskli): 66 politikada `auth.uid()` satır başına değerlendiriliyor (`(select auth.uid())`
   ile sarılmalı), 123 "çoklu permissive politika" (aynı işlem için birden çok kural; 7.7 temizliğiyle birlikte birleştirilmeli),
   15 kullanılmayan indeks (veri az, yanıltıcı).
+- **2026-10-08:** `20261008000001` tüm politikalarda `auth.uid()` / `auth.role()` / `is_admin()` çağrılarını `(SELECT ...)` ile sarıyor
+  (77 politika); `20261008000003` birebir kopya ve ölü 13 politikayı siliyor. Kalan çoklu permissive politikalar farklı koşullu
+  (ör. teklifte gönderen/alıcı); birleştirmek okunabilirliği düşürür, ölçek gerektirene kadar bırakıldı.
+- **Yeni bulgular (2026-10-08, `20261008000001` ile kapatıldı):**
+  - ✅ ~~**7.4-S4 [YÜKSEK]**~~ `messages` üzerindeki ikinci INSERT kuralı ("User can send messages to their rooms") gönderen ve engel
+    kontrolü yapmıyordu; permissive kurallar OR'landığı için odadaki taraf karşı taraf adına mesaj yazabiliyor ve engeli atlayabiliyordu.
+  - ✅ ~~**7.4-S5 [ORTA]**~~ `track_analytics_event` içindeki hedefsiz `RETURNING id` yüzünden her çağrı hata veriyordu; kod tabloya
+    doğrudan yazıyordu ve tablo herkese yazılabilirdi (marka analitiği şişirilebiliyordu). Fonksiyon düzeltildi, doğrudan yazım kapatıldı.
+  - ✅ ~~**7.4-S6 [ORTA]**~~ `users` için "Public profiles are viewable by everyone" anon'a açıktı ve anon kolon yetkileri vardı:
+    giriş yapmadan profiller API'den okunabiliyordu (kural 2'ye aykırı). Kural authenticated'a daraltıldı, anon okuma yetkisi kaldırıldı.
+  - ✅ ~~**7.4-S7 [DÜŞÜK]**~~ `rooms` "System can create rooms" `WITH CHECK (true)`; `message_logs` herkese yazılabilirdi.
 - Güvenli: `is_admin()`, `get_my_private_profile()`, `get_offer_contact_email()`, `award_user_badge()` (artık yalnızca admin/sunucu),
   `is_valid_tax_number()`, `website_host()`, `record_api_key_result()` (yalnızca service role).
 - **Sorunlar:**
   - ✅ ~~**7.4-S1 [ORTA]**~~ (her iki RPC de anon'a kapalı) `track_analytics_event` ve `log_message` anon dahil herkese açık (bkz. 4.6-S1, 5.6-S1).
   - ✅ ~~**7.4-S2 [ORTA]**~~ (public şemasındaki tüm SECURITY DEFINER fonksiyonlarında search_path = public) SECURITY DEFINER trigger fonksiyonlarının çoğunda `search_path` sabitlenmemiş.
-  - **7.4-S3 [DÜŞÜK]** `handle_delete_auth_user` boş taslak, trigger'ı yorumda.
+  - ✅ ~~**7.4-S3 [DÜŞÜK]**~~ (canlıda fonksiyon yok; repo `20261008000003` ile eşitlendi) `handle_delete_auth_user` boş taslak, trigger'ı yorumda.
 
 ### 7.5 Storage bucket'ları
 
@@ -622,12 +633,12 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `advert-hero-images` | elle | herhangi bir authenticated yükler; sahibi siler | kök dizine yükleme |
 | `feedback-images` | elle | aynı desen | destek ekleri de burada (public) |
 | `tax-documents` | migration | özel; yalnızca kendi klasörüne INSERT | — |
-| `chat-attachments` | **hiçbir yerde** | **yok** | public URL |
+| `chat-attachments` | `20261008000004` | gizli; okuma ve yükleme oda taraflarına | imzalı URL |
 
 - **Sorunlar:**
   - **7.5-S1 [YÜKSEK]** (kısmen ✅: ölü "Tam Yetki" politikaları 7 Ekim toplu SQL'iyle silindi (doğrulandı). Kalan tek iş: "avatars insert" yayındaki mobil sürüm public/<uid>/ yüklediği için mobil sürüm çıkınca kaldırılacak) `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
     (avatars politikaları, users SELECT değişikliği ve `track_analytics_event` sertleştirmesi dahil). Canlıda kontrol edilmeli.
-  - **7.5-S2 [ORTA]** `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
+  - ✅ ~~**7.5-S2 [ORTA]**~~ (`20261008000004`: kova gizli, okuma yalnızca oda taraflarına; sohbet görselleri 1 saatlik imzalı bağlantıyla, admin raporlanan fotoğrafı 10 dk'lık bağlantıyla açıyor) `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
 
 ### 7.6 Şema kayması (kodda var, migration'da yok)
 - ✅ ~~**7.6-S1 [YÜKSEK]**~~ (`20261007000011` ile repoya eklendi) `advert_applications.influencer_id` — politikalarda, web ve mobilde kullanılıyor, hiç oluşturulmamış.

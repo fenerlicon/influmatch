@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle, KeyRound } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle, KeyRound, Link2 } from 'lucide-react'
 import { verifyUser, rejectUser, updateAdminNotes, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, setBlueTickOverride, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -14,6 +14,8 @@ import TaxVerificationReview from '@/components/admin/TaxVerificationReview'
 import type { AdminTaxVerification } from '@/lib/tax-verification'
 import NotificationsPanel from '@/components/admin/NotificationsPanel'
 import { toast } from 'sonner'
+import { getLastSeenMap } from '@/app/admin/presence/actions'
+import { formatLastSeen, isOnline } from '@/lib/presence'
 
 interface User {
   id: string
@@ -65,6 +67,7 @@ interface AdminPanelProps {
   verifiedUsers: User[]
   rejectedUsers: User[]
   totalUsers?: number
+  initialLastSeen?: Record<string, string>
   influencerCount?: number
   brandCount?: number
 }
@@ -72,8 +75,27 @@ interface AdminPanelProps {
 const TAB_KEYS = ['pending', 'verified_influencer', 'verified_brand', 'rejected', 'notifications', 'adverts', 'applications'] as const
 type TabKey = (typeof TAB_KEYS)[number]
 
-export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0 }: AdminPanelProps) {
+export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0, initialLastSeen = {} }: AdminPanelProps) {
   const supabase = useSupabaseClient()
+  // Çevrimiçi / son görülme: dakikada bir sunucudan tazelenir, göreli süre 30 sn'de bir yeniden hesaplanır.
+  const [lastSeen, setLastSeen] = useState<Record<string, string>>(initialLastSeen)
+  const [presenceNow, setPresenceNow] = useState(() => Date.now())
+  useEffect(() => {
+    const tick = window.setInterval(() => setPresenceNow(Date.now()), 30_000)
+    const poll = window.setInterval(async () => {
+      if (document.visibilityState !== 'visible') return
+      const result = await getLastSeenMap().catch(() => null)
+      if (result?.lastSeen) {
+        setLastSeen(result.lastSeen)
+        setPresenceNow(Date.now())
+      }
+    }, 60_000)
+    return () => {
+      window.clearInterval(tick)
+      window.clearInterval(poll)
+    }
+  }, [])
+  const onlineCount = Object.values(lastSeen).filter((iso) => isOnline(iso, presenceNow)).length
   const [activeTab, setActiveTab] = useState<TabKey>('pending')
   const [isPending, startTransition] = useTransition()
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
@@ -931,7 +953,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
               <p className="mt-2 text-gray-300">Platformdaki tüm kullanıcıları buradan yönetebilirsiniz.</p>
 
               {/* Statistics */}
-              <div className="mt-6 grid grid-cols-3 gap-4">
+              <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-gray-400">TOPLAM KULLANICI</p>
                   <p className="mt-2 text-2xl font-semibold text-soft-gold">{totalUsers}</p>
@@ -943,6 +965,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-gray-400">MARKA</p>
                   <p className="mt-2 text-2xl font-semibold text-purple-400">{brandCount}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">ŞU AN ÇEVRİMİÇİ</p>
+                  <p className="mt-2 flex items-center gap-2 text-2xl font-semibold text-emerald-400">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                    {onlineCount}
+                  </p>
                 </div>
               </div>
             </div>
@@ -974,6 +1003,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
               >
                 <Mail className="h-4 w-4" />
                 Destek Talepleri
+              </Link>
+              <Link
+                href="/admin/manual-connect"
+                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+              >
+                <Link2 className="h-4 w-4" />
+                Manuel Instagram Bağlama
               </Link>
               <Link
                 href="/dashboard/messages"
@@ -1328,6 +1364,20 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                             <p className="text-sm text-gray-400 truncate">@{user.username}</p>
                           )}
                           <div className="mt-1 flex flex-wrap items-center gap-2">
+                            {isOnline(lastSeen[user.id], presenceNow) ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                Çevrimiçi
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-white/5 px-1.5 py-0.5 rounded"
+                                title={lastSeen[user.id] ? new Date(lastSeen[user.id]).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) : undefined}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+                                Son görülme: {formatLastSeen(lastSeen[user.id], presenceNow)}
+                              </span>
+                            )}
 
                             {user.email_verified_at ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">

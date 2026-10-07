@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { awardBadgesForUser } from '@/utils/badgeAwarding'
-import { fetchInstagramData } from '@/utils/instagram-service'
+import { normalizeInstagramUsername, refreshInstagramAccount } from '@/lib/social-stats'
 import { validateTaxNumber } from '@/lib/tax-id'
 import { syncBlueTick, sweepBlueTicks, type BlueTickOverride } from '@/lib/blue-tick'
 import { grantOfficialBusiness, loadLatestTaxVerifications, TAX_DOCUMENTS_BUCKET } from '@/lib/tax-verification'
@@ -62,7 +62,10 @@ export async function verifyUser(userId: string) {
     }
   } catch (badgeError) {
     console.error('[verifyUser] Badge awarding error:', badgeError)
-    // Don't fail the verification if badge awarding fails, but log it
+    // Onay geçerli; rozet hatası yalnızca uyarı olarak döner. Sayfalar yine de tazelenir.
+    revalidatePath('/admin')
+    revalidatePath('/dashboard/influencer')
+    revalidatePath('/dashboard/brand')
     return {
       success: true,
       warning: `Kullanıcı onaylandı ancak rozet verme hatası: ${badgeError instanceof Error ? badgeError.message : 'Bilinmeyen hata'}`
@@ -309,7 +312,7 @@ export async function toggleUserSpotlight(
 
   if (!isAdmin) {
     console.warn('[toggleUserSpotlight] Unauthorized attempt by:', user.email, 'Target:', userId)
-    return { error: `Bu işlem için yetkiniz yok. (Sizin rolünüz: ${adminProfile?.role || 'null'}, E-posta: ${user.email})` }
+    return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
   if (spotlightActive && !plan) {
@@ -508,7 +511,7 @@ export async function resendVerificationEmail(userId: string) {
   }
 
   // Resend signup verification email
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://influmatch.net').replace(/\/+$/, '')
 
   const { error } = await supabaseAdmin.auth.resend({
     type: 'signup',
@@ -953,230 +956,34 @@ export async function deleteAdvertAdmin(advertId: string) {
   return { success: true, message: 'İlan başarıyla silindi.' }
 }
 
-// Update Instagram data (Admin only)
+// Instagram istatistiklerini admin isteğiyle yeniler (Admin only).
+// Kullanıcının kendi yenilemesiyle aynı yol (lib/social-stats.ts): kilit, geçmiş kaydı, profil ve mavi tik
+// senkronu. Doğrulanmamış hesap burada doğrulanmış sayılmaz (biyografide kod aranır); elle bağlamak için
+// adminManualConnectInstagram kullanılır. Günlük kullanıcı sınırı uygulanmaz.
 export async function adminUpdateInstagramData(userId: string) {
-  const supabase = createSupabaseServerClient()
+  const auth = await requireAdminClient()
+  if ('error' in auth) return { success: false, error: auth.error }
+
+  const { data: account } = await auth.supabaseAdmin
+    .from('social_accounts')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('platform', 'instagram')
+    .maybeSingle()
+  if (!account) {
+    return { success: false, error: 'Kullanıcının bağlı Instagram hesabı bulunamadı.' }
+  }
 
   try {
-    // 0. Security Check: Are we admin?
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    if (!authUser) {
-      return { success: false, error: 'Oturum açmanız gerekiyor.' }
+    const result = await refreshInstagramAccount(userId, 'auto')
+    if (!result.success) {
+      return { success: false, error: result.error || 'Instagram verileri güncellenemedi.' }
     }
-
-    // Check if user is admin
-    const { data: adminProfile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .maybeSingle()
-
-    const isAdmin = adminProfile?.role === 'admin'
-
-    if (!isAdmin) {
-      return { success: false, error: 'Yetkisiz işlem.' }
-    }
-
-
-    // 1. Get the user's social account record
-    const { data: account, error: fetchError } = await supabase
-      .from('social_accounts')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('platform', 'instagram')
-      .single()
-
-    if (fetchError || !account) {
-      return { success: false, error: 'Kullanıcının bağlı Instagram hesabı bulunamadı.' }
-    }
-
-    const username = account.username
-    const verificationCode = account.verification_code
-    // 2. FETCH DATA using Apify Service
-    let normalizedData;
-
-    try {
-      normalizedData = await fetchInstagramData(username);
-    } catch (apiError: any) {
-      console.error('[adminUpdateInstagramData] Instagram Service Error:', apiError)
-      return { success: false, error: `Veri çekme hatası: ${apiError.message || 'Apify servis hatası'}` }
-    }
-
-    // normalizedData is guaranteed to be set here (all failure paths return early above)
-    if (!normalizedData) {
-      return { success: false, error: 'Beklenmeyen hata: veri alınamadı.' }
-    }
-
-    const user = normalizedData.user
-    const edges = normalizedData.recent_posts
-
-    // DEBUG LOG
-    console.log(`[adminUpdateInstagramData] Data fetched for ${username}. UserID: ${user.id}, PostCount (API): ${user.media_count}, Edges fetched: ${edges.length}`)
-    if (edges.length > 0) {
-      console.log(`[adminUpdateInstagramData] Sample Edge:`, JSON.stringify(edges[0].node, null, 2))
-    }
-
-    const biography = user.biography || ''
-    const platformUserId = user.id
-    const followerCount = user.follower_count
-    const followingCount = user.following_count
-    const postCount = user.media_count
-    const isVerified = user.is_verified
-    const categoryName = user.category_name
-    const isBusinessAccount = user.is_business_account
-    const externalUrl = user.external_url
-
-    // Note: Admin update bypasses verification code check since the account is already linked
-    // We assume the admin verified the link is correct or just wants to refresh stats.
-
-    // Calculate Stats from Timeline Media
-    let avgLikes = 0
-    let avgComments = 0
-    let avgViews = 0
-    let engagementRate = 0
-    let averageIntervalDays = 0
-
-    // Filter out Pinned Posts explicitly
-    let filteredEdges = edges;
-    if (filteredEdges) {
-        filteredEdges = filteredEdges.filter((edge: any) => {
-            const node = edge.node;
-            if (node.is_pinned === true) return false;
-            if (node.pinned_for_users && node.pinned_for_users.length > 0) return false;
-            return true;
-        });
-    }
-
-    // 3. Stats Calculation Logic
-    // We analyze up to 12 recent non-pinned posts (instead of just 6) for more accurate frequency tracking
-    const recentPosts = filteredEdges.slice(0, 12).map((edge: any) => edge.node)
-
-
-    if (recentPosts.length > 0) {
-      const totalLikes = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_liked_by?.count || 0), 0)
-      const totalComments = recentPosts.reduce((sum: number, post: any) => sum + (post.edge_media_to_comment?.count || 0), 0)
-
-      // Calculate views for video posts
-      const videoPosts = recentPosts.filter((post: any) => post.is_video)
-      if (videoPosts.length > 0) {
-        const totalViews = videoPosts.reduce((sum: number, post: any) => sum + (Number(post.video_view_count) || 0), 0)
-        avgViews = Math.round(totalViews / videoPosts.length)
-        console.log(`[adminUpdate] Video Stats: ${videoPosts.length} videos found. Total Views: ${totalViews}, Avg Views: ${avgViews}`)
-      } else {
-        console.log('[adminUpdate] No video posts found for view calculation.')
-      }
-
-      avgLikes = Math.round(totalLikes / recentPosts.length)
-      avgComments = Math.round(totalComments / recentPosts.length)
-
-      if (followerCount > 0) {
-        const rawRate = ((avgLikes + avgComments) / followerCount) * 100
-        engagementRate = Math.min(parseFloat(rawRate.toFixed(2)), 999.99)
-      }
-
-      // Calculate Posting Frequency (Average days between posts)
-      if (recentPosts.length > 1) {
-        const sortedPosts = [...recentPosts].sort((a: any, b: any) => b.taken_at_timestamp - a.taken_at_timestamp)
-        const newestDate = sortedPosts[0].taken_at_timestamp
-        const oldestDate = sortedPosts[sortedPosts.length - 1].taken_at_timestamp
-        const diffSeconds = newestDate - oldestDate
-        const diffDays = diffSeconds / (60 * 60 * 24)
-        averageIntervalDays = Math.round(diffDays / (sortedPosts.length - 1))
-      }
-    }
-
-    // 4. Update Database
-    const now = new Date().toISOString()
-
-    const statsPayload = {
-      avg_likes: avgLikes,
-      avg_comments: avgComments,
-      avg_views: avgViews,
-      following_count: followingCount,
-      post_count: postCount,
-      is_verified: isVerified,
-      category_name: categoryName,
-      is_business_account: isBusinessAccount,
-      external_url: externalUrl,
-      posting_frequency: averageIntervalDays,
-      analyzed_post_urls: recentPosts.map((p: any) => `https://www.instagram.com/p/${p.shortcode}/`),
-      // Calculate changes vs previous data
-      changes: {
-        engagement_rate: account.engagement_rate ? parseFloat((engagementRate - account.engagement_rate).toFixed(2)) : 0,
-        follower_count: account.follower_count ? followerCount - account.follower_count : 0,
-        avg_likes: account.stats_payload?.avg_likes ? avgLikes - account.stats_payload.avg_likes : 0,
-        avg_views: account.stats_payload?.avg_views ? avgViews - account.stats_payload.avg_views : 0,
-        updated_at: now
-      }
-    }
-
-
-
-    // Use ADMIN CLIENT to bypass RLS policies for updating another user's data
-      const supabaseAdmin = createSupabaseAdminClient()
-
-    if (!supabaseAdmin) {
-      console.error('[adminUpdateInstagramData] Service Role Key missing')
-      return { success: false, error: 'Sistem hatası: Admin yetkisi alınamadı.' }
-    }
-
-    const { error: updateError } = await supabaseAdmin
-      .from('social_accounts')
-      .update({
-        is_verified: true,
-        platform_user_id: platformUserId,
-        follower_count: followerCount,
-        engagement_rate: engagementRate,
-        has_stats: true,
-        stats_payload: statsPayload,
-        last_scraped_at: now,
-        updated_at: now // Explicitly update updated_at
-      })
-      .eq('id', account.id)
-
-    if (updateError) {
-      console.error('Error updating verification status:', updateError)
-      return { success: false, error: 'Güncelleme hatası.' }
-    }
-
-    // 5. Insert into History (New Feature)
-    const { error: historyError } = await supabaseAdmin
-      .from('social_account_history')
-      .insert({
-        social_account_id: account.id,
-        follower_count: followerCount,
-        engagement_rate: engagementRate,
-        avg_likes: avgLikes,
-        avg_comments: avgComments,
-        avg_views: avgViews,
-        recorded_at: now
-      })
-
-    if (historyError) {
-      console.error('Error logging history:', historyError)
-      // Don't fail the main request, just log it
-    }
-
-    // Award verified badge if not present? Maybe not, keep that for explicit approval.
-    // But if they are being updated, it implies they are verified.
-    // Let's stick to just updating stats to be safe.
-
     revalidatePath('/admin')
     revalidatePath('/dashboard/influencer')
-
-    return {
-      success: true,
-      message: 'Hesap verileri başarıyla güncellendi.',
-      data: {
-        platform_user_id: platformUserId,
-        follower_count: followerCount,
-        engagement_rate: engagementRate,
-        ...statsPayload
-      }
-    }
-
+    return { success: true, message: 'Hesap verileri başarıyla güncellendi.', data: result.data }
   } catch (error) {
-    console.error('Exception verifying instagram account:', error)
+    console.error('[adminUpdateInstagramData] Error:', error)
     return { success: false, error: 'Genel hata oluştu.' }
   }
 }
@@ -1238,6 +1045,33 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
       // It's safer to rely on 'users' table sync. If not found, return error.
       return { success: false, error: 'Kullanıcı bulunamadı (Email public.users tablosunda yok). Lütfen doğrudan User ID (UUID) kullanın.' }
     }
+  }
+
+  // Hedef influencer olmalı; aynı Instagram hesabı başka bir kullanıcıya bağlı olmamalı.
+  const checkClient = createSupabaseAdminClient()
+  if (!checkClient) {
+    return { success: false, error: 'Sistem yapılandırma hatası.' }
+  }
+  instagramUsername = normalizeInstagramUsername(instagramUsername)
+  if (!instagramUsername) {
+    return { success: false, error: 'Geçerli bir Instagram kullanıcı adı girin.' }
+  }
+  const { data: targetProfile } = await checkClient.from('users').select('role').eq('id', targetUserId).maybeSingle()
+  if (!targetProfile) {
+    return { success: false, error: 'Kullanıcı bulunamadı.' }
+  }
+  if (targetProfile.role !== 'influencer') {
+    return { success: false, error: 'Instagram hesabı yalnızca influencer/UGC hesaplarına bağlanabilir.' }
+  }
+  const { data: usernameConflict } = await checkClient
+    .from('social_accounts')
+    .select('user_id')
+    .eq('platform', 'instagram')
+    .ilike('username', instagramUsername)
+    .neq('user_id', targetUserId)
+    .limit(1)
+  if (usernameConflict && usernameConflict.length > 0) {
+    return { success: false, error: 'Bu Instagram hesabı başka bir kullanıcıya bağlı.' }
   }
 
   const now = new Date().toISOString()
@@ -1333,7 +1167,7 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
     return { success: false, error: 'Admin yetkisi hatası.' }
   }
 
-  const { error: upsertError } = await supabaseAdmin
+  const { data: savedAccount, error: upsertError } = await supabaseAdmin
     .from('social_accounts')
     .upsert(
       {
@@ -1342,16 +1176,33 @@ export async function adminManualConnectInstagram(identifier: string, instagramU
         username: instagramUsername,
         is_verified: true,
         updated_at: now,
+        ...(statsData.has_stats ? { last_scraped_at: now } : {}),
         ...statsData
       },
       {
         onConflict: 'user_id, platform'
       }
     )
+    .select('id')
+    .single()
 
-  if (upsertError) {
+  if (upsertError || !savedAccount) {
     console.error('[adminManualConnectInstagram] Upsert error:', upsertError)
-    return { success: false, error: `Veritabanı hatası: ${upsertError.message}` }
+    return { success: false, error: 'Hesap kaydedilemedi. Lütfen tekrar deneyin.' }
+  }
+
+  // İstatistik geçmişi grafiklerinin ilk noktası
+  if (statsData.has_stats) {
+    const { error: historyError } = await supabaseAdmin.from('social_account_history').insert({
+      social_account_id: savedAccount.id,
+      follower_count: statsData.follower_count,
+      engagement_rate: statsData.engagement_rate,
+      avg_likes: statsData.stats_payload?.avg_likes ?? 0,
+      avg_comments: statsData.stats_payload?.avg_comments ?? 0,
+      avg_views: statsData.stats_payload?.avg_views ?? 0,
+      recorded_at: now,
+    })
+    if (historyError) console.warn('[adminManualConnectInstagram] History error:', historyError)
   }
 
   // 3. Hesap bağlamak mavi tik vermez; mavi tik kuralı güncel verilerle yeniden değerlendirilir.

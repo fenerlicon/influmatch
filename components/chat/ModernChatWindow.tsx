@@ -6,7 +6,7 @@ import { BadgeCheck, Info, MoreVertical, Phone, Video } from 'lucide-react'
 import MessageActionsMenu from './MessageActionsMenu'
 import ModernChatInput from './ModernChatInput'
 import Image from 'next/image'
-import { parseChatImageUrl } from '@/lib/chat-image'
+import { chatAttachmentPath, parseChatImageUrl } from '@/lib/chat-image'
 import { isUserBlocked } from '@/app/dashboard/users/block/actions'
 import { sendMessage } from '@/app/dashboard/messages/send/actions'
 
@@ -55,6 +55,36 @@ export default function ModernChatWindow({
 }: ModernChatWindowProps) {
     const supabase = useSupabaseClient()
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+    // Sohbet ekleri gizli kovada; görüntülemek için oda katılımcısına 1 saatlik imzalı bağlantı üretilir.
+    const [signedImageUrls, setSignedImageUrls] = useState<Record<string, string>>({})
+    const requestedImagePaths = useRef<Set<string>>(new Set())
+
+    useEffect(() => {
+        const missing = messages
+            .map((m) => parseChatImageUrl(m.content))
+            .map((url) => (url ? chatAttachmentPath(url) : null))
+            .filter((path): path is string => !!path && !requestedImagePaths.current.has(path))
+        if (missing.length === 0) return
+        const unique = Array.from(new Set(missing))
+        unique.forEach((path) => requestedImagePaths.current.add(path))
+        supabase.storage
+            .from('chat-attachments')
+            .createSignedUrls(unique, 60 * 60)
+            .then(({ data, error }) => {
+                if (error || !data) {
+                    console.error('Chat image signing error:', error)
+                    unique.forEach((path) => requestedImagePaths.current.delete(path))
+                    return
+                }
+                setSignedImageUrls((prev) => {
+                    const next = { ...prev }
+                    data.forEach((item) => {
+                        if (item.path && item.signedUrl) next[item.path] = item.signedUrl
+                    })
+                    return next
+                })
+            })
+    }, [messages, supabase])
     const [isSending, setIsSending] = useState(false)
     const [isBlocked, setIsBlocked] = useState(false)
     const [hasBlocked, setHasBlocked] = useState(false)
@@ -286,8 +316,10 @@ export default function ModernChatWindow({
                         {messages.map((message, index) => {
                             const isOwn = message.sender_id === currentUserId
                             const showAvatar = !isOwn && (index === 0 || messages[index - 1].sender_id !== message.sender_id)
-                            const imageUrl = parseChatImageUrl(message.content)
-                            const isImage = imageUrl !== null
+                            const storedImageUrl = parseChatImageUrl(message.content)
+                            const imagePath = storedImageUrl ? chatAttachmentPath(storedImageUrl) : null
+                            const isImage = storedImageUrl !== null
+                            const imageUrl = imagePath ? signedImageUrls[imagePath] ?? null : null
 
                             return (
                                 <div key={message.id} className={`group flex items-end gap-3 ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -324,14 +356,14 @@ export default function ModernChatWindow({
                                                         rel="noopener noreferrer"
                                                         className="relative aspect-[4/3] w-full min-w-[200px] block cursor-pointer overflow-hidden rounded-xl bg-black/20 transition hover:opacity-90"
                                                     >
-                                                        <Image
-                                                            src={imageUrl}
-                                                            alt="Fotoğraf"
-                                                            className="object-cover"
-                                                            fill
-                                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                        />
+                                                        {/* İmzalı bağlantı kısa ömürlü ve gizli kovadan; görsel optimizasyonundan geçirilmez. */}
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img src={imageUrl} alt="Fotoğraf" className="absolute inset-0 h-full w-full object-cover" />
                                                     </a>
+                                                ) : isImage ? (
+                                                    <div className="flex aspect-[4/3] w-full min-w-[200px] items-center justify-center rounded-xl bg-black/20 text-xs text-gray-400">
+                                                        Fotoğraf yükleniyor...
+                                                    </div>
                                                 ) : (
                                                     message.content
                                                 )}

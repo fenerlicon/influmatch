@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAttachmentUrl } from '@/app/admin/attachments/actions'
 import { CheckCircle, XCircle, Archive, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
-import { updateFeedbackStatus } from '@/app/admin/feedback/actions'
+import { updateFeedbackNote, updateFeedbackStatus } from '@/app/admin/feedback/actions'
 import Link from 'next/link'
 
 interface FeedbackSubmission {
@@ -45,6 +45,20 @@ export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdmi
   const [isPending, startTransition] = useTransition()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({})
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+
+  const handleSaveNote = (id: string) => {
+    startTransition(async () => {
+      const result = await updateFeedbackNote(id, noteDrafts[id] ?? '')
+      if (result.error) {
+        alert(result.error)
+      } else {
+        setEditingNoteId(null)
+        router.refresh()
+      }
+    })
+  }
 
   const filteredSubmissions =
     activeTab === 'all'
@@ -203,11 +217,57 @@ export default function FeedbackAdminPanel({ feedbackSubmissions }: FeedbackAdmi
                         </div>
                       )}
 
-                      {submission.adminNotes && (
-                        <div className="mb-3 rounded-xl border border-soft-gold/30 bg-soft-gold/10 p-3">
-                          <p className="text-xs font-medium text-soft-gold">Admin Notu:</p>
-                          <p className="mt-1 text-sm text-gray-300">{submission.adminNotes}</p>
+                      {editingNoteId === submission.id ? (
+                        <div className="mb-3 rounded-xl border border-soft-gold/30 bg-soft-gold/5 p-3">
+                          <p className="text-xs font-medium text-soft-gold">Admin Notu</p>
+                          <textarea
+                            value={noteDrafts[submission.id] ?? submission.adminNotes ?? ''}
+                            onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [submission.id]: e.target.value }))}
+                            maxLength={2000}
+                            rows={3}
+                            className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 p-2 text-sm text-white focus:border-soft-gold/60 focus:outline-none"
+                            placeholder="Yalnızca adminlerin göreceği not"
+                          />
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveNote(submission.id)}
+                              disabled={isPending}
+                              className="rounded-lg border border-soft-gold/60 bg-soft-gold/10 px-3 py-1 text-xs font-semibold text-soft-gold disabled:opacity-50"
+                            >
+                              Kaydet
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingNoteId(null)}
+                              className="rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-300"
+                            >
+                              Vazgeç
+                            </button>
+                          </div>
                         </div>
+                      ) : submission.adminNotes ? (
+                        <div className="mb-3 rounded-xl border border-soft-gold/30 bg-soft-gold/10 p-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-medium text-soft-gold">Admin Notu:</p>
+                            <button
+                              type="button"
+                              onClick={() => setEditingNoteId(submission.id)}
+                              className="text-xs text-gray-400 underline hover:text-white"
+                            >
+                              Düzenle
+                            </button>
+                          </div>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-gray-300">{submission.adminNotes}</p>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingNoteId(submission.id)}
+                          className="mb-3 text-xs text-gray-400 underline hover:text-white"
+                        >
+                          + Admin notu ekle
+                        </button>
                       )}
 
                       <div className="mt-4 flex flex-wrap gap-2">

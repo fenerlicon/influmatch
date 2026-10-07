@@ -17,6 +17,10 @@ import { BLUE_TICK_BADGE_ID, evaluateBlueTick, type BlueTickAccount } from '@/li
 import { CheckCircle2, Heart, Mail, Sparkles, Calendar } from 'lucide-react'
 
 import { refreshIfStale } from '@/lib/social-stats'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { getProfileViewStats } from '@/lib/profile-views'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import ProfileViewsCard from '@/components/dashboard/ProfileViewsCard'
 
 export const revalidate = 0
 
@@ -95,10 +99,14 @@ export default async function InfluencerDashboardPage() {
     .eq('badge_id', BLUE_TICK_BADGE_ID)
     .maybeSingle()
 
-  const rawSpotlightActive = profile?.spotlight_active ?? false
-  const isShowcaseVisible = profile?.is_showcase_visible ?? true 
+  const isShowcaseVisible = profile?.is_showcase_visible ?? true
   const verificationStatus = profile?.verification_status ?? 'pending'
-  const spotlightActive = rawSpotlightActive && verificationStatus === 'verified'
+  // Süresi dolmuş plan saatlik görev kapatana kadar da aktif sayılmaz.
+  const spotlightActive = hasActiveSpotlight(profile) && verificationStatus === 'verified'
+
+  // Görüntülenme sayıları yalnızca Spotlight üyesine okunur ve gönderilir.
+  const adminClient = spotlightActive ? createSupabaseAdminClient() : null
+  const profileViewStats = adminClient ? await getProfileViewStats(adminClient, user.id) : null
 
   if (user && profile?.username) {
     refreshIfStale(user.id, 'instagram').catch((err: any) => console.error('AutoRefresh Instagram Error:', err))
@@ -315,6 +323,8 @@ export default async function InfluencerDashboardPage() {
           })}
         </div>
       </section>
+
+      <ProfileViewsCard stats={profileViewStats} isSpotlight={spotlightActive} />
 
       {/* Stats & Analysis Section - Influencer View */}
       {showProfileCompletionCard && (instagramData || tiktokData) ? (

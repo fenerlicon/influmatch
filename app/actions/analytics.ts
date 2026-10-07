@@ -23,6 +23,8 @@ export async function trackEvent(
         // Daha önce burada (user.id !== brandId) kontrolü vardı ve bu durum influencerların 
         // marka ilanlarını görüntülemesinin kaydedilmesini engelliyordu.
 
+        // Yazım yalnızca RPC ile: fonksiyon ilanın gerçek sahibini kontrol eder, tabloya doğrudan
+        // yazma yetkisi istemcilerde yok (20261008000001).
         const { error } = await supabase.rpc('track_analytics_event', {
             p_event_type: eventType,
             p_target_id: targetId,
@@ -32,17 +34,7 @@ export async function trackEvent(
 
         if (error) {
             console.error('Error tracking analytics event via RPC:', error)
-            const { error: insertError } = await supabase.from('analytics_events').insert({
-                event_type: eventType,
-                target_id: targetId,
-                brand_id: brandId,
-                meta: { ...meta, trigger_user_id: user.id },
-            })
-
-            if (insertError) {
-                console.error('Error tracking analytics event via insert:', insertError)
-                return { success: false, error: insertError.message }
-            }
+            return { success: false, error: 'Olay kaydedilemedi.' }
         }
 
         return { success: true }

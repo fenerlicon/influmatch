@@ -73,6 +73,13 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   const isInfluencer = profile.role === 'influencer'
   const isBrand = profile.role === 'brand'
   const canSendOffer = viewerRole === 'brand' && isInfluencer && viewer?.id !== profile.id
+
+  // Profil görüntülenmesi (kişi başına günde bir; kendi profili sayılmaz). Sayılar yalnızca Spotlight
+  // üyesi profil sahibine gösterilir. Kayıt başarısız olsa da sayfa açılır.
+  if (viewer && isInfluencer && viewer.id !== profile.id) {
+    const { error: viewError } = await supabase.rpc('record_profile_view', { p_profile_id: profile.id })
+    if (viewError) console.error('[profile] görüntülenme kaydedilemedi:', viewError.message)
+  }
   // Geri dönüş izleyicinin kendi keşif ekranına (influencer marka keşfine düşmemeli).
   const backHref =
     viewerRole === 'brand' ? '/dashboard/brand/discover' : viewerRole === 'influencer' ? '/dashboard/influencer/discover' : viewerRole === 'admin' ? '/admin' : '/dashboard'
