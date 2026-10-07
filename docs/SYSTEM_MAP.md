@@ -717,7 +717,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `SUPABASE_DB_URL` | `env.example`'da var, kullanılmıyor |
 
 ### 8.7 Gizli bilgiler ve repo hijyeni
-- ✅ ~~**8.7-S1 [KRİTİK]**~~ (dosya silindi; anahtarın sağlayıcıda iptali kullanıcıda) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
+- **8.7-S1 [KRİTİK]** (kısmen: dosya silindi; anahtarın rocketapi.io panelinde iptali kullanıcıda, iptal edilince ✅ yap) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
   dosya silinmeli (git geçmişinde kalacağı için iptal şart).
 - ✅ ~~**8.7-S2 [DÜŞÜK]**~~ (takipten çıkarıldı) `.env.local.txt` `.gitignore`'a rağmen takip ediliyor (yalnızca URL + anon key).
 - ✅ ~~**8.7-S3 [DÜŞÜK]**~~ (başıboş dosyalar silindi) Başıboş dosyalar: `validate_json.js`, `fix_turkish.js`, `crop_icon.py`, boş `types.ts`, `tsc_output.txt`, `tasarim-sistemi-analizi.txt`.
