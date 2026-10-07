@@ -49,8 +49,13 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
         })
     }
 
+    // Keşif listelerinde yalnızca en az bir doğrulanmış sosyal hesabı olanlar gösterilir
+    // (hesabı olmayan profil kartta "Pasif" görünüyordu). Kimlikle istenen listeler
+    // (favoriler, listeler) markanın kaydettiği herkesi göstermeye devam eder.
+    const visibleUsers = filters?.ids ? data : data.filter((user) => (socialAccountsMap[user.id]?.length ?? 0) > 0)
+
     // 3. Merge
-    const influencers: DiscoverInfluencer[] = data.map((user) => {
+    const influencers: DiscoverInfluencer[] = visibleUsers.map((user) => {
         // Kartta kullanıcının seçtiği rozetler (displayed_badges) gösterilir, yalnızca kazanılmış
         // olanlar. Seçim yoksa kazanılanların ilk 3'ü. Mavi tik (verified-account) bir durum
         // göstergesi olduğu için seçilmemiş olsa da her zaman eklenir.

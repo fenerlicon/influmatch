@@ -238,9 +238,9 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 ### 2.8 Vitrin görünürlüğü (`is_showcase_visible`, "Vitrin Modu")
 - **Dosyalar:** `components/dashboard/SpotlightToggleCard.tsx`, `app/dashboard/influencer/actions.ts` (`toggleShowcaseVisibility`)
 - **Sorunlar:**
-  - **2.8-S1 [ORTA]** Kolon istemci beyaz listesinde; kullanıcı REST ile doğrudan açıp aksiyonun kontrollerini atlayabilir.
-  - **2.8-S2 [ORTA]** Varsayılan `true`; hesap bağlamamış doğrulanmış influencer'lar keşifte görünüyor, kart "Pasif" diyor.
-  - **2.8-S3 [DÜŞÜK]** Her açılışta "Spotlight Üyeliğiniz Aktifleşti!" bildirimi gidiyor (ücretsiz vitrin ile ücretli Spotlight karışmış).
+  - ✅ ~~**2.8-S1 [ORTA]**~~ (kolon açılsa bile keşif doğrulanmış hesap şartını sunucuda uyguluyor, 2.8-S2) Kolon istemci beyaz listesinde; kullanıcı REST ile doğrudan açıp aksiyonun kontrollerini atlayabilir.
+  - ✅ ~~**2.8-S2 [ORTA]**~~ (keşif listeleri doğrulanmış sosyal hesabı olmayanları göstermiyor; favoriler/listeler göstermeye devam ediyor) Varsayılan `true`; hesap bağlamamış doğrulanmış influencer'lar keşifte görünüyor, kart "Pasif" diyor.
+  - ✅ ~~**2.8-S3 [DÜŞÜK]**~~ (bildirim metni vitrin modu için düzeltildi) Her açılışta "Spotlight Üyeliğiniz Aktifleşti!" bildirimi gidiyor (ücretsiz vitrin ile ücretli Spotlight karışmış).
 
 ### 2.9 İstatistik kartı ve "AI analiz"
 - **Dosyalar:** `components/profile/InfluencerStats.tsx`, `app/actions/ai-analysis.ts`
@@ -332,7 +332,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `AdvertApplicationsList.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
 - **Sorunlar:**
   - **3.8-S1 [ORTA]** Okumalar "RLS sorunu için geçici çözüm" olarak service role ile; sahiplik kodda kontrol ediliyor ama RLS devre dışı kalmış.
-  - **3.8-S2 [ORTA]** `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
+  - ✅ ~~**3.8-S2 [ORTA]**~~ (yalnızca bu başvurunun odası yeniden kullanılıyor; başvuru durumu artık 'pending'e çekilmiyor) `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
     `advert_application_id` güncellemesi sessizce başarısız; oda açılırken başvuruyu `pending`'e geri çekebiliyor.
   - **3.8-S3 [ORTA]** Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
 
@@ -760,6 +760,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ---
 
+### 10.4 Notlar
+- **10.4-N1** `@testermobilapp` (marka, auth e-postası geçici bir test adresi) mobil uygulama testleri için bilinçli olarak tutuluyor; silinmeyecek (karar, 7 Ekim).
+
 ## 11. Ölü kod envanteri
 
 | ID | Öğe |
@@ -777,6 +780,11 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | 11.11 | Kök dizindeki başıboş script ve notlar (8.7-S3), eski deploy dokümanları (8.8) |
 
 ---
+
+### 11.1 Bekleyen elle testler (kullanıcı yapacak)
+- **T1** Marka doğrulama kilidi (1.8-S4, PR #17): doğrulanmış marka hesabıyla Keşfet, İlanlar, Favoriler, AI öneriler, Teklifler normal açılmalı;
+  doğrulanmamış markada bu sayfalar kilit ekranı göstermeli, ana sayfa/profil/ayarlar/rozetler açık olmalı.
+- **T2** Instagram hızlı doğrulama (PR #12): kodla hesap ekleyip "Kontrol et" süresi.
 
 ## 12. Öncelik sırası
 
