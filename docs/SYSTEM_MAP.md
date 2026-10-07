@@ -198,8 +198,8 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `app/api/auth/{instagram,tiktok}/{login,callback}/route.ts`, `utils/meta-service.ts`, `utils/tiktok-service.ts`,
   `lib/oauth-state.ts` (CSRF state — sağlam), tetikleyici `components/influencer/ProfileForm.tsx`
 - **Sorunlar:**
-  - **2.3-S1 [YÜKSEK]** Dashboard bu bağlantıları "Çok Yakında" diye kapalı gösteriyor ama ProfileForm canlı link veriyor.
-  - **2.3-S2 [YÜKSEK]** TikTok OAuth kullanıcı adı yerine `display_name` kaydediyor, `syncBlueTick` çağırmıyor; sonraki yenileme yanlış hesabı kazıyor.
+  - ✅ ~~**2.3-S1 [YÜKSEK]**~~ (ProfileForm da "Çok Yakında"; login rotaları `SOCIAL_OAUTH_ENABLED=true` olmadan başlamıyor) Dashboard bu bağlantıları "Çok Yakında" diye kapalı gösteriyor ama ProfileForm canlı link veriyor.
+  - **2.3-S2 [YÜKSEK]** (OAuth kapatıldığı için etkisiz; açılmadan önce `user.info.profile` kapsamı + `username` alanı gerekli. Canlıda OAuth ile bağlanmış hesap yok) TikTok OAuth kullanıcı adı yerine `display_name` kaydediyor, `syncBlueTick` çağırmıyor; sonraki yenileme yanlış hesabı kazıyor.
   - **2.3-S3 [ORTA]** Meta yolu `platform_user_id`'yi Graph business id ile yazıyor (Apify IG pk yazıyor) → aynı IG hesabı iki kullanıcıya bağlanabilir.
     `last_scraped_at` set edilmiyor, diğer kullanıcılarla çakışma kontrolü yok.
   - **2.3-S4 [DÜŞÜK]** Token'lar saklanmıyor (OAuth kazımaya göre bir şey katmıyor); `video.list` kapsamı kullanılmıyor.

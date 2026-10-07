@@ -15,6 +15,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Auth required' }, { status: 401 })
   }
 
+  // Resmi bağlantı henüz açık değil (arayüzde "Çok Yakında"); doğrudan URL ile başlatılmasın.
+  if (process.env.SOCIAL_OAUTH_ENABLED !== 'true') {
+    return NextResponse.redirect(new URL('/dashboard/influencer/profile?error=oauth_disabled', process.env.NEXT_PUBLIC_SITE_URL || 'https://influmatch.net'))
+  }
+
   const state = createOAuthState('tiktok')
   const authUrl = getTikTokAuthUrl(state)
 
