@@ -468,7 +468,7 @@ export async function refreshTikTokAccount(userId: string, source: ScrapeSource 
 async function scrapeTikTok(admin: SupabaseClient, userId: string, account: ScrapeAccount): Promise<SocialResult> {
   let tiktokData
   try {
-    tiktokData = await fetchTikTokPublicProfile(account.username)
+    tiktokData = await fetchTikTokPublicProfile(normalizeTikTokUsername(account.username))
   } catch (apiError: any) {
     console.error('[refreshTikTokAccount] TikTok service error:', apiError)
     return {
