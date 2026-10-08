@@ -75,3 +75,38 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 4. **Kampanya sihirbazı + müsaitlik** (Aralık başı)
    - Marka kısa brief → uygun profiller (`lib/category-map.ts` + fiyat kartı + müsaitlik) → toplu davet.
    - Influencer "iş alıyorum / dolu" durumu; doluyken keşifte alt sırada, teklif butonu uyarı gösterir.
+
+## 2026-10-10 (3. tur) kararları
+
+- **Cevapsız teklif:** 7 gün yanıtlanmayan teklif "süresi doldu" olur, marka bilgilendirilir.
+- **Ücretsiz marka sınırları** (3.13'teki "şimdilik açık" kararının yerine geçer). **Altyapı Aralık'a kadar hazırlanır ama kapalı durur;
+  satış başlayınca (POS açılınca) açılır** — 0₺ kampanyasında herkes Spotlight. Değerler admin panelinden değiştirilebilir:
+  - **Keşif çarkı:** ücretsiz marka tüm influencer/UGC listesini göremez. Günde bir kez "çark" çevirir; kategorisine uygun
+    **10 doğrulanmış profil 24 saat** görünür, sonra yerini başka profillere bırakır (aynı profiller arka arkaya gelmez).
+    Spotlight markalar herkesi görür.
+  - **Teklif:** ücretsiz markada **günde 3, ayda 15**. Spotlight Basic daha yüksek, Pro sınırsız (değerler paket içeriğiyle).
+  - **İlan:** ücretsiz markada **1 aktif ilan**. Spotlight'ta daha fazla.
+- **Teklif şablonu:** marka bir teklifi şablon olarak kaydeder / son teklifini kopyalayıp başka influencer'a gönderir.
+- **Kaydedilen ilanlar + ilan alarmı:** influencer ilanı kaydeder; kategori/bütçe/platform alarmı kurar, yeni uygun ilan çıkınca
+  bildirim (+ e-posta tercihine göre).
+- **Haftalık e-postalar:** kişisel özet (takipçi değişimi, profil görüntülenmesi) + eşleşme özeti (influencer: uygun yeni ilanlar;
+  marka: sektöründe yeni doğrulanmış profiller). **Resend ücretli plana geçilecek** (kullanıcı onayladı; kampanyadan önce).
+- **Ekip hesabı:** bir marka hesabına birden çok kişi; ileride **ajanslara özel** bir yapı da geliştirilebilir (InfluAct'e zemin).
+- **Ödeme teyidi + teslim kilidi + marka güvenilirliği, davet kodu (Spotlight günü), admin metrik paneli:** kabul edildi (önceki tur).
+- **Spotlight paketleri:** karşılığı olmayan maddeler kaldırıldı (PR #50). Boşalan yerler **yalnızca çalışan özelliklerle** doldurulur;
+  bir özellik canlıya çıkınca `lib/spotlight-plans.ts`'teki listeye eklenir. Önerilen dağılım (sayılar kullanıcı onayıyla):
+
+| | Basic | Pro |
+|---|---|---|
+| Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, uyum skoru, **anlık ilan alarmı** | Basic + profil koçu, **portföyde sonuç raporları**, haftalık özette detaylı istatistik |
+| Marka | **Keşif çarkı yok (herkesi görür)**, daha yüksek teklif ve ilan sınırı, akıllı eşleştirme, uyum skoru, benzer profil keşfi, öne çıkan ilanlar | Basic + **sınırsız teklif/ilan**, **kampanya sihirbazı + toplu davet**, **sonuç raporları**, **haftalık eşleşme e-postası**, (ileride) **ekip hesabı** |
+
+### Güncel iş sırası (Aralık sonuna kadar)
+1. ✅ İş birliği akışı + fiyat kartı (PR #51)
+2. Cevapsız teklif süresi, teklif şablonu, kaydedilen ilanlar + ilan alarmı
+3. Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları
+4. İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + teslim kilidi (R2'ye bağlı)
+5. Akademi + R2 "Drive" (Kasım)
+6. UGC portföyü + sonuç raporu
+7. Kampanya sihirbazı + müsaitlik, davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
+8. Ekip hesabı / ajans yapısı (yayından sonra da olabilir)

@@ -43,7 +43,7 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
    - Doğrudan mesaj (5.1-S1): **açılmayacak.** Sohbet yalnızca teklif veya başvuru üzerinden; teklifsiz sohbet yolları kaldırılır.
    - Eski sarı tikler (3.11-S1): kurala uymayanların tiki geri alınır, markaya bildirim gider; kuralı tamamlayan geri alır.
    - Teklif "Beklet" (2.13-S1): davranış aynı, buton adı "Markayla görüş".
-   - Ücretsiz marka kotası (3.13): **şimdilik açık**; keşfete yalnızca sayfalama. Kota kullanıcı sayısı büyüyünce.
+   - Ücretsiz marka kotası (3.13): 2026-10-10 (3. tur) kararıyla değişti — aşağıya bak.
    - E-posta (8.4-S1): Resend ücretsiz planda kalınır; doğrulama/şifre e-postaları öncelikli, kota %80'i geçince
      bildirim e-postaları durur (site içi bildirim sürer), admin'e uyarı.
    - Mobil: kural 3.
@@ -59,6 +59,10 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
      doğrulanmaz (3.13-N6), Gemini tamamen kaldırıldı (6.7-S1).
    - **Strateji ve takvim:** `docs/ROADMAP.md` (Aralık son hafta 0₺ kampanya, şirket 1 Ocak'ta, satış Ocak ortası–sonu,
      Akademi kararları, R2 "Drive", mağazaya önce bireysel hesapla çıkış). Kasım'ın ana işi Akademi + R2.
+   - **2026-10-10 (3. tur):** ücretsiz marka sınırları (keşif çarkı 10 profil/24 saat, teklif günde 3 / ayda 15, 1 aktif ilan)
+     **satış başlayınca** açılır, altyapı kapalı bayrakla hazırlanır; cevapsız teklif 7 günde düşer; teklif şablonu, ilan alarmı,
+     haftalık e-postalar (Resend ücretli plan), ekip/ajans hesabı. Spotlight listesine yalnızca canlıdaki özellik eklenir.
+     Ayrıntı ve iş sırası: `docs/ROADMAP.md`.
    - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi, yayından sonra); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`
