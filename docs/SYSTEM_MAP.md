@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-08 (2. tur) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-10 · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -197,6 +197,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 ### 2.3 OAuth ile hesap bağlama (Meta / TikTok)
 - **Dosyalar:** `app/api/auth/{instagram,tiktok}/{login,callback}/route.ts`, `utils/meta-service.ts`, `utils/tiktok-service.ts`,
   `lib/oauth-state.ts` (CSRF state — sağlam), tetikleyici `components/influencer/ProfileForm.tsx`
+- **Karar (2026-10-10):** OAuth mobil uygulamanın mağaza yayınından **sonra** açılacak; 2.3-S2/S3/S4 ve 3.13'teki kod/OAuth ayrımı o zaman.
 - **Sorunlar:**
   - ✅ ~~**2.3-S1 [YÜKSEK]**~~ (ProfileForm da "Çok Yakında"; login rotaları `SOCIAL_OAUTH_ENABLED=true` olmadan başlamıyor) Dashboard bu bağlantıları "Çok Yakında" diye kapalı gösteriyor ama ProfileForm canlı link veriyor.
   - **2.3-S2 [YÜKSEK]** (OAuth kapatıldığı için etkisiz; açılmadan önce `user.info.profile` kapsamı + `username` alanı gerekli. Canlıda OAuth ile bağlanmış hesap yok) TikTok OAuth kullanıcı adı yerine `display_name` kaydediyor, `syncBlueTick` çağırmıyor; sonraki yenileme yanlış hesabı kazıyor.
@@ -309,7 +310,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `app/dashboard/brand/ai/page.tsx`, `utils/fetchInfluencers.ts` (`getAIRecommendations`), `utils/matching.ts`
 - **Sorunlar:**
   - ✅ ~~**3.5-S1 [ORTA]**~~ (Spotlight yoksa sayfa plan ekranına yönlendiriyor; sezgisel skor/LLM yok notu sürüyor) Sayfada Spotlight kontrolü yok (yalnızca link Spotlight'a gösteriliyor); LLM yok, sezgisel skor.
-  - **3.5-S2 [DÜŞÜK]** (kısmen: "%95+ uyumlu" ve "Yapay zeka algoritmamız" metni 2026-10-10'da kaldırıldı, puan açıklaması eklendi; kategori eşleşmesi açık) "%95+ uyumlu" sabit iddia; marka ve influencer kategorileri farklı listelerden geldiği için eşleşme genelde boş havuza düşüyor; sınırsız `.in('id', ids)`.
+  - ✅ ~~**3.5-S2 [DÜŞÜK]**~~ (2026-10-10: metin düzeltmesi + `lib/category-map.ts` marka sektörü → birincil ve ilgili influencer kategorileri; öneri sorgusu eşlenen kategorilerle, onaylı/vitrinde/doğrulanmış sosyal hesaplı profillerle ve en fazla 200 adayla çalışıyor (teknoloji markası için aday 1 → 42); puan: birincil 40, ilgili 25; eski mobil etiketleri ("Moda") anahtara çevriliyor; `getEnrichedInfluencers` kimlikleri 100'lük parçalarla sorguluyor; listeler değişmedi) "%95+ uyumlu" sabit iddia; marka ve influencer kategorileri farklı listelerden geldiği için eşleşme genelde boş havuza düşüyor; sınırsız `.in('id', ids)`.
 
 ### 3.6 Teklifler (marka → influencer)
 - **Dosyalar:** `components/profile/OfferModal.tsx` → `app/profile/actions.ts` (`createOffer`), `brand/offers/page.tsx`,
@@ -375,6 +376,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 3.13 Ürün notları: doğrulama yolu ve ücretsiz marka erişimi (karar/tasarım bekliyor)
 - **Kaynak:** kullanıcı notları, 7 Ekim. Henüz kod yok.
 - **Önkoşul:** OAuth yolu gerçekten çalışmalı (2.3-S1/S2: arayüzde "Çok yakında", TikTok OAuth yanlış kullanıcı adı kaydediyor).
+- **Karar (2026-10-10):** OAuth mağaza yayınından sonra açılacak; kod/OAuth ayrımı (N2, N3) o zaman ele alınır.
 - **Notlar:**
   - **3.13-N1** Kod (bio) ile doğrulayan Instagram/TikTok hesaplarının belli verileri çekilemiyor: kazıma yalnızca herkese açık
     sayıları verir (takipçi, beğeni, yorum, izlenme). Erişim, gösterim, kaydetme, kitle demografisi yalnızca OAuth ile gelir.
@@ -387,7 +389,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     gidip yalnızca CSS ile bulanıklaştırılıyor, bkz. 3.1-S1).
   - **3.13-N5** Listeler (Inflist) şimdilik tüm doğrulanmış markalara ücretsiz; ileride Spotlight'a dahil edilecek
     (o zaman `createList` / `toggleInList` sunucuda da kontrol etmeli).
-  - **3.13-N6** İleride gönderisi olmayan Instagram/TikTok hesapları doğrulamada kabul edilmeyecek (bugün 2.1-S2 düzeltmesiyle
+  - ✅ ~~**3.13-N6**~~ (2026-10-10: `lib/social-stats.ts` yeni doğrulamada gönderi/video sayısı 0 ve son gönderi/video yoksa
+    "Gönderisi olmayan Instagram hesapları doğrulanamıyor..." / "Videosu olmayan TikTok hesapları..." mesajıyla reddediyor (kod `no_posts`);
+    web ve mobil aynı kod. Doğrulanmış hesapların yenilemesi etkilenmiyor) İleride gönderisi olmayan Instagram/TikTok hesapları doğrulamada kabul edilmeyecek (bugün 2.1-S2 düzeltmesiyle
     kabul ediliyor). Kural eklenince `media_count = 0` veya son gönderi yoksa net mesajla reddet; mevcut gönderisiz doğrulanmış
     hesaplar kalır (karar, 7 Ekim).
 
@@ -402,7 +406,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**4.1-S1 [ORTA]**~~ ('use server' kaldırıldı; yalnızca sunucu içi çağrılar) Dosya `'use server'`; `awardBadgesForUser(anyUserId)` yetki kontrolsüz çağrılabilir bir aksiyon (yalnızca hak edilen rozetleri verdiği için etki düşük).
   - ✅ ~~**4.1-S2 [ORTA]**~~ (okumalar ve sayım service role ile; sayım hatasında rozet verilmiyor) `founder-member` sayımı RLS'e tabi istemciyle yapılıyor; satırlar gizlenirse fazla kişiye rozet gider. RPC fallback'i artık admin dışı oturumda hata veriyor.
-  - ✅ ~~**4.1-S3 [DÜŞÜK]**~~ (kullanıcı kararıyla eşikler, saatlik görev verir/geri alır: `million-club` 1M+ takipçi (`lib/million-club.ts`); `lightning-fast`, `brand-ambassador`, `jet-approval`, `elite-budget` (`lib/activity-badges.ts`, veri `20261009000001`). `five-star` ileriki güncellemede; `trendsetter`, `conversion-wizard`, `global`, `communication-expert`, `loyal-partner` "yakında" kalıyor) Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
+  - ✅ ~~**4.1-S3 [DÜŞÜK]**~~ (kullanıcı kararıyla eşikler, saatlik görev verir/geri alır: `million-club` 1M+ takipçi (`lib/million-club.ts`); `lightning-fast`, `brand-ambassador`, `jet-approval`, `elite-budget` (`lib/activity-badges.ts`, veri `20261009000001`). `five-star` (5 Yıldız) mağaza yayınından sonra (karar 2026-10-10); `trendsetter`, `conversion-wizard`, `global`, `communication-expert`, `loyal-partner` "yakında" kalıyor) Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri.
 
 ### 4.2 Rozet seçimi ve gösterimi
 - **Dosyalar:** `components/badges/{BadgeSelector,BadgeDisplay,BadgeDetailList,BadgeCompactList,BadgeProgressInfo,BadgeCard,BadgeToggle}.tsx`
@@ -460,14 +464,18 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `app/chat/[roomId]/page.tsx`, `components/chat/ChatWindow.tsx`
 - **Sorunlar:** ✅ ~~**5.2-S1 [DÜŞÜK]**~~ (yetim `/chat` sayfası ve `ChatWindow` silindi) Hiçbir yerden bağlanmıyor (yetim), dashboard layout'u dışında; robots'ta engellenmemiş.
 
-### 5.3 Okundu takibi (iki ayrı sistem)
-- **Sistem A:** `message_reads` tablosu — yalnızca yetim `/chat` sayfası ve ölü `markRoomAsRead` yazıyor;
-  BrandOffersList, OffersManager, AdvertApplicationsList bunu okuyor.
-- **Sistem B:** `auth.user_metadata["last_read_<roomId>"]` — sidebar ve mesaj kutusu kullanıyor.
+### 5.3 Okundu takibi
+- **2026-10-10'dan beri tek sistem:** `public.room_reads` (user_id, room_id, last_read_at; RLS: yalnızca kendi satırı ve katıldığı oda;
+  zaman sunucu saatini geçemez). Kod: `lib/room-reads.ts`; web mesaj kutusu, kenar çubuğu sayacı, teklif/başvuru rozetleri ve
+  mobil mesaj ekranı (`PATCH /api/mobile/messages`) bunu kullanır.
+- Eski: `message_reads` tablosu (canlıda yok) ve `auth.user_metadata["last_read_<roomId>"]` (artık okunmuyor/yazılmıyor).
 - **Sorunlar:**
   - ✅ ~~**5.3-S1 [YÜKSEK]**~~ (`message_reads` tablosu canlıda yok, rozetler hep 0 çıkıyordu; sayım `last_read_<roomId>` metadata ile, `lib/unread-messages.ts`) Teklif ve başvuru ekranlarındaki okunmamış rozetleri hiç temizlenmiyor.
-  - **5.3-S2 [ORTA]** (canlıda ölçüldü: en büyük metadata 550 bayt, en çok 4 oda anahtarı; acil değil, mesajlaşma tasarımıyla birlikte `room_reads` tablosuna taşınacak) Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyor;
+  - ✅ ~~**5.3-S2 [ORTA]**~~ (2026-10-10: `room_reads` tablosu + RLS + tetikleyici, migration `20261010000000_room_reads.sql` canlıya uygulandı; mevcut 11 metadata anahtarının 10'u (biri silinmiş odaya ait) tabloya taşındı, RLS canlıda denendi. Birleşik sohbet açılınca aynı kişiyle olan tüm odalar okundu oluyor. Eski anahtarların silinmesi 5.3-S3) Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyor;
     aynı kişiyle birleşik odalardan yalnızca seçili oda okundu oluyor.
+  - **5.3-S3 [DÜŞÜK]** (2026-10-10, sonraya bırakıldı) Kullanıcıların auth metadata'sında eski `last_read_<roomId>` anahtarları duruyor
+    (canlıda 5 kullanıcıda 11 anahtar). Hiçbir kod okumuyor; zararsız ama JWT'de yer kaplıyor. Silmek için (veri değişikliği, kullanıcı çalıştırır):
+    `UPDATE auth.users SET raw_user_meta_data = raw_user_meta_data - ARRAY(SELECT k FROM jsonb_object_keys(raw_user_meta_data) k WHERE k LIKE 'last_read_%') WHERE raw_user_meta_data::text LIKE '%last_read_%';`
 
 ### 5.3b Realtime yayını (2026-10-07)
 - ✅ Canlıda yayında yalnızca `messages` vardı: teklif, başvuru, oda, gizlenen teklif, bildirim, destek, şikâyet ve rozet
@@ -548,8 +556,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 6.7 API anahtar havuzu ekranı `/admin/api-keys`
 - **Dosyalar:** `app/admin/api-keys/{page,data,actions}.ts(x)`, `components/admin/ApiKeysPanel.tsx`
-- **İş:** Apify/Gemini anahtarlarını ekle, sırala, kapat, sağlık kontrolü, test e-postası. Gizli anahtarlar maskeli.
-- **Sorunlar:** **6.7-S1 [DÜŞÜK]** (Gemini anahtar sağlık kontrolü CLAUDE.md kural 1 gereği bilinçli tutuluyor; `moveApiKey` yarıda kalırsa sonraki sıralamada numaralar yeniden düzeliyor, düşük öncelik) Gemini sağlayıcısı listede ama artık hiçbir modül kullanmıyor (bkz. 8.3-S2); `moveApiKey` transaction'sız.
+- **İş:** Apify anahtarlarını ekle, sırala, kapat, sağlık kontrolü, test e-postası. Gizli anahtarlar maskeli.
+- **Sorunlar:**
+  - ✅ ~~**6.7-S1 [DÜŞÜK]**~~ (2026-10-10, kullanıcı kararı: Gemini tamamen kaldırıldı — `lib/gemini.ts` silindi; havuz, sağlık kontrolü, saatlik görev, admin ekranı ve ortam belgeleri yalnızca Apify. Tablodaki `provider` CHECK kısıtı ve canlıdaki 1 gemini satırı bırakıldı; kod bu satırları listelemiyor/kontrol etmiyor. İstenirse elle silinebilir: `DELETE FROM public.api_keys WHERE provider = 'gemini';`. `moveApiKey` kısmı 6.7-S2'ye ayrıldı) Gemini sağlayıcısı listede ama artık hiçbir modül kullanmıyor (bkz. 8.3-S2); `moveApiKey` transaction'sız.
+  - **6.7-S2 [DÜŞÜK]** (6.7-S1'den ayrıldı) `moveApiKey` transaction'sız; yarıda kalırsa sonraki sıralamada numaralar yeniden düzeliyor.
 
 ### 6.8 Manuel Instagram bağlama `/admin/manual-connect`
 - **Dosya:** `app/admin/manual-connect/page.tsx`
@@ -688,7 +698,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   - ✅ ~~**8.2-S1 [YÜKSEK]**~~ (Spotlight kısmı) Süresi dolan Spotlight'ı kapatan bir iş yok (4.3-S1); `refresh-stats` zaman aşımı (2.2-S2).
 
 ### 8.3 API anahtar havuzu
-- **Dosyalar:** `lib/api-keys.ts` (`withApiKey`, otomatik geçiş, bekleme süreleri), `lib/apify.ts`, `lib/gemini.ts`, `lib/api-key-health.ts`
+- **Dosyalar:** `lib/api-keys.ts` (`withApiKey`, otomatik geçiş, bekleme süreleri), `lib/apify.ts`, `lib/api-key-health.ts` (`lib/gemini.ts` 2026-10-10'da silindi, 6.7-S1)
 - **Sorunlar:**
   - ✅ ~~**8.3-S1 [DÜŞÜK]**~~ (anahtarlar duruma göre sıralanıyor: sağlıklılar önce, kredisi biten/hata verenler sona) `isKeyUsable` bekleme süresi olmayan `exhausted`/`error` anahtarları yine deniyor.
   - ✅ ~~**8.3-S2 [DÜŞÜK]**~~ (içerik üretme fonksiyonu ve tipleri kaldırıldı; yalnızca anahtar sağlık kontrolü kaldı) `generateGeminiContent` ve `@google/generative-ai` paketi kullanılmıyor (vergi kontrolü yerelde).
@@ -781,8 +791,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Ortak:** Settings, Feedback, AiAssistant.
 
 ### 10.2 Kimlik ve veri erişimi
-- Supabase e-posta/şifre; neredeyse her şey anon key + kullanıcı JWT'si ile doğrudan PostgREST'e gidiyor.
-  Tek sunucu API'si `/api/mobile/verify-*`; geliştirmede `API_BASE` LAN IP'sine sabit.
+- Supabase e-posta/şifre; okumalar anon key + kullanıcı JWT'si ile PostgREST'ten. Kritik yazımlar web'in sunucu uçlarından
+  (`/api/mobile/*`: offers, messages, adverts, applications, brand-verification, push-token, forgot-password, verify-*,
+  2026-10-10'dan beri profile, showcase, support, feedback, notifications). Doğrudan tabloya yazmaya devam edenler: favoriler (RLS'li),
+  onboarding (10.3-S23). `API_BASE` varsayılanı influmatch.net, geliştirmede `EXPO_PUBLIC_API_BASE`.
 - `app.json` varsayılan slug/ad ("mobile-app").
 
 ### 10.3 Web kurallarıyla uyumsuzluklar
@@ -805,6 +817,13 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S16 [YÜKSEK]**~~ (2026-10-09, yeni bulgu) `expo-constants`, `expo-device`, `expo-notifications` SDK 55 sürümlerindeydi (uygulama SDK 54): yerel derleme/push kırılır. SDK 54 sürümlerine çekildi, `expo-document-picker` eklendi, `package-lock.json` güncellendi. Cihazda kurulum: `npx expo install --check`.
 - ✅ ~~**10.3-S17 [ORTA]**~~ (2026-10-09, yeni bulgu) Mobil giriş yönlendirmesi ve reddedilmiş hesap kontrolü kullanıcının değiştirebildiği `user_metadata`'ya (`is_onboarded`, `verification_status`) bakıyordu. Artık veritabanından (`lib/routing.js`), web paneliyle aynı kurallarla.
 
+- ✅ ~~**10.3-S18 [YÜKSEK]**~~ (2026-10-10, yeni bulgu) MyProfile ekranı canlıda olmayan `users.portfolio_urls` kolonunu okuyordu; sorgu hata verdiği için profil formu hiç dolmuyordu, portfolyo kaydı da sessizce düşüyordu. Web'de olmayan portfolyo ve web sitesi alanları kaldırıldı; kayıt `/api/mobile/profile` ile web'in `lib/profile-update.ts` koduyla (kategori web listesinden seçiliyor).
+- ✅ ~~**10.3-S19 [YÜKSEK]**~~ (2026-10-10, yeni bulgu) Mobil destek talepleri hep başarısızdı: konu serbest metindi (tablo yalnızca 4 konu kabul ediyor), Ayarlar'daki form öncelik göndermiyordu. Ortak `SupportTicketForm` web'deki konu/öncelik listeleriyle, `/api/mobile/support` → `lib/support.ts`.
+- ✅ ~~**10.3-S20 [ORTA]**~~ (2026-10-10, yeni bulgu) Ayarlar'daki bildirim anahtarı canlıda olmayan `push_notifications_enabled` kolonuna yazıyordu (hiçbir şeyi değiştirmiyordu). Kaldırıldı; satır telefonun bildirim ayarlarını açıyor.
+- ✅ ~~**10.3-S21 [ORTA]**~~ (2026-10-10, yeni bulgu) Mobil onboarding influencer kategorisini web anahtarı yerine etiket olarak ("Moda, Güzellik", çoklu) yazıyordu; keşif filtresi bu profilleri bulamıyordu. Mobil artık web listesinden tek anahtar yazıyor (`mobile-app/constants/categories.js`). Canlıda eski değerli 4 profil var ("Moda" 3, "Güzellik" 1); `lib/category-map.ts` bunları anahtara çevirerek eşliyor. İstenirse veri düzeltmesi: `UPDATE public.users SET category = 'fashion' WHERE category = 'Moda'; UPDATE public.users SET category = 'beauty' WHERE category = 'Güzellik';`
+- ✅ ~~**10.3-S22 [ORTA]**~~ (2026-10-10, kullanıcı kararı) Profil düzenleme, vitrin modu, destek talebi, geri bildirim ve bildirim okundu işaretleme doğrudan tabloya yazıyordu (web doğrulamaları atlanıyordu, ör. vitrinde bağlı hesap kontrolü, avatar adresi, sosyal link kuralları). Hepsi web ile ortak sunucu koduna taşındı: `/api/mobile/{profile,showcase,support,feedback,notifications}` → `lib/{profile-update,showcase,support,feedback,notification-reads}.ts`. Marka profil alanları web'le aynı (Marka Adı = `full_name`, Şirket Ünvanı, Şehir, İnternet Sitesi; olmayan "Telefon" kaldırıldı). Vitrinden çıkmak artık onaysız hesapta da serbest (web'de de).
+- **10.3-S23 [ORTA]** (2026-10-10, yeni bulgu) Mobil onboarding `users`'a doğrudan yazıyor: sosyal linkler web kurallarıyla doğrulanmıyor, marka `tax_id` gönderiyor (beyaz liste düşürüyor) ve `is_onboarded` auth metadata'ya yazılıyor. Web onboarding'in sunucu koduna taşınmalı.
+
 ---
 
 ### 10.4 Notlar
@@ -822,7 +841,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | 11.6 | `InflistCard.tsx`, `getLists`, `InfluencerOffersFeed` bileşeni, `undismissInfluencer`, `undismissOffer`, `cancelApplication` |
 | 11.7 | `manuallyAwardBadges`, iki `updateDisplayedBadges` (influencer ve marka), brand settings re-export dosyaları |
 | 11.8 | `components/showcase/ProfileCard.tsx`, `VerificationPromoCard.tsx` |
-| 11.9 | `lib/gemini.ts → generateGeminiContent`, `@google/generative-ai`, `pg`, `xlsx`, `uuid` |
+| 11.9 | `lib/gemini.ts` (2026-10-10'da tamamen silindi), `@google/generative-ai`, `pg`, `xlsx`, `uuid` |
 | 11.10 | `checkIfBlocked` (kopya), `MessagesPage` içindeki kullanılmayan `ChatWindow` importu |
 | 11.11 | Kök dizindeki başıboş script ve notlar (8.7-S3), eski deploy dokümanları (8.8) |
 | 11.12 | ✅ 2026-10-09 taraması: kullanılmayan dosya yok; kullanılmayan dışa açık değerler (`manuallyAwardBadges`, `USER_ROLE_LABELS`, kategori etiket listeleri, `getCategoryKey`, `profileCompletionFields`), 80 kullanılmayan import/değişken (`tsc --noUnusedLocals` temiz), ölü `fetchRoomId`, `handleSubscribe` (influencer), rol filtresi durumu kaldırıldı |
@@ -838,7 +857,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo.
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı).
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).

@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-09, PR #46 birleştikten sonra. Tüm işler `main`'de ve Vercel'de canlı, açık PR yok.
+> Son güncelleme: 2026-10-10. `claude/remaining-decisions` dalı itildi (PR'ı kullanıcı açacak); öncesi `main`'de ve canlı.
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -16,7 +16,12 @@
   4. Push: her bildirim push olarak da gider (`lib/push.ts`, `/api/mobile/push-token`); metin e-postadaki sade metin.
   5. Sahte AI asistan kaldırıldı, mobil şifre sıfırlama (`/api/mobile/forgot-password`, token_hash bağlantısı), içerik üretici türü.
   6. DB sıkılaştırma: `social_accounts.verification_code` istemcilere kapalı, "avatars insert" kaldırıldı.
-- **Canlı SQL:** bekleyen yok. 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
+- **2026-10-10 kararlarıyla yapılanlar (`claude/remaining-decisions`):** okundu bilgisi `room_reads` tablosuna (5.3-S2, canlıda),
+  mobilde profil/vitrin/destek/geri bildirim/bildirim okundu yazımları web uçlarına (`/api/mobile/{profile,showcase,support,feedback,notifications}`),
+  marka sektörü → influencer kategorisi eşlemesi (3.5-S2, `lib/category-map.ts`), Gemini tamamen kaldırıldı (6.7-S1),
+  gönderisiz Instagram/TikTok hesabı doğrulanmıyor (3.13-N6). Yeni bulgular: 10.3-S18…S23, 5.3-S3, 6.7-S2.
+- **Canlı SQL:** bekleyen yok (`20261010000000_room_reads.sql` canlıya uygulandı ve doğrulandı). İsteğe bağlı temizlikler
+  haritada: 5.3-S3 (eski metadata anahtarları), 6.7-S1 (gemini satırı), 10.3-S21 (eski kategori etiketleri). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
 
 ## 2. Sıradaki işler
@@ -25,11 +30,9 @@
    FCM kimlik bilgisi. Bunlar olmadan cihaz push token alamaz; kod hazır. `npx expo install --check` ile paketler kurulmalı.
 2. **Uygulama adı kararı verildi (2026-10-10):** "Influmatch", paket kimliği `net.influmatch.app`; `mobile-app/app.json`'a yazıldı
    (slug `influmatch`). `eas init` bu ayarlardan sonra çalıştırılmalı.
-3. **Mobilde kalan küçük işler (istersen bak, karar gerektirmez):** bazı ekranlar `users` tablosuna doğrudan yazıyor
-   (beyaz liste tetikleyicisi korumalı: izin dışı kolonlar sessizce düşer, ör. MyProfile `portfolio_urls`); destek/geri bildirim
-   ve bildirim okundu işaretleme doğrudan tabloya. Güvenlik açığı değil; web ile tam aynı akış istenirse sunucu uçlarına taşınabilir.
+3. **Mobilde kalan:** onboarding hâlâ `users`'a doğrudan yazıyor (10.3-S23); web onboarding koduna taşınmalı.
 4. **8.7-S1:** rocketapi.io anahtarının panelden iptali kullanıcıda; iptal edilince ✅.
-5. **OAuth açılırsa:** 2.3-S2, 2.3-S3, 2.3-S4. **5.3-S2** (okundu bilgisi için `room_reads` tablosu) mesajlaşma tasarımıyla birlikte, acil değil.
+5. **OAuth (karar 2026-10-10): mağaza yayınından sonra** açılacak: 2.3-S2, 2.3-S3, 2.3-S4 ve 3.13 kod/OAuth ayrımı.
 6. **Takip panosu:** artifact başka hesapta; bu hesap (hello@socialartajans.com) erişemiyor. Erişimi olan oturum
    `scripts/tracker_sync.py` ile eşitlemeli. Kullanıcı panoyu bu hesapla paylaşırsa yerel oturum da yazabilir.
 7. **Kuyruğun en sonu:** bölüm 8 ("ne kaldı" sorulunca hatırlat).
@@ -42,7 +45,7 @@
 | Vergi levhası | Markalar için otomatik vergi levhası doğrulayıcı ilk öncelikti. Uygulandı: VKN/TCKN checksum, levha yerelde ayrıştırılıyor, admin inceleme ekranı var. **Dış yapay zekâ yok** (Gemini ücretsiz katmanı veriyi eğitimde kullanıyor; reddedildi). Otomatik onay **kapalı** (`TAX_AUTO_APPROVE`). |
 | Influencer/UGC doğrulama | Kayıt aşamasında hesabı doğrulatmak (bio kodu) zorunlu. Uygulandı. |
 | Mavi tik | Yeni kural: Spotlight × performans × güven eşiği (`lib/blue-tick-rules.ts`). Saatlik görev yeniden değerlendiriyor. |
-| Çoklu API anahtarı | Apify (ve anahtar sağlığı için Gemini) çoklu anahtar havuzu kuruldu. Biten anahtarın yerine otomatik olarak diğeri geçiyor. Takip ekranı `/admin/api-keys`. Her saat kontrol edilip sorun varsa admin'e özet e-posta gidiyor. |
+| Çoklu API anahtarı | Apify (ve anahtar sağlığı için Gemini; Gemini 10 Ekim'de kaldırıldı) çoklu anahtar havuzu kuruldu. Biten anahtarın yerine otomatik olarak diğeri geçiyor. Takip ekranı `/admin/api-keys`. Her saat kontrol edilip sorun varsa admin'e özet e-posta gidiyor. |
 | Resend | Vercel'e eklendi. Günlük 100 / aylık 3000 e-posta sınırı "riskli" kategorisinde (8.4-S1). Durumu admin panelinde izleniyor. `EMAIL_FROM` gönderici adresidir (ör. `Influmatch <dogrulama@influmatch.net>`). Resend'de influmatch.net alan adı doğrulanmış olmalı, yoksa e-postalar yalnızca hesap sahibine gider. Kayıt e-postaları gidiyor (kullanıcı onayladı). |
 | Kurumsal e-posta | Şirketler için sarı tik almak, şirket alan adıyla uyumlu bir e-postayı kodla doğrulamaya bağlı. Kayıt e-postası farklı olabilir. Uygulandı. |
 | Sistem haritası | Tüm sistem numaralı haritaya döküldü (`docs/SYSTEM_MAP.md`). Takip panosu artifact'ta (CLAUDE.md'de link). |
@@ -54,7 +57,7 @@
 | Bildirimler (5.4) | "Sayfaların yapısı değişirse yönlendirme uçları da değişir." Web düzenlemesi bitene kadar ertelendi. |
 | Inflist | Ayrı bir proje değil, favoriler sayfasındaki adlandırılmış listeler. **Favorilerle aynı sayfada** kalacak (yapıldı). Şimdilik ücretsiz; ileride Spotlight'a dahil edilecek (3.13-N5). |
 | Kodla doğrulayanlar (3.13) | OAuth yerine kodla doğrulayanların bazı verileri çekilemiyor; bu hesaplar dezavantajlı olmalı. Ücret ödemeyen markalar yalnızca kodla doğrulanmış hesaplara ulaşmalı ve tüm listeyi görmemeli. Sistem ihtiyaca göre belli oranda profil önermeli. **Tasarım/karar bekliyor**, kod yok. |
-| Gönderisi olmayan hesaplar | İleride doğrulamada kabul edilmeyecek (3.13-N6). Şimdilik kabul ediliyor. |
+| Gönderisi olmayan hesaplar | İleride doğrulamada kabul edilmeyecek (3.13-N6). 10 Ekim'de uygulandı. |
 | Drive yapısı | Görsel/dosya maliyeti için Drive benzeri depolama kurulacak (8.9-N1). Not alındı, iş başlamadı. |
 | `@testermobilapp` | Mobil testleri için tutulan marka hesabı; silinmeyecek. |
 | Mobil | Dondurma kararı (2026-10-07). Web bitince hatırlatılacak. PR #22'deki mobil düzeltmeler bir sonraki mobil sürümle çıkar. |
@@ -74,6 +77,13 @@
 | Ücretsiz marka kotası (9 Ekim) | Şimdilik açık; yalnızca sayfalama. |
 | Resend (9 Ekim) | Ücretsiz planda kal; doğrulama e-postaları öncelikli, %80 kotada bildirim e-postaları durur. |
 | Mobil (9 Ekim) | Bu kararlar uygulanınca başlanır. |
+| OAuth (10 Ekim) | Mobil uygulama mağazada yayınlandıktan **sonra** açılacak (2.3-S2/S3/S4, 3.13 kod/OAuth ayrımı). |
+| 5 Yıldız (10 Ekim) | Mağaza yayınından sonra. |
+| Okundu bilgisi (10 Ekim) | `room_reads` tablosuna taşındı; eski metadata anahtarlarının silinmesi sonra (5.3-S3). |
+| Mobil yazımlar (10 Ekim) | Profil, destek, geri bildirim, bildirim okundu web sunucu uçlarına taşındı. |
+| Kategori eşlemesi (10 Ekim) | Listeler değişmez; marka sektörü → influencer kategorileri eşlemesi (`lib/category-map.ts`). |
+| Gemini (10 Ekim) | Tamamen kaldırıldı (havuz yalnızca Apify). |
+| Gönderisiz hesaplar (10 Ekim) | Yeni doğrulamada reddediliyor (3.13-N6); doğrulanmış hesaplar kalır. |
 | Çevrimiçi / son görülme (8 Ekim) | Admin panelinde her kullanıcı için. Uygulandı (dakikalık sinyal + son giriş zamanı). |
 
 ## 4. Karar bekleyenler
@@ -133,10 +143,10 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 | ID | Seviye | Durum |
 |---|---|---|
 | 8.7-S1 | KRİTİK | Dosya silindi; rocketapi.io anahtarının iptali kullanıcıda. |
-| 2.3-S2, 2.3-S3, 2.3-S4 | YÜKSEK/ORTA/DÜŞÜK | OAuth kapalı; açılırsa yapılacak. |
-| 5.3-S2 | ORTA | Okundu bilgisi `room_reads` tablosuna; mesajlaşma tasarımıyla birlikte. |
-| 4.3-S3 | DÜŞÜK | Ajans Spotlight sayfası notu (haritaya bak). |
-| 2.9-S1, 3.5-S2, 9.1-S2, 9.1-S3 | — | 2026-10-10'da yapıldı (bölüm 8). 3.5-S2'de kategori eşleşmesi açık. |
+| 2.3-S2, 2.3-S3, 2.3-S4 | YÜKSEK/ORTA/DÜŞÜK | OAuth kapalı; mağaza yayınından sonra açılacak. |
+| 10.3-S23 | ORTA | Mobil onboarding doğrudan yazıyor; web koduna taşınmalı. |
+| 5.3-S3, 6.7-S2 | DÜŞÜK | Eski okundu metadata anahtarları; `moveApiKey` transaction'sız. |
+| 2.9-S1, 3.5-S2, 5.3-S2, 6.7-S1, 3.13-N6, 9.1-S2, 9.1-S3 | — | 2026-10-10'da yapıldı. |
 
 ## 7. Teknik notlar (tekrar keşfetmemek için)
 
@@ -148,16 +158,19 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   - Yayındaki tablolar: messages, offers, advert_applications, rooms, dismissed_offers, notifications, support_tickets, message_reports, user_badges.
   - `users` bilerek dışarıda (gizli kolonlar var).
 - **`users` gizli kolonları:** tax_id gibi kolonlar istemci rolüne okunamaz. Bu yüzden onboarding upsert yerine ayrı update/insert yapıyor. Gizli alanları sunucu, admin istemcisiyle yazar.
-- **Okunmamış mesaj sayısı:** `components/dashboard/useUnreadMessageCount.ts` içinde tek kanaldan izleniyor. Okundu bilgisi kullanıcı metadata'sında (5.3).
+- **Okunmamış mesaj sayısı:** `components/dashboard/useUnreadMessageCount.ts` içinde tek kanaldan izleniyor. Okundu bilgisi `room_reads`
+  tablosunda (`lib/room-reads.ts`; `markRoomsRead` tarayıcıda `influmatch:room-read` olayı yayınlar, sayaç onunla yenilenir).
 - **Dış çağrılar:** `lib/api-keys.ts` `fetchExternal` 50 sn zaman aşımıyla çalışıyor. Apify çağrıları `?timeout=45`, Resend 15 sn.
 - **Hesap silme:** `lib/account-deletion.ts` `deleteAccountCompletely` storage dosyalarını da siliyor. Kullanıcıdan şifre tekrar isteniyor.
 - **Avatar/logo adresi:** sunucuda `lib/avatar-url.ts` ile doğrulanıyor. Yalnızca `avatars/{uid}/` altındaki ya da zaten kayıtlı olan adres kabul ediliyor.
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
+  Aynı desende: `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`.
+  Mobil kategori listesi `mobile-app/constants/categories.js` web `utils/categories.ts` ile aynı tutulmalı.
 - **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
   kolonları geçirir (rol, onay, spotlight vb. sessizce düşer); onaylı markanın yasal bilgisi değişirse onay düşer.
-- **Canlıya DDL:** bu ortamda `apply_migration` izin sisteminde engelli; SQL `supabase/manual/` altına yazılır, kullanıcı SQL Editor'de
+- **Canlıya DDL:** 2026-10-10'da `apply_migration` zaman aşımına uğradı, `execute_sql` ile parça parça uygulandı. Daha önce `apply_migration` izin sisteminde engelliydi; SQL `supabase/manual/` altına yazılır, kullanıcı SQL Editor'de
   çalıştırır. SQL Editor uyumu: fonksiyonlarda DECLARE yok, yorumlarda kesme işareti ve soru işareti yok.
 - **git push:** düz push sessizce asılı kalabiliyor; `GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git -c credential.helper=
   -c "credential.helper=!gh auth git-credential" push ...`, sonra `git ls-remote` ile doğrula. Repoda GitHub auto-merge kapalı;
@@ -173,6 +186,6 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   kaldırıldı (4.3-S3).
 - Bekleyen: KVKK / kullanıcı sözleşmesi / açık rıza metinlerinin hukuki içeriği **avukattan gelecek**; gelince
   `app/legal/page.tsx`'e yerleştirilir (Claude kendisi hukuki metin yazmaz).
-- 5 Yıldız rozeti (puanlama sistemi) ileriki güncellemede.
+- 5 Yıldız rozeti (puanlama sistemi) mağaza yayınından sonra (karar 2026-10-10).
 - Ertelenenler: Drive yapısı (8.9-N1, "sonra"), kodla doğrulayanlara sınır (3.13-N2, OAuth açılınca), ücretsiz marka kotası
   (3.13-N3/N4, kullanıcı sayısı büyüyünce).

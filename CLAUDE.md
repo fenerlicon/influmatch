@@ -53,7 +53,11 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
      hukuki içerik avukat yazınca değişir, Claude yasal metin yazmaz. Ajans paketi sayfası yok. Kodla doğrulayanlara
      sınır OAuth açılınca konuşulur (3.13-N2). Drive yapısı (8.9-N1) sonra. Mobil uygulama adı "Influmatch",
      paket kimliği `net.influmatch.app` (iOS ve Android).
-   - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi); avukattan gelecek yasal metinler.
+   - **2026-10-10 (2. tur):** OAuth (2.3-S2/S3/S4, 3.13 kod/OAuth ayrımı) mobil uygulamanın **mağaza yayınından sonra**
+     açılır. 5 Yıldız rozeti de yayından sonra. Okundu bilgisi `room_reads` tablosunda (5.3-S2), mobil kritik yazımlar
+     web uçlarında, marka sektörü → influencer kategorisi eşlemesi `lib/category-map.ts` (3.5-S2), gönderisiz hesap
+     doğrulanmaz (3.13-N6), Gemini tamamen kaldırıldı (6.7-S1).
+   - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi, yayından sonra); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`
    içine gerçek `CRON_SECRET` yazılmış haliyle **commit etme** (repodaki hali `BURAYA_CRON_SECRET` yer tutucusuyla).
