@@ -21,7 +21,6 @@ import {
   type KeyCheckResult,
 } from '@/lib/api-keys'
 import { checkApifyKey } from '@/lib/apify'
-import { checkGeminiKey } from '@/lib/gemini'
 import { adminPanelUrl, sendAdminAlertEmail, type EmailResult } from '@/lib/email'
 import { getResendStatus, type ResendStatus } from '@/lib/resend-status'
 
@@ -29,7 +28,7 @@ export const LAST_RUN_STATE_KEY = 'api_key_health_last_run'
 const ALERT_STATE_KEY = 'api_key_health_alert'
 const REMINDER_INTERVAL_MS = 24 * 60 * 60 * 1000
 
-/** Havuzu boş kalınca sistemin çalışmadığı servisler. Gemini şu an hiçbir modülde kullanılmıyor. */
+/** Havuzu boş kalınca sistemin çalışmadığı servisler. */
 const REQUIRED_PROVIDERS: ApiProvider[] = ['apify']
 const PROBLEM_STATUSES = new Set(['low_credit', 'exhausted', 'invalid', 'error'])
 
@@ -56,26 +55,18 @@ const formatDate = (value: string | Date) =>
 
 /** Tek bir anahtarı kontrol eder ve sonucu kaydeder. */
 export async function checkAndStoreKey(admin: SupabaseClient, key: ApiKeyRow): Promise<ApiKeyRow> {
-  const result: KeyCheckResult = key.provider === 'apify' ? await checkApifyKey(key.secret) : await checkGeminiKey(key.secret)
+  // Havuzda yalnızca Apify var; tabloda kalmış eski sağlayıcı satırlarına dokunulmaz.
+  if (!API_PROVIDERS.includes(key.provider)) return key
+  const result: KeyCheckResult = await checkApifyKey(key.secret)
   const now = new Date().toISOString()
 
-  // Gemini kotası anahtar kontrolünde görünmez: süren bir kota/hız beklemesi, anahtar geçerli diye silinmez.
-  const keepCooldown =
-    key.provider === 'gemini' &&
-    result.status === 'active' &&
-    (key.status === 'exhausted' || key.status === 'rate_limited') &&
-    !!key.cooldown_until &&
-    new Date(key.cooldown_until).getTime() > Date.now()
-
-  const update: Record<string, unknown> = keepCooldown
-    ? { last_checked_at: now, updated_at: now }
-    : {
-        status: result.status,
-        status_message: result.message,
-        cooldown_until: result.cooldownUntil?.toISOString() ?? null,
-        last_checked_at: now,
-        updated_at: now,
-      }
+  const update: Record<string, unknown> = {
+    status: result.status,
+    status_message: result.message,
+    cooldown_until: result.cooldownUntil?.toISOString() ?? null,
+    last_checked_at: now,
+    updated_at: now,
+  }
   if (result.creditUsedUsd !== undefined) {
     update.credit_used_usd = result.creditUsedUsd
     update.credit_limit_usd = result.creditLimitUsd

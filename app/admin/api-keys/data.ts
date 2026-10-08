@@ -5,7 +5,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getEnvApiKey, getSystemState, listApiKeys, maskSecret, type ApiKeyRow, type ApiProvider } from '@/lib/api-keys'
 import { LAST_RUN_STATE_KEY } from '@/lib/api-key-health'
 import { isAlertEmailConfigured, resolveAlertRecipients } from '@/lib/email'
-import { getGeminiModel } from '@/lib/gemini'
 import { getResendStatus, type ResendStatus } from '@/lib/resend-status'
 
 export type ApiKeyView = Omit<ApiKeyRow, 'secret'> & { masked: string }
@@ -15,7 +14,6 @@ export interface ApiKeyDashboard {
   lastRun: { ran_at: string; has_problems: boolean; email_sent: boolean; email_error: string | null } | null
   email: { configured: boolean; recipients: string[] }
   envKeys: Record<ApiProvider, boolean>
-  geminiModel: string
   resend: ResendStatus
   loadError: string | null
 }
@@ -37,8 +35,7 @@ export async function loadApiKeyDashboard(admin: SupabaseClient): Promise<ApiKey
     keys,
     lastRun: loadError ? null : await getSystemState<ApiKeyDashboard['lastRun'] & object>(admin, LAST_RUN_STATE_KEY),
     email: { configured: isAlertEmailConfigured(), recipients: await resolveAlertRecipients() },
-    envKeys: { apify: !!getEnvApiKey('apify'), gemini: !!getEnvApiKey('gemini') },
-    geminiModel: getGeminiModel(),
+    envKeys: { apify: !!getEnvApiKey('apify') },
     resend: await getResendStatus(loadError ? null : admin),
     loadError,
   }

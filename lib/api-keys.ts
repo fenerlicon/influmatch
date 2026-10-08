@@ -1,11 +1,13 @@
-// Harici servis anahtar havuzu (Apify, Gemini).
+// Harici servis anahtar havuzu (Apify).
+// Gemini sağlayıcısı kaldırıldı (6.7-S1): hiçbir modül kullanmıyordu ve kişisel veri dış yapay zekâya gönderilmez.
+// Tabloda kalmış eski gemini satırları listelenmez ve kullanılmaz.
 //
 // Anahtarlar admin panelinden (/admin/api-keys) public.api_keys tablosuna eklenir.
 // Her çağrı sıradaki kullanılabilir anahtarla yapılır; anahtar kaynaklı bir hata
 // (geçersiz anahtar, kredi/kota bitti, hız limiti) alınırsa anahtar işaretlenir ve
 // sıradaki anahtarla tekrar denenir. Hiçbir anahtar kalmazsa admin e-postayla uyarılır.
 //
-// Ortam değişkenindeki eski anahtar (APIFY_API_TOKEN / GEMINI_API_KEY), havuz boşken
+// Ortam değişkenindeki eski anahtar (APIFY_API_TOKEN), havuz boşken
 // bir kez havuza aktarılır. Tablo henüz yoksa (migration çalışmadıysa) doğrudan kullanılır.
 //
 // BU DOSYA KASITLI OLARAK 'use server' DEĞİLDİR: istemciden çağrılamamalıdır.
@@ -14,14 +16,13 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { sendAdminAlertEmail, adminPanelUrl } from '@/lib/email'
 
-export type ApiProvider = 'apify' | 'gemini'
+export type ApiProvider = 'apify'
 export type ApiKeyStatus = 'unknown' | 'active' | 'low_credit' | 'exhausted' | 'rate_limited' | 'invalid' | 'error'
 
-export const API_PROVIDERS: ApiProvider[] = ['apify', 'gemini']
+export const API_PROVIDERS: ApiProvider[] = ['apify']
 
 export const PROVIDER_LABELS: Record<ApiProvider, string> = {
   apify: 'Apify',
-  gemini: 'Gemini',
 }
 
 export const STATUS_LABELS: Record<ApiKeyStatus, string> = {
@@ -36,7 +37,6 @@ export const STATUS_LABELS: Record<ApiKeyStatus, string> = {
 
 const ENV_KEY_NAMES: Record<ApiProvider, string> = {
   apify: 'APIFY_API_TOKEN',
-  gemini: 'GEMINI_API_KEY',
 }
 
 const POOL_DEPLETED_ALERT_INTERVAL_MS = 60 * 60 * 1000
@@ -190,7 +190,7 @@ export async function importEnvKeyOnce(admin: SupabaseClient, provider: ApiProvi
 
 export async function listApiKeys(admin: SupabaseClient, provider?: ApiProvider): Promise<ApiKeyRow[]> {
   let query = admin.from('api_keys').select('*').order('priority', { ascending: true }).order('created_at', { ascending: true })
-  if (provider) query = query.eq('provider', provider)
+  query = provider ? query.eq('provider', provider) : query.in('provider', API_PROVIDERS)
   const { data, error } = await query
   if (error) throw new Error(`API anahtarları okunamadı: ${error.message}`)
   return (data ?? []) as ApiKeyRow[]

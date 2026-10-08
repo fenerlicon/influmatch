@@ -22,7 +22,7 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
 1. **Vergi belgeleri ve kişisel veriler hiçbir dış yapay zekâya / üçüncü tarafa gönderilmez.** Özellikle Google
    Gemini ücretsiz katmanı yasak ("eğitim amacıyla veriyor ve dönütleri inceliyorlar"). Vergi levhası
    yerelde doğrulanır (`lib/tax-verification.ts`); otomatik onay `TAX_AUTO_APPROVE` ile ve varsayılan **kapalı**.
-   `lib/gemini.ts`'te yalnızca anahtar sağlık kontrolü var, içerik üretme yok — geri ekleme.
+   Gemini 2026-10-10'da tamamen kaldırıldı (anahtar havuzunda yalnızca Apify var, 6.7-S1); geri ekleme.
 2. **Giriş yapmadan profiller görünmez.** `/profile/*` korumalı, site haritasında yok, robots engelliyor. Değiştirme.
 3. **Mobil (2026-10-09 kararı):** dondurma kalktı. Uygulama **test aşamasında** (mağazada değil, gerçek kullanıcı yok);
    hedef **web ile tam uyum**: web'in kuralları ve özellikleri (zorunlu hesap doğrulama, vergi levhası + kurumsal e-posta,
