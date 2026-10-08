@@ -4,7 +4,7 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { AlertCircle, CheckCircle, Clock, FileUp, Loader2, XCircle } from 'lucide-react'
-import { submitTaxCertificate } from '@/app/dashboard/brand/profile/tax-actions'
+import { requestTaxUploadUrl, submitTaxCertificate } from '@/app/dashboard/brand/profile/tax-actions'
 
 export interface TaxVerificationSummary {
   status: 'processing' | 'auto_approved' | 'needs_review' | 'approved' | 'rejected'
@@ -52,10 +52,16 @@ export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit,
     setIsWorking(true)
     try {
       const extension = file.type === 'application/pdf' ? 'pdf' : file.type.split('/')[1].replace('jpeg', 'jpg')
-      const path = `${userId}/${Date.now()}.${extension}`
+      // Yükleme yalnızca sunucunun verdiği imzalı adresle (günlük sınır orada kontrol edilir).
+      const upload = await requestTaxUploadUrl(extension)
+      if (!upload.success) {
+        setError(upload.error)
+        return
+      }
+      const path = upload.path
       const { error: uploadError } = await supabase.storage
         .from('tax-documents')
-        .upload(path, file, { contentType: file.type, upsert: false })
+        .uploadToSignedUrl(path, upload.token, file, { contentType: file.type })
       if (uploadError) {
         setError('Belge yüklenemedi. Lütfen tekrar deneyin.')
         return

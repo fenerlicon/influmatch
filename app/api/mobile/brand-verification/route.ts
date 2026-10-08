@@ -1,6 +1,6 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
-import { loadBrandVerificationState, saveBrandIdentityAs, submitTaxCertificateAs } from '@/lib/brand-verification'
+import { createTaxUploadUrlAs, loadBrandVerificationState, saveBrandIdentityAs, submitTaxCertificateAs } from '@/lib/brand-verification'
 import { saveCorporateEmail, sendCorporateEmailCode, verifyCorporateEmailCode } from '@/lib/corporate-email-verification'
 
 export const dynamic = 'force-dynamic'
@@ -22,7 +22,8 @@ export async function GET(request: Request) {
 /**
  * Gövde: { action, ... }
  * - identity: { companyLegalName, taxId, taxOffice, taxOfficeCity }
- * - tax: { filePath }  (dosya önce tax-documents/{uid}/ altına yüklenir)
+ * - upload-url: { extension }  (pdf/jpg/png/webp; günlük sınır kontrolünden sonra imzalı yükleme adresi: { path, token })
+ * - tax: { filePath }  (dosya önce imzalı adresle tax-documents/{uid}/ altına yüklenir)
  * - email: { email }   (kaydeder ve kod gönderir)
  * - resend: {}
  * - confirm: { code }
@@ -42,6 +43,9 @@ export async function POST(request: Request) {
     switch (body.action) {
       case 'identity':
         result = await saveBrandIdentityAs(ctx.supabase, userId, body)
+        break
+      case 'upload-url':
+        result = await createTaxUploadUrlAs(admin, userId, String(body.extension ?? ''))
         break
       case 'tax':
         result = await submitTaxCertificateAs(admin, userId, body.filePath)
