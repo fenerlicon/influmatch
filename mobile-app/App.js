@@ -3,7 +3,7 @@ import { View, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, ShoppingBag, Send, MessageCircle, User, Briefcase, Search, Instagram, Music, Sparkles } from 'lucide-react-native';
+import { Home, ShoppingBag, Send, MessageCircle, User, Briefcase, Search, Mail } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from './lib/supabase';
 
@@ -23,7 +23,6 @@ const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreCl
 import DashboardScreen from './screens/DashboardScreen';
 import DiscoverScreen from './screens/influencer/DiscoverScreen';
 import ProposalsScreen from './screens/influencer/ProposalsScreen';
-import MessagesScreen from './screens/influencer/MessagesScreen';
 import ProfileScreen from './screens/influencer/ProfileScreen';
 import SpotlightScreen from './screens/influencer/SpotlightScreen';
 import BadgesScreen from './screens/influencer/BadgesScreen';
@@ -35,12 +34,13 @@ import InfluencerDetailScreen from './screens/influencer/InfluencerDetailScreen'
 
 // ─── Brand Screens ────────────────────────────────────────────────────────────
 import BrandDashboardScreen from './screens/brand/BrandDashboardScreen';
-import BrandMessagesScreen from './screens/brand/BrandMessagesScreen';
 import BrandAdvertsScreen from './screens/brand/BrandAdvertsScreen';
 import BrandProfileScreen from './screens/brand/BrandProfileScreen';
 import BrandVerificationScreen from './screens/brand/BrandVerificationScreen';
 
 // ─── Shared Screens ───────────────────────────────────────────────────────────
+import MessagesScreen from './screens/MessagesScreen';
+import OffersScreen from './screens/OffersScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import FeedbackScreen from './screens/FeedbackScreen';
 import AiAssistantScreen from './screens/AiAssistantScreen';
@@ -121,6 +121,11 @@ function InfluencerTabs() {
         options={{ tabBarIcon: ({ color, size }) => <Send color={color} size={size} /> }}
       />
       <Tab.Screen
+        name="Teklifler"
+        component={OffersScreen}
+        options={{ tabBarIcon: ({ color, size }) => <Mail color={color} size={size} /> }}
+      />
+      <Tab.Screen
         name="Mesajlar"
         component={MessagesScreen}
         options={{ tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} /> }}
@@ -157,8 +162,13 @@ function BrandTabs() {
         }}
       />
       <Tab.Screen
+        name="Teklifler"
+        component={OffersScreen}
+        options={{ tabBarIcon: ({ color, size }) => <Mail color={color} size={size} /> }}
+      />
+      <Tab.Screen
         name="Mesajlar"
-        component={BrandMessagesScreen}
+        component={MessagesScreen}
         options={{ tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} /> }}
       />
       <Tab.Screen

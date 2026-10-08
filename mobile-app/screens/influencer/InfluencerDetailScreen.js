@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Dimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, BadgeCheck, MapPin, TrendingUp, Zap, Briefcase, Star, Award, Instagram, Music, Sparkles, Users, Heart, MessageCircle, Activity } from 'lucide-react-native';
-import { Svg, Path } from 'react-native-svg';
+import { ChevronLeft, BadgeCheck, MapPin, TrendingUp, Zap, Award, Instagram, Music, Users, Heart, MessageCircle, Activity, X } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
-import { getThumbnailUrl, getLargeUrl } from '../../utils/image';
+import { getThumbnailUrl } from '../../utils/image';
+import { apiRequest } from '../../lib/api';
+import { influencerBadges } from '../../constants/badges';
 
-const { width } = Dimensions.get('window');
-
-const Crown = ({ color, size }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7Z" />
-        <Path d="M12 17H12" />
-    </Svg>
-);
+const BADGES_BY_ID = Object.fromEntries(influencerBadges.map((b) => [b.id, b]));
 
 const AchievementCard = ({ title, description, color = '#fbbf24', icon: Icon = Award }) => (
     <View className="bg-white/5 rounded-[24px] p-5 mb-4 border border-white/10 flex-row items-center justify-between">
@@ -45,22 +39,14 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     const [currentUserRole, setCurrentUserRole] = useState(null);
     const [selectedPlatform, setSelectedPlatform] = useState('instagram');
 
-    const resolveAvatar = (url) => {
-        if (!url) return null;
-        if (url.startsWith('http')) return url;
-        const cleanPath = url.replace('influencer-avatars/', '');
-        return `https://aiftdpagcnwqzzemtkwt.supabase.co/storage/v1/object/public/influencer-avatars/${cleanPath}`;
-    };
+    // Avatar adresi tam URL olarak saklanır (avatars kovası).
+    const resolveAvatar = (url) => (url && url.startsWith('http') ? url : null);
 
-    const badgeMap = {
-        'verified': { title: 'Onaylı Hesap', desc: 'Kimliği doğrulanmış influencer hesabı.', color: '#3b82f6', icon: BadgeCheck },
-        'verified_account': { title: 'Onaylı Hesap', desc: 'Kimliği doğrulanmış influencer hesabı.', color: '#3b82f6', icon: BadgeCheck },
-        'high_engagement': { title: 'Yüksek Etkileşim', desc: 'Kitle bağları oldukça güçlüdür.', color: '#10b981', icon: Zap },
-        'fast_growth': { title: 'Hızlı Büyüme', desc: 'Takipçi ivmesi hızla yükselmektedir.', color: '#f59e0b', icon: TrendingUp },
-        'premium': { title: 'Kurucu Üye', desc: 'Platformun ilk üyelerinden.', color: '#fbbf24', icon: Crown },
-        'top_creator': { title: 'En İyi Kreatör', desc: 'Üst düzey içerik kalitesine sahiptir.', color: '#ec4899', icon: Star },
-        'elite': { title: 'Elite Üye', desc: 'En seçkin kitle üyelerimizden biri.', color: '#a855f7', icon: Award }
-    };
+    // Teklif formu (yalnızca onaylı markalar; kurallar sunucuda, lib/offers.ts)
+    const [offerVisible, setOfferVisible] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [existingRoomId, setExistingRoomId] = useState(null);
+    const [form, setForm] = useState({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
 
     useEffect(() => {
         const checkRole = async () => {
@@ -68,26 +54,44 @@ export default function InfluencerDetailScreen({ navigation, route }) {
             if (user) {
                 const { data } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
                 setCurrentUserRole(data?.role);
+                if (data?.role === 'brand') {
+                    // Bu influencer ile teklif veya başvuru üzerinden açılmış bir sohbet varsa gösterilir.
+                    const { data: rooms } = await supabase.from('rooms').select('id').eq('brand_id', user.id).eq('influencer_id', influencer.id).limit(1);
+                    setExistingRoomId(rooms?.[0]?.id ?? null);
+                }
             }
         };
         checkRole();
     }, []);
 
-    const startConversation = useCallback(async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return Alert.alert('Hata', 'İletişime geçmek için giriş yapmalısınız.');
-            let { data: existingRoom } = await supabase.from('rooms').select('id').eq('brand_id', user.id).eq('influencer_id', influencer.id).maybeSingle();
-            if (!existingRoom) {
-                const { data: newRoom, error } = await supabase.from('rooms').insert({ brand_id: user.id, influencer_id: influencer.id }).select('id').single();
-                if (error) throw error;
-                existingRoom = newRoom;
-            }
-            navigation.navigate('Mesajlar', { openRoomId: existingRoom.id, partnerName: influencer.full_name || influencer.username, partnerAvatar: influencer.avatar_url });
-        } catch (e) {
-            Alert.alert('Hata', 'Mesajlaşma başlatılamadı');
+    const openChat = useCallback(() => {
+        if (!existingRoomId) return;
+        navigation.navigate('BrandDashboard', {
+            screen: 'Mesajlar',
+            params: { openRoomId: existingRoomId, partnerName: influencer.full_name || influencer.username, partnerAvatar: influencer.avatar_url },
+        });
+    }, [navigation, influencer, existingRoomId]);
+
+    // Sohbet yalnızca teklif veya başvuru üzerinden açılır (web ile aynı kural); burada teklif gönderilir.
+    const sendOffer = async () => {
+        if (!form.campaignName.trim()) {
+            Alert.alert('Eksik bilgi', 'Kampanya adını yazın.');
+            return;
         }
-    }, [navigation, influencer]);
+        setSending(true);
+        const result = await apiRequest('offers', { method: 'POST', body: { receiverId: influencer.id, ...form } });
+        setSending(false);
+        if (result.error) {
+            Alert.alert('Teklif gönderilemedi', result.error);
+            return;
+        }
+        setOfferVisible(false);
+        setForm({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
+        Alert.alert('Teklif gönderildi', 'Influencer yanıt verdiğinde bildirim alacaksınız.', [
+            { text: 'Tamam' },
+            { text: 'Tekliflerim', onPress: () => navigation.navigate('BrandDashboard', { screen: 'Teklifler' }) },
+        ]);
+    };
 
     const formatFollowers = (count) => {
         if (!count) return '-';
@@ -139,7 +143,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                                 <View className="flex-row items-center gap-2 mb-1">
                                     <Text className="text-[8px] font-black text-amber-500 uppercase tracking-[2px]">INFLUENCER</Text>
                                     <View className="px-2 py-0.5 bg-white/5 rounded-md border border-white/10">
-                                        <Text className="text-white/40 text-[7px] font-black uppercase text-center">{influencer.category || 'Yaşam Tarzı'}</Text>
+                                        <Text className="text-white/40 text-[7px] font-black uppercase text-center">{influencer.category || '-'}</Text>
                                     </View>
                                 </View>
                                 <View className="flex-row items-center gap-1.5 mb-1">
@@ -154,12 +158,14 @@ export default function InfluencerDetailScreen({ navigation, route }) {
 
                         <View className="mt-6 pt-6 border-t border-white/5">
                             <Text className="text-white/50 text-[11px] leading-5 font-medium mb-5">
-                                {influencer.bio || "İşbirlikleri ve profesyonel içerik üretimi için hazır."}
+                                {influencer.bio || ''}
                             </Text>
-                            <View className="flex-row items-center gap-2 self-start bg-white/5 px-4 py-1.5 rounded-xl border border-white/10 justify-center">
-                                <MapPin color="#fbbf24" size={12} fill="#fbbf2420" />
-                                <Text className="text-white/80 text-[10px] font-black text-center uppercase">{influencer.city || 'ANKARA'}</Text>
-                            </View>
+                            {influencer.city ? (
+                                <View className="flex-row items-center gap-2 self-start bg-white/5 px-4 py-1.5 rounded-xl border border-white/10 justify-center">
+                                    <MapPin color="#fbbf24" size={12} fill="#fbbf2420" />
+                                    <Text className="text-white/80 text-[10px] font-black text-center uppercase">{influencer.city}</Text>
+                                </View>
+                            ) : null}
                         </View>
                     </View>
                 </View>
@@ -198,42 +204,14 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                 </View>
 
                 <View className="px-6 mb-12">
-                    <View className="bg-[#0f1118] rounded-[32px] p-6 border border-white/10 shadow-lg">
-                        <View className="flex-row items-center gap-3 mb-6">
-                            <View className="w-10 h-10 bg-amber-400 rounded-2xl items-center justify-center">
-                                <Zap color="black" size={20} fill="black" />
-                            </View>
-                            <View className="flex-row items-center gap-2">
-                                <Text className="text-white font-black text-lg tracking-tight">Detaylı Profil Analizi</Text>
-                                <View className="bg-amber-400/20 px-1.5 py-0.5 rounded-md">
-                                    <Text className="text-amber-400 text-[8px] font-black uppercase">BETA</Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        {[
-                            selectedPlatform === 'instagram' ? "Gelişmekte olan bir etkileşim grafiği var." : "TikTok verileri manuel inceleme aşamasında.",
-                            selectedPlatform === 'instagram' ? "Niş kitlelere hitap eden Micro Influencer." : "Kitle trendleri analiz ediliyor.",
-                            selectedPlatform === 'instagram' ? "Takipçileriyle güçlü bir iletişimi var." : "Video performansları inceleniyor."
-                        ].map((insight, idx) => (
-                            <View key={idx} className="bg-white/5 rounded-2xl p-4 flex-row items-center gap-3 border border-white/5 mb-3">
-                                <TrendingUp color="#fbbf24" size={14} />
-                                <Text className="text-white/80 text-[11px] font-semibold">{insight}</Text>
-                            </View>
-                        ))}
-                        
-                        <Text className="text-white/20 text-[8px] italic mt-2">* Bu analiz Influmatch Akıllı Algoritması tarafından oluşturulmuştur. Kesin yatırım tavsiyesi değildir.</Text>
-                    </View>
-                </View>
-
-                <View className="px-6 mb-12">
                     <Text className="text-white font-black text-xl tracking-tight uppercase mb-6">Rozetler</Text>
                     <View className="bg-[#0f1118] rounded-[32px] p-6 border border-white/10 shadow-lg">
                         <Text className="text-amber-500 text-[10px] font-black tracking-[4px] uppercase mb-6 text-center">ROZETLER</Text>
                         {influencer.displayed_badges && influencer.displayed_badges.length > 0 ? (
                             influencer.displayed_badges.map((bId) => {
-                                const badge = badgeMap[bId] || { title: bId, desc: 'Sistem ödül rozeti.', color: '#64748b', icon: Award };
-                                return <AchievementCard key={bId} title={badge.title} description={badge.desc} color={badge.color} icon={badge.icon} />;
+                                const badge = BADGES_BY_ID[bId];
+                                if (!badge) return null;
+                                return <AchievementCard key={bId} title={badge.name} description={badge.description} color={bId === 'verified-account' ? '#3b82f6' : '#fbbf24'} icon={badge.icon || Award} />;
                             })
                         ) : (
                             <Text className="text-white/20 text-xs italic text-center">Henüz rozet kazanılmamış.</Text>
@@ -245,18 +223,70 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                     <View className="px-6 mb-12">
                         <View className="bg-[#0f1118] rounded-[32px] p-6 border border-white/10 items-center justify-center shadow-lg">
                             <Text className="text-white font-black text-lg mb-1">İş Birliği Yap</Text>
-                            <Text className="text-white/40 text-[10px] mb-6">Bu influencer ile çalışmak için teklif gönder.</Text>
-                            <TouchableOpacity 
-                                onPress={startConversation}
+                            <Text className="text-white/40 text-[10px] mb-6 text-center">Bu influencer ile çalışmak için teklif gönderin. Sohbet, teklif yanıtlanınca açılır.</Text>
+                            <TouchableOpacity
+                                onPress={() => setOfferVisible(true)}
                                 activeOpacity={0.8}
-                                className="w-full h-15 bg-amber-400 rounded-2xl items-center justify-center flex-row shadow-2xl shadow-amber-400/50"
+                                className="w-full h-14 bg-amber-400 rounded-2xl items-center justify-center flex-row"
                             >
                                 <Text className="text-black font-black text-base tracking-tight">Teklif Gönder</Text>
                             </TouchableOpacity>
+                            {existingRoomId && (
+                                <TouchableOpacity onPress={openChat} className="w-full h-12 mt-3 rounded-2xl border border-white/15 items-center justify-center flex-row gap-2">
+                                    <MessageCircle color="white" size={16} />
+                                    <Text className="text-white font-bold">Sohbete git</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
                 )}
             </ScrollView>
+
+            <Modal animationType="slide" transparent visible={offerVisible} onRequestClose={() => setOfferVisible(false)}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-black/70 justify-end">
+                    <ScrollView className="bg-[#0F1014] rounded-t-[28px] border-t border-white/10" style={{ flexGrow: 0 }} contentContainerStyle={{ padding: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+                        <View className="flex-row items-center justify-between mb-5">
+                            <Text className="text-white text-xl font-bold">Teklif Gönder</Text>
+                            <TouchableOpacity onPress={() => setOfferVisible(false)} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
+                                <X color="white" size={18} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text className="text-gray-400 text-xs mb-2">Kampanya adı *</Text>
+                        <TextInput value={form.campaignName} onChangeText={(v) => setForm((f) => ({ ...f, campaignName: v }))} maxLength={120}
+                            placeholder="Örn. Sonbahar koleksiyonu" placeholderTextColor="#6b7280"
+                            className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-4" />
+
+                        <Text className="text-gray-400 text-xs mb-2">Kampanya türü</Text>
+                        <TextInput value={form.campaignType} onChangeText={(v) => setForm((f) => ({ ...f, campaignType: v }))} maxLength={60}
+                            placeholder="Örn. Reels, story, UGC video" placeholderTextColor="#6b7280"
+                            className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-4" />
+
+                        <View className="flex-row gap-2 mb-4">
+                            {[['cash', 'Nakit'], ['barter', 'Barter']].map(([value, label]) => (
+                                <TouchableOpacity key={value} onPress={() => setForm((f) => ({ ...f, paymentType: value }))}
+                                    className={`flex-1 h-11 rounded-2xl items-center justify-center border ${form.paymentType === value ? 'bg-amber-400 border-amber-400' : 'bg-white/5 border-white/10'}`}>
+                                    <Text className={`font-bold ${form.paymentType === value ? 'text-black' : 'text-gray-300'}`}>{label}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text className="text-gray-400 text-xs mb-2">{form.paymentType === 'barter' ? 'Ürün piyasa değeri (₺)' : 'Bütçe (₺)'}</Text>
+                        <TextInput value={form.budget} onChangeText={(v) => setForm((f) => ({ ...f, budget: v.replace(/[^0-9]/g, '') }))}
+                            keyboardType="number-pad" placeholder="0" placeholderTextColor="#6b7280"
+                            className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-4" />
+
+                        <Text className="text-gray-400 text-xs mb-2">Mesaj</Text>
+                        <TextInput value={form.message} onChangeText={(v) => setForm((f) => ({ ...f, message: v }))} maxLength={2000} multiline
+                            placeholder="Beklentilerinizi kısaca yazın" placeholderTextColor="#6b7280"
+                            className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white mb-6" style={{ minHeight: 90, textAlignVertical: 'top' }} />
+
+                        <TouchableOpacity onPress={sendOffer} disabled={sending} className="h-14 rounded-2xl bg-amber-400 items-center justify-center">
+                            {sending ? <ActivityIndicator color="black" /> : <Text className="text-black font-black text-base">Gönder</Text>}
+                        </TouchableOpacity>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </Modal>
         </View>
     );
 }

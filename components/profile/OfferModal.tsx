@@ -66,7 +66,7 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified 
           paymentType: formState.paymentType,
         })
 
-        if (result?.error) {
+        if ('error' in result) {
           setToast({ type: 'error', message: result.error })
           return
         }
