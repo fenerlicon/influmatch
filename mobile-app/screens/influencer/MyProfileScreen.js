@@ -7,15 +7,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-    ChevronLeft, Camera, Save, User, Briefcase,
-    Link as LinkIcon, Edit2, Instagram, CheckCircle2, X, Copy, AtSign, Info, Music
+    ChevronLeft, Camera, Save, User,
+    Edit2, Instagram, CheckCircle2, X, Copy, AtSign, Info, Music
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
-import { API_BASE } from '../../lib/api';
+import { API_BASE, apiRequest } from '../../lib/api';
+import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '../../constants/categories';
 
 // ─── Production API URL ───────────────────────────────────────────────────────
 
@@ -55,12 +56,11 @@ export default function MyProfileScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState({
-        full_name: '', username: '', bio: '', website: '', category: '', avatar_url: null,
+        full_name: '', username: '', bio: '', category: '', avatar_url: null,
     });
     const [igAccount, setIgAccount] = useState(null);
     const [tiktokAccount, setTiktokAccount] = useState(null);
     const [platformToVerify, setPlatformToVerify] = useState('instagram');
-    const [portfolio, setPortfolio] = useState([]);
 
     // Modal state
     const [modalVisible, setModalVisible] = useState(false);
@@ -77,7 +77,7 @@ export default function MyProfileScreen({ navigation }) {
             if (!user) return;
 
             const [{ data: prof }, { data: social }, { data: tiktok }] = await Promise.all([
-                supabase.from('users').select(`${OWN_PROFILE_COLUMNS}, portfolio_urls`).eq('id', user.id).maybeSingle(),
+                supabase.from('users').select(OWN_PROFILE_COLUMNS).eq('id', user.id).maybeSingle(),
                 supabase.from('social_accounts')
                     .select('username, follower_count, engagement_rate, is_verified')
                     .eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
@@ -91,12 +91,10 @@ export default function MyProfileScreen({ navigation }) {
                     full_name: prof.full_name || '',
                     username: prof.username || '',
                     bio: prof.bio || '',
-                    website: prof.social_links?.website || '',
                     social_links: prof.social_links || {},
                     category: prof.category || '',
                     avatar_url: prof.avatar_url || null,
                 });
-                setPortfolio(prof.portfolio_urls || []);
             }
             setIgAccount(social || null);
             setTiktokAccount(tiktok || null);
@@ -110,27 +108,17 @@ export default function MyProfileScreen({ navigation }) {
     useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
 
     // ── Save profile ───────────────────────────────────────────────────────────
+    // Kayıt web'in profil koduyla aynı sunucu ucundan (doğrulama, rozetler): /api/mobile/profile
     const handleSave = async () => {
         setSaving(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Kullanıcı bulunamadı.');
-            const { error } = await supabase.from('users').update({
-                full_name: profile.full_name.trim(),
-                username: profile.username.trim().toLowerCase(),
-                bio: profile.bio.trim(),
-                social_links: { ...(profile.social_links || {}), website: profile.website.trim() },
-                category: profile.category.trim(),
-                portfolio_urls: portfolio,
-            }).eq('id', user.id);
-            if (error) throw error;
-            Alert.alert('Başarılı ✓', 'Profil bilgilerin güncellendi.');
-            navigation.goBack();
-        } catch (e) {
-            Alert.alert('Hata', e.message || 'Kaydedilemedi.');
-        } finally {
-            setSaving(false);
-        }
+        const result = await apiRequest('profile', {
+            method: 'PATCH',
+            body: { fullName: profile.full_name, bio: profile.bio, category: profile.category },
+        });
+        setSaving(false);
+        if (!result.success) return Alert.alert('Hata', result.error || 'Kaydedilemedi.');
+        Alert.alert('Başarılı ✓', 'Profil bilgilerin güncellendi.');
+        navigation.goBack();
     };
 
     // ── Avatar upload ──────────────────────────────────────────────────────────
@@ -147,64 +135,18 @@ export default function MyProfileScreen({ navigation }) {
             const { data: { user } } = await supabase.auth.getUser();
             const blob = await (await fetch(result.assets[0].uri)).blob();
             const ext = result.assets[0].uri.split('.').pop() || 'jpg';
-            const path = `${user.id}/avatar.${ext}`;
+            const path = `${user.id}/avatar_${Date.now()}.${ext}`;
             const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: `image/${ext}` });
             if (upErr) throw upErr;
             const { data: urlD } = supabase.storage.from('avatars').getPublicUrl(path);
             const url = `${urlD.publicUrl}?t=${Date.now()}`;
-            await supabase.from('users').update({ avatar_url: url }).eq('id', user.id);
+            const result = await apiRequest('profile', { method: 'PATCH', body: { avatarUrl: url } });
+            if (!result.success) throw new Error(result.error);
             setProfile(p => ({ ...p, avatar_url: url }));
         } catch (e) {
             Alert.alert('Hata', e.message || 'Fotoğraf yüklenemedi.');
         } finally {
             setSaving(false);
-        }
-    };
-
-    // ── Portfolio Upload ──────────────────────────────────────────────────────
-    const addPortfolioImage = async () => {
-        if (portfolio.length >= 6) return Alert.alert('Limit', 'En fazla 6 adet portfolyo fotoğrafı ekleyebilirsin.');
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) return Alert.alert('İzin Gerekli', 'Galeri erişim izni gerekiyor.');
-        
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.7,
-        });
-        
-        if (result.canceled) return;
-        
-        try {
-            setSaving(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            const uri = result.assets[0].uri;
-            const blob = await (await fetch(uri)).blob();
-            const ext = uri.split('.').pop() || 'jpg';
-            const fileName = `portfolio_${Date.now()}.${ext}`;
-            const path = `${user.id}/portfolio/${fileName}`;
-            
-            const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, { contentType: `image/${ext}` });
-            if (upErr) throw upErr;
-            
-            const { data: urlD } = supabase.storage.from('avatars').getPublicUrl(path);
-            const newPortfolio = [...portfolio, urlD.publicUrl];
-            
-            setPortfolio(newPortfolio);
-        } catch (e) {
-            Alert.alert('Hata', 'Fotoğraf yüklenemedi.');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const removePortfolioImage = async (index) => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const newPortfolio = portfolio.filter((_, i) => i !== index);
-            await supabase.from('users').update({ portfolio_urls: newPortfolio }).eq('id', user.id);
-            setPortfolio(newPortfolio);
-        } catch (e) {
-            Alert.alert('Hata', 'Fotoğraf silinemedi.');
         }
     };
 
@@ -349,33 +291,21 @@ export default function MyProfileScreen({ navigation }) {
                         <Text className="text-gray-600 text-[10px] mt-1 ml-1 font-medium italic">Kullanıcı adı değiştirilemez.</Text>
                     </View>
 
-                    <Field label="Kategori" icon={Briefcase} value={profile.category} onChange={v => setProfile(p => ({ ...p, category: v }))} placeholder="Ör: Teknoloji, Moda, Spor..." />
-                    <Field label="Website" icon={LinkIcon} value={profile.website} onChange={v => setProfile(p => ({ ...p, website: v }))} placeholder="https://..." />
-                    <Field label="Biyografi" icon={Edit2} value={profile.bio} onChange={v => setProfile(p => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." multiline />
-
-                    {/* ── Portfolio ── */}
-                    <View className="mb-8">
-                        <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3 ml-1">PORTFOLYO (MAX 6)</Text>
-                        <View className="flex-row flex-wrap gap-2">
-                            {portfolio.map((url, i) => (
-                                <View key={i} className="w-[31%] aspect-square rounded-xl bg-white/5 overflow-hidden border border-white/10 relative">
-                                    <Image source={{ uri: url }} className="w-full h-full" />
-                                    <TouchableOpacity 
-                                        onPress={() => removePortfolioImage(i)}
-                                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full items-center justify-center">
-                                        <X color="white" size={12} />
+                    <View className="mb-5">
+                        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">KATEGORİ</Text>
+                        <View className="flex-row flex-wrap">
+                            {INFLUENCER_CATEGORY_KEYS.map((key) => {
+                                const selected = profile.category === key;
+                                return (
+                                    <TouchableOpacity key={key} onPress={() => setProfile(p => ({ ...p, category: key }))}
+                                        className={`mr-2 mb-2 px-3 py-2 rounded-full border ${selected ? 'bg-soft-gold border-soft-gold' : 'bg-white/5 border-white/10'}`}>
+                                        <Text className={`text-xs ${selected ? 'text-[#0B0F19] font-bold' : 'text-gray-400'}`}>{INFLUENCER_CATEGORIES[key]}</Text>
                                     </TouchableOpacity>
-                                </View>
-                            ))}
-                            {portfolio.length < 6 && (
-                                <TouchableOpacity 
-                                    onPress={addPortfolioImage}
-                                    className="w-[31%] aspect-square rounded-xl bg-white/5 border border-dashed border-white/20 items-center justify-center">
-                                    <Camera color="#4b5563" size={24} />
-                                </TouchableOpacity>
-                            )}
+                                );
+                            })}
                         </View>
                     </View>
+                    <Field label="Biyografi" icon={Edit2} value={profile.bio} onChange={v => setProfile(p => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." multiline />
 
                     {/* ── Social Connections ── */}
                     <View className="mb-8 mt-4">

@@ -6,30 +6,14 @@ import { Search, Sliders, BadgeCheck, Heart, MapPin, ChevronRight, ArrowLeft, X,
 import { LinearGradient } from 'expo-linear-gradient';
 import { Svg, Path } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
+import { influencerCategoryLabel } from '../../constants/categories';
 import { getThumbnailUrl } from '../../utils/image';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48 - 12) / 2;
 
-const getCategoryLabel = (cat) => {
-    if (!cat) return 'Genel';
-    const mapping = {
-        'lifestyle': 'Yaşam Tarzı',
-        'fashion': 'Moda & Tasarım',
-        'beauty': 'Güzellik & Bakım',
-        'tech': 'Teknoloji & Bilim',
-        'gaming': 'Oyun',
-        'food': 'Yemek & Mutfak',
-        'travel': 'Seyahat & Gezi',
-        'fitness': 'Spor & Sağlık',
-        'education': 'Eğitim',
-        'entertainment': 'Eğlence & Mizah',
-        'business': 'İş & Finans',
-        'featured': 'Öne Çıkanlar',
-        'Featured': 'Öne Çıkanlar'
-    };
-    return mapping[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1);
-};
+// Etiketler web listesinden (constants/categories.js).
+const getCategoryLabel = (cat) => (cat ? influencerCategoryLabel(cat) : 'Genel');
 
 const WavyBackground = () => (
     <View className="absolute top-[-50px] left-0 right-0 h-[200px] opacity-20">

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Ref
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
+import { apiRequest } from '../lib/api';
 import { OWN_PROFILE_COLUMNS } from '../lib/userColumns';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -248,7 +249,7 @@ export default function DashboardScreen({ navigation }) {
             // SECURITY: If rejected, force vitrin off
             if (profileData && profileData.verification_status === 'rejected' && profileData.is_showcase_visible) {
                 profileData.is_showcase_visible = false;
-                await supabase.from('users').update({ is_showcase_visible: false }).eq('id', user.id);
+                await apiRequest('showcase', { method: 'POST', body: { visible: false } });
             }
 
             setProfile(profileData);
@@ -298,13 +299,11 @@ export default function DashboardScreen({ navigation }) {
 
         setProfile(prev => ({ ...prev, is_showcase_visible: newState }));
 
-        const { error } = await supabase
-            .from('users')
-            .update({ is_showcase_visible: newState })
-            .eq('id', profile.id);
+        // Web ile aynı kurallar (onay + bağlı hesap) sunucuda: /api/mobile/showcase
+        const result = await apiRequest('showcase', { method: 'POST', body: { visible: newState } });
 
-        if (error) {
-            Alert.alert('Hata', 'Durum güncellenemedi: ' + error.message);
+        if (!result.success) {
+            Alert.alert('Hata', result.error || 'Durum güncellenemedi.');
             setProfile(prev => ({ ...prev, is_showcase_visible: !newState }));
         } else if (newState) {
             Alert.alert('Vitrin Modu Aktif! 🚀', 'Artık markalar tarafından keşfedilebilirsin.');
@@ -316,7 +315,8 @@ export default function DashboardScreen({ navigation }) {
     const handleNotificationPress = async () => {
         setNotificationModalVisible(true);
         if (unreadNotifCount > 0 && profile?.id) {
-            await supabase.from('notifications').update({ is_read: true }).eq('user_id', profile.id).eq('is_read', false);
+            const result = await apiRequest('notifications', { method: 'PATCH', body: {} });
+            if (!result.success) return;
             setUnreadNotifCount(0);
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         }

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, MessageSquare, Send } from 'lucide-react-native';
-import { supabase } from '../lib/supabase';
+import { apiRequest } from '../lib/api';
 
 const { width } = Dimensions.get('window');
 
@@ -19,38 +19,17 @@ export default function FeedbackScreen({ navigation }) {
             return;
         }
 
+        // Web ile aynı sunucu kodu (lib/feedback.ts): admin panelindeki geri bildirim listesine düşer.
         setLoading(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Kullanıcı bulunamadı');
-
-            // Web ile aynı tablo: admin panelindeki geri bildirim listesine düşer.
-            const { data: profile } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', user.id)
-                .maybeSingle();
-
-            const { error } = await supabase
-                .from('feedback_submissions')
-                .insert({
-                    user_id: user.id,
-                    role: profile?.role || 'influencer',
-                    description: rating ? `[Mobil · ${rating}/5] ${message.trim()}` : `[Mobil] ${message.trim()}`,
-                    status: 'pending',
-                });
-
-            if (error) throw error;
-
-            Alert.alert('Teşekkürler', 'Geri bildiriminiz başarıyla gönderildi.');
-            navigation.goBack();
-
-        } catch (error) {
-            console.log('Feedback error:', error);
-            Alert.alert('Hata', 'Geri bildirim gönderilemedi.');
-        } finally {
-            setLoading(false);
+        const description = rating ? `[Mobil · ${rating}/5] ${message.trim()}` : `[Mobil] ${message.trim()}`;
+        const result = await apiRequest('feedback', { method: 'POST', body: { description } });
+        setLoading(false);
+        if (!result.success) {
+            Alert.alert('Hata', result.error || 'Geri bildirim gönderilemedi. Lütfen tekrar deneyin.');
+            return;
         }
+        Alert.alert('Teşekkürler', 'Geri bildiriminiz başarıyla gönderildi.');
+        navigation.goBack();
     };
 
     return (

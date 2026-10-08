@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { getThumbnailUrl } from '../../utils/image';
 import { apiRequest } from '../../lib/api';
 import { influencerBadges } from '../../constants/badges';
+import { influencerCategoryLabel } from '../../constants/categories';
 
 const BADGES_BY_ID = Object.fromEntries(influencerBadges.map((b) => [b.id, b]));
 
@@ -143,7 +144,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                                 <View className="flex-row items-center gap-2 mb-1">
                                     <Text className="text-[8px] font-black text-amber-500 uppercase tracking-[2px]">INFLUENCER</Text>
                                     <View className="px-2 py-0.5 bg-white/5 rounded-md border border-white/10">
-                                        <Text className="text-white/40 text-[7px] font-black uppercase text-center">{influencer.category || '-'}</Text>
+                                        <Text className="text-white/40 text-[7px] font-black uppercase text-center">{influencerCategoryLabel(influencer.category) || '-'}</Text>
                                     </View>
                                 </View>
                                 <View className="flex-row items-center gap-1.5 mb-1">
