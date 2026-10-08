@@ -35,9 +35,18 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
 5. **Test:** kullanıcı her değişikliği tek tek test etmek istemiyor ("zırt pırt test etmektense değiştireceğimiz
    her şeyi değiştirelim"). Liste bitince çok hesapla toplu test yapacak. Değişiklik başına test isteme;
    kendin typecheck + lint + `next build` ile doğrula.
-6. **Bekleyen ürün kararları** — kullanıcı "biraz daha beklesin" dedi, **kendi başına uygulama**: bildirimler (5.4),
-   doğrudan mesaj (5.1-S1), ücretsiz marka kotası (3.13), ortak logoları (9.1-S2), eski sarı tikler (3.11-S1),
-   teklif "Beklet" (2.13-S1), "AI analiz" metni (2.9-S1). Ayrıntı `docs/HANDOFF.md`.
+6. **Ürün kararları (2026-10-09, kullanıcı seçti):**
+   - Bildirimler (5.4): site içi bildirim + önemli olaylarda e-posta (yeni teklif, teklif yanıtı, başvuru sonucu,
+     destek yanıtı); yeni mesaj e-postası en fazla saatte bir özet. Kullanıcının `email_notifications` tercihleri uygulanır.
+   - Doğrudan mesaj (5.1-S1): **açılmayacak.** Sohbet yalnızca teklif veya başvuru üzerinden; teklifsiz sohbet yolları kaldırılır.
+   - Eski sarı tikler (3.11-S1): kurala uymayanların tiki geri alınır, markaya bildirim gider; kuralı tamamlayan geri alır.
+   - Teklif "Beklet" (2.13-S1): davranış aynı, buton adı "Markayla görüş".
+   - Ücretsiz marka kotası (3.13): **şimdilik açık**; keşfete yalnızca sayfalama. Kota kullanıcı sayısı büyüyünce.
+   - E-posta (8.4-S1): Resend ücretsiz planda kalınır; doğrulama/şifre e-postaları öncelikli, kota %80'i geçince
+     bildirim e-postaları durur (site içi bildirim sürer), admin'e uyarı.
+   - Mobil: bu kararlar uygulanınca mobile geçilir (10.3, push bildirimleri bildirim sistemine bağlanır).
+   - Kuyruğun en sonu (dokunma, sonda hatırlat): "AI analiz" metni (2.9-S1), ortak logoları (9.1-S2), sabit pazarlama
+     rakamları (9.1-S3), KVKK metinleri, 5 Yıldız rozeti. Ayrıntı `docs/HANDOFF.md` bölüm 8.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`
    içine gerçek `CRON_SECRET` yazılmış haliyle **commit etme** (repodaki hali `BURAYA_CRON_SECRET` yer tutucusuyla).

@@ -384,14 +384,13 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
         e.stopPropagation()
       }
 
-      // Get sender user ID
-      const senderId = offer.sender?.id
-      if (!senderId) {
-        console.error('Sender ID not found', offer)
+      // Teklifin kendi odası varsa doğrudan o açılır; yoksa bu kişiyle mevcut sohbet aranır.
+      if (offer.room_id) {
+        window.location.href = `/dashboard/messages?roomId=${offer.room_id}`
         return
       }
-
-      // Navigate to messages page with participant ID
+      const senderId = offer.sender?.id
+      if (!senderId) return
       window.location.href = `/dashboard/messages?userId=${senderId}`
     },
     [],

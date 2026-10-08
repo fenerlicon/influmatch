@@ -1,13 +1,15 @@
 'use client'
 
 import { isProPlan } from '@/lib/subscription-tier'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Filter, ArrowUpDown, ChevronDown, BadgeCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey } from '@/utils/categories'
 import { type DiscoverInfluencer } from '@/types/influencer'
 import { calculateMatchScore } from '@/utils/matching'
 import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
+
+const PAGE_SIZE = 24
 
 const CATEGORY_OPTIONS = ['All', ...INFLUENCER_CATEGORY_KEYS] as const
 const SORT_OPTIONS = [
@@ -44,6 +46,8 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
   const isPro = isProPlan(spotlightPlan)
 
   const favoritedSet = useMemo(() => new Set(initialFavoritedIds), [initialFavoritedIds])
+  // Sayfalama (kullanıcı kararı, 2026-10-09): ızgara 24'er profil gösterir; filtre veya sıralama değişince başa döner.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const filteredInfluencers = useMemo(() => {
     let result = influencers.filter((influencer) => {
@@ -106,6 +110,13 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
     })
     return result
   }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, isSpotlightMember, selectedPlatforms, defaultCategory, creatorTypeFilter])
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, selectedPlatforms, creatorTypeFilter])
+
+  const visibleInfluencers = filteredInfluencers.slice(0, visibleCount)
+  const remainingCount = Math.max(0, filteredInfluencers.length - visibleInfluencers.length)
 
   const filteredCategories = useMemo(() => {
     return CATEGORY_OPTIONS.filter(cat =>
@@ -358,7 +369,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
             </div>
 
             <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${userRole === 'brand' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
-              {filteredInfluencers.map((influencer) => {
+              {visibleInfluencers.map((influencer) => {
                 const matchScore = (sortBy === 'recommended' && isSpotlightMember)
                   ? calculateMatchScore(influencer, { targetCategory: (selectedCategory !== 'All' ? selectedCategory : defaultCategory) || undefined })
                   : undefined
@@ -374,6 +385,21 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                   />
                 )
               })}
+            </div>
+
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <p className="text-xs text-gray-500">
+                {filteredInfluencers.length} profilden {visibleInfluencers.length} tanesi gösteriliyor
+              </p>
+              {remainingCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                  className="rounded-2xl border border-soft-gold/50 bg-soft-gold/10 px-5 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+                >
+                  Daha fazla göster ({remainingCount})
+                </button>
+              )}
             </div>
           </>
         )}

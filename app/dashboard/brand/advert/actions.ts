@@ -3,6 +3,7 @@
 import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { notifyUser } from '@/lib/notify'
 
 export type AdvertStatus = 'open' | 'paused' | 'closed'
 
@@ -359,7 +360,7 @@ export async function updateApplicationStatus(applicationId: string, status: 'pe
   // Oturum istemcisiyle: RLS başvuruyu yalnızca ilan sahibine gösterir ve günceller.
   const { data: application, error: appError } = await supabase
     .from('advert_applications')
-    .select('id, advert_id')
+    .select('id, advert_id, status, influencer_id, influencer_user_id')
     .eq('id', applicationId)
     .maybeSingle()
 
@@ -369,7 +370,7 @@ export async function updateApplicationStatus(applicationId: string, status: 'pe
 
   const { data: advert, error: advertError } = await supabase
     .from('advert_projects')
-    .select('id, brand_user_id')
+    .select('id, brand_user_id, title')
     .eq('id', application.advert_id)
     .maybeSingle()
 
@@ -388,10 +389,23 @@ export async function updateApplicationStatus(applicationId: string, status: 'pe
     .select('id')
 
   if (updateError) {
-    return { error: `Durum güncellenemedi: ${updateError.message}` }
+    console.error('[updateApplicationStatus] update error:', updateError)
+    return { error: 'Durum güncellenemedi. Lütfen tekrar deneyin.' }
   }
   if (!updated || updated.length === 0) {
     return { error: 'Bu başvuruyu güncelleme yetkiniz yok.' }
+  }
+
+  // Başvuru sonucu influencer'a bildirilir (geri alma, yani tekrar beklemeye çekme bildirilmez).
+  const influencerId = application.influencer_user_id ?? application.influencer_id
+  if (status !== 'pending' && status !== application.status && influencerId) {
+    const advertTitle = advert.title ? `"${advert.title}"` : 'ilan'
+    const copy = {
+      shortlisted: { title: 'Başvurunuz ön listeye alındı', message: `${advertTitle} başvurunuz ön listeye alındı.`, type: 'success' as const },
+      accepted: { title: 'Başvurunuz kabul edildi', message: `${advertTitle} başvurunuz kabul edildi. Marka sizinle iletişime geçecek.`, type: 'success' as const },
+      rejected: { title: 'Başvurunuz sonuçlandı', message: `${advertTitle} başvurunuz bu kez olumlu sonuçlanmadı.`, type: 'info' as const },
+    }[status]
+    await notifyUser({ userId: influencerId, event: 'application_status', link: '/dashboard/influencer/advert', ...copy })
   }
 
   revalidatePath('/dashboard/brand/advert')

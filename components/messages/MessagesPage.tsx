@@ -106,7 +106,7 @@ export default function MessagesPage({ currentUserId, role, initialConversations
     }
   }, [initialRoomId])
 
-  // Handle initialUserId - open conversation with specific user
+  // initialUserId: bu kişiyle mevcut bir sohbet varsa onu açar
   useEffect(() => {
     if (!initialUserId) return
 
@@ -161,46 +161,9 @@ export default function MessagesPage({ currentUserId, role, initialConversations
           setConversations((prev) => [newConversation, ...prev])
         }
       } else {
-        // No room exists - create one
-        const { data: newRoom, error } = await supabase
-          .from('rooms')
-          .insert({
-            brand_id: role === 'brand' ? currentUserId : initialUserId,
-            influencer_id: role === 'influencer' ? currentUserId : initialUserId,
-          })
-          .select()
-          .single()
-
-        if (error || !newRoom) {
-          console.error('Failed to create room:', error)
-          return
-        }
-
-        setSelectedRoomId(newRoom.id)
-
-        // Get user info and add to conversations
-        const { data: userInfo } = await supabase
-          .from('users')
-          .select('id, full_name, username, avatar_url, role, displayed_badges')
-          .eq('id', initialUserId)
-          .single()
-
-        if (userInfo) {
-          const newConversation: Conversation = {
-            roomId: newRoom.id,
-            otherParticipant: {
-              id: userInfo.id,
-              fullName: userInfo.full_name ?? userInfo.username ?? 'Kullanıcı',
-              username: userInfo.username,
-              avatarUrl: userInfo.avatar_url,
-              role: userInfo.role,
-              displayedBadges: userInfo.displayed_badges,
-            },
-            lastMessage: null,
-            unreadCount: 0,
-          }
-          setConversations((prev) => [newConversation, ...prev])
-        }
+        // Sohbet yalnızca teklif veya başvuru üzerinden açılır (kullanıcı kararı, 2026-10-09);
+        // burada yeni oda açılmaz.
+        toast.info('Bu kişiyle henüz bir sohbet yok. Sohbet, teklif ya da ilan başvurusu üzerinden açılır.')
       }
     }
 

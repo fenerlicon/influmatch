@@ -143,7 +143,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
   - ✅ ~~**1.9-S2 [ORTA]**~~ (avatars ve tax-documents altındaki `{uid}/` dosyaları ve eski kök avatar siliniyor) Hesap silinince storage dosyaları (avatars, feedback-images, tax-documents) silinmiyor (KVKK).
   - ✅ ~~**1.9-S3 [DÜŞÜK]**~~ (hesap silmede şifre tekrar soruluyor; doğrulama oturum saklamayan ayrı istemciyle) Silme modalı "abonelikleriniz iptal edilecek" diyor, Spotlight iptal edilmiyor; şifre tekrar sorulmuyor.
   - ✅ ~~**1.9-S4 [DÜŞÜK]**~~ (hata türüne göre mesaj) `changePassword` her hatayı "en az 6 karakter" olarak raporluyor.
-  - **1.9-S5 [ORTA]** `email_notifications` tercihleri kaydediliyor ama hiçbir kod bu tercihlere göre e-posta göndermiyor (bkz. 5.4).
+  - ✅ ~~**1.9-S5 [ORTA]**~~ (bildirim e-postaları `email_notifications` tercihlerine uyuyor (teklif, başvuru, mesaj, güncellemeler)) `email_notifications` tercihleri kaydediliyor ama hiçbir kod bu tercihlere göre e-posta göndermiyor (bkz. 5.4).
 
 ### 1.10 Destek talepleri (kullanıcı tarafı)
 - **Dosyalar:** `components/settings/{SupportSection,SupportTicketForm,SupportTicketsList}.tsx`,
@@ -268,7 +268,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Dosyalar:** `app/dashboard/offers/page.tsx`, `components/dashboard/{OffersManager,OfferActivityCard,OfferActionButtons}.tsx`,
   `app/dashboard/influencer/offers/actions.ts` (`updateOfferStatus`), `.../dismiss/actions.ts`
 - **Sorunlar:**
-  - **2.13-S1 [ORTA]** (bilinçli görünüyor: teklif beklemede kalır, görüşmek için sohbet açılır; ürün kararı bekliyor) "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor.
+  - ✅ ~~**2.13-S1 [ORTA]**~~ (kullanıcı kararı: davranış aynı, buton "Markayla görüş"; sohbet odasını açıp kullanıcıyı oraya götürüyor, markaya bildirim gidiyor) (bilinçli görünüyor: teklif beklemede kalır, görüşmek için sohbet açılır; ürün kararı bekliyor) "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor.
   - ✅ ~~**2.13-S2 [DÜŞÜK]**~~ (gizle/seçim kanalları yeniden açmıyor; oda kanalları oda listesine bağlı; `InfluencerOffersFeed` silindi, tip `OffersManager`'a taşındı) `OffersManager` her "gizle"de realtime'a yeniden aboneleniyor; `undismissOffer` ve `InfluencerOffersFeed` ölü.
 
 ---
@@ -289,7 +289,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `discover/page.tsx`, `components/dashboard/BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`, `AddToListModal`, `SimilarProfilesModal`
 - **Sorunlar:**
   - ✅ ~~**3.2-S1 [ORTA]**~~ (favoriler ve liste sayfaları aktif Spotlight planını geçiriyor) Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
-  - **3.2-S2 [ORTA]** (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
+  - ✅ ~~**3.2-S2 [ORTA]**~~ (kullanıcı kararı: kota şimdilik yok; keşfet ızgarası 24'er profil, "Daha fazla göster") (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
 
 ### 3.3 Favoriler
 - **Dosyalar:** `app/dashboard/brand/favorites/page.tsx`, `app/actions/favorites.ts`
@@ -317,7 +317,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**3.6-S1 [ORTA]**~~ (rol DB'den, `fetchAccountRole`) `createOffer` rol kontrolünü `user_metadata.role` ile yapıyor (DB politikası asıl korumayı sağlıyor),
     bütçe NaN/negatif kontrolü yok, alıcının influencer olduğu kontrol edilmiyor.
-  - **3.6-S2 [YÜKSEK]** Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1).
+  - ✅ ~~**3.6-S2 [YÜKSEK]**~~ (5.4-S1 ile: yeni teklifte site içi bildirim + e-posta) Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1).
+  - ✅ ~~**3.6-S5 [KRİTİK]**~~ (2026-10-09, yeni bulgu) Teklif penceresi 2026-01-06'dan beri olmayan `payment_type` kolonuna yazıyordu: webden hiçbir teklif kaydedilemedi (son teklif 2026-01-04). Kolon `20261009000004` ile ekleniyor; kod kolon yokken de kaydediyor. Bütçe, kampanya adı ve alıcı rolü sunucuda doğrulanıyor.
+  - **3.6-S6 [DÜŞÜK]** Teklif listelerinde ödeme türü (nakit / barter) gösterilmiyor; `payment_type` canlıya eklenince yapılacak.
   - ✅ ~~**3.6-S3 [ORTA]**~~ (sayımlar paralel ve yalnızca `count` dönüyor; okundu bilgisi 5.3-S1 ile metadata'dan) Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
   - ✅ ~~**3.6-S4 [DÜŞÜK]**~~ (`rooms` kanalı `brand_id` ile filtreli; `undismissInfluencer` ve `'hold'` daha önce kaldırılmıştı) `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
 
@@ -337,7 +339,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.8-S2 [ORTA]**~~ (yalnızca bu başvurunun odası yeniden kullanılıyor; başvuru durumu artık 'pending'e çekilmiyor) `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
     `advert_application_id` güncellemesi sessizce başarısız; oda açılırken başvuruyu `pending`'e geri çekebiliyor.
   - ✅ ~~**3.8-S4 [YÜKSEK]**~~ (yeni bulundu, canlıda düzeltildi) Canlı CHECK kısıtı `shortlisted` durumunu reddediyordu; "Ön Listeye Al" hiç çalışmamış (canlıda tek bir shortlisted başvuru yok). Kısıt genişletildi, `20261007000011`.
-  - **3.8-S3 [ORTA]** (marka tarafındaki yeni başvuru kanalı artık kendi ilanlarıyla filtreli; bildirim kısmı 5.4 ile) Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
+  - ✅ ~~**3.8-S3 [ORTA]**~~ (5.4-S1 ile: ön liste / kabul / red bildirimi + e-posta; marka kanalı filtreli) (marka tarafındaki yeni başvuru kanalı artık kendi ilanlarıyla filtreli; bildirim kısmı 5.4 ile) Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
 
 ### 3.9 Marka profili
 - **Dosyalar:** `brand/profile/page.tsx`, `components/brand/BrandProfileForm.tsx`, `brand/profile/actions.ts`
@@ -363,7 +365,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   Sarı tik = vergi onayı + doğrulanmış kurumsal e-posta + alan adı eşleşmesi; tek karar noktası `syncOfficialBusiness`.
   Web sitesi alan adı değişirse doğrulama ve sarı tik düşer (DB guard).
 - **Sorunlar:**
-  - **3.11-S1 [ORTA]** Bu kuraldan önce verilmiş sarı tikler otomatik geri alınmadı (karar bekliyor).
+  - ✅ ~~**3.11-S1 [ORTA]**~~ (kullanıcı kararı: saatlik `sweepOfficialBusiness` kurala uymayanın tikini geri alıyor ve bildirim gönderiyor; kuralı tamamlayan geri alıyor) Bu kuraldan önce verilmiş sarı tikler otomatik geri alınmadı (karar bekliyor).
   - ✅ ~~**3.11-S2 [ORTA]**~~ (üretimde `EMAIL_FROM` ve `RESEND_API_KEY` tanımlı; kayıt/kod e-postalarının geldiği kullanıcıca doğrulandı) Kod e-postası için Resend'de doğrulanmış alan adı ve `EMAIL_FROM` gerekli; yoksa yalnızca Resend hesap sahibine gider.
 
 ### 3.12 Kilit ve doğrulama ekranları
@@ -446,7 +448,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   `components/chat/{ModernChatWindow,ModernChatInput,MessageActionsMenu}.tsx`, `app/dashboard/messages/send/actions.ts`
 - **İş:** Karşı tarafa göre gruplanmış sohbetler (teklif, başvuru, destek odaları birleşik), metin + görsel eki.
 - **Sorunlar:**
-  - **5.1-S1 [YÜKSEK]** Doğrudan sohbet başlatma bozuk: `MessagesPage.tsx` `offer_id`/`advert_application_id` olmadan oda ekliyor,
+  - ✅ ~~**5.1-S1 [YÜKSEK]**~~ (kullanıcı kararı: doğrudan mesaj açılmayacak. `?userId=` artık yeni oda açmıyor, yalnızca mevcut sohbeti açıyor; teklif listeleri teklifin kendi odasına gidiyor. Mobil tarafı 10.3-S4) Doğrudan sohbet başlatma bozuk: `MessagesPage.tsx` `offer_id`/`advert_application_id` olmadan oda ekliyor,
     `restrict_rooms_insert` trigger'ı reddediyor; `?userId=` ile mevcut oda yoksa yalnızca konsola hata düşüyor. Mobilde de aynı (10.3-S4).
   - ✅ ~~**5.1-S2 [YÜKSEK]**~~ (her oda için yalnızca son mesaj ve okunmamış sayısı; 20'lik gruplar halinde paralel) Sunucu sayfası tüm odaların tüm mesajlarını iki kez, sınırsız yüklüyor; PostgREST 1000 satır sınırı son mesajları ve okunmamış sayılarını kesiyor.
   - ✅ ~~**5.1-S3 [ORTA]**~~ (thread yalnızca karşı taraf değişince yükleniyor; realtime kanalı liste güncellemesinde yeniden kurulmuyor) Her yeni mesaj `conversations`'ı değiştirip tüm thread'i temizleyip yeniden yüklüyor (titreme).
@@ -476,7 +478,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ### 5.4 Bildirimler
 - **Dosyalar:** `components/dashboard/NotificationsPopover.tsx`, `app/actions/notifications.ts`, tablo `notifications`
 - **Sorunlar:**
-  - **5.4-S1 [YÜKSEK]** Yeni teklif, teklif durumu, yeni başvuru, başvuru durumu, yeni mesaj, destek yanıtı için hiçbir bildirim ya da e-posta üretilmiyor.
+  - ✅ ~~**5.4-S1 [YÜKSEK]**~~ (2026-10-09, kullanıcı kararı: `lib/notify.ts`; yeni teklif, teklif yanıtı / görüşme isteği, yeni başvuru, başvuru sonucu, yeni mesaj (oda başına saatte bir, çevrimiçiyken e-posta yok, içerik e-postaya konmaz), destek yanıtı, sarı tik değişikliği için site içi bildirim; önemli olaylarda e-posta. Mobilden gelen olaylar mobil güncellemesinde) Yeni teklif, teklif durumu, yeni başvuru, başvuru durumu, yeni mesaj, destek yanıtı için hiçbir bildirim ya da e-posta üretilmiyor.
     Tek üreticiler admin paneli ve Spotlight bildirimi.
   - ✅ ~~**5.4-S2 [DÜŞÜK]**~~ (etiket kaldırıldı) Header herkese sabit "PREMIUM" etiketi gösteriyor.
 
@@ -537,7 +539,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 6.5 Destek yönetimi `/admin/support`
 - **Dosyalar:** `app/admin/support/{page,actions}.ts(x)`, `components/admin/SupportTicketsPanel.tsx`
-- **Sorunlar:** **6.5-S1 [ORTA]** (kapatılmış talebin yeniden açılması düzeltildi; kullanıcıya bildirim 5.4 ile) `addAdminResponse` kapalı talebi bile `in_progress`'e çekiyor; kullanıcıya bildirim/e-posta gitmiyor.
+- **Sorunlar:** ✅ ~~**6.5-S1 [ORTA]**~~ (kapatılmış talebin yeniden açılması düzeltildi; yanıtta kullanıcıya bildirim + e-posta, yanıt metni e-postaya konmuyor) `addAdminResponse` kapalı talebi bile `in_progress`'e çekiyor; kullanıcıya bildirim/e-posta gitmiyor.
 
 ### 6.6 Mesaj şikayetleri `/admin/messages`
 - **Dosyalar:** `app/admin/messages/{page,actions}.ts(x)`, `components/admin/MessageReportsPanel.tsx`
@@ -694,7 +696,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Dosya:** `lib/email.ts` (`sendEmail`, `sendAdminAlertEmail`). Kullanım: admin uyarıları, kurumsal e-posta kodları.
 - **İzleme:** `lib/resend-status.ts` — her gönderimde Resend kota başlıkları kaydedilir; anahtar, gönderici alan adı ve kota durumu `/admin/api-keys` sayfasında ve saatlik kontrolde.
 - **Sorunlar:**
-  - **8.4-S1 [YÜKSEK]** Ücretsiz plan günde 100, ayda 3000 e-posta. Kurumsal e-posta kodları ve admin uyarıları aynı kotayı paylaşıyor; kota dolunca markalara kod gitmez. İzleme ve uyarı eklendi, risk sürüyor (çözüm: ücretli plan veya ikinci sağlayıcı).
+  - ✅ ~~**8.4-S1 [YÜKSEK]**~~ (kullanıcı kararı: ücretsiz planda kalınıyor; kota %80'i geçince bildirim e-postaları duruyor (site içi sürer), doğrulama/şifre e-postaları etkilenmiyor, admin uyarısı saatlik kontrolde) Ücretsiz plan günde 100, ayda 3000 e-posta. Kurumsal e-posta kodları ve admin uyarıları aynı kotayı paylaşıyor; kota dolunca markalara kod gitmez. İzleme ve uyarı eklendi, risk sürüyor (çözüm: ücretli plan veya ikinci sağlayıcı).
   - bkz. 3.11-S2 ve 5.4-S1 (kullanıcıya işlem e-postası yok).
 
 ### 8.5 Konfigürasyon
