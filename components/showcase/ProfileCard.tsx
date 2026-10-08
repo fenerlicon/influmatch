@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Instagram, Youtube, Video, MessageCircle, Heart, Eye, Users, Activity, Lock } from 'lucide-react';
+import { Instagram, Youtube, Video, Activity, Lock } from 'lucide-react';
 
 export type PlatformType = 'instagram' | 'tiktok' | 'youtube' | 'kick';
 

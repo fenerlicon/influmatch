@@ -25,7 +25,6 @@ export default function SpotlightSelectionCard({
 }: SpotlightSelectionCardProps) {
     const isInfluencer = variant === 'influencer'
     const isBrand = variant === 'brand'
-    const isAgency = variant === 'agency'
 
     const borderColor = isInfluencer ? 'group-hover:border-soft-gold/50' :
         isBrand ? 'group-hover:border-blue-400/50' :

@@ -77,7 +77,6 @@ export async function GET(request: NextRequest) {
 
   // Handle email confirmation with token_hash (OTP method)
   if (token_hash && type) {
-    console.log('[auth/callback] Attempting OTP verification with token_hash and type')
     const { error: verifyError, data } = await supabase.auth.verifyOtp({
       type: type as any,
       token_hash,
@@ -88,7 +87,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (!verifyError) {
-      console.log('[auth/callback] OTP verification successful, clearing session and redirecting to login')
       // Email verified successfully - clear session and redirect to login
       // User needs to login again after email verification
       await supabase.auth.signOut()
@@ -101,14 +99,12 @@ export async function GET(request: NextRequest) {
 
   // Handle email confirmation with access_token and refresh_token (magic link method)
   if (access_token && refresh_token) {
-    console.log('[auth/callback] Attempting session set with access_token and refresh_token')
-    const { error: sessionError, data: sessionData } = await supabase.auth.setSession({
+    const { error: sessionError } = await supabase.auth.setSession({
       access_token,
       refresh_token,
     })
 
     if (!sessionError) {
-      console.log('[auth/callback] Session set successfully, but redirecting to login for user to login again')
       // Email verified successfully - but user needs to login again
       // Clear the session and redirect to login with success message
       await supabase.auth.signOut()

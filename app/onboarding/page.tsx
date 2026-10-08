@@ -409,11 +409,6 @@ export default function OnboardingPage() {
     const normalizedUsername = (role === 'influencer' ? influencerForm.username : brandForm.username).trim().toLowerCase()
 
     // Use server action to save profile (more reliable than client-side)
-    console.log('[Onboarding] Attempting to save profile via server action:', {
-      userId: session.user.id,
-      email: session.user.email,
-      role: role,
-    })
 
     const result = await saveOnboardingProfile({
       userId: session.user.id,
@@ -438,8 +433,6 @@ export default function OnboardingPage() {
       setIsSaving(false)
       return
     }
-
-    console.log('[Onboarding] Profile saved successfully via server action')
 
     // Force a router refresh to update server components, then navigate.
     // Influencer / UGC hesapları panelden önce sosyal medya hesabını doğrular.

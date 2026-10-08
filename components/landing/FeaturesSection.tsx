@@ -1,7 +1,6 @@
 'use client'
 
 import { BrainCircuit, ShieldCheck, Zap, MessageSquare, Target, Activity } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 const features = [
     {

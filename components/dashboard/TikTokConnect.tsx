@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { generateTikTokVerificationCode, verifyTikTokAccount } from '@/app/actions/social-verification';
 import { BadgeCheck, Play } from 'lucide-react';
-import { USER_AGREEMENT, PRIVACY_POLICY, EXPLICIT_CONSENT } from '@/lib/legal-constants';
+import { USER_AGREEMENT } from '@/lib/legal-constants';
 import LegalModal from '@/components/ui/LegalModal';
 
 interface TikTokConnectProps {

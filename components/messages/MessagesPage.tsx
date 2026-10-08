@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { parseChatImageUrl } from '@/lib/chat-image'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { X, BadgeCheck, ShieldCheck, Lock } from 'lucide-react'
+import { X, BadgeCheck, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import ModernChatWindow from '@/components/chat/ModernChatWindow'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
@@ -41,7 +40,6 @@ interface MessagesPageProps {
 }
 
 export default function MessagesPage({ currentUserId, role, initialConversations, initialUserId, initialRoomId, currentUserVerificationStatus }: MessagesPageProps) {
-  const router = useRouter()
 
   const supabase = useSupabaseClient()
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)

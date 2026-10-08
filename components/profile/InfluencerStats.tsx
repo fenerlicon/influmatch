@@ -89,7 +89,6 @@ export default function InfluencerStats({
 }: InfluencerStatsProps) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
-    const [aiAnalysis, setAiAnalysis] = useState<string[]>([])
     const [lastAnalysisType, setLastAnalysisType] = useState<AnalysisType>('basic')
     const [showPaywall, setShowPaywall] = useState<AnalysisType | null>(null)
 
@@ -166,7 +165,6 @@ export default function InfluencerStats({
 
     // Update currentAnalysis when active platform changes
     useEffect(() => {
-        setAiAnalysis([])
         setLastAnalysisType('basic')
         setCurrentAnalysis(generateStaticAnalysis())
     }, [activePlatform, activeData])
@@ -212,7 +210,6 @@ export default function InfluencerStats({
             if (result.error) {
                 toast.error(result.error)
             } else if (result.analysis) {
-                setAiAnalysis(result.analysis)
                 setCurrentAnalysis(result.analysis)
                 setLastAnalysisType(type)
                 toast.success('Yapay zeka analizi tamamlandı!')

@@ -146,22 +146,7 @@ export async function getAIRecommendations(
 ): Promise<DiscoverInfluencer[]> {
     const { calculateMatchScore, getMatchReason } = await import('@/utils/matching')
 
-    // 1. Get Base Influencers (Strict Category Match)
-    // If no category is provided, fallback to fetching all (or handle empty case)
-    // ideally the caller should provide the category.
-
-    const criteria: any = { limit: 50 } // fetch a pool to sort from
-    // We can't easily filter by category in getEnrichedInfluencers raw query without modifying it heavily,
-    // so we'll fetch enriched influencers and filter in memory OR modify getEnrichedInfluencers.
-    // Let's modify getEnrichedInfluencers to accept partial filters or just filter here efficiently.
-    // Actually, let's just fetch a larger pool and filter JS side for now to reuse logic, 
-    // OR add a simple category filter param to getEnrichedInfluencers. 
-    // For "Strict" matching, SQL filtering is better.
-
-    // Let's rely on getEnrichedInfluencers but filter by IDs if we want strict SQL, 
-    // or just fetch all 'verified' + 'visible' and filter.
-    // Given the "Strict Relevance" requirement, let's do a direct ID fetch first.
-
+    // Önce kategoriye göre aday kimlikleri SQL ile seçilir, ardından zenginleştirilip puanlanır.
     const supabase = createSupabaseServerClient()
     let query = supabase
         .from('users')

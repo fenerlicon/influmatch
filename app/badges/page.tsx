@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
 import BadgeCard from '@/components/badges/BadgeCard'
 import BadgeToggle from '@/components/badges/BadgeToggle'
-import { influencerBadges, brandBadges, phaseConfig, type Badge, type BadgePhase } from './data'
+import { influencerBadges, brandBadges, phaseConfig, type BadgePhase } from './data'
 
 export default function BadgesPage() {
   const [activeTab, setActiveTab] = useState<'influencer' | 'brand'>('influencer')

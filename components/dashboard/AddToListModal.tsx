@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Check, FolderOpen, Trash2 } from 'lucide-react'
 import { createList, getInfluencerLists, toggleInList, deleteList } from '@/app/actions/favoriteLists'
-import { toast } from 'sonner'
 import DeleteConfirmationModal from '@/components/ui/DeleteConfirmationModal'
+import { toast } from 'sonner'
 
 interface AddToListModalProps {
     influencerId: string
@@ -64,9 +64,12 @@ export default function AddToListModal({ influencerId, isOpen, onClose }: AddToL
         setDeleteId(listId)
     }
 
+    const [isDeleting, setIsDeleting] = useState(false)
     const confirmDelete = async () => {
         if (!deleteId) return
+        setIsDeleting(true)
         const res = await deleteList(deleteId)
+        setIsDeleting(false)
         if (res.error) {
             toast.error('Liste silinemedi')
         } else {
@@ -223,6 +226,14 @@ export default function AddToListModal({ influencerId, isOpen, onClose }: AddToL
                     </div>
                 </div>
             </div>
+            <DeleteConfirmationModal
+                isOpen={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Listeyi silmek istediğinize emin misiniz?"
+                description="Liste ve içindeki kayıtlar silinir. Favorileriniz etkilenmez."
+                isDeleting={isDeleting}
+            />
         </div>,
         document.body
     )

@@ -4,7 +4,6 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useTransition, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { updateProfile } from '@/app/dashboard/influencer/profile/actions'
 import { validateInstagram, validateTikTok, validateYouTube, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
@@ -32,7 +31,6 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ initialData, connectedPlatforms = [] }: ProfileFormProps) {
   const supabase = useSupabaseClient()
-  const router = useRouter()
   const [userId, setUserId] = useState<string | undefined>(undefined)
 
   useEffect(() => {

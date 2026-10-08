@@ -2,7 +2,6 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useState, useEffect } from 'react'
-import Link from 'next/link'
 
 const tabs = [
   { key: 'privacy', label: 'Gizlilik ve KVKK' },

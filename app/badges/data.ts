@@ -1,23 +1,4 @@
-import {
-  BadgeCheck,
-  Crown,
-  UserCheck,
-  Megaphone,
-  Zap,
-  Star,
-  TrendingUp,
-  Trophy,
-  Wand2,
-  Building,
-  Rocket,
-  LayoutTemplate,
-  MessageCircleHeart,
-  Gem,
-  Repeat,
-  Globe2,
-  ShieldCheck,
-  type LucideIcon,
-} from 'lucide-react'
+import { BadgeCheck, Crown, UserCheck, Megaphone, Zap, Star, TrendingUp, Trophy, Wand2, Building, Rocket, LayoutTemplate, MessageCircleHeart, Gem, Repeat, Globe2, type LucideIcon } from 'lucide-react'
 
 export type BadgePhase = 'mvp' | 'v1.2' | 'v1.3'
 

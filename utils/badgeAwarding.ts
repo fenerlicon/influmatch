@@ -97,8 +97,6 @@ export async function awardBadgesForUser(userId: string) {
 
   // Award badges
   if (badgesToAward.length > 0) {
-    console.log(`[awardBadgesForUser] Attempting to award ${badgesToAward.length} badge(s) to user ${userId}:`, badgesToAward)
-
     // Try admin client first (if available), otherwise use SQL function
     if (adminClient) {
       try {
@@ -115,8 +113,6 @@ export async function awardBadgesForUser(userId: string) {
         if (adminInsertError) {
           console.error('[awardBadgesForUser] Admin client insert error:', adminInsertError)
           throw adminInsertError
-        } else {
-          console.log(`[awardBadgesForUser] ✅ Successfully awarded ${badgesToAward.length} badge(s) using admin client:`, badgesToAward)
         }
       } catch (adminError: any) {
         console.error('[awardBadgesForUser] Admin client failed, falling back to SQL function:', adminError)
@@ -125,29 +121,7 @@ export async function awardBadgesForUser(userId: string) {
       }
     } else {
       // No admin client available, use SQL function directly
-      console.log('[awardBadgesForUser] Admin client not available, using SQL function...')
       await awardBadgesUsingSQLFunction(supabase, userId, badgesToAward)
-    }
-  } else {
-    console.log(`[awardBadgesForUser] No badges to award for user ${userId}`)
-    console.log('[awardBadgesForUser] User role:', role)
-    console.log('[awardBadgesForUser] User verification_status:', user.verification_status)
-    console.log('[awardBadgesForUser] Existing badges:', existingBadgeIds)
-
-    // Debug profile completion for influencer
-    if (role === 'influencer') {
-      const profileData: ProfileRecord = {
-        full_name: user.full_name ?? null,
-        username: user.username ?? null,
-        city: user.city ?? null,
-        bio: user.bio ?? null,
-        category: user.category ?? null,
-        avatar_url: user.avatar_url ?? null,
-        social_links: (user.social_links as Record<string, string | null> | null) ?? null,
-      }
-      const completion = calculateProfileCompletion(profileData)
-      console.log('[awardBadgesForUser] Profile completion:', completion.percent, '%')
-      console.log('[awardBadgesForUser] Profile checklist:', completion.checklist)
     }
   }
 
@@ -167,7 +141,7 @@ async function awardBadgesUsingSQLFunction(
 
   for (const badgeId of badgesToAward) {
     // First try SQL function
-    const { error: functionError, data: functionData } = await supabase.rpc('award_user_badge', {
+    const { error: functionError } = await supabase.rpc('award_user_badge', {
       target_user_id: userId,
       badge_id_to_award: badgeId,
     })
@@ -184,7 +158,6 @@ async function awardBadgesUsingSQLFunction(
       errors.push({ badgeId, error: functionError })
     } else {
       successCount++
-      console.log(`[awardBadgesForUser] ✅ Successfully awarded ${badgeId} using SQL function`)
     }
   }
 
@@ -193,7 +166,6 @@ async function awardBadgesUsingSQLFunction(
     console.error(`[awardBadgesForUser] ❌ Failed to award ${errors.length} out of ${badgesToAward.length} badge(s): ${errorMessages}`)
     throw new Error(`Failed to award ${errors.length} badge(s): ${errors.map(e => e.badgeId).join(', ')}. Hata: ${errorMessages}. Lütfen SQL migration'ı çalıştırdığınızdan emin olun.`)
   } else {
-    console.log(`[awardBadgesForUser] ✅ Successfully awarded all ${badgesToAward.length} badge(s)`)
   }
 }
 

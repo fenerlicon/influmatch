@@ -167,7 +167,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries: number, delay: number
 
 export async function fetchTikTokPublicProfile(username: string): Promise<NormalizedTikTokData> {
   try {
-    console.log(`[TikTokService] Fetching TikTok data for ${username} via Apify...`);
     return await withRetry(() => fetchTikTokFromApify(username), 2);
   } catch (error: any) {
     console.error(`[TikTokService] Apify fetch failed: ${error.message || error}`);

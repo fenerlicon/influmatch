@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { influencerBadges, brandBadges, type Badge, phaseConfig } from '@/app/badges/data'
+import { influencerBadges, brandBadges, phaseConfig } from '@/app/badges/data'
 import type { LucideIcon } from 'lucide-react'
 
 interface BadgeSelectorProps {

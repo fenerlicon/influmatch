@@ -58,8 +58,6 @@ export default async function Home({ searchParams }: HomeProps) {
       if (usersError) {
         console.error('[Home] Users query error:', usersError)
       } else if (influencers && influencers.length > 0) {
-        console.log(`[Home] Found ${influencers.length} influencers`)
-
         // Step 2: Fetch social accounts for these users (Instagram & TikTok)
         const userIds = influencers.map((u: any) => u.id)
 
@@ -124,14 +122,11 @@ export default async function Home({ searchParams }: HomeProps) {
             platforms_data: sortedPlatformsData
           } satisfies SpotlightInfluencer
         })
-      } else {
-        console.log('[Home] No influencers found with current filters')
       }
     }
   } catch (err) {
     console.error('[Home] Failed to fetch spotlight influencers:', err)
   }
-
 
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden">

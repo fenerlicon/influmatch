@@ -4,13 +4,11 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useMemo, useState, useEffect } from 'react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { toast } from 'sonner'
 
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = useSupabaseClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const { signInWithEmail, authError, isSubmitting } = useSupabaseAuth()

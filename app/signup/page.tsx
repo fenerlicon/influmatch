@@ -1,17 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { UserRole } from '@/types/auth'
 
 function SignupPageContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = useSupabaseClient()
   // Yalnızca bilinen roller; URL'den gelen başka bir değer (ör. admin) metadata'ya yazılmaz.
   const roleParam = searchParams.get('role')
   const defaultRole: UserRole = roleParam === 'brand' ? 'brand' : 'influencer'
@@ -73,12 +70,6 @@ function SignupPageContent() {
         creatorType,
       })
 
-      console.log('[Signup] Response:', {
-        hasError: !!response.error,
-        hasUser: !!response.data?.user,
-        userEmailConfirmed: response.data?.user?.email_confirmed_at
-      })
-
       if (response.error) {
         const error = response.error
         // Check if it's a "user already registered" error
@@ -105,7 +96,6 @@ function SignupPageContent() {
       }
 
       // Success - Always redirect to check-email page
-      console.log('[Signup] Signup successful, redirecting to check-email page')
 
       window.location.href = `/auth/check-email?email=${encodeURIComponent(email)}`
     } catch (error) {

@@ -29,7 +29,6 @@ export default function AdvertPerformanceChart({ brandId, className }: AdvertPer
                 const result = await getAnalyticsStats(brandId, '7d')
                 if (result.success && result.data) {
                     // Process data: Group by day
-                    const days = 7
                     const dailyStats = new Map<string, number>()
                     const now = new Date()
 

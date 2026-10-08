@@ -134,5 +134,3 @@ export function calculateProfileCompletion(
     checklist,
   }
 }
-
-export const profileCompletionFields = COMPLETION_FIELDS
