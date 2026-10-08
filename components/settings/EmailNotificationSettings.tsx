@@ -51,7 +51,7 @@ export default function EmailNotificationSettings({
     {
       key: 'offers',
       label: 'Teklif Bildirimleri',
-      description: 'Yeni teklifler ve teklif durumu güncellemeleri',
+      description: 'Yeni teklifler, teklif durumu ve iş birliği güncellemeleri',
       icon: <Bell className="h-4 w-4" />,
     },
     {

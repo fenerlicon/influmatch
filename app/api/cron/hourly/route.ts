@@ -7,6 +7,7 @@ import { sweepMillionClub } from '@/lib/million-club'
 import { sweepActivityBadges } from '@/lib/activity-badges'
 import { sweepOfficialBusiness } from '@/lib/official-business'
 import { refreshStaleAccounts } from '@/lib/social-stats'
+import { autoCompleteCollaborations } from '@/lib/collaborations'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -23,6 +24,7 @@ const HOURLY_STATS_START_BUDGET_MS = 10_000
  * - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar, eşiğin altına düşenler).
  * - Sarı tik (Resmi İşletme) kurala göre eşitlenir; geri alınana bildirim gider.
  * - Milyon Kulübü rozeti (doğrulanmış hesapta 1M+ takipçi) ve etkinlik rozetleri (lib/activity-badges.ts).
+ * - Yayın linkine 7 gün yanıt verilmeyen iş birlikleri otomatik tamamlanır (lib/collaborations.ts).
  */
 export async function GET(req: Request) {
   const startedAt = Date.now()
@@ -89,6 +91,14 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] Etkinlik rozetleri değerlendirilemedi:', error)
     result.activityBadgesError = error instanceof Error ? error.message : String(error)
+  }
+
+  // Kısa veritabanı işi; istatistik yenilemesinden önce, toplam süre bütçesini aşmayacak şekilde.
+  try {
+    result.collaborations = await autoCompleteCollaborations(admin, { limit: 25, deadline: startedAt + 40_000 })
+  } catch (error) {
+    console.error('[cron/hourly] İş birliği otomatik tamamlama başarısız:', error)
+    result.collaborationsError = error instanceof Error ? error.message : String(error)
   }
 
   // Bayat istatistikleri kalan zamanda küçük parçalar halinde yenile. Bir Apify koşusu 45 saniyeye kadar

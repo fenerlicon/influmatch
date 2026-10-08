@@ -1,6 +1,7 @@
 // Kullanıcı bildirimleri (kullanıcı kararı, 2026-10-09):
 // - Her olay site içi bildirim (notifications tablosu, zil) olarak yazılır.
-// - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı.
+// - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı,
+//   iş birliği yayın linki / tamamlanma / iptal.
 //   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez.
 // - Kullanıcının ayarlardaki e-posta tercihleri (users.email_notifications) uygulanır.
 // - Mobil uygulaması olan kullanıcıya push da gider (lib/push.ts); push metni e-postadaki sade metindir
@@ -28,6 +29,10 @@ export type NotificationEvent =
   | 'message_new'
   | 'support_reply'
   | 'badge_change'
+  | 'collab_new'
+  | 'collab_published'
+  | 'collab_completed'
+  | 'collab_cancelled'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -40,6 +45,11 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   message_new: { preference: 'messages', email: true },
   support_reply: { preference: 'updates', email: true },
   badge_change: { preference: 'updates', email: false },
+  // İş birliği olayları teklif tercihine bağlı. Açılış e-postası yok: aynı anda teklif yanıtı / başvuru sonucu e-postası gidiyor.
+  collab_new: { preference: 'offers', email: false },
+  collab_published: { preference: 'offers', email: true },
+  collab_completed: { preference: 'offers', email: true },
+  collab_cancelled: { preference: 'offers', email: true },
 }
 
 const NOTIFICATION_EMAIL_MAX_RATIO = 0.8
