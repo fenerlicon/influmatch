@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Search, Sliders, BadgeCheck, Heart, MapPin, ChevronRight, ArrowLeft, X, Instagram, Music, Zap, BarChart3, Users, TrendingUp, ShieldCheck } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Svg, Path } from 'react-native-svg';
+import { RATE_CARD_ITEMS, RATE_CARD_SELECT } from '../../constants/rateCard';
 import { supabase } from '../../lib/supabase';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { getThumbnailUrl } from '../../utils/image';
@@ -116,6 +117,10 @@ export default function DiscoverScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isBrand, setIsBrand] = useState(false);
+    // Bütçe filtresi (yalnızca marka): girilince fiyat kartında en az bir başlangıç fiyatı bütçeye sığanlar kalır.
+    // Fiyat kartlarını RLS yalnızca doğrulanmış markaya döndürür (web keşfiyle aynı kural).
+    const [budgetInput, setBudgetInput] = useState('');
+    const budget = Number(budgetInput) || 0;
 
     const fetchInfluencers = async () => {
         try {
@@ -145,6 +150,15 @@ export default function DiscoverScreen({ navigation }) {
 
             const favIds = new Set(myFavs?.map(f => f.influencer_id));
 
+            const minPrices = new Map();
+            if (viewerIsBrand && budget > 0) {
+                const { data: cards } = await supabase.from('rate_cards').select(RATE_CARD_SELECT).limit(1000);
+                (cards || []).forEach((card) => {
+                    const values = RATE_CARD_ITEMS.map((item) => card[item.column]).filter((v) => typeof v === 'number' && v > 0);
+                    if (values.length) minPrices.set(card.user_id, Math.min(...values));
+                });
+            }
+
             const usersWithStats = users.map(u => {
                 const isVerified = Array.isArray(u.displayed_badges) && u.displayed_badges.includes('verified-account');
                 
@@ -156,12 +170,15 @@ export default function DiscoverScreen({ navigation }) {
             });
 
             // Client-side search filter
-            const filtered = searchQuery 
+            const searched = searchQuery 
                 ? usersWithStats.filter(u => 
                     (u.full_name || u.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (u.category || '').toLowerCase().includes(searchQuery.toLowerCase())
                   )
                 : usersWithStats;
+            const filtered = viewerIsBrand && budget > 0
+                ? searched.filter((u) => minPrices.has(u.id) && minPrices.get(u.id) <= budget)
+                : searched;
 
             // Group by Categories
             const spotlight = filtered.filter(u => u.spotlight_active);
@@ -189,7 +206,7 @@ export default function DiscoverScreen({ navigation }) {
         }
     };
 
-    useEffect(() => { fetchInfluencers(); }, [searchQuery]);
+    useEffect(() => { fetchInfluencers(); }, [searchQuery, budget]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -224,6 +241,20 @@ export default function DiscoverScreen({ navigation }) {
                             <Sliders color="white" size={20} />
                         </TouchableOpacity>
                     </View>
+                    {isBrand && (
+                        <View className="bg-white/10 rounded-[20px] h-12 flex-row items-center px-4 border border-white/5 -mt-4 mb-6">
+                            <Text className="text-gray-400 text-xs font-bold mr-2">Bütçem ₺</Text>
+                            <TextInput
+                                placeholder="Örn. 5000"
+                                placeholderTextColor="#475569"
+                                keyboardType="number-pad"
+                                maxLength={8}
+                                className="flex-1 text-white font-bold text-sm"
+                                value={budgetInput}
+                                onChangeText={(v) => setBudgetInput(v.replace(/[^0-9]/g, ''))}
+                            />
+                        </View>
+                    )}
                 </View>
 
                 {loading ? (

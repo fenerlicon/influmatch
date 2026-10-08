@@ -3,6 +3,8 @@ export const revalidate = 0
 import { redirect } from 'next/navigation'
 import ProfileForm from '@/components/influencer/ProfileForm'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import RateCardForm from '@/components/influencer/RateCardForm'
+import { getOwnRateCard } from '@/lib/rate-card'
 
 export default async function InfluencerProfileSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -14,7 +16,7 @@ export default async function InfluencerProfileSettingsPage() {
     redirect('/login')
   }
 
-  const [{ data: profile, error }, { data: userBadges }, { data: socialAccounts }] = await Promise.all([
+  const [{ data: profile, error }, { data: userBadges }, { data: socialAccounts }, rateCard] = await Promise.all([
     supabase
       .from('users')
       .select('full_name, username, city, bio, category, avatar_url, social_links, displayed_badges, role, social_links_last_updated, creator_type')
@@ -28,6 +30,7 @@ export default async function InfluencerProfileSettingsPage() {
       .from('social_accounts')
       .select('platform, is_verified')
       .eq('user_id', user.id),
+    getOwnRateCard(supabase, user.id),
   ])
 
   if (error) {
@@ -57,6 +60,7 @@ export default async function InfluencerProfileSettingsPage() {
         initialData={initialData} 
         connectedPlatforms={socialAccounts?.filter(a => a.is_verified).map(a => a.platform) || []} 
       />
+      <RateCardForm initial={rateCard} />
     </div>
   )
 }

@@ -395,6 +395,32 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     kabul ediliyor). Kural eklenince `media_count = 0` veya son gönderi yoksa net mesajla reddet; mevcut gönderisiz doğrulanmış
     hesaplar kalır (karar, 7 Ekim).
 
+
+### 3.14 İş birlikleri ve fiyat kartı (yol haritası özellik 1, 2026-10-10)
+- **Dosyalar:** `lib/collaborations.ts`, `lib/collaboration-shared.ts`, `lib/rate-card.ts`, `lib/rate-card-shared.ts`,
+  `app/dashboard/collaborations/{page,actions}.ts(x)`, `components/dashboard/CollaborationsManager.tsx`,
+  `components/influencer/RateCardForm.tsx`, `components/profile/RateCardView.tsx`, `/api/mobile/{collaborations,rate-card}`,
+  mobil `screens/CollaborationsScreen.js`, `constants/rateCard.js`; migration `20261010000001_collaborations_rate_cards.sql`.
+- **İş birliği:** teklif kabul edilince (`lib/offers.ts`) ve marka başvuruyu kabul edince (`lib/adverts.ts`; başvurunun sohbet odası da açılır)
+  `collaborations` kaydı açılır. Aşamalar: `agreed` → `in_progress` (iki taraf) → `published` (influencer yayın linki: yalnızca http(s)
+  instagram.com / tiktok.com / youtube.com) → `completed` (marka onayı) / `cancelled` (tamamlanmadan önce iki taraf, isteğe bağlı gerekçe).
+  Marka 7 gün yanıt vermezse saatlik görev tamamlar (`auto_completed`). Kabul edilmiş başvurunun durumu, iş birliği sürerken geri alınamaz
+  (önce iş birliği iptal edilir). Tablo istemcilere yalnızca okunur (RLS: taraflar + admin); bütün yazımlar `runCollaborationAction` /
+  `createCollaborationFor` ile service role'den, taraf ve rol kontrolünden sonra. Realtime yayınında.
+- **Bildirim:** açılış (iki tarafa, e-postasız), yayın linki (markaya), tamamlanma (iki tarafa), iptal (karşı tarafa); e-posta "Teklif bildirimleri" tercihine bağlı.
+- **Güven:** tamamlanan iş birliği sayısı `completed_collaboration_counts(uuid[])` RPC'siyle (yalnızca sayı) profilde, keşif kartında ve mobil detayda.
+- **Fiyat kartı:** `rate_cards` (influencer başına bir satır; story / reel / gönderi / UGC video / paket başlangıç fiyatı, tam sayı 1–10.000.000 ₺,
+  `negotiable`). RLS: sahibi + `can_view_rate_cards()` (doğrulanmış marka veya admin); influencer'lar birbirininkini, onaysız marka hiçbirini göremez
+  (canlıda rollback'li RLS denemesiyle doğrulandı). Yazım `saveRateCardAs` (yalnızca influencer, kendi kartı). Keşifte "Bütçem (₺)": girilince en az bir
+  başlangıç fiyatı bütçeye sığanlar kalır; boşken herkes görünür. Web profil düzenleme + mobil MyProfile'dan düzenlenir.
+- **Geriye dönük:** canlıdaki 1 kabul edilmiş teklif `agreed` olarak aktarıldı (kabul edilmiş başvuru yoktu).
+- **Sorunlar / notlar:**
+  - **3.14-S1 [DÜŞÜK]** (yeni bulgu) Teklif ve başvuru listeleri iş birliği aşamasını göstermiyor (yalnızca "Kabul edildi"); kullanıcı aşamayı
+    İş Birlikleri sayfasında görüyor. 2. aşamada (takip alanı) listelere bağlantı/aşama etiketi eklenebilir.
+  - **3.14-S2 [DÜŞÜK]** (yeni bulgu) Mobil keşif bütçe filtresi fiyat kartlarını istemcide süzüyor (en fazla 1000 kart); kart sayısı büyüyünce sunucu ucuna taşınmalı.
+  - **3.14-N1** Fiyat kartı bugün tüm doğrulanmış markalara açık; ücretsiz/ücretli marka ayrımı (3.13-N3/N4) gelince burada da ele alınmalı.
+  - **3.14-N2** Revize hakkı, teslimat listesi, taslak onayı ve anlaşma özeti yol haritasının 2. aşamasında (ROADMAP "Buluşturmayı kolaylaştıran özellikler" 2).
+
 ---
 
 ## 4. Ortak: rozetler, Spotlight, profil
@@ -601,6 +627,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `api_keys` / `system_state` | anahtar havuzu ve sistem durumu | yalnızca service role |
 | `tax_verifications` | vergi levhası kayıtları | sahibi okur; yazma yalnızca sunucu |
 | `corporate_email_verifications` | bekleyen e-posta kodları (hash) | yalnızca service role |
+| `collaborations` | teklif/başvuru kabulünden doğan iş birliği (3.14) | taraflar ve admin okur; yazma yalnızca sunucu |
+| `rate_cards` | influencer fiyat kartı (3.14) | sahibi, doğrulanmış marka ve admin okur; yazma yalnızca sunucu |
 
 ### 7.3 `users` koruma katmanı
 - RLS: authenticated herkes okur; anon için SELECT politikası **yok**. Kolon bazlı gizlilik: email, phone, tax_id, tax_office, tax_office_city,
@@ -684,7 +712,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `GET /api/auth/{instagram,tiktok}/login` · `callback` | oturum + state çerezi | OAuth bağlama (2.3) |
 | `POST /api/mobile/verify-{instagram,tiktok}` | Bearer JWT | mobil bio doğrulama (2.1-S1: sınırsız) |
 | `GET /api/cron/refresh-stats` | `Bearer CRON_SECRET` | günlük istatistik yenileme (2.2) |
-| `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması |
+| `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14) |
+| `GET/POST /api/mobile/collaborations` · `GET/PUT /api/mobile/rate-card` | Bearer JWT | iş birliği listesi ve işlemleri, fiyat kartı (3.14) |
 | `POST /api/award-badges` | admin | rozet verme (2.6-S1) |
 | `GET /api/check-username` | yok | kullanıcı adı müsaitliği (7.3-S2) |
 | `GET /api/test-welcome` | yok | 410 dönen ölü taslak |
@@ -857,7 +886,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı).
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı).
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).

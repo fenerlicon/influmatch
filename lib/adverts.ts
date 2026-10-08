@@ -8,6 +8,7 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 import { displayNameOf, notifyUser } from '@/lib/notify'
 import { hasVerifiedSocialAccount, SOCIAL_VERIFICATION_REQUIRED } from '@/lib/creator-verification'
+import { createCollaborationFor, hasActiveCollaboration } from '@/lib/collaborations'
 
 export type AdvertStatus = 'open' | 'paused' | 'closed'
 export type ApplicationStatus = 'pending' | 'shortlisted' | 'rejected' | 'accepted'
@@ -277,6 +278,11 @@ export async function updateApplicationStatusAs(
   if (!advert) return { error: 'İlan bulunamadı.' }
   if (advert.brand_user_id !== userId) return { error: 'Bu başvuruyu güncelleme yetkiniz yok.' }
 
+  // Kabulle açılan iş birliği sürerken başvuru geri alınamaz; önce iş birliği iptal edilir (tek iptal yolu).
+  if (application.status === 'accepted' && status !== 'accepted' && (await hasActiveCollaboration('application', applicationId))) {
+    return { error: 'Bu başvuru için iş birliği sürüyor. Vazgeçmek için İş Birlikleri sayfasından iş birliğini iptal edin.' }
+  }
+
   const { data: updated, error } = await supabase.from('advert_applications').update({ status }).eq('id', applicationId).select('id')
   if (error) {
     console.error('[updateApplicationStatus] update error:', error)
@@ -284,8 +290,22 @@ export async function updateApplicationStatusAs(
   }
   if (!updated || updated.length === 0) return { error: 'Bu başvuruyu güncelleme yetkiniz yok.' }
 
-  // Başvuru sonucu influencer'a bildirilir (geri alma, yani tekrar beklemeye çekme bildirilmez).
   const influencerId = (application.influencer_user_id ?? application.influencer_id) as string | null
+
+  // Kabul edilen başvuru ortak iş birliği akışına geçer; görüşme için başvurunun sohbet odası açılır.
+  if (status === 'accepted' && application.status !== 'accepted' && influencerId) {
+    const room = await openApplicationRoomAs(supabase, userId, applicationId)
+    await createCollaborationFor({
+      source: 'application',
+      sourceId: applicationId,
+      brandId: userId,
+      influencerId,
+      title: advert.title as string | null,
+      roomId: room.success ? room.roomId : null,
+    })
+  }
+
+  // Başvuru sonucu influencer'a bildirilir (geri alma, yani tekrar beklemeye çekme bildirilmez).
   if (status !== 'pending' && status !== application.status && influencerId) {
     const advertTitle = advert.title ? `"${advert.title}"` : 'ilan'
     const copy = {

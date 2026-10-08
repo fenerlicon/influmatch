@@ -22,9 +22,12 @@ interface InfluencerGridCardProps {
     matchScore?: number
     matchReasons?: string[]
     isSpotlightMember?: boolean
+    /** Fiyat kartındaki en düşük başlangıç fiyatı (yalnızca doğrulanmış markaya gelir). */
+    startingPrice?: number | null
+    completedCollaborations?: number
 }
 
-export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole, matchScore, matchReasons, isSpotlightMember = false }: InfluencerGridCardProps) {
+export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole, matchScore, matchReasons, isSpotlightMember = false, startingPrice = null, completedCollaborations = 0 }: InfluencerGridCardProps) {
     const [isFavorited, setIsFavorited] = useState(initialIsFavorited)
     const [isPending, setIsPending] = useState(false)
     const [showListModal, setShowListModal] = useState(false)
@@ -311,6 +314,21 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                         </div>
                                     )}
                                     
+                                    {(typeof startingPrice === 'number' || completedCollaborations > 0) && (
+                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                                            {typeof startingPrice === 'number' && (
+                                                <span className="rounded-lg border border-soft-gold/20 bg-soft-gold/10 px-2 py-1 text-soft-gold">
+                                                    Başlangıç ₺{startingPrice.toLocaleString('tr-TR')}
+                                                </span>
+                                            )}
+                                            {completedCollaborations > 0 && (
+                                                <span className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                                                    {completedCollaborations} tamamlanan iş birliği
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Additional Badges area if more are needed */}
                                     {influencer.displayed_badges && influencer.displayed_badges.length > 1 && (
                                         <div className="flex items-center">

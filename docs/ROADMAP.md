@@ -50,3 +50,28 @@
 - Influmatch "buluşturma platformu"; InfluAct "parayı verin, sürecinizi biz yönetelim" yönetilen hizmet (ajanslardan farklı).
 - Elit Influmatch üyeleri alınır, özellikle Akademi mezunları. Seçim verisi: Akademi mezuniyeti/sınav puanı, tamamlanan iş
   birlikleri, (yayından sonra gelecek) 5 Yıldız puanları. Acelesi yok.
+
+## Buluşturmayı kolaylaştıran özellikler (2026-10-10, kullanıcı hepsini seçti)
+
+Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. aşamadan **sonra** yapılmalı (akışlar değişiyor).
+
+1. **Tek iş birliği akışı + fiyat kartı** (Ekim sonu – Kasım başı)
+   - Teklif ve ilan başvurusu kabul edildiğinde ortak bir **iş birliği** (`collaborations`) kaydı açılır; iki kaynak da aynı
+     aşamalardan geçer: `agreed` (anlaşıldı) → `in_progress` (içerik hazırlanıyor) → `published` (yayın linki girildi) →
+     `completed` / `cancelled`. Teklif ve başvuru tabloları kaynak olarak kalır (geçmiş bozulmaz).
+   - **Tamamlama:** influencer yayın linkini girer, marka onaylar; marka **7 gün** yanıt vermezse otomatik tamamlanır
+     (saatlik görev). Tamamlanan iş birliği sayısı profilde görünür (ileride puanlama ve InfluAct seçimi buna dayanır).
+   - **Fiyat kartı:** her teslimat türü (story, reel, gönderi, UGC video, paket) için **"₺X'ten başlayan"** başlangıç fiyatı +
+     "pazarlığa açık". Yalnızca **doğrulanmış markalar** görür (influencer'lar birbirininkini göremez; sunucuda/RLS ile).
+     Keşfette bütçeye göre filtre.
+   - Her iki rol için tek **"İş Birlikleri"** sayfası (web + mobil).
+2. **İş birliği takip alanı + anlaşma özeti** (Kasım)
+   - Teslimatlar listesi, tarihler, taslak yükleme, marka onayı / revize isteği, yayın linki.
+   - **Revize hakkı anlaşmada belirlenir** (ör. 2); sistem sayar ve sınırı gösterir.
+   - Anlaşma özeti: teslimatlar, ücret, tarihler, kullanım hakkı, revize sayısı; iki taraf uygulamada onaylar.
+     **Şablon/hukuki metin avukattan** gelir; o gelene kadar yalnızca alanların özeti ve iki tarafın onay kaydı.
+3. **UGC portföyü + sonuç raporu** (Kasım sonu; R2'ye bağlı)
+   - Profilde örnek videolar (R2, imzalı bağlantı). Yayın linkinden Apify ile beğeni/izlenme/yorum → markaya kampanya raporu.
+4. **Kampanya sihirbazı + müsaitlik** (Aralık başı)
+   - Marka kısa brief → uygun profiller (`lib/category-map.ts` + fiyat kartı + müsaitlik) → toplu davet.
+   - Influencer "iş alıyorum / dolu" durumu; doluyken keşifte alt sırada, teklif butonu uyarı gösterir.

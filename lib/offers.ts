@@ -9,6 +9,7 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { fetchAccountRole } from '@/lib/viewer-role'
 import { displayNameOf, notifyUser } from '@/lib/notify'
 import { hasVerifiedSocialAccount, SOCIAL_VERIFICATION_REQUIRED } from '@/lib/creator-verification'
+import { createCollaborationFor } from '@/lib/collaborations'
 
 export interface CreateOfferInput {
   receiverId: string
@@ -146,6 +147,22 @@ export async function respondToOfferAs(
   }
 
   const admin = createSupabaseAdminClient()
+
+  // Kabul edilen teklif ortak iş birliği akışına geçer (lib/collaborations.ts).
+  if (response === 'accepted') {
+    await createCollaborationFor(
+      {
+        source: 'offer',
+        sourceId: offerId,
+        brandId: offer.sender_user_id as string,
+        influencerId: offer.receiver_user_id as string,
+        title: offer.campaign_name as string | null,
+        roomId,
+      },
+      admin,
+    )
+  }
+
   const influencerName = await displayNameOf(admin, userId)
   const campaign = offer.campaign_name ? `"${offer.campaign_name}"` : 'teklifiniz'
   await notifyUser(
@@ -163,7 +180,7 @@ export async function respondToOfferAs(
           title: response === 'accepted' ? 'Teklifiniz kabul edildi' : 'Teklifiniz reddedildi',
           message:
             response === 'accepted'
-              ? `${influencerName}, ${campaign} teklifini kabul etti. Sohbetten devam edebilirsiniz.`
+              ? `${influencerName}, ${campaign} teklifini kabul etti. Sohbetten ve İş Birlikleri sayfasından devam edebilirsiniz.`
               : `${influencerName}, ${campaign} teklifini reddetti.`,
           link: response === 'accepted' && roomId ? `/dashboard/messages?roomId=${roomId}` : '/dashboard/brand/offers',
           type: response === 'accepted' ? 'success' : 'info',

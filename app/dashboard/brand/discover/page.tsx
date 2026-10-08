@@ -3,6 +3,8 @@ import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
 import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { visibleMinPrices } from '@/lib/rate-card'
+import { completedCollaborationCounts } from '@/lib/collaborations'
 
 export const revalidate = 0
 
@@ -24,6 +26,12 @@ export default async function BrandDiscoverPage() {
   }
 
   const influencers = await getEnrichedInfluencers()
+  const influencerIds = influencers.map((influencer) => influencer.id)
+  // Fiyatlar markanın kendi istemcisiyle okunur: RLS yalnızca doğrulanmış markaya satır döndürür.
+  const [minPrices, counts] = await Promise.all([
+    visibleMinPrices(supabase, influencerIds),
+    completedCollaborationCounts(supabase, influencerIds),
+  ])
 
   // 4. Fetch Favorites
   const { data: favorites } = await supabase
@@ -56,6 +64,8 @@ export default async function BrandDiscoverPage() {
         isSpotlightMember={isSpotlight}
         spotlightPlan={isSpotlight ? (userData?.spotlight_plan ?? null) : null}
         defaultCategory={userData?.category}
+        minPrices={minPrices}
+        completedCounts={Object.fromEntries(counts)}
       />
     </div>
   )

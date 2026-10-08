@@ -10,6 +10,9 @@ import BadgeDetailList from '@/components/badges/BadgeDetailList'
 import { getCategoryLabel } from '@/utils/categories'
 import InfluencerStats from '@/components/profile/InfluencerStats'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
+import { completedCollaborationCounts } from '@/lib/collaborations'
+import { getVisibleRateCard } from '@/lib/rate-card'
+import RateCardView from '@/components/profile/RateCardView'
 
 interface ProfilePageProps {
   params: { username: string }
@@ -152,6 +155,13 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
     )
   }
 
+  // Tamamlanan iş birliği sayısı (herkes görür) ve fiyat kartı (RLS: yalnızca sahibi, doğrulanmış marka, admin).
+  const [completedCounts, rateCard] = isInfluencer
+    ? await Promise.all([completedCollaborationCounts(supabase, [profile.id]), getVisibleRateCard(supabase, profile.id)])
+    : [new Map<string, number>(), null]
+  const completedCollaborations = completedCounts.get(profile.id) ?? 0
+  const isOwnProfile = viewer?.id === profile.id
+
   // Get all badge IDs for this user (only pass IDs, not badge objects)
   const badgeIds = userBadges?.map((ub) => ub.badge_id).filter((id): id is string => typeof id === 'string') ?? []
 
@@ -234,6 +244,12 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
               )}
 
               <div className="mt-6 flex flex-wrap gap-3 text-sm text-gray-300">
+                {isInfluencer && (
+                  <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
+                    <span className="font-semibold text-white">{completedCollaborations}</span>
+                    <span>tamamlanan iş birliği</span>
+                  </div>
+                )}
                 {profile.city && (
                   <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
                     <span>📍</span>
@@ -304,6 +320,8 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                 </ul>
               )}
             </div>
+
+            {isInfluencer && rateCard && <RateCardView rateCard={rateCard} isOwner={isOwnProfile} />}
 
             {/* Offer CTA (if applicable) */}
             {canSendOffer && (
