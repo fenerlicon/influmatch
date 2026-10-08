@@ -62,18 +62,18 @@ Kararsız yapılabilecek web maddeleri bitti (PR #32–#36). Kalanlar:
 | Rozet eşikleri (8 Ekim) | Kabul: Hızlı Dönüş (mesaj yanıtı ort. < 2 saat), Jet Onay (başvuruya ort. ≤ 24 saat), Marka Elçisi (aynı markayla ≥ 3 kabul edilmiş iş), Elit Bütçe (≥ 50.000 TL). Trend Belirleyici, Dönüşüm Sihirbazı, Global, İletişim Uzmanı, Sadık Partner "yakında" kalır. |
 | 5 Yıldız (8 Ekim) | İleriki bir güncellemede gelecek; **şimdilik dokunma**. |
 | Doğru olmayan arayüz iddiaları + KVKK (8 Ekim) | Kuyruğun **en sonuna**. "Ne kaldı" sorulduğunda hatırlat (bölüm 8). |
+| Bildirimler (9 Ekim) | Site içi + önemli olaylarda e-posta; mesaj e-postası saatte bir özet; kullanıcı tercihleri uygulanır. |
+| Doğrudan mesaj (9 Ekim) | Açılmayacak; teklifsiz sohbet yolları kaldırılır. |
+| Eski sarı tikler (9 Ekim) | Kurala uymayanınki geri alınır, markaya bildirim gider (33 markanın hiçbirinde kurumsal e-posta doğrulaması yoktu). |
+| Beklet (9 Ekim) | Davranış aynı, buton "Markayla görüş". |
+| Ücretsiz marka kotası (9 Ekim) | Şimdilik açık; yalnızca sayfalama. |
+| Resend (9 Ekim) | Ücretsiz planda kal; doğrulama e-postaları öncelikli, %80 kotada bildirim e-postaları durur. |
+| Mobil (9 Ekim) | Bu kararlar uygulanınca başlanır. |
 | Çevrimiçi / son görülme (8 Ekim) | Admin panelinde her kullanıcı için. Uygulandı (dakikalık sinyal + son giriş zamanı). |
 
-## 4. Karar bekleyenler (kullanıcı: "biraz daha beklesin") — kendi başına uygulama
+## 4. Karar bekleyenler
 
-- **5.4-S1 / 3.6-S2 / 3.8-S3 / 1.9-S5 bildirimler ve e-postalar:** yeni teklif, teklif durumu, başvuru ve mesaj bildirimleri. Web sayfa yapısı oturunca yapılacak.
-- **5.1-S1 doğrudan mesaj:** butonu kaldırmak mı, kurala izin vermek mi?
-- **3.13-N1…N4 ücretsiz marka erişimi:** kota, OAuth ayrımı. Ürün tasarımı gerekiyor.
-- **9.1-S2 ana sayfa ortak logoları:** TikTok/Meta/Google logoları resmi ortaklık izlenimi veriyor.
-- **3.11-S1 eski sarı tikler:** kuraldan önce sarı tik almış ~33 marka. Tiklerini geri almak mı, bırakmak mı?
-- **2.13-S1 teklif "Beklet":** davranış bilinçli görünüyor; kullanıcı onayı bekleniyor.
-- **2.9-S1 / 2.9-S2 "AI analiz" metni ve seviyeler:** yerel kural motoru "AI" diye sunuluyor.
-- **4.3-S2 / 4.3-S3 Spotlight fiyatları ve menü** (fiyatlar iş kararı).
+Hepsi 2026-10-09'da karara bağlandı (bölüm 3 ve CLAUDE.md kural 6). Kuyruğun en sonundakiler bölüm 8'de.
 
 ## 5. PR geçmişi (hepsi main'e birleşti)
 

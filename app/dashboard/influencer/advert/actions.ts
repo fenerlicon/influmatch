@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { displayNameOf, notifyUser } from '@/lib/notify'
 
 interface ApplyToAdvertPayload {
   advertId: string
@@ -46,7 +48,7 @@ export async function applyToAdvert(payload: ApplyToAdvertPayload) {
     return { error: 'Kısa bir niyet mesajı paylaşmalısınız.' }
   }
 
-  const { data: advert, error: advertError } = await supabase.from('advert_projects').select('id, status, deadline').eq('id', advertId).maybeSingle()
+  const { data: advert, error: advertError } = await supabase.from('advert_projects').select('id, status, deadline, title, brand_user_id').eq('id', advertId).maybeSingle()
 
   if (advertError || !advert) {
     return { error: 'İlan bilgisi alınamadı.' }
@@ -81,7 +83,22 @@ export async function applyToAdvert(payload: ApplyToAdvertPayload) {
       details: insertError.details,
       hint: insertError.hint,
     })
-    return { error: `Başvuru kaydedilemedi: ${insertError.message || 'Lütfen tekrar deneyin.'}` }
+    return { error: 'Başvuru kaydedilemedi. Lütfen tekrar deneyin.' }
+  }
+
+  if (advert.brand_user_id) {
+    const admin = createSupabaseAdminClient()
+    const influencerName = await displayNameOf(admin, user.id)
+    await notifyUser(
+      {
+        userId: advert.brand_user_id,
+        event: 'application_new',
+        title: 'İlanınıza yeni başvuru',
+        message: `${influencerName}, "${advert.title ?? 'ilanınıza'}" ilanına başvurdu.`,
+        link: '/dashboard/brand/advert?tab=applications',
+      },
+      admin,
+    )
   }
 
   revalidatePath('/dashboard/influencer/advert')

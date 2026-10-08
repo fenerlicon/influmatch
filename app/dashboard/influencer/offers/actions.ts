@@ -2,12 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { displayNameOf, notifyUser } from '@/lib/notify'
 
 type OfferStatus = 'pending' | 'accepted' | 'rejected' | 'hold'
 
-export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus) {
+// 'hold' = "Markayla görüş": durum değişmez, pazarlık için teklif odası açılır.
+export async function updateOfferStatus(
+  offerId: string,
+  nextStatus: OfferStatus,
+): Promise<{ error: string } | { success: true; roomId: string | null; senderUserId: string }> {
   if (!['accepted', 'rejected', 'hold'].includes(nextStatus)) {
-    throw new Error('Geçersiz teklif durumu')
+    return { error: 'Geçersiz teklif durumu.' }
   }
 
   const supabase = createSupabaseServerClient()
@@ -17,38 +23,39 @@ export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    throw new Error('Oturumunuz bulunamadı')
+    return { error: 'Oturumunuz bulunamadı.' }
   }
 
   const { data: offer, error: offerError } = await supabase
     .from('offers')
-    .select('id, receiver_user_id, sender_user_id, status')
+    .select('id, receiver_user_id, sender_user_id, status, campaign_name')
     .eq('id', offerId)
     .single()
 
   if (offerError || !offer) {
-    throw new Error('Teklif bulunamadı')
+    return { error: 'Teklif bulunamadı.' }
   }
 
   if (offer.receiver_user_id !== user.id) {
-    throw new Error('Bu teklif üzerinde işlem yapma yetkiniz yok')
+    return { error: 'Bu teklif üzerinde işlem yapma yetkiniz yok.' }
   }
 
   if (offer.status !== 'pending') {
-    throw new Error('Sadece bekleyen teklifler güncellenebilir')
+    return { error: 'Bu teklif zaten yanıtlanmış.' }
   }
 
-  // Only update DB status if not 'hold'
+  // 'hold' durumu kaydedilmez; teklif beklemede kalır.
   if (nextStatus !== 'hold') {
     const { error: updateError } = await supabase.from('offers').update({ status: nextStatus }).eq('id', offerId)
     if (updateError) {
-      throw new Error(updateError.message)
+      console.error('[updateOfferStatus] update error:', updateError)
+      return { error: 'Teklif güncellenemedi. Lütfen tekrar deneyin.' }
     }
   }
 
   let roomId: string | null = null
 
-  // Create room if accepted or held
+  // Kabul ve görüşmede teklif odası açılır (varsa yeniden kullanılır).
   if (nextStatus === 'accepted' || nextStatus === 'hold') {
     const { data: existingRoom, error: roomError } = await supabase
       .from('rooms')
@@ -57,7 +64,8 @@ export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus
       .maybeSingle()
 
     if (roomError) {
-      throw new Error(roomError.message)
+      console.error('[updateOfferStatus] room read error:', roomError)
+      return { error: 'Sohbet açılamadı. Lütfen tekrar deneyin.' }
     }
 
     if (existingRoom?.id) {
@@ -69,20 +77,46 @@ export async function updateOfferStatus(offerId: string, nextStatus: OfferStatus
           offer_id: offerId,
           brand_id: offer.sender_user_id,
           influencer_id: offer.receiver_user_id,
-          // If 'hold', we might want to distinguish the room logic? No, standard room is fine.
         })
         .select('id')
         .single()
 
       if (insertRoomError) {
-        throw new Error(insertRoomError.message)
+        console.error('[updateOfferStatus] room insert error:', insertRoomError)
+        return { error: 'Sohbet açılamadı. Lütfen tekrar deneyin.' }
       }
       roomId = newRoom?.id ?? null
     }
   }
 
+  const admin = createSupabaseAdminClient()
+  const influencerName = await displayNameOf(admin, user.id)
+  const campaign = offer.campaign_name ? `"${offer.campaign_name}"` : 'teklifiniz'
+  await notifyUser(
+    nextStatus === 'hold'
+      ? {
+          userId: offer.sender_user_id,
+          event: 'offer_talk',
+          title: 'Influencer görüşmek istiyor',
+          message: `${influencerName}, ${campaign} için sizinle görüşmek istiyor. Sohbet açıldı.`,
+          link: roomId ? `/dashboard/messages?roomId=${roomId}` : '/dashboard/brand/offers',
+        }
+      : {
+          userId: offer.sender_user_id,
+          event: 'offer_response',
+          title: nextStatus === 'accepted' ? 'Teklifiniz kabul edildi' : 'Teklifiniz reddedildi',
+          message:
+            nextStatus === 'accepted'
+              ? `${influencerName}, ${campaign} teklifini kabul etti. Sohbetten devam edebilirsiniz.`
+              : `${influencerName}, ${campaign} teklifini reddetti.`,
+          link: nextStatus === 'accepted' && roomId ? `/dashboard/messages?roomId=${roomId}` : '/dashboard/brand/offers',
+          type: nextStatus === 'accepted' ? 'success' : 'info',
+        },
+    admin,
+  )
+
   revalidatePath('/dashboard/influencer/offers')
   revalidatePath('/dashboard/offers')
-  return { success: true, roomId, senderUserId: offer.sender_user_id }
+  return { success: true as const, roomId, senderUserId: offer.sender_user_id as string }
 }
 

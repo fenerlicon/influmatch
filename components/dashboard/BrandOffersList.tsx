@@ -343,14 +343,13 @@ export default function BrandOffersList({
     async (offer: BrandOfferItem) => {
       setChatLoadingId(offer.id)
       try {
-        // Get receiver user ID
-        const receiverId = offer.receiver?.id
-        if (!receiverId) {
-          console.error('Receiver ID not found')
+        // Teklifin kendi odası varsa doğrudan o açılır; yoksa bu kişiyle mevcut sohbet aranır.
+        if (offer.room_id) {
+          router.push(`/dashboard/messages?roomId=${offer.room_id}`)
           return
         }
-
-        // Navigate to messages page with participant ID
+        const receiverId = offer.receiver?.id
+        if (!receiverId) return
         router.push(`/dashboard/messages?userId=${receiverId}`)
       } finally {
         setChatLoadingId(null)

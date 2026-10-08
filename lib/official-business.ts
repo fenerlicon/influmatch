@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { registrableDomain, websiteHost, emailDomain } from '@/lib/corporate-email'
+import { notifyUser } from '@/lib/notify'
 
 export const OFFICIAL_BADGE = 'official-business'
 const MAX_DISPLAYED_BADGES = 3
@@ -77,4 +78,70 @@ export async function syncOfficialBusiness(admin: SupabaseClient, userId: string
 
   if (shouldHave === hasBadge) return null
   return shouldHave ? 'granted' : 'revoked'
+}
+
+/**
+ * Sarı tiki olan veya alabilecek tüm markaları kurala göre eşitler (saatlik görev). Kurala uymayanın
+ * tiki geri alınır ve markaya bildirim gider; kuralı tamamlayan tiki alır (kullanıcı kararı, 2026-10-09).
+ */
+export async function sweepOfficialBusiness(admin: SupabaseClient) {
+  const [holders, displayed, candidates] = await Promise.all([
+    admin.from('user_badges').select('user_id').eq('badge_id', OFFICIAL_BADGE),
+    admin.from('users').select('id').contains('displayed_badges', [OFFICIAL_BADGE]),
+    admin
+      .from('users')
+      .select('id')
+      .eq('role', 'brand')
+      .eq('tax_id_verified', true)
+      .not('corporate_email_verified_at', 'is', null),
+  ])
+  const firstError = holders.error ?? displayed.error ?? candidates.error
+  if (firstError) throw new Error(`Sarı tik adayları okunamadı: ${firstError.message}`)
+
+  const ids = new Set<string>([
+    ...(holders.data ?? []).map((row) => row.user_id as string),
+    ...(displayed.data ?? []).map((row) => row.id as string),
+    ...(candidates.data ?? []).map((row) => row.id as string),
+  ])
+
+  const summary = { checked: 0, granted: 0, revoked: 0, errors: 0 }
+  for (const userId of Array.from(ids)) {
+    summary.checked++
+    try {
+      const change = await syncOfficialBusiness(admin, userId)
+      if (change === 'granted') {
+        summary.granted++
+        await notifyUser(
+          {
+            userId,
+            event: 'badge_change',
+            title: 'Resmi İşletme rozetiniz verildi',
+            message: 'Vergi levhanız ve kurumsal e-postanız doğrulandı; sarı tik profilinizde görünüyor.',
+            link: '/dashboard/brand/badges',
+            type: 'success',
+          },
+          admin,
+        )
+      }
+      if (change === 'revoked') {
+        summary.revoked++
+        await notifyUser(
+          {
+            userId,
+            event: 'badge_change',
+            title: 'Resmi İşletme rozetiniz kaldırıldı',
+            message:
+              'Sarı tik kuralı güncellendi: vergi levhası onayı ve şirket alan adınızdaki kurumsal e-postanın doğrulanması gerekiyor. Profilinizden tamamladığınızda rozet otomatik olarak geri gelir.',
+            link: '/dashboard/brand/profile',
+            type: 'warning',
+          },
+          admin,
+        )
+      }
+    } catch (error) {
+      summary.errors++
+      console.error(`[official-business] ${userId} değerlendirilemedi:`, error)
+    }
+  }
+  return summary
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
+import { toast } from 'sonner'
 import { updateOfferStatus } from '@/app/dashboard/influencer/offers/actions'
 
 interface OfferActionButtonsProps {
@@ -13,17 +14,19 @@ export default function OfferActionButtons({ offerId, onStatusChange }: OfferAct
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  // "Markayla görüş" (hold): teklif beklemede kalır, pazarlık için sohbet açılır (kullanıcı kararı, 2026-10-09).
   const handleAction = (status: 'accepted' | 'rejected' | 'hold') => {
     startTransition(async () => {
-      try {
-        const result = await updateOfferStatus(offerId, status)
-        onStatusChange?.(offerId, status, { roomId: result?.roomId ?? null, senderUserId: result?.senderUserId ?? null })
-        if (status === 'accepted' && result?.senderUserId) {
-          // Navigate to messages page with sender user ID
-          router.push(`/dashboard/messages?userId=${result.senderUserId}`)
-        }
-      } catch (error) {
-        console.error('Offer update failed', error)
+      const result = await updateOfferStatus(offerId, status)
+      if ('error' in result) {
+        toast.error(result.error)
+        return
+      }
+      onStatusChange?.(offerId, status, { roomId: result.roomId, senderUserId: result.senderUserId })
+      if (status === 'accepted') toast.success('Teklif kabul edildi.')
+      if (status === 'rejected') toast.success('Teklif reddedildi.')
+      if ((status === 'accepted' || status === 'hold') && result.roomId) {
+        router.push(`/dashboard/messages?roomId=${result.roomId}`)
       }
     })
   }
@@ -52,7 +55,7 @@ export default function OfferActionButtons({ offerId, onStatusChange }: OfferAct
         onClick={() => handleAction('hold')}
         className="flex items-center gap-2 rounded-2xl border border-yellow-400/60 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-200 transition hover:border-yellow-300 hover:text-yellow-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        ⏳ Beklet
+        💬 Markayla görüş
       </button>
     </div>
   )

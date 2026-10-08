@@ -2,6 +2,9 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { displayNameOf, notifyUser } from '@/lib/notify'
+import { parseChatImageUrl } from '@/lib/chat-image'
 
 export async function sendMessage(roomId: string, content: string) {
   const supabase = createSupabaseServerClient()
@@ -89,7 +92,7 @@ export async function sendMessage(roomId: string, content: string) {
 
   if (insertError) {
     console.error('Message insert error:', insertError)
-    return { success: false, error: `Mesaj gönderilemedi: ${insertError.message}` }
+    return { success: false, error: 'Mesaj gönderilemedi. Lütfen tekrar deneyin.' }
   }
 
   // Mesaj içeriği Postgres loglarına yazılmaz (eski log_message RPC'si içeriğin ilk 200
@@ -106,6 +109,23 @@ export async function sendMessage(roomId: string, content: string) {
   } catch (error) {
     console.warn('[sendMessage] Failed to update last_read metadata:', error)
   }
+
+  // Alıcıya bildirim: oda başına saatte en fazla bir; alıcı çevrimiçiyse e-posta gitmez (lib/notify.ts).
+  const admin = createSupabaseAdminClient()
+  const senderName = await displayNameOf(admin, user.id)
+  const preview = parseChatImageUrl(content.trim()) ? '📷 Fotoğraf' : content.trim().slice(0, 140)
+  await notifyUser(
+    {
+      userId: otherUserId,
+      event: 'message_new',
+      title: `${senderName} size mesaj gönderdi`,
+      message: preview,
+      link: `/dashboard/messages?roomId=${roomId}`,
+      // Mesaj içeriği e-postaya (üçüncü taraf sağlayıcıya) konmaz.
+      email: { subject: 'Yeni mesajınız var', text: `${senderName} size Influmatch üzerinden mesaj gönderdi.` },
+    },
+    admin,
+  )
 
   revalidatePath('/dashboard/messages')
   return { success: true, data }

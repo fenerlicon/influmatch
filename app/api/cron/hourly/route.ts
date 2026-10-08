@@ -5,6 +5,7 @@ import { expireSpotlights } from '@/lib/spotlight-expiry'
 import { sweepBlueTicks } from '@/lib/blue-tick'
 import { sweepMillionClub } from '@/lib/million-club'
 import { sweepActivityBadges } from '@/lib/activity-badges'
+import { sweepOfficialBusiness } from '@/lib/official-business'
 import { refreshStaleAccounts } from '@/lib/social-stats'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,7 @@ export const maxDuration = 60
  *
  * - Apify / Gemini anahtarlarının sağlık ve kredi kontrolü; sorun varsa admin'e özet e-posta.
  * - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar, eşiğin altına düşenler).
+ * - Sarı tik (Resmi İşletme) kurala göre eşitlenir; geri alınana bildirim gider.
  * - Milyon Kulübü rozeti (doğrulanmış hesapta 1M+ takipçi) ve etkinlik rozetleri (lib/activity-badges.ts).
  */
 export async function GET(req: Request) {
@@ -63,6 +65,13 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] Mavi tik değerlendirmesi başarısız:', error)
     result.blueTicksError = error instanceof Error ? error.message : String(error)
+  }
+
+  try {
+    result.officialBusiness = await sweepOfficialBusiness(admin)
+  } catch (error) {
+    console.error('[cron/hourly] Sarı tik değerlendirmesi başarısız:', error)
+    result.officialBusinessError = error instanceof Error ? error.message : String(error)
   }
 
   try {
