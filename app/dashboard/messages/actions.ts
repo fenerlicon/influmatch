@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { getLastReadMap } from '@/lib/room-reads'
 
 export async function getTotalUnreadCount() {
   const supabase = createSupabaseServerClient()
@@ -34,12 +35,12 @@ export async function getTotalUnreadCount() {
 
     if (!messages || messages.length === 0) return 0
 
-    // 3. Filter using user_metadata
-    const userMetadata = user.user_metadata || {}
+    // 3. Okundu zamanları room_reads tablosundan
+    const lastReadMap = await getLastReadMap(supabase, user.id, roomIds)
     let count = 0
 
     messages.forEach((msg) => {
-      const lastRead = userMetadata[`last_read_${msg.room_id}`]
+      const lastRead = lastReadMap.get(msg.room_id)
       // If never read OR message is newer than last read time
       if (!lastRead || new Date(msg.created_at) > new Date(lastRead)) {
         count++

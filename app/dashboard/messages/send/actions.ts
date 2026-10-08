@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { sendMessageAs } from '@/lib/messages'
+import { markRoomsRead } from '@/lib/room-reads'
 
 export async function sendMessage(roomId: string, content: string) {
   const supabase = createSupabaseServerClient()
@@ -14,12 +15,8 @@ export async function sendMessage(roomId: string, content: string) {
   const result = await sendMessageAs(supabase, user.id, roomId, content)
   if (!result.success) return result
 
-  // Gönderen için oda okundu sayılır (okunmamış sayısı metadata'dan hesaplanır, lib/unread-messages.ts).
-  try {
-    await supabase.auth.updateUser({ data: { [`last_read_${roomId}`]: new Date().toISOString() } })
-  } catch (error) {
-    console.warn('[sendMessage] last_read güncellenemedi:', error)
-  }
+  // Gönderen için oda okundu sayılır (room_reads, lib/room-reads.ts).
+  await markRoomsRead(supabase, user.id, [roomId])
 
   revalidatePath('/dashboard/messages')
   return result
