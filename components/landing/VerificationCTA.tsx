@@ -68,15 +68,15 @@ export default function VerificationCTA() {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
                                         <span className="text-gray-400 text-sm">Takipçiler</span>
-                                        <span className="text-white font-bold">10K+</span>
+                                        <span className="h-3 w-12 rounded bg-gray-700" aria-hidden="true" />
                                     </div>
                                     <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
                                         <span className="text-gray-400 text-sm">Etkileşim</span>
-                                        <span className="text-green-400 font-bold">%5.2</span>
+                                        <span className="h-3 w-12 rounded bg-gray-700" aria-hidden="true" />
                                     </div>
                                     <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
                                         <span className="text-gray-400 text-sm">Beğeniler</span>
-                                        <span className="text-white font-bold">2.5K</span>
+                                        <span className="h-3 w-12 rounded bg-gray-700" aria-hidden="true" />
                                     </div>
                                 </div>
                             </div>

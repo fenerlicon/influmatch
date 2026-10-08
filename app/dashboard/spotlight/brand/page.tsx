@@ -13,8 +13,8 @@ import { planPrice } from '@/lib/spotlight-plans'
 const features = [
     {
         icon: BrainCircuit,
-        title: 'AI Influencer Eşleşmesi',
-        description: 'Markanın kriterlerine, bütçesine ve tarzına en uygun influencerları yapay zeka ile bul.',
+        title: 'Akıllı Influencer Eşleşmesi',
+        description: 'Markanın kriterlerine, bütçesine ve tarzına en uygun influencerları akıllı eşleştirmeyle bul.',
     },
     {
         icon: Target,
@@ -39,7 +39,7 @@ const features = [
     {
         icon: Bot,
         title: 'Anti-Bot & Sentiment Analizi',
-        description: 'Takipçi kitlesinin organiklik durumunu ve içeriklerin güven puanını AI ile analiz et.',
+        description: 'Takipçi kitlesinin organiklik durumunu ve içeriklerin güven puanını analiz et.',
     },
 ]
 
@@ -130,7 +130,7 @@ export default function BrandSpotlightPage() {
                         Kişiselleştirilmiş <span className="text-blue-400">Zeka</span>
                     </h1>
                     <p className="mt-6 text-lg text-gray-400">
-                        Doğru influencer'la nokta atışı eşleşmek ve kampanyalarını veriye dayalı yönetmek için AI gücünü kullan.
+                        Doğru influencer'la nokta atışı eşleşmek ve kampanyalarını veriye dayalı yönetmek için akıllı eşleştirmeyi kullan.
                     </p>
                 </div>
 
@@ -143,7 +143,7 @@ export default function BrandSpotlightPage() {
             <section>
                 <div className="mb-8 flex items-center gap-4">
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
-                    <h2 className="text-xl font-semibold text-white">AI Match Avantajları</h2>
+                    <h2 className="text-xl font-semibold text-white">Akıllı Eşleştirme Avantajları</h2>
                     <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
                 </div>
                 <SpotlightFeatureList features={features} variant="brand" />
@@ -190,7 +190,7 @@ export default function BrandSpotlightPage() {
                         originalPrice={planPrice('mbasic', billingInterval).originalPrice}
                         interval={billingInterval}
                         features={[
-                            { text: "Sınırsız AI Eşleşme", highlight: true },
+                            { text: "Sınırsız Akıllı Eşleşme", highlight: true },
                             { text: "Anti-Bot Analizleri" },
                             { text: "Temel Filtreleme" },
                         ]}
@@ -208,7 +208,7 @@ export default function BrandSpotlightPage() {
                         originalPrice={planPrice('mpro', billingInterval).originalPrice}
                         interval={billingInterval}
                         features={[
-                            { text: "Sınırsız AI Eşleşme", highlight: true },
+                            { text: "Sınırsız Akıllı Eşleşme", highlight: true },
                             { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
                             { text: "Gelişmiş Filtreleme & Look-alike", highlight: true },
                             { text: "Brief Önceliklendirme (Premium)", highlight: true },

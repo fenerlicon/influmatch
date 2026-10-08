@@ -23,7 +23,8 @@
 
 1. **Kullanıcı adımları (mobil push):** Expo hesabında `eas init` (app.json'a `extra.eas.projectId` yazar) ve Android için
    FCM kimlik bilgisi. Bunlar olmadan cihaz push token alamaz; kod hazır. `npx expo install --check` ile paketler kurulmalı.
-2. **Kullanıcıya sorulacak:** uygulama adı ve paket kimliği (`app.json` şu an "mobile-app"; mağaza kararı).
+2. **Uygulama adı kararı verildi (2026-10-10):** "Influmatch", paket kimliği `net.influmatch.app`; `mobile-app/app.json`'a yazıldı
+   (slug `influmatch`). `eas init` bu ayarlardan sonra çalıştırılmalı.
 3. **Mobilde kalan küçük işler (istersen bak, karar gerektirmez):** bazı ekranlar `users` tablosuna doğrudan yazıyor
    (beyaz liste tetikleyicisi korumalı: izin dışı kolonlar sessizce düşer, ör. MyProfile `portfolio_urls`); destek/geri bildirim
    ve bildirim okundu işaretleme doğrudan tabloya. Güvenlik açığı değil; web ile tam aynı akış istenirse sunucu uçlarına taşınabilir.
@@ -135,7 +136,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 | 2.3-S2, 2.3-S3, 2.3-S4 | YÜKSEK/ORTA/DÜŞÜK | OAuth kapalı; açılırsa yapılacak. |
 | 5.3-S2 | ORTA | Okundu bilgisi `room_reads` tablosuna; mesajlaşma tasarımıyla birlikte. |
 | 4.3-S3 | DÜŞÜK | Ajans Spotlight sayfası notu (haritaya bak). |
-| 2.9-S1, 3.5-S2, 9.1-S2, 9.1-S3 | — | Kuyruğun en sonu (bölüm 8, kullanıcı kararı). |
+| 2.9-S1, 3.5-S2, 9.1-S2, 9.1-S3 | — | 2026-10-10'da yapıldı (bölüm 8). 3.5-S2'de kategori eşleşmesi açık. |
 
 ## 7. Teknik notlar (tekrar keşfetmemek için)
 
@@ -165,11 +166,13 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   (mobile-app içinde; node_modules kurulu değil).
 - **Build:** `next build` için `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` gerekli. Route sildikten sonra `rm -rf .next/types` çalıştır.
 
-## 8. Kuyruğun en sonu (kullanıcı kararı, 8 Ekim — "ne kaldı" sorulunca hatırlat)
+## 8. Kuyruğun en sonu (kullanıcı kararı — "ne kaldı" sorulunca hatırlat)
 
-- Arayüzdeki doğru olmayan iddialar: marka AI sayfasındaki "Yapay zeka algoritmamız … %95+ uyumlu" (3.5-S2, 2.9-S1),
-  ana sayfadaki "Resmi Entegrasyon Ortaklarımız" platform logoları (9.1-S2), sabit "%5.2", "10K+", "50+", "%100" rakamları (9.1-S3).
-- KVKK / kullanıcı sözleşmesi / açık rıza metinleri: `lib/legal-constants.ts` ile `app/legal/page.tsx` iki ayrı sürüm (1.7-S1);
-  metinler kısa, avukat incelemesi önerildi.
+- 2026-10-10'da karara bağlanıp yapılanlar: yapay zekâ iddiaları kaldırıldı (2.9-S1, 3.5-S2 metni), ortak logoları →
+  "Desteklenen Platformlar" (9.1-S2), sabit rakamlar kaldırıldı (9.1-S3), yasal metin tek kaynak (1.7-S1), ajans sayfası
+  kaldırıldı (4.3-S3).
+- Bekleyen: KVKK / kullanıcı sözleşmesi / açık rıza metinlerinin hukuki içeriği **avukattan gelecek**; gelince
+  `app/legal/page.tsx`'e yerleştirilir (Claude kendisi hukuki metin yazmaz).
 - 5 Yıldız rozeti (puanlama sistemi) ileriki güncellemede.
-
+- Ertelenenler: Drive yapısı (8.9-N1, "sonra"), kodla doğrulayanlara sınır (3.13-N2, OAuth açılınca), ücretsiz marka kotası
+  (3.13-N3/N4, kullanıcı sayısı büyüyünce).

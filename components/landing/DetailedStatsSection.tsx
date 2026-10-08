@@ -7,29 +7,21 @@ const statsFeatures = [
         icon: TrendingUp,
         title: 'Etkileşim Oranı Analizi',
         description: 'Beğeni, yorum ve izlenme oranlarını detaylı inceleyin.',
-        stat: '%5.2',
-        label: 'Ort. Etkileşim',
     },
     {
         icon: Percent,
         title: 'Güven Puanı (Trust Score)',
         description: 'Bot takipçi analizi ve hesap sağlığı kontrolü.',
-        stat: '98/100',
-        label: 'Güven Skoru',
     },
     {
         icon: CalendarClock,
         title: 'Paylaşım Sıklığı',
         description: 'Influencer\'ın içerik üretme düzenini ve istikrarını görün.',
-        stat: '2.4 Gün',
-        label: 'Ort. Sıklık',
     },
     {
         icon: MessageCircle,
         title: 'Detaylı Medya Analizi',
         description: 'Ortalama beğeni, yorum ve izlenme sayılarına ulaşın.',
-        stat: 'Aktif',
-        label: 'Veri Durumu',
     },
 ]
 
@@ -76,9 +68,6 @@ export default function DetailedStatsSection() {
                                 key={item.title}
                                 className="relative group rounded-2xl border border-white/5 bg-white/5 p-6 hover:bg-white/10 transition-colors duration-300"
                             >
-                                <div className="absolute top-4 right-4 text-xs font-mono text-gray-500 group-hover:text-white transition-colors">
-                                    {item.label}: <span className="text-white font-bold">{item.stat}</span>
-                                </div>
                                 <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
                                     <item.icon className="h-5 w-5 text-blue-400" />
                                 </div>

@@ -209,11 +209,11 @@ function BrandMatchShowcase() {
                 <div className="space-y-2">
                     <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
                         <Target className="h-3 w-3" />
-                        AI EŞLEŞME
+                        AKILLI EŞLEŞME
                     </div>
                     <h3 className="text-2xl font-bold text-white">Akıllı Eşleşme</h3>
                     <p className="text-sm text-gray-400">
-                        Yapay zeka algoritmaları, markanız için en doğru influencerları anında tespit eder ve önerir.
+                        Akıllı eşleştirme, markanız için en uygun influencerları kategori, etkileşim ve doğrulama verilerine göre sıralar.
                     </p>
                 </div>
                 <div className="relative h-48 rounded-2xl bg-black/50 border border-white/5 overflow-hidden flex items-center justify-center mt-auto">

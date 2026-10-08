@@ -54,10 +54,6 @@ export async function generateAIAnalysis(
     try {
         const analysis = generateLocalAnalysis(stats, mode, requestedType)
 
-        // Simulating a small network delay to make it feel like "thinking"
-        // Also helps with "Pro" feeling
-        await new Promise(resolve => setTimeout(resolve, 800))
-
         return { analysis }
 
     } catch (err: any) {
@@ -69,7 +65,7 @@ export async function generateAIAnalysis(
     }
 }
 
-// --- Local Intelligence Engine: LEGENDARY EDITION ---
+// --- Kural tabanlı profil analizi (yapay zekâ değil; istatistiklerden sabit kurallarla yorum üretir) ---
 
 function generateLocalAnalysis(stats: any, mode: 'brand-view' | 'influencer-view', type: AnalysisType): string[] {
     // --- METRIC EXTRACTION & NORMALIZATION ---
@@ -96,8 +92,8 @@ function generateLocalAnalysis(stats: any, mode: 'brand-view' | 'influencer-view
     // 3. "Audience Quality Score" (Etkili Kitle): Sadece sayı değil, aktif kişi sayısı.
     const activeAudience = followers * (engagementRate / 100)
 
-    // Helper: Select random item from array
-    const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)]
+    // Aynı istatistik her zaman aynı yorumu verir (rastgelelik yok).
+    const pick = (arr: string[]) => arr[0]
 
     const comments: string[] = []
 
@@ -252,8 +248,8 @@ function generateLocalAnalysis(stats: any, mode: 'brand-view' | 'influencer-view
         else comments.push("✅ Rüştünü İspatlamış: Ne yaptığını bilen, oturmuş bir profile sahip.")
     }
 
-    // Karıştır ve ilk 3'ü ver (Her seferinde farklı hissettirmesi için)
-    return comments.sort(() => 0.5 - Math.random()).slice(0, 3)
+    // Kural sırasına göre ilk 3 yorum
+    return comments.slice(0, 3)
 }
 
 function getRequiredTierName(type: AnalysisType): string {

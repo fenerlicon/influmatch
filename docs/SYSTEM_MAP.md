@@ -117,7 +117,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 ### 1.7 Onboarding sosyal doğrulama adımı
 - **Dosyalar:** `app/onboarding/verify/page.tsx`, `components/onboarding/SocialVerificationStep.tsx`
 - **İş:** Doğrulanmış IG/TikTok hesabı olmayan influencer'ı bio kodu akışına sokar (detay 2.1).
-- **Sorunlar:** **1.7-S1 [DÜŞÜK]** Yasal metin iki kopya (`lib/legal-constants.ts` ve `app/legal/page.tsx`).
+- **Sorunlar:** ✅ ~~**1.7-S1 [DÜŞÜK]**~~ (2026-10-10, kullanıcı kararı: tek kaynak `app/legal/page.tsx`; doğrulama ekranlarındaki "Sözleşmeleri" bağlantısı `/legal?tab=terms`'e gidiyor, kısa kopya `lib/legal-constants.ts` ve `LegalModal` silindi. Metinlerin hukuki içeriği avukat yazınca güncellenecek) Yasal metin iki kopya (`lib/legal-constants.ts` ve `app/legal/page.tsx`).
 
 ### 1.8 Dashboard layout kapıları
 - **Dosyalar:** `app/dashboard/layout.tsx`, `app/dashboard/page.tsx`,
@@ -245,7 +245,7 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 ### 2.9 İstatistik kartı ve "AI analiz"
 - **Dosyalar:** `components/profile/InfluencerStats.tsx`, `app/actions/ai-analysis.ts`
 - **Sorunlar:**
-  - **2.9-S1 [ORTA]** "AI analiz" yerel kural motoru + rastgele karıştırma + sahte 800 ms gecikme; LLM yok. Pazarlama dili yanıltıcı.
+  - ✅ ~~**2.9-S1 [ORTA]**~~ (2026-10-10, kullanıcı kararı "dürüst metin": sahte 800 ms bekleme ve rastgele seçim kaldırıldı, aynı istatistik aynı yorumu verir; arayüzde "AI/yapay zeka" ifadeleri "akıllı eşleştirme / profil analizi" oldu (marka AI sayfası, Spotlight sayfaları, ana sayfa SSS ve özellikler)) "AI analiz" yerel kural motoru + rastgele karıştırma + sahte 800 ms gecikme; LLM yok. Pazarlama dili yanıltıcı.
   - ✅ ~~**2.9-S2 [ORTA]**~~ (seviye tek yerden: `lib/subscription-tier.ts` (süre ve onay kontrollü, Pro planı tanıyor; eski `pro`/`elite` eşlemesi kaldırıldı). Markaların ücretsiz BRAND_PRO alması ürün kararı olarak 3.13'te) Her marka ücretsiz BRAND_PRO seviyesini alıyor; seviye eşlemesi dosyalar arasında farklı (`ipro`/`mpro`, eski `pro`/`elite`).
   - ✅ ~~**2.9-S3 [DÜŞÜK]**~~ (`statsPayload.changes` hiçbir ekranda okunmuyor, yazılmaması bir şeyi bozmuyor; `match_score` / `profile_coach` "Çok yakında" ürün kararı. TikTok metni düzeltilmişti) ("TikTok Resmi Entegrasyonu Aktif" → "Herkese açık TikTok profilinden alındı") `match_score` / `profile_coach` "Çok yakında" ile kapalı; `statsPayload.changes` hiç yazılmıyor; "TikTok Resmi Entegrasyonu Aktif" yazısı yanlış.
 
@@ -309,7 +309,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `app/dashboard/brand/ai/page.tsx`, `utils/fetchInfluencers.ts` (`getAIRecommendations`), `utils/matching.ts`
 - **Sorunlar:**
   - ✅ ~~**3.5-S1 [ORTA]**~~ (Spotlight yoksa sayfa plan ekranına yönlendiriyor; sezgisel skor/LLM yok notu sürüyor) Sayfada Spotlight kontrolü yok (yalnızca link Spotlight'a gösteriliyor); LLM yok, sezgisel skor.
-  - **3.5-S2 [DÜŞÜK]** "%95+ uyumlu" sabit iddia; marka ve influencer kategorileri farklı listelerden geldiği için eşleşme genelde boş havuza düşüyor; sınırsız `.in('id', ids)`.
+  - **3.5-S2 [DÜŞÜK]** (kısmen: "%95+ uyumlu" ve "Yapay zeka algoritmamız" metni 2026-10-10'da kaldırıldı, puan açıklaması eklendi; kategori eşleşmesi açık) "%95+ uyumlu" sabit iddia; marka ve influencer kategorileri farklı listelerden geldiği için eşleşme genelde boş havuza düşüyor; sınırsız `.in('id', ids)`.
 
 ### 3.6 Teklifler (marka → influencer)
 - **Dosyalar:** `components/profile/OfferModal.tsx` → `app/profile/actions.ts` (`createOffer`), `brand/offers/page.tsx`,
@@ -378,7 +378,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Notlar:**
   - **3.13-N1** Kod (bio) ile doğrulayan Instagram/TikTok hesaplarının belli verileri çekilemiyor: kazıma yalnızca herkese açık
     sayıları verir (takipçi, beğeni, yorum, izlenme). Erişim, gösterim, kaydetme, kitle demografisi yalnızca OAuth ile gelir.
-  - **3.13-N2** OAuth yerine kod ile doğrulayanlar dezavantajlı olmalı. Seçenekler: güven skorunda tavan, mavi tik/rozet yok,
+  - **3.13-N2** (2026-10-10, kullanıcı kararı: OAuth açılana kadar bekle; bugün herkes kodla doğruladığı için fark konmuyor) OAuth yerine kod ile doğrulayanlar dezavantajlı olmalı. Seçenekler: güven skorunda tavan, mavi tik/rozet yok,
     keşifte alt sıra, "resmi veri" etiketi yok, Spotlight sınırı.
   - **3.13-N3** Ücret ödemeyen markalar yalnızca kod ile doğrulanmış influencer/UGC'lere ulaşabilsin; OAuth ile bağlanmış
     profiller ücretli markalara ayrılsın.
@@ -419,7 +419,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     kolon beyaz listede olmadığı için sessizce düşüyor; cron da kapatmıyor. Süresi dolanlar sıralamada önde, +10 güven puanı ve mavi tik hakkı sürüyor.
     Fonksiyon ayrıca istemciden gelen `userId`'ye güveniyor.
   - ✅ ~~**4.3-S2 [ORTA]**~~ (fiyatlar `lib/spotlight-plans.ts`'te tek yerde (değerler değişmedi), seviye eşlemesi 2.9-S2 ile tekleşti; plan sayfaları metadata rolü okumuyor) Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor.
-  - **4.3-S3 [DÜŞÜK]** (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. Ajans sayfası ürün kararı) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
+  - ✅ ~~**4.3-S3 [DÜŞÜK]**~~ (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. 2026-10-10, kullanıcı kararı: ajans sayfası ve Spotlight seçimindeki "Agency Edition" kartı kaldırıldı; ajans paketi gelince eklenir) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller
 - **Dosyalar:** `app/actions/spotlight.ts` (`getSimilarInfluencers`), `SimilarProfilesModal.tsx`
@@ -733,7 +733,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**8.7-S4 [ORTA]**~~ (JSON-LD, sitemap ve robots influmatch.net) Alan adı tutarsızlığı: sitemap/robots/JSON-LD `influmatch.com`, geri kalan her şey `influmatch.net`.
 
 ### 8.9 Ürün notu: dosya depolama ("Drive" yapısı)
-- **8.9-N1** Siteye Drive benzeri bir dosya yapısı kurulacak (karar, 7 Ekim): görseller ve dosyalar (avatar, logo, ilan kapakları,
+- **8.9-N1** (2026-10-10, kullanıcı kararı: sonra; şimdilik dokunulmuyor) Siteye Drive benzeri bir dosya yapısı kurulacak (karar, 7 Ekim): görseller ve dosyalar (avatar, logo, ilan kapakları,
   sohbet ekleri, vergi belgeleri) için düzenli klasör yapısı ve daha düşük depolama/aktarım maliyeti. Bugünkü durum: Supabase
   Storage'da `avatars` (çoğu `{uid}/` klasöründe, eskiler kökte), `advert-hero-images` ve `feedback-images` (kökte, rastgele ad),
   `chat-attachments` (`{uid}/{oda}/...`), `tax-documents` (özel). Hepsi herkese açık URL ile servis ediliyor (vergi hariç),
@@ -755,8 +755,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   ValueProposition, FAQSection, BadgesSection, Footer)
 - **Sorunlar:**
   - ✅ ~~**9.1-S1 [ORTA]**~~ (ana sayfa vitrini is_showcase_visible=true filtreliyor) Vitrin `is_showcase_visible`'ı yok sayıyor; gizlenmiş profiller ana sayfada çıkabilir.
-  - **9.1-S2 [ORTA]** PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski).
-  - **9.1-S3 [DÜŞÜK]** (Footer `/discover` → `/spotlight`; gizlilik linki zaten düzgün) Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`.
+  - ✅ ~~**9.1-S2 [ORTA]**~~ (2026-10-10, kullanıcı kararı: başlık "Desteklenen Platformlar", yalnızca Instagram ve TikTok; "Resmi Partner" etiketi kaldırıldı) PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski).
+  - ✅ ~~**9.1-S3 [DÜŞÜK]**~~ (Footer `/discover` → `/spotlight`; gizlilik linki zaten düzgün. 2026-10-10, kullanıcı kararı "rakamları kaldır": ana sayfadaki sabit etkileşim/güven/sıklık rakamları, "%100 / 50+ / 10x / Tam" kutuları ve örnek profil kartındaki sayılar kaldırıldı) Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`.
 
 ### 9.2 Sitemap ve robots
 - **Dosyalar:** `app/sitemap.ts`, `app/robots.ts`

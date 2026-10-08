@@ -91,7 +91,7 @@ export default function BrandPipelineCard({
       isComingSoon: false,
       badge: (
         <div className="flex items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 backdrop-blur-sm">
-          <span className="text-[9px] font-bold tracking-widest text-blue-400 leading-none">WITH AI</span>
+          <span className="text-[9px] font-bold tracking-widest text-blue-400 leading-none">AKILLI</span>
         </div>
       ),
       customContent: (
@@ -116,7 +116,7 @@ export default function BrandPipelineCard({
                 Spotlight'a Yükseltin
               </Link>
               <p className="mt-3 text-sm">
-                AI eşleşmesi için
+                Akıllı eşleşme için
               </p>
             </>
           )}

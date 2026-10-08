@@ -1,8 +1,6 @@
 interface ValueCard {
   title: string
   description: string
-  metricLabel: string
-  metricValue: string
 }
 
 export default function ValueProposition() {
@@ -10,26 +8,18 @@ export default function ValueProposition() {
     {
       title: 'Komisyonsuz Çalışma',
       description: 'Aracı ve komisyon yok. Ödemeler doğrudan markadan influencera yapılır.',
-      metricLabel: 'KAZANÇ',
-      metricValue: '%100',
     },
     {
       title: 'Gelişmiş Filtreleme',
       description: 'Hedef kitlenize en uygun influencerları kolayca bulun.',
-      metricLabel: 'FİLTRE',
-      metricValue: '50+',
     },
     {
       title: 'Vitrin Özelliği',
       description: 'Başarılı kampanyalarınızı ve profilinizi öne çıkarın.',
-      metricLabel: 'GÖRÜNÜRLÜK',
-      metricValue: '10x',
     },
     {
       title: 'Yönetim Paneli',
       description: 'Tüm işbirliklerinizi tek bir yerden yönetin.',
-      metricLabel: 'KONTROL',
-      metricValue: 'Tam',
     },
   ]
 
@@ -88,14 +78,6 @@ export default function ValueProposition() {
                   {card.title}
                 </h3>
                 <p className="mt-2 text-sm text-gray-300">{card.description}</p>
-                <div className="mt-6 rounded-2xl bg-black/30 p-4">
-                  <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
-                    {card.metricLabel}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-soft-gold">
-                    {card.metricValue}
-                  </p>
-                </div>
               </div>
             ))}
           </div>

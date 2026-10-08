@@ -5,8 +5,8 @@ import { BrainCircuit, ShieldCheck, Zap, MessageSquare, Target, Activity } from 
 const features = [
     {
         icon: BrainCircuit,
-        title: 'AI Destekli Eşleşme',
-        description: 'Markanızın hedeflerine ve kimliğine en uygun influencerları yapay zeka algoritmalarımızla saniyeler içinde bulun.',
+        title: 'Akıllı Eşleşme',
+        description: 'Markanızın hedeflerine ve kimliğine en uygun influencerları akıllı eşleştirmeyle saniyeler içinde bulun.',
         color: 'text-purple-400',
         bg: 'bg-purple-500/10',
         border: 'border-purple-500/20',

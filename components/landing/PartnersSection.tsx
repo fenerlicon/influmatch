@@ -1,28 +1,17 @@
 
 import Image from 'next/image'
 
+// Yalnızca hesap doğrulama ve istatistik çekmede gerçekten desteklenen platformlar.
+// Resmi ortaklık iddiası yok (9.1-S2).
 const PARTNERS = [
-  {
-    name: 'TikTok',
-    logo: 'https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg',
-    isOfficial: true,
-  },
   {
     name: 'Instagram',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg',
   },
   {
-    name: 'Meta',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg',
+    name: 'TikTok',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg',
   },
-  {
-    name: 'YouTube',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg',
-  },
-  {
-    name: 'Google',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg',
-  }
 ]
 
 export default function PartnersSection() {
@@ -31,8 +20,8 @@ export default function PartnersSection() {
       <div className="container mx-auto px-6">
         <div className="flex flex-col items-center justify-center space-y-8">
           <div className="text-center">
-            <p className="text-[10px] uppercase tracking-[0.5em] text-soft-gold/60 font-medium">Güvenilir Altyapı</p>
-            <h3 className="mt-2 text-lg font-semibold text-white/80">Resmi Entegrasyon Ortaklarımız</h3>
+            <p className="text-[10px] uppercase tracking-[0.5em] text-soft-gold/60 font-medium">Platformlar</p>
+            <h3 className="mt-2 text-lg font-semibold text-white/80">Desteklenen Platformlar</h3>
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-10 sm:gap-x-16">
@@ -49,14 +38,10 @@ export default function PartnersSection() {
                     src={partner.logo}
                     alt={partner.name}
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                 </div>
-                {partner.isOfficial && (
-                  <span className="absolute -top-4 -right-2 rounded-full bg-soft-gold/10 border border-soft-gold/30 px-2 py-0.5 text-[7px] font-bold text-soft-gold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-1 group-hover:translate-y-0 text-center min-w-[80px]">
-                    RESMİ PARTNER
-                  </span>
-                )}
               </div>
             ))}
           </div>

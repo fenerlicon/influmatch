@@ -7,15 +7,15 @@ import { Plus, Minus } from 'lucide-react'
 const faqs = [
     {
         question: "Influmatch tam olarak nedir?",
-        answer: "Influmatch, markalar ile influencer'ları yapay zeka teknolojisi kullanarak en doğru şekilde bir araya getiren yeni nesil bir influencer marketing platformudur. Geleneksel ajans süreçlerini ortadan kaldırarak, hızlı, veriye dayalı ve güvenilir iş birlikleri kurmanızı sağlar."
+        answer: "Influmatch, markalar ile influencer'ları veriye dayalı eşleştirmeyle en doğru şekilde bir araya getiren yeni nesil bir influencer marketing platformudur. Geleneksel ajans süreçlerini ortadan kaldırarak, hızlı, veriye dayalı ve güvenilir iş birlikleri kurmanızı sağlar."
     },
     {
         question: "Platform nasıl çalışır?",
-        answer: "Süreç çok basit: Markalar kampanya oluşturur ve kriterlerini belirler. Yapay zeka algoritmamız, bu kriterlere en uygun influencer'ları eşleştirir. Influencer'lar ise kendilerine uygun kampanyalara başvurabilir veya doğrudan davet alabilirler. Anlaşma sağlandığında süreç platform üzerinden şeffaf bir şekilde yönetilir."
+        answer: "Süreç çok basit: Markalar kampanya oluşturur ve kriterlerini belirler. Eşleştirme sistemimiz, bu kriterlere en uygun influencer'ları öne çıkarır. Influencer'lar ise kendilerine uygun kampanyalara başvurabilir veya doğrudan davet alabilirler. Anlaşma sağlandığında süreç platform üzerinden şeffaf bir şekilde yönetilir."
     },
     {
         question: "Spotlight Üyeliği ne işe yarar?",
-        answer: "Spotlight, hem markalar hem de influencer'lar için geliştirilmiş premium bir üyelik modelidir. Spotlight üyeleri, arama sonuçlarında en üst sıralarda yer alır, detaylı profil/rakip analizlerine erişir, 'AI Koç' özelliğini kullanabilir ve gelişmiş filtreleme seçeneklerinden yararlanır. Kısacası, görünürlüğünüzü ve başarınızı katlar."
+        answer: "Spotlight, hem markalar hem de influencer'lar için geliştirilmiş premium bir üyelik modelidir. Spotlight üyeleri, arama sonuçlarında en üst sıralarda yer alır, detaylı profil/rakip analizlerine erişir, 'Profil Koçu' özelliğini kullanabilir ve gelişmiş filtreleme seçeneklerinden yararlanır. Kısacası, görünürlüğünüzü ve başarınızı katlar."
     },
     {
         question: "Ödemeler ve güvenlik nasıl sağlanıyor?",
@@ -31,7 +31,7 @@ const faqs = [
     },
     {
         question: "Influmatch'in arkasında kim var ve Social Art Medya ile bağı nedir?",
-        answer: "Influmatch, İstanbul'un öncü 360° dijital pazarlama, kreatif prodüksiyon ve reklam ajansı olan Social Art Medya tarafından geliştirilmiş ve desteklenen bir platformdur. Influmatch ekosisteminin arkasındaki tüm teknolojik altyapı, yapay zeka entegrasyonları ve kreatif vizyon, Social Art Medya'nın uzman ekibinin gücünü taşımaktadır."
+        answer: "Influmatch, İstanbul'un öncü 360° dijital pazarlama, kreatif prodüksiyon ve reklam ajansı olan Social Art Medya tarafından geliştirilmiş ve desteklenen bir platformdur. Influmatch ekosisteminin arkasındaki tüm teknolojik altyapı ve kreatif vizyon, Social Art Medya'nın uzman ekibinin gücünü taşımaktadır."
     }
 ]
 
