@@ -79,7 +79,7 @@ function RankingShowcase() {
                     </div>
                     <h3 className="text-2xl font-bold text-white">Zirveye Yerleşin</h3>
                     <p className="text-sm text-gray-400">
-                        Spotlight profilleri, marka aramalarında ve keşfet sayfalarında daima en üstte listelenir.
+                        Spotlight profilleri, marka aramalarında ve keşfet sayfalarında üst sıralarda listelenir.
                     </p>
                 </div>
                 <div className="relative h-48 overflow-hidden rounded-2xl bg-black/50 border border-white/5 p-4 flex flex-col justify-end gap-3 mt-auto">
@@ -119,13 +119,10 @@ function VisibilityShowcase() {
                     </div>
                     <h3 className="text-2xl font-bold text-white">Keşfedilme Hızı</h3>
                     <p className="text-sm text-gray-400">
-                        Profil görüntülenmeleriniz ve etkileşim oranlarınız roket hızıyla artışa geçer.
+                        Öne çıkan profiller markaların karşısına daha sık çıkar; görüntülenmelerini panelinden takip edersin.
                     </p>
                 </div>
                 <div className="relative h-48 rounded-2xl bg-black/50 border border-white/5 p-6 flex flex-col justify-end mt-auto">
-                    <div className="absolute top-4 right-4 text-xs font-mono text-blue-400">
-                        8.500+ Görüntülenme
-                    </div>
                     <div className="flex items-end gap-2 h-32 pl-2 border-l border-white/10 border-b pb-2">
                         {[20, 35, 30, 45, 40, 60, 55, 80, 75, 100].map((height, i) => (
                             <div
@@ -272,14 +269,8 @@ function BrandAnalyticsShowcase() {
                                         style={{ width: `${60 + i * 10}%`, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}
                                     />
                                 </div>
-                                <div className="w-8 text-[10px] text-gray-500 text-right">%{(60 + i * 10)}</div>
                             </div>
                         ))}
-                    </div>
-                    {/* Floating Stats Card */}
-                    <div className="absolute right-4 bottom-4 w-24 rounded-lg border border-white/10 bg-[#0F1014] p-2 shadow-lg animate-bounce">
-                        <div className="text-[10px] text-gray-400">ROI Artışı</div>
-                        <div className="text-base font-bold text-indigo-400">3.4x</div>
                     </div>
                 </div>
             </div>
@@ -299,7 +290,7 @@ function BrandFeaturedShowcase() {
                     </div>
                     <h3 className="text-2xl font-bold text-white">Öne Çıkan İlanlar</h3>
                     <p className="text-sm text-gray-400">
-                        Oluşturduğunuz kampanyalar vitrinde ve arama sonuçlarında en üstte listelenir, 3x daha fazla başvuru alın.
+                        Oluşturduğunuz ilanlar influencerların gördüğü topluluk listesinde üst sıralarda yer alır.
                     </p>
                 </div>
                 <div className="relative h-48 rounded-2xl bg-black/50 border border-white/5 p-4 flex flex-col justify-end gap-3 mt-auto overflow-hidden">

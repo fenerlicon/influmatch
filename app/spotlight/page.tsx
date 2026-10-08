@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { BadgeCheck, BrainCircuit, Crown, Sparkles, Users } from 'lucide-react'
+import { BrainCircuit, Crown, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import PricingCard from '@/components/spotlight/PricingCard'
 import { useRouter } from 'next/navigation'
-import { planPrice } from '@/lib/spotlight-plans'
+import { planFeatures, planPrice } from '@/lib/spotlight-plans'
 
 export default function PublicSpotlightPage() {
     const router = useRouter()
@@ -88,7 +88,7 @@ export default function PublicSpotlightPage() {
                             className={`rounded-lg px-6 py-2 text-sm font-medium transition-all ${billingInterval === 'yr' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            Yıllık <span className="ml-1 text-[10px] font-bold opacity-100 bg-white text-red-600 px-1 rounded-full">EKSTRA İNDİRİM</span>
+                            Yıllık
                         </button>
                     </div>
                 </div>
@@ -101,13 +101,8 @@ export default function PublicSpotlightPage() {
                                 <PricingCard
                                     title="Brand Basic"
                                     price={planPrice('mbasic', billingInterval).price}
-                                    originalPrice={planPrice('mbasic', billingInterval).originalPrice}
                                     interval={billingInterval}
-                                    features={[
-                                        { text: "Sınırsız Akıllı Eşleşme", highlight: true },
-                                        { text: "Anti-Bot Analizleri" },
-                                        { text: "Temel Filtreleme" },
-                                    ]}
+                                    features={planFeatures('mbasic')}
                                     variant="brand"
                                     buttonText="Kayıt Ol & Başla"
                                     onSelect={() => handleAction('brand')}
@@ -115,68 +110,13 @@ export default function PublicSpotlightPage() {
                                 <PricingCard
                                     title="Brand Pro"
                                     price={planPrice('mpro', billingInterval).price}
-                                    originalPrice={planPrice('mpro', billingInterval).originalPrice}
                                     interval={billingInterval}
-                                    features={[
-                                        { text: "Sınırsız Akıllı Eşleşme", highlight: true },
-                                        { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
-                                        { text: "Gelişmiş Filtreleme & Look-alike", highlight: true },
-                                        { text: "Brief Önceliklendirme (Premium)", highlight: true },
-                                        { text: "Favori Listeleri ve Klasörleme" },
-                                    ]}
+                                    features={planFeatures('mpro')}
                                     recommended
                                     variant="brand"
                                     buttonText="Kayıt Ol & Başla"
                                     onSelect={() => handleAction('brand')}
                                 />
-                            </div>
-                            {/* Agency Edition Card */}
-                            <div className="mt-12">
-                                <div className="relative overflow-hidden rounded-3xl border border-purple-500/30 bg-[#1A1B26] p-8 shadow-[0_0_40px_-10px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500/50 hover:shadow-[0_0_60px_-15px_rgba(168,85,247,0.3)]">
-                                    <div className="absolute top-0 right-0 rounded-bl-3xl bg-purple-600 px-6 py-2 text-sm font-bold text-white shadow-lg">
-                                        KURUMSAL
-                                    </div>
-
-                                    <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="rounded-xl bg-purple-500/20 p-3 text-purple-400">
-                                                    <Users className="h-8 w-8" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-2xl font-bold text-white">Agency Edition</h3>
-                                                    <p className="text-purple-300">Büyük ölçekli ekipler ve ajanslar için</p>
-                                                </div>
-                                            </div>
-                                            <div className="md:flex md:gap-8 space-y-2 md:space-y-0">
-                                                <div className="flex items-center gap-2 text-gray-300">
-                                                    <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                                    <span>Çoklu Kullanıcı Yönetimi</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-300">
-                                                    <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                                    <span>White-Label Raporlama</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-300">
-                                                    <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                                    <span>Özel Entegrasyonlar</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col items-start gap-4 lg:items-end">
-                                            <div className="text-left lg:text-right">
-                                                <p className="text-sm text-gray-400">Size özel çözümler için</p>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-3xl font-bold text-white">Teklif Alın</span>
-                                                </div>
-                                            </div>
-                                            <Link href="mailto:destek@influmatch.net" className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95">
-                                                İletişime Geçin
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     ) : (
@@ -185,13 +125,8 @@ export default function PublicSpotlightPage() {
                                 <PricingCard
                                     title="Spotlight Basic"
                                     price={planPrice('ibasic', billingInterval).price}
-                                    originalPrice={planPrice('ibasic', billingInterval).originalPrice}
                                     interval={billingInterval}
-                                    features={[
-                                        { text: "Vitrin Rozeti", highlight: true },
-                                        { text: "Öncelikli Listeleme" },
-                                        { text: "Temel Profil Analizi" },
-                                    ]}
+                                    features={planFeatures('ibasic')}
                                     variant="influencer"
                                     buttonText="Kayıt Ol & Başla"
                                     onSelect={() => handleAction('influencer')}
@@ -199,68 +134,13 @@ export default function PublicSpotlightPage() {
                                 <PricingCard
                                     title="Spotlight Pro"
                                     price={planPrice('ipro', billingInterval).price}
-                                    originalPrice={planPrice('ipro', billingInterval).originalPrice}
                                     interval={billingInterval}
-                                    features={[
-                                        { text: "Vitrin Rozeti", highlight: true },
-                                        { text: "En Üst Sırada Listeleme", highlight: true },
-                                        { text: "Hızlı Eşleşme Önceliği (Premium)", highlight: true },
-                                        { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
-                                        { text: "İçerik Asistanı" },
-                                    ]}
+                                    features={planFeatures('ipro')}
                                     recommended
                                     variant="influencer"
                                     buttonText="Kayıt Ol & Başla"
                                     onSelect={() => handleAction('influencer')}
                                 />
-                            </div>
-                            {/* Agency Edition Card Influencer Side (Talent Management) */}
-                            <div className="mt-12">
-                                <div className="relative overflow-hidden rounded-3xl border border-purple-500/30 bg-[#1A1B26] p-8 shadow-[0_0_40px_-10px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500/50 hover:shadow-[0_0_60px_-15px_rgba(168,85,247,0.3)]">
-                                    <div className="absolute top-0 right-0 rounded-bl-3xl bg-purple-600 px-6 py-2 text-sm font-bold text-white shadow-lg">
-                                        KURUMSAL
-                                    </div>
-
-                                    <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="rounded-xl bg-purple-500/20 p-3 text-purple-400">
-                                                    <Users className="h-8 w-8" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-2xl font-bold text-white">Agency Edition</h3>
-                                                    <p className="text-purple-300">Talent management ajansları için</p>
-                                                </div>
-                                            </div>
-                                            <div className="md:flex md:gap-8 space-y-2 md:space-y-0">
-                                                <div className="flex items-center gap-2 text-gray-300">
-                                                    <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                                    <span>Sınırsız Talent Yönetimi</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-300">
-                                                    <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                                    <span>Toplu Başvuru Gönderimi</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-gray-300">
-                                                    <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                                    <span>Ajans Vitrini</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col items-start gap-4 lg:items-end">
-                                            <div className="text-left lg:text-right">
-                                                <p className="text-sm text-gray-400">Ajanslar için özel çözümler</p>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-3xl font-bold text-white">Teklif Alın</span>
-                                                </div>
-                                            </div>
-                                            <Link href="mailto:destek@influmatch.net" className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95">
-                                                Ajans Başvurusu
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     )}
