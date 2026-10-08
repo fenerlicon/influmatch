@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-10. `claude/remaining-decisions` dalı itildi (PR'ı kullanıcı açacak); öncesi `main`'de ve canlı.
+> Son güncelleme: 2026-10-10. `claude/collab-phase1` dalı itildi (yol haritası özellik 1; PR açılmadı); öncesi `main`'de ve canlı.
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -20,6 +20,12 @@
   mobilde profil/vitrin/destek/geri bildirim/bildirim okundu yazımları web uçlarına (`/api/mobile/{profile,showcase,support,feedback,notifications}`),
   marka sektörü → influencer kategorisi eşlemesi (3.5-S2, `lib/category-map.ts`), Gemini tamamen kaldırıldı (6.7-S1),
   gönderisiz Instagram/TikTok hesabı doğrulanmıyor (3.13-N6). Yeni bulgular: 10.3-S18…S23, 5.3-S3, 6.7-S2.
+- **Yol haritası özellik 1 (`claude/collab-phase1`):** tek iş birliği akışı + fiyat kartı (SYSTEM_MAP 3.14). Teklif/başvuru kabulünde
+  `collaborations` kaydı; aşamalar anlaşıldı → içerik hazırlanıyor → yayın linki → tamamlandı/iptal; marka 7 gün yanıt vermezse saatlik görev
+  tamamlar. Web `/dashboard/collaborations` (iki rol, kenar çubuğunda "İş Birlikleri"), mobil `Collaborations` ekranı (Teklifler ekranındaki
+  düğmeden), `/api/mobile/collaborations`. Fiyat kartı `rate_cards` (yalnızca sahibi + doğrulanmış marka + admin, RLS), web profil düzenleme ve
+  mobil MyProfile'dan; marka profil/detayda görür, keşifte "Bütçem" filtresi (web + mobil). Tamamlanan iş birliği sayısı profilde, keşif kartında,
+  mobil detayda. Tablolar canlıda (`20261010000001`), RLS rollback'li denemeyle doğrulandı. **Çok hesaplı toplu test bu aşamadan sonra.**
 - **Canlı SQL:** bekleyen yok (`20261010000000_room_reads.sql` canlıya uygulandı ve doğrulandı). İsteğe bağlı temizlikler
   haritada: 5.3-S3 (eski metadata anahtarları), 6.7-S1 (gemini satırı), 10.3-S21 (eski kategori etiketleri). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -157,7 +163,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   - `storage.objects` üzerinde politika oluşturma, silme ve yeniden adlandırma yetkisi yok ("must be owner"). ALTER POLICY ... WITH CHECK/USING ise çalışıyor.
   - DROP POLICY gerekirse kullanıcıya SQL olarak ver.
 - **Realtime yayını:**
-  - Yayındaki tablolar: messages, offers, advert_applications, rooms, dismissed_offers, notifications, support_tickets, message_reports, user_badges.
+  - Yayındaki tablolar: messages, offers, advert_applications, rooms, dismissed_offers, notifications, support_tickets, message_reports, user_badges, collaborations.
   - `users` bilerek dışarıda (gizli kolonlar var).
 - **`users` gizli kolonları:** tax_id gibi kolonlar istemci rolüne okunamaz. Bu yüzden onboarding upsert yerine ayrı update/insert yapıyor. Gizli alanları sunucu, admin istemcisiyle yazar.
 - **Okunmamış mesaj sayısı:** `components/dashboard/useUnreadMessageCount.ts` içinde tek kanaldan izleniyor. Okundu bilgisi `room_reads`
@@ -168,10 +174,14 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
-  Aynı desende: `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`.
+  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`.
   Mobil kategori listesi `mobile-app/constants/categories.js` web `utils/categories.ts` ile aynı tutulmalı.
 - **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
   kolonları geçirir (rol, onay, spotlight vb. sessizce düşer); onaylı markanın yasal bilgisi değişirse onay düşer.
+- **Yeni tablo güvenliği:** Supabase varsayılan yetkileri yeni tabloda anon/authenticated'a tüm yetkileri verir ve RLS kapalı doğar.
+  `CREATE TABLE` ile `ENABLE ROW LEVEL SECURITY` + `REVOKE` aynı `execute_sql` çağrısında olmalı (2026-10-10'da çağrı zaman aşımına
+  uğrayınca `collaborations` birkaç dakika RLS'siz kaldı; içinde veri yokken kapatıldı). `REVOKE ALL` izin sisteminde reddedilebiliyor;
+  `REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER` + `REVOKE SELECT ... FROM anon` çalışıyor.
 - **Canlıya DDL:** 2026-10-10'da `apply_migration` zaman aşımına uğradı, `execute_sql` ile parça parça uygulandı. Daha önce `apply_migration` izin sisteminde engelliydi; SQL `supabase/manual/` altına yazılır, kullanıcı SQL Editor'de
   çalıştırır. SQL Editor uyumu: fonksiyonlarda DECLARE yok, yorumlarda kesme işareti ve soru işareti yok.
 - **git push:** düz push sessizce asılı kalabiliyor; `GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git -c credential.helper=
