@@ -1,6 +1,7 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-10. `claude/collab-phase1` dalı itildi (yol haritası özellik 1; PR açılmadı); öncesi `main`'de ve canlı.
+> Son güncelleme: 2026-10-10. `claude/map-cleanup-cookies` dalı itildi (10.3-S23, 6.7-S2, 3.10-S1, çerez banner'ı; PR açılmadı).
+> `claude/collab-phase1` (yol haritası özellik 1) ayrıca itildi; öncesi `main`'de ve canlı.
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -26,8 +27,13 @@
   düğmeden), `/api/mobile/collaborations`. Fiyat kartı `rate_cards` (yalnızca sahibi + doğrulanmış marka + admin, RLS), web profil düzenleme ve
   mobil MyProfile'dan; marka profil/detayda görür, keşifte "Bütçem" filtresi (web + mobil). Tamamlanan iş birliği sayısı profilde, keşif kartında,
   mobil detayda. Tablolar canlıda (`20261010000001`), RLS rollback'li denemeyle doğrulandı. **Çok hesaplı toplu test bu aşamadan sonra.**
-- **Canlı SQL:** bekleyen yok (`20261010000000_room_reads.sql` canlıya uygulandı ve doğrulandı). İsteğe bağlı temizlikler
-  haritada: 5.3-S3 (eski metadata anahtarları), 6.7-S1 (gemini satırı), 10.3-S21 (eski kategori etiketleri). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
+- **`claude/map-cleanup-cookies`:** mobil onboarding web sunucu koduna taşındı (`lib/onboarding.ts`, `/api/mobile/onboarding`, 10.3-S23);
+  `moveApiKey` tek SQL fonksiyonu `move_api_key` (6.7-S2, canlıda); vergi levhası yalnızca imzalı yükleme adresiyle (3.10-S1);
+  web kök layout'ta çerez banner'ı, Speed Insights yalnızca "Tümünü kabul et" sonrası (1.12-S2). **Banner metni avukat onayından geçmeli.**
+- **Canlı SQL:** `20261010000002_move_api_key.sql` canlıda. **Bekleyen:** `supabase/manual/2026-10-10_vergi_yukleme.sql` (3.10-S1,
+  depolama INSERT politikasını kapatır) — `claude/map-cleanup-cookies` birleşip yayın READY olduktan **sonra** çalıştırılmalı.
+  5.3-S3 eski metadata anahtarları kullanıcı onayıyla silindi (0 doğrulandı). İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
+  (`DELETE FROM public.api_keys WHERE provider = 'gemini';`), 10.3-S21 eski kategori etiketleri. 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
 
 ## 2. Sıradaki işler
@@ -38,7 +44,7 @@
    FCM kimlik bilgisi. Bunlar olmadan cihaz push token alamaz; kod hazır. `npx expo install --check` ile paketler kurulmalı.
 2. **Uygulama adı kararı verildi (2026-10-10):** "Influmatch", paket kimliği `net.influmatch.app`; `mobile-app/app.json`'a yazıldı
    (slug `influmatch`). `eas init` bu ayarlardan sonra çalıştırılmalı.
-3. **Mobilde kalan:** onboarding hâlâ `users`'a doğrudan yazıyor (10.3-S23); web onboarding koduna taşınmalı.
+3. **Mobil onboarding** web koduna taşındı (10.3-S23, 2026-10-10). Mobilde doğrudan tabloya yazan yalnızca favoriler (RLS'li).
 4. **8.7-S1:** rocketapi.io anahtarının panelden iptali kullanıcıda; iptal edilince ✅.
 5. **OAuth (karar 2026-10-10): mağaza yayınından sonra** açılacak: 2.3-S2, 2.3-S3, 2.3-S4 ve 3.13 kod/OAuth ayrımı.
 6. **Takip panosu:** artifact başka hesapta; bu hesap (hello@socialartajans.com) erişemiyor. Erişimi olan oturum
@@ -92,6 +98,7 @@
 | Kategori eşlemesi (10 Ekim) | Listeler değişmez; marka sektörü → influencer kategorileri eşlemesi (`lib/category-map.ts`). |
 | Gemini (10 Ekim) | Tamamen kaldırıldı (havuz yalnızca Apify). |
 | Gönderisiz hesaplar (10 Ekim) | Yeni doğrulamada reddediliyor (3.13-N6); doğrulanmış hesaplar kalır. |
+| Çerez banner'ı (10 Ekim) | "Şimdi ekle." Yalnızca web; zorunlu / tümü seçimi, 12 ay çerez. Metin avukata gösterilecek. |
 | Çevrimiçi / son görülme (8 Ekim) | Admin panelinde her kullanıcı için. Uygulandı (dakikalık sinyal + son giriş zamanı). |
 
 ## 4. Karar bekleyenler
@@ -152,8 +159,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 |---|---|---|
 | 8.7-S1 | KRİTİK | Dosya silindi; rocketapi.io anahtarının iptali kullanıcıda. |
 | 2.3-S2, 2.3-S3, 2.3-S4 | YÜKSEK/ORTA/DÜŞÜK | OAuth kapalı; mağaza yayınından sonra açılacak. |
-| 10.3-S23 | ORTA | Mobil onboarding doğrudan yazıyor; web koduna taşınmalı. |
-| 5.3-S3, 6.7-S2 | DÜŞÜK | Eski okundu metadata anahtarları; `moveApiKey` transaction'sız. |
+| 10.3-S23, 5.3-S3, 6.7-S2, 3.10-S1, 1.12-S2 | — | 2026-10-10'da yapıldı (3.10-S1 politika SQL'i yayından sonra kullanıcıda). |
 | 2.9-S1, 3.5-S2, 5.3-S2, 6.7-S1, 3.13-N6, 9.1-S2, 9.1-S3 | — | 2026-10-10'da yapıldı. |
 
 ## 7. Teknik notlar (tekrar keşfetmemek için)
@@ -174,7 +180,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
-  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`.
+  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`, `lib/onboarding.ts`.
+- **Vergi levhası yükleme:** istemci kovaya doğrudan yüklemez; `createTaxUploadUrlAs` imzalı adres verir (`uploadToSignedUrl`).
   Mobil kategori listesi `mobile-app/constants/categories.js` web `utils/categories.ts` ile aynı tutulmalı.
 - **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
   kolonları geçirir (rol, onay, spotlight vb. sessizce düşer); onaylı markanın yasal bilgisi değişirse onay düşer.
@@ -196,7 +203,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - 2026-10-10'da karara bağlanıp yapılanlar: yapay zekâ iddiaları kaldırıldı (2.9-S1, 3.5-S2 metni), ortak logoları →
   "Desteklenen Platformlar" (9.1-S2), sabit rakamlar kaldırıldı (9.1-S3), yasal metin tek kaynak (1.7-S1), ajans sayfası
   kaldırıldı (4.3-S3).
-- Bekleyen: KVKK / kullanıcı sözleşmesi / açık rıza metinlerinin hukuki içeriği **avukattan gelecek**; gelince
+- Bekleyen: KVKK / kullanıcı sözleşmesi / açık rıza metinlerinin ve **çerez banner'ı metninin** (`components/consent/CookieConsent.tsx`) hukuki içeriği **avukattan gelecek**; gelince
   `app/legal/page.tsx`'e yerleştirilir (Claude kendisi hukuki metin yazmaz).
 - 5 Yıldız rozeti (puanlama sistemi) mağaza yayınından sonra (karar 2026-10-10).
 - Ertelenenler: Drive yapısı (8.9-N1, "sonra"), kodla doğrulayanlara sınır (3.13-N2, OAuth açılınca), ücretsiz marka kotası

@@ -85,20 +85,9 @@ export async function setApiKeyEnabled(id: string, enabled: boolean) {
 
 export async function moveApiKey(id: string, direction: 'up' | 'down') {
   return withAdmin(async (admin) => {
-    const key = await getKey(admin, id)
-    const keys = await listApiKeys(admin, key.provider)
-    const index = keys.findIndex((k) => k.id === id)
-    const target = direction === 'up' ? index - 1 : index + 1
-    if (index < 0 || target < 0 || target >= keys.length) return undefined
-
-    ;[keys[index], keys[target]] = [keys[target], keys[index]]
-    for (const [position, k] of keys.entries()) {
-      const priority = (position + 1) * 10
-      if (k.priority !== priority) {
-        const { error } = await admin.from('api_keys').update({ priority }).eq('id', k.id)
-        if (error) throw new Error(error.message)
-      }
-    }
+    // Yer değiştirme ve yeniden numaralama tek SQL ifadesinde (tek transaction): public.move_api_key, yalnızca service role.
+    const { error } = await admin.rpc('move_api_key', { p_id: id, p_direction: direction })
+    if (error) throw new Error(error.message)
     return undefined
   })
 }

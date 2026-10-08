@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView,
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { apiRequest } from '../lib/api';
 import { resolveHomeRoute } from '../lib/routing';
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, MapPin, AlignLeft, Globe, Instagram, Youtube, Music2, ChevronRight, ChevronLeft, Hash, Building, AtSign, AlertCircle, X, Search, CheckCircle, XCircle, Camera, Check } from 'lucide-react-native';
@@ -31,10 +32,13 @@ export default function OnboardingScreen({ navigation }) {
     const [user, setUser] = useState(null);
     const [showCityModal, setShowCityModal] = useState(false);
     const [citySearch, setCitySearch] = useState('');
+    // Şehir seçici iki alan için kullanılır: profil şehri ve vergi dairesinin ili.
+    const [cityField, setCityField] = useState('city');
 
     const [formData, setFormData] = useState({
+        fullName: '',
         username: '',
-        corporateName: '',
+        corporateEmail: '',
         bio: '',
         city: '',
         website: '',
@@ -42,6 +46,8 @@ export default function OnboardingScreen({ navigation }) {
         tiktok: '',
         youtube: '',
         taxId: '',
+        taxOffice: '',
+        taxOfficeCity: '',
         category: '',
         creatorType: '',
         avatar_url: '',
@@ -175,8 +181,13 @@ export default function OnboardingScreen({ navigation }) {
         }
     }
 
-    // Submit
+    // Submit: kayıt web ile aynı sunucu kodundan geçer (/api/mobile/onboarding → lib/onboarding.ts).
     async function handleSubmit() {
+        if (!formData.fullName.trim()) {
+            showToast(role === 'brand' ? 'Lütfen marka adını girin.' : 'Lütfen adınızı ve soyadınızı girin.', 'info');
+            return;
+        }
+
         if (!formData.username || !formData.city) {
             showToast('Lütfen Kullanıcı Adı ve Şehir alanlarını doldurun.', 'info');
             return;
@@ -184,6 +195,11 @@ export default function OnboardingScreen({ navigation }) {
 
         if (usernameStatus === 'taken') {
             showToast('Lütfen farklı bir kullanıcı adı seçin.', 'error');
+            return;
+        }
+
+        if (!formData.avatar_url) {
+            showToast(role === 'brand' ? 'Lütfen marka logosu yükleyin.' : 'Lütfen profil fotoğrafı yükleyin.', 'info');
             return;
         }
 
@@ -197,7 +213,6 @@ export default function OnboardingScreen({ navigation }) {
             return;
         }
 
-
         // Zorunlu alan kontrolü - Sosyal Medya (sadece influencer için)
         if (role === 'influencer') {
             const hasSocial = (formData.instagram?.trim()) || (formData.tiktok?.trim()) || (formData.youtube?.trim());
@@ -207,39 +222,47 @@ export default function OnboardingScreen({ navigation }) {
             }
         }
 
+        if (role === 'brand' && (!formData.website.trim() || !formData.corporateEmail.trim())) {
+            showToast('Lütfen web sitesi ve kurumsal e-posta alanlarını doldurun.', 'info');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const updates = {
-                username: formData.username,
-                bio: formData.bio,
-                city: formData.city,
-                avatar_url: formData.avatar_url,
-                social_links: {
-                    instagram: formData.instagram ? `https://instagram.com/${formData.instagram}` : null,
-                    tiktok: formData.tiktok ? `https://tiktok.com/@${formData.tiktok}` : null,
-                    youtube: formData.youtube ? `https://youtube.com/${formData.youtube}` : null,
-                    website: formData.website
+            const hasTaxId = role === 'brand' && formData.taxId.trim();
+            const result = await apiRequest('onboarding', {
+                method: 'POST',
+                body: {
+                    role,
+                    fullName: formData.fullName,
+                    username: formData.username,
+                    city: formData.city,
+                    bio: formData.bio,
+                    avatarUrl: formData.avatar_url || null,
+                    // Kullanıcı adı veya link; sunucu web kurallarıyla doğrulayıp normalize eder.
+                    socialLinks: {
+                        instagram: formData.instagram.trim() || null,
+                        tiktok: formData.tiktok.trim() || null,
+                        youtube: formData.youtube.trim() || null,
+                        website: role === 'brand' ? formData.website.trim() || null : null,
+                    },
+                    ...(role === 'influencer'
+                        ? { category: formData.category, creatorType: formData.creatorType }
+                        : {
+                            corporateEmail: formData.corporateEmail.trim(),
+                            taxId: hasTaxId ? formData.taxId.trim() : null,
+                            taxOffice: hasTaxId ? formData.taxOffice.trim() : null,
+                            taxOfficeCity: hasTaxId ? formData.taxOfficeCity : null,
+                        }
+                    ),
                 },
-                ...(role === 'influencer'
-                    ? { category: formData.category, creator_type: formData.creatorType }
-                    : {
-                        company_legal_name: formData.corporateName.trim() || null,
-                        tax_id: formData.taxId.trim() || null,
-                    }
-                )
-            };
-
-            const { error: updateError } = await supabase
-                .from('users')
-                .update(updates)
-                .eq('id', user.id);
-
-            if (updateError) throw updateError;
-
-            await supabase.auth.updateUser({
-                data: { username: formData.username, is_onboarded: true }
             });
+
+            if (result.error || !result.success) {
+                showToast(result.error || 'Profil kaydedilemedi. Lütfen tekrar deneyin.', 'error');
+                return;
+            }
 
             showToast('Profiliniz oluşturuldu!', 'success');
             // Influencer doğrulanmış sosyal hesabı yoksa zorunlu doğrulama ekranına gider (lib/routing.js).
@@ -250,7 +273,7 @@ export default function OnboardingScreen({ navigation }) {
 
         } catch (error) {
             console.log('Onboarding Error:', error);
-            showToast('Hata: ' + (error.message || JSON.stringify(error)), 'error');
+            showToast('Profil kaydedilemedi. Lütfen tekrar deneyin.', 'error');
         } finally {
             setLoading(false);
         }
@@ -330,6 +353,21 @@ export default function OnboardingScreen({ navigation }) {
 
                         <View className="space-y-6">
 
+                            {/* Ad Soyad / Marka Adı */}
+                            <View className="space-y-2">
+                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">{role === 'brand' ? 'Marka Adı' : 'Ad Soyad'}</Text>
+                                <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
+                                    {role === 'brand' ? <Building color="#6B7280" size={18} /> : <User color="#6B7280" size={18} />}
+                                    <TextInput
+                                        className="flex-1 text-white font-medium"
+                                        placeholder={role === 'brand' ? 'Markanızın Adı' : 'Adınız Soyadınız'}
+                                        placeholderTextColor="#4B5563"
+                                        value={formData.fullName}
+                                        onChangeText={(t) => updateField('fullName', t)}
+                                    />
+                                </View>
+                            </View>
+
                             {/* Kullanıcı Adı */}
                             <View className="space-y-2">
                                 <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Kullanıcı Adı</Text>
@@ -403,19 +441,41 @@ export default function OnboardingScreen({ navigation }) {
 
                             {role === 'brand' && (
                                 <View className="space-y-4">
-                                    {/* Marka / Şirket Adı */}
+                                    {/* Web sitesi (zorunlu; kurumsal e-posta bu alan adına ait olmalı) */}
                                     <View className="space-y-2">
-                                        <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Marka / Şirket Adı</Text>
+                                        <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Web Sitesi</Text>
                                         <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
-                                            <Building color="#6B7280" size={18} />
+                                            <Globe color="#6B7280" size={18} />
                                             <TextInput
                                                 className="flex-1 text-white font-medium"
-                                                placeholder="Şirket Adı A.Ş."
+                                                placeholder="https://www.markaniz.com"
                                                 placeholderTextColor="#4B5563"
-                                                value={formData.corporateName}
-                                                onChangeText={(t) => updateField('corporateName', t)}
+                                                autoCapitalize="none"
+                                                keyboardType="url"
+                                                value={formData.website}
+                                                onChangeText={(t) => updateField('website', t)}
                                             />
                                         </View>
+                                    </View>
+
+                                    {/* Kurumsal e-posta */}
+                                    <View className="space-y-2">
+                                        <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Kurumsal E-posta</Text>
+                                        <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
+                                            <AtSign color="#6B7280" size={18} />
+                                            <TextInput
+                                                className="flex-1 text-white font-medium"
+                                                placeholder="ad@markaniz.com"
+                                                placeholderTextColor="#4B5563"
+                                                autoCapitalize="none"
+                                                keyboardType="email-address"
+                                                value={formData.corporateEmail}
+                                                onChangeText={(t) => updateField('corporateEmail', t)}
+                                            />
+                                        </View>
+                                        <Text className="text-gray-500 text-[10px] ml-1 leading-4">
+                                            Web sitenizin alan adına ait bir e-posta olmalı (giriş e-postanızdan farklı olabilir). "Resmi İşletme" rozeti için bu adrese gönderilen kodla doğrulanır.
+                                        </Text>
                                     </View>
 
                                     {/* Vergi Numarası */}
@@ -427,24 +487,52 @@ export default function OnboardingScreen({ navigation }) {
                                             </View>
                                         </View>
                                         <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
-                                            <Building color="#6B7280" size={18} />
+                                            <Hash color="#6B7280" size={18} />
                                             <TextInput
                                                 className="flex-1 text-white font-medium"
                                                 placeholder="1234567890"
                                                 placeholderTextColor="#4B5563"
                                                 keyboardType="number-pad"
+                                                maxLength={14}
                                                 value={formData.taxId}
                                                 onChangeText={(t) => updateField('taxId', t)}
                                             />
                                         </View>
-                                        {/* Info banner */}
-                                        <View className="flex-row items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-2xl px-4 py-3 mt-1">
-                                            <AlertCircle color="#fbbf24" size={15} style={{ marginTop: 1 }} />
-                                            <Text className="flex-1 text-amber-200/80 text-[11px] leading-5">
-                                                Vergi levhanızı ekleyerek <Text className="text-amber-300 font-bold">"Resmi İşletme"</Text> rozeti kazanabilirsin. Rozet için vergi numarasının admin tarafından onaylanması gerekir.
-                                            </Text>
-                                        </View>
+                                        <Text className="text-gray-500 text-[10px] ml-1 leading-4">
+                                            Şirketler 10 haneli vergi numarasını, şahıs şirketleri 11 haneli T.C. kimlik numarasını girer.
+                                        </Text>
                                     </View>
+
+                                    {formData.taxId.trim() ? (
+                                        <View className="space-y-4">
+                                            <View className="space-y-2">
+                                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Vergi Dairesi</Text>
+                                                <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3">
+                                                    <Building color="#6B7280" size={18} />
+                                                    <TextInput
+                                                        className="flex-1 text-white font-medium"
+                                                        placeholder="Kadıköy Vergi Dairesi"
+                                                        placeholderTextColor="#4B5563"
+                                                        value={formData.taxOffice}
+                                                        onChangeText={(t) => updateField('taxOffice', t)}
+                                                    />
+                                                </View>
+                                            </View>
+                                            <View className="space-y-2">
+                                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Vergi Dairesinin İli</Text>
+                                                <TouchableOpacity
+                                                    onPress={() => { setCityField('taxOfficeCity'); setShowCityModal(true); }}
+                                                    className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3"
+                                                >
+                                                    <MapPin color="#6B7280" size={18} />
+                                                    <Text className={`flex-1 font-medium ${formData.taxOfficeCity ? 'text-white' : 'text-[#4B5563]'}`}>
+                                                        {formData.taxOfficeCity || 'Şehir Seçin'}
+                                                    </Text>
+                                                    <ChevronRight color="#4B5563" size={20} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    ) : null}
                                 </View>
                             )}
 
@@ -452,7 +540,7 @@ export default function OnboardingScreen({ navigation }) {
                             <View className="space-y-2">
                                 <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Şehir</Text>
                                 <TouchableOpacity
-                                    onPress={() => setShowCityModal(true)}
+                                    onPress={() => { setCityField('city'); setShowCityModal(true); }}
                                     className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-14 px-4 space-x-3"
                                 >
                                     <MapPin color="#6B7280" size={18} />
@@ -482,8 +570,8 @@ export default function OnboardingScreen({ navigation }) {
                                 </View>
                             </View>
 
-                            {/* Sosyal Medya Linkleri (Sadece Influencer) */}
-                            {role === 'influencer' && (
+                            {/* Sosyal Medya Linkleri (influencer için en az biri zorunlu, markada isteğe bağlı) */}
+                            {(
                                 <View className="space-y-4 pt-4 border-t border-white/5">
                                     <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Sosyal Medya</Text>
                                     <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl h-12 px-4">
@@ -501,10 +589,12 @@ export default function OnboardingScreen({ navigation }) {
                                         <Text className="text-gray-500 ml-2 text-sm">youtube.com/</Text>
                                         <TextInput className="flex-1 text-white text-sm ml-0.5" placeholder="channel" placeholderTextColor="#4B5563" autoCapitalize="none" value={formData.youtube} onChangeText={(t) => updateField('youtube', t)} />
                                     </View>
-                                    <View className="flex-row items-center mt-2 bg-red-500/10 p-3 rounded-xl border border-red-500/30">
-                                        <AlertCircle size={18} color="#EF4444" style={{ marginRight: 8 }} />
-                                        <Text className="text-red-400 text-xs flex-1 font-medium leading-4">Hesabınızın doğrulanabilmesi için en az 1 sosyal medya hesabınızı eklemeniz gerekmektedir.</Text>
-                                    </View>
+                                    {role === 'influencer' && (
+                                        <View className="flex-row items-center mt-2 bg-red-500/10 p-3 rounded-xl border border-red-500/30">
+                                            <AlertCircle size={18} color="#EF4444" style={{ marginRight: 8 }} />
+                                            <Text className="text-red-400 text-xs flex-1 font-medium leading-4">Hesabınızın doğrulanabilmesi için en az 1 sosyal medya hesabınızı eklemeniz gerekmektedir.</Text>
+                                        </View>
+                                    )}
                                 </View>
                             )}
 
@@ -531,9 +621,9 @@ export default function OnboardingScreen({ navigation }) {
                         </View>
                     </View>
                     <FlatList data={filteredCities} keyExtractor={item => item} renderItem={({ item }) => (
-                        <TouchableOpacity className={`p-4 border-b border-white/5 flex-row justify-between items-center ${formData.city === item ? 'bg-soft-gold/10' : ''}`} onPress={() => { updateField('city', item); setShowCityModal(false); }}>
-                            <Text className={`text-base ${formData.city === item ? 'text-soft-gold font-bold' : 'text-gray-300'}`}>{item}</Text>
-                            {formData.city === item && <Text className="text-soft-gold">✓</Text>}
+                        <TouchableOpacity className={`p-4 border-b border-white/5 flex-row justify-between items-center ${formData[cityField] === item ? 'bg-soft-gold/10' : ''}`} onPress={() => { updateField(cityField, item); setShowCityModal(false); }}>
+                            <Text className={`text-base ${formData[cityField] === item ? 'text-soft-gold font-bold' : 'text-gray-300'}`}>{item}</Text>
+                            {formData[cityField] === item && <Text className="text-soft-gold">✓</Text>}
                         </TouchableOpacity>
                     )} />
                 </View>

@@ -67,17 +67,20 @@ export async function saveBrandIdentityAs(
   return { success: true }
 }
 
-/**
- * Marka, vergi levhasını tax-documents/{userId}/... yoluna yükledikten sonra çağrılır.
- * admin: service role istemcisi (belgeyi okuyup sonucu yazmak için).
- */
-export async function submitTaxCertificateAs(admin: SupabaseClient, userId: string, filePath: string): Promise<TaxSubmitResult> {
-  // Dosya sadece kullanıcının kendi klasöründe olabilir (depolama politikası da bunu zorlar).
-  const parts = typeof filePath === 'string' ? filePath.split('/') : []
-  if (parts.length !== 2 || parts[0] !== userId || !parts[1] || parts[1].startsWith('.')) {
-    return { success: false, error: 'Geçersiz dosya.' }
-  }
+const TAX_BUCKET = 'tax-documents'
+const TAX_UPLOAD_EXTENSIONS = ['pdf', 'jpg', 'png', 'webp'] as const
+type TaxUploadExtension = (typeof TAX_UPLOAD_EXTENSIONS)[number]
 
+/**
+ * Vergi levhası yükleme/işleme ön koşulları: marka, onaysız, kurumsal kimlik tam ve günlük sınır aşılmamış.
+ * Günlük sınır hem işlenen kayıtları (`tax_verifications`) hem son 24 saatte kovaya yüklenen dosyaları sayar;
+ * böylece işlenmeden bırakılan yüklemeler de sınıra dahil olur. Sorun yoksa null döner.
+ */
+async function checkTaxUploadAllowed(
+  admin: SupabaseClient,
+  userId: string,
+  { countUploads }: { countUploads: boolean },
+): Promise<{ success: false; error: string } | null> {
   const { data: profile } = await admin
     .from('users')
     .select('role, tax_id, tax_office, tax_office_city, company_legal_name, tax_id_verified')
@@ -96,15 +99,65 @@ export async function submitTaxCertificateAs(admin: SupabaseClient, userId: stri
     return { success: false, error: 'Önce Kurumsal Kimlik bölümünde resmi unvan, vergi numarası, vergi dairesi ve ili kaydedin.' }
   }
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const sinceMs = Date.now() - 24 * 60 * 60 * 1000
   const { count } = await admin
     .from('tax_verifications')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .gte('created_at', since)
-  if ((count ?? 0) >= MAX_SUBMISSIONS_PER_DAY) {
+    .gte('created_at', new Date(sinceMs).toISOString())
+
+  // İşleme aşamasında az önce yüklenen dosya sayılmaz; yalnızca yükleme adresi verilirken sayılır.
+  let recentUploads = 0
+  if (countUploads) {
+    const { data: files } = await admin.storage
+      .from(TAX_BUCKET)
+      .list(userId, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
+    recentUploads = (files ?? []).filter((file) => file.created_at && new Date(file.created_at).getTime() >= sinceMs).length
+  }
+
+  if (Math.max(count ?? 0, recentUploads) >= MAX_SUBMISSIONS_PER_DAY) {
     return { success: false, error: `Günde en fazla ${MAX_SUBMISSIONS_PER_DAY} belge yükleyebilirsiniz. Lütfen yarın tekrar deneyin.` }
   }
+  return null
+}
+
+export type TaxUploadUrlResult = { success: true; path: string; token: string } | { success: false; error: string }
+
+/**
+ * Vergi levhası için tek kullanımlık imzalı yükleme adresi (3.10-S1). İstemciler kovaya doğrudan yükleyemez
+ * (depolama INSERT politikası kapalı); adres yalnızca ön koşullar ve günlük sınır sağlanınca verilir.
+ * Belge kendi depomuzda kalır; hiçbir dış servise gönderilmez.
+ * admin: service role istemcisi.
+ */
+export async function createTaxUploadUrlAs(admin: SupabaseClient, userId: string, extension: string): Promise<TaxUploadUrlResult> {
+  if (!TAX_UPLOAD_EXTENSIONS.includes(extension as TaxUploadExtension)) {
+    return { success: false, error: 'Sadece PDF, JPG, PNG veya WEBP yükleyebilirsiniz.' }
+  }
+  const blocked = await checkTaxUploadAllowed(admin, userId, { countUploads: true })
+  if (blocked) return blocked
+
+  const path = `${userId}/${Date.now()}.${extension}`
+  const { data, error } = await admin.storage.from(TAX_BUCKET).createSignedUploadUrl(path)
+  if (error || !data) {
+    console.error('[createTaxUploadUrl]', error?.message)
+    return { success: false, error: 'Yükleme başlatılamadı. Lütfen tekrar deneyin.' }
+  }
+  return { success: true, path: data.path, token: data.token }
+}
+
+/**
+ * Marka, vergi levhasını imzalı adresle tax-documents/{userId}/... yoluna yükledikten sonra çağrılır.
+ * admin: service role istemcisi (belgeyi okuyup sonucu yazmak için).
+ */
+export async function submitTaxCertificateAs(admin: SupabaseClient, userId: string, filePath: string): Promise<TaxSubmitResult> {
+  // Dosya sadece kullanıcının kendi klasöründe olabilir (imzalı yükleme adresi bu klasöre verilir).
+  const parts = typeof filePath === 'string' ? filePath.split('/') : []
+  if (parts.length !== 2 || parts[0] !== userId || !parts[1] || parts[1].startsWith('.')) {
+    return { success: false, error: 'Geçersiz dosya.' }
+  }
+
+  const allowed = await checkTaxUploadAllowed(admin, userId, { countUploads: false })
+  if (allowed) return allowed
 
   try {
     const outcome = await processTaxCertificate(admin, userId, filePath)
