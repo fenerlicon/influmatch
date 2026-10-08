@@ -625,7 +625,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   - ✅ ~~**7.4-S8 [DÜŞÜK]**~~ (2026-10-09, `20261009000002`, kullanıcı çalıştırdı, canlıda doğrulandı) `restrict_social_accounts_columns` ve `protect_social_account_metrics`
     trigger'ları tabloda olmayan kolonlara (`following_count`, `verified_at`, `avg_likes`) yazıyordu; istemci UPDATE kuralı
     olmadığı için tetiklenmiyordu. Doğru kolonlarla yeniden yazıldı (kullanıcı SQL'i çalıştırınca ✅).
-  - **7.4-S9 [DÜŞÜK]** (temizlik SQL'i hazır: `supabase/manual/2026-10-09_temizlik.sql` / `20261009000003`; ayrıca `messages` ve `social_accounts` üzerindeki tekrar eden trigger'lar ve boş `message_logs` tablosu. Kullanıcı çalıştırınca ✅) Kullanılmayan fonksiyonlar: `protect_user_critical_data`, `restrict_users_sensitive_columns` (trigger'ı yok),
+  - ✅ ~~**7.4-S9 [DÜŞÜK]**~~ (2026-10-09 canlıda doğrulandı: eski fonksiyonlar ve `message_logs` yok; temizlik SQL'i: `supabase/manual/2026-10-09_temizlik.sql` / `20261009000003`; ayrıca `messages` ve `social_accounts` üzerindeki tekrar eden trigger'lar ve boş `message_logs` tablosu. Kullanıcı çalıştırınca ✅) Kullanılmayan fonksiyonlar: `protect_user_critical_data`, `restrict_users_sensitive_columns` (trigger'ı yok),
     `log_message` (uygulama çağırmıyor). `offers` üzerinde aynı işi yapan iki trigger (`restrict_offers_trigger`,
     `secure_offers_trigger`). DROP gerektirdiği için toplu temizlik SQL'ine bırakıldı.
   - ✅ ~~**7.4-S7 [DÜŞÜK]**~~ `rooms` "System can create rooms" `WITH CHECK (true)`; `message_logs` herkese yazılabilirdi.
@@ -647,7 +647,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `chat-attachments` | `20261008000004` | gizli; okuma ve yükleme oda taraflarına | imzalı URL |
 
 - **Sorunlar:**
-  - **7.5-S1 [YÜKSEK]** (kısmen ✅: ölü "Tam Yetki" politikaları 7 Ekim toplu SQL'iyle silindi (doğrulandı). Kalan tek iş: "avatars insert" yayındaki mobil sürüm public/<uid>/ yüklediği için mobil sürüm çıkınca kaldırılacak) `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
+  - ✅ ~~**7.5-S1 [YÜKSEK]**~~ (2026-10-09: "avatars insert" `2026-10-09_mobil_sikilastirma.sql` ile kaldırıldı, canlıda doğrulandı; kendi klasörüne yükleme "Users can manage their own avatar" ile sürüyor. Önceki not: ölü "Tam Yetki" politikaları 7 Ekim toplu SQL'iyle silindi (doğrulandı). Kalan tek iş: "avatars insert" yayındaki mobil sürüm public/<uid>/ yüklediği için mobil sürüm çıkınca kaldırılacak) `20260317000005` dosyası var olmayan `storage.policies` tablosundan DELETE yapıyor; dosyanın tamamı hata verip geri alınmış olabilir
     (avatars politikaları, users SELECT değişikliği ve `track_analytics_event` sertleştirmesi dahil). Canlıda kontrol edilmeli.
   - ✅ ~~**7.5-S2 [ORTA]**~~ (`20261008000004`: kova gizli, okuma yalnızca oda taraflarına; sohbet görselleri 1 saatlik imzalı bağlantıyla, admin raporlanan fotoğrafı 10 dk'lık bağlantıyla açıyor) `chat-attachments` için migration ve politika yazılmalı, özel bucket + imzalı URL'ye geçilmeli.
 
