@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey } from '@/utils/categories'
 import { type DiscoverInfluencer } from '@/types/influencer'
 import { calculateMatchScore } from '@/utils/matching'
+import { normalizeInfluencerCategory } from '@/lib/category-map'
 import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 
 const PAGE_SIZE = 24
@@ -51,7 +52,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
 
   const filteredInfluencers = useMemo(() => {
     let result = influencers.filter((influencer) => {
-      const matchesCategory = selectedCategory === 'All' || influencer.category?.toLowerCase() === selectedCategory.toLowerCase()
+      const matchesCategory = selectedCategory === 'All' || normalizeInfluencerCategory(influencer.category) === selectedCategory
       const matchesSearch = searchQuery === '' ||
         (influencer.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
         (influencer.username?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
