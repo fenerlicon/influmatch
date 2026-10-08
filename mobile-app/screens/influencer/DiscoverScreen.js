@@ -42,21 +42,6 @@ const WavyBackground = () => (
     </View>
 );
 
-const MiniMetric = ({ icon: Icon, value, label, color = '#fbbf24' }) => (
-    <View className="flex-1 bg-white/5 rounded-2xl p-2 border border-white/5 items-center justify-center">
-        <Icon color={color} size={10} />
-        <Text className="text-white font-black text-[9px] mt-1">{value}</Text>
-        <Text className="text-white/30 text-[7px] uppercase font-bold tracking-tighter">{label}</Text>
-    </View>
-);
-
-const MiniBadge = ({ text, color = '#3b82f6' }) => (
-    <View className="mr-1.5 mb-1.5 px-2 py-0.5 rounded-md border border-white/10 bg-white/5 flex-row items-center">
-        <View className="w-1 h-1 rounded-full mr-1" style={{ backgroundColor: color }} />
-        <Text className="text-white text-[7px] font-black uppercase tracking-widest">{text}</Text>
-    </View>
-);
-
 const InfluencerCard = memo(({ item, onPress, horizontal = false, canFavorite = false }) => {
     const isVerified = item.isVerified;
     const [isFav, setIsFav] = useState(item.isFavorited);
@@ -129,9 +114,6 @@ const CategorySection = memo(({ title, data, onProfilePress, canFavorite }) => (
             <Text className="text-white font-black text-xl tracking-tight uppercase" style={{ letterSpacing: 1 }}>
                 {getCategoryLabel(title)}
             </Text>
-            <TouchableOpacity className="bg-white/5 px-4 py-2 rounded-full border border-white/10">
-                <Text className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Tümünü Gör</Text>
-            </TouchableOpacity>
         </View>
         <FlatList
             horizontal
@@ -165,12 +147,6 @@ export default function DiscoverScreen({ navigation }) {
             
             if (error) throw error;
 
-            // Fetch Real Stats (Instagram)
-            const { data: socialAccounts } = await supabase
-                .from('social_accounts')
-                .select('user_id, platform, follower_count, engagement_rate, stats_payload')
-                .in('user_id', users.map(u => u.id));
-
             // Favoriler yalnızca markalar içindir (tablo brand_id ile tutulur).
             const { data: me } = myId
                 ? await supabase.from('users').select('role').eq('id', myId).maybeSingle()
@@ -186,15 +162,11 @@ export default function DiscoverScreen({ navigation }) {
             const favIds = new Set(myFavs?.map(f => f.influencer_id));
 
             const usersWithStats = users.map(u => {
-                const ig = socialAccounts?.find(s => s.user_id === u.id && s.platform === 'instagram');
-                const tt = socialAccounts?.find(s => s.user_id === u.id && s.platform === 'tiktok');
                 const isVerified = Array.isArray(u.displayed_badges) && u.displayed_badges.includes('verified-account');
                 
                 return {
                     ...u,
                     isVerified,
-                    instagram: ig,
-                    tiktok: tt,
                     isFavorited: favIds.has(u.id)
                 }
             });

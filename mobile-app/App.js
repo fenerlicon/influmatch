@@ -45,7 +45,6 @@ import MessagesScreen from './screens/MessagesScreen';
 import OffersScreen from './screens/OffersScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import FeedbackScreen from './screens/FeedbackScreen';
-import AiAssistantScreen from './screens/AiAssistantScreen';
 
 // ─── Navigation Ref ───────────────────────────────────────────────────────────
 import { createNavigationContainerRef } from '@react-navigation/native';
@@ -307,7 +306,6 @@ export default function App() {
           {/* ── Shared Sub-screens ── */}
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Feedback" component={FeedbackScreen} />
-          <Stack.Screen name="AiAssistant" component={AiAssistantScreen} />
 
           {/* ── Brand Sub-screens ── */}
           <Stack.Screen name="BrandVerification" component={BrandVerificationScreen} />

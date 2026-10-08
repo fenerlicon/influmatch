@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Keyboard, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '../lib/supabase';
+import { API_BASE } from '../lib/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Mail, KeyRound } from 'lucide-react-native';
 import { CustomToast } from '../components/CustomToast';
-import { getTurkishErrorMessage } from '../lib/errorUtils';
 
 export default function ForgotPasswordScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -32,19 +31,29 @@ export default function ForgotPasswordScreen({ navigation }) {
         setLoading(true);
         Keyboard.dismiss();
 
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: 'https://influmatch.net/auth/update-password',
-        });
+        // Bağlantı web'in sunucusunda üretilir; e-postadaki bağlantı telefonun tarayıcısında da çalışır
+        // ve web'in yeni şifre ekranını açar (app/api/mobile/forgot-password).
+        let result = {};
+        try {
+            const res = await fetch(`${API_BASE}/api/mobile/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email.trim() }),
+            });
+            result = await res.json().catch(() => ({}));
+            if (!res.ok && !result.error) result = { error: 'Sunucuya ulaşılamadı. Lütfen tekrar deneyin.' };
+        } catch (e) {
+            result = { error: 'Bağlantı hatası. İnternetinizi kontrol edin.' };
+        }
 
-        if (error) {
-            showToast(getTurkishErrorMessage(error), 'error');
-            setLoading(false);
+        setLoading(false);
+        if (result.error) {
+            showToast(result.error, 'error');
         } else {
-            showToast('Sıfırlama bağlantısı gönderildi! Lütfen e-postanızı kontrol edin.', 'success');
+            showToast('Bu adres kayıtlıysa sıfırlama bağlantısı gönderildi. E-postanızı kontrol edin.', 'success');
             setTimeout(() => {
                 navigation.goBack();
             }, 3000);
-            setLoading(false);
         }
     }
 
