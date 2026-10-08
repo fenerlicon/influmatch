@@ -23,6 +23,12 @@ export type SocialResult = {
 
 const STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000
 
+// 3.13-N6: gönderisiz hesapların doğrulama reddi mesajı.
+const NO_POSTS_ERROR = {
+  instagram: 'Gönderisi olmayan Instagram hesapları doğrulanamıyor. Hesabınızda en az bir gönderi paylaştıktan sonra tekrar deneyin.',
+  tiktok: 'Videosu olmayan TikTok hesapları doğrulanamıyor. Hesabınızda en az bir video paylaştıktan sonra tekrar deneyin.',
+} as const
+
 // Apify harcama sınırları (her kazıma ücretli bir koşudur).
 const SCRAPE_LOCK_MS = 3 * 60 * 1000 // aynı hesap için aynı anda tek koşu
 const ATTEMPT_WINDOW_MS = 60 * 60 * 1000
@@ -319,6 +325,12 @@ async function scrapeInstagram(admin: SupabaseClient, userId: string, account: S
     }
   }
 
+  // 3.13-N6: gönderisi olmayan hesap yeni doğrulamada kabul edilmez (kullanıcı kararı). Gönderi sayısı da
+  // son gönderiler de boşsa hesapta gönderi yoktur. Daha önce doğrulanmış hesapların yenilemesi etkilenmez.
+  if (!account.is_verified && !(Number(user.media_count) > 0) && (normalizedData.recent_posts || []).length === 0) {
+    return { success: false, code: 'no_posts', error: NO_POSTS_ERROR.instagram }
+  }
+
   const platformUserId = user.id ? String(user.id) : null
   if (platformUserId) {
     const { data: existingConflict } = await admin
@@ -483,6 +495,11 @@ async function scrapeTikTok(admin: SupabaseClient, userId: string, account: Scra
       success: false,
       error: `Doğrulama kodu (${account.verification_code}) TikTok biyografinizde bulunamadı. Lütfen kodu biyografinize eklediğinizden emin olun.`,
     }
+  }
+
+  // 3.13-N6: videosu olmayan hesap yeni doğrulamada kabul edilmez; doğrulanmış hesapların yenilemesi etkilenmez.
+  if (!account.is_verified && !(Number(tiktokData.video_count) > 0) && tiktokData.recent_video_count === 0) {
+    return { success: false, code: 'no_posts', error: NO_POSTS_ERROR.tiktok }
   }
 
   const username = normalizeTikTokUsername(account.username)
