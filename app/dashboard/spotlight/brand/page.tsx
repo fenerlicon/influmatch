@@ -1,45 +1,35 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BadgeCheck, Bot, BrainCircuit, HeartHandshake, Search, Target, Users } from 'lucide-react'
+import { BadgeCheck, BrainCircuit, Search, Target } from 'lucide-react'
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { planPrice } from '@/lib/spotlight-plans'
+import { planFeatures, planPrice } from '@/lib/spotlight-plans'
 
 const features = [
     {
         icon: BrainCircuit,
-        title: 'Akıllı Influencer Eşleşmesi',
-        description: 'Markanın kriterlerine, bütçesine ve tarzına en uygun influencerları akıllı eşleştirmeyle bul.',
-    },
-    {
-        icon: Target,
-        title: 'Akıllı Filtreler',
-        description: 'Anti-bot skor, etkileşim oranı, görsel kalite ve post sıklığına göre detaylı filtreleme yap.',
+        title: 'Akıllı Eşleştirme',
+        description: 'Sektörüne uygun, doğrulanmış influencerlar kategori uyumu, etkileşim ve doğrulama durumuna göre puanlanarak önerilir.',
     },
     {
         icon: BadgeCheck,
-        title: 'Kampanya Uyumluluk Skoru',
-        description: 'Her influencer için kampanya hedeflerinle ne kadar uyumlu olduğunu gösteren % skorunu gör.',
-    },
-    {
-        icon: HeartHandshake,
-        title: 'Brief Önceliği',
-        description: 'Spotlight influencerlarına gönderdiğin teklifler "Premium Marka" etiketiyle öne çıkar, hızlı yanıt alırsın.',
+        title: 'Kampanya Uyum Skoru',
+        description: 'Her önerilen profil için 100 üzerinden eşleşme skorunu ve nedenlerini gör.',
     },
     {
         icon: Search,
-        title: 'Look-alike Keşfi',
-        description: 'Beğendiğin bir profile benzer özelliklere sahip diğer gizli yetenekleri otomatik keşfet.',
+        title: 'Benzer Profil Keşfi',
+        description: 'Beğendiğin bir profile benzer diğer influencerları tek tıkla listele.',
     },
     {
-        icon: Bot,
-        title: 'Anti-Bot & Sentiment Analizi',
-        description: 'Takipçi kitlesinin organiklik durumunu ve içeriklerin güven puanını analiz et.',
+        icon: Target,
+        title: 'Öne Çıkan İlanlar',
+        description: 'İlanların influencerların gördüğü topluluk listesinde üst sıralarda yer alır.',
     },
 ]
 
@@ -187,13 +177,8 @@ export default function BrandSpotlightPage() {
                     <PricingCard
                         title="Brand Basic"
                         price={planPrice('mbasic', billingInterval).price}
-                        originalPrice={planPrice('mbasic', billingInterval).originalPrice}
-                        interval={billingInterval}
-                        features={[
-                            { text: "Sınırsız Akıllı Eşleşme", highlight: true },
-                            { text: "Anti-Bot Analizleri" },
-                            { text: "Temel Filtreleme" },
-                        ]}
+                                                interval={billingInterval}
+                        features={planFeatures('mbasic')}
                         variant="brand"
                         buttonText="Satın Alma Kapalı — Yakında"
                         isCurrentPlan={spotlightActive && subscriptionTier === 'mbasic'}
@@ -205,15 +190,8 @@ export default function BrandSpotlightPage() {
                     <PricingCard
                         title="Brand Pro"
                         price={planPrice('mpro', billingInterval).price}
-                        originalPrice={planPrice('mpro', billingInterval).originalPrice}
-                        interval={billingInterval}
-                        features={[
-                            { text: "Sınırsız Akıllı Eşleşme", highlight: true },
-                            { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
-                            { text: "Gelişmiş Filtreleme & Look-alike", highlight: true },
-                            { text: "Brief Önceliklendirme (Premium)", highlight: true },
-                            { text: "Favori Listeleri ve Klasörleme" },
-                        ]}
+                                                interval={billingInterval}
+                        features={planFeatures('mpro')}
                         recommended
                         variant="brand"
                         buttonText="Satın Alma Kapalı — Yakında"
@@ -224,57 +202,6 @@ export default function BrandSpotlightPage() {
                         onCancel={handleCancel}
                     />
 
-                    {/* Agency Edition Card - Full Width on Mobile, Spans 2 cols on large if needed, but here just listed */}
-                    <div className="md:col-span-2 lg:col-span-2">
-                        <div className="relative overflow-hidden rounded-3xl border border-purple-500/30 bg-[#1A1B26] p-8 shadow-[0_0_40px_-10px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500/50 hover:shadow-[0_0_60px_-15px_rgba(168,85,247,0.3)]">
-                            <div className="absolute top-0 right-0 rounded-bl-3xl bg-purple-600 px-6 py-2 text-sm font-bold text-white shadow-lg">
-                                KURUMSAL
-                            </div>
-
-                            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="rounded-xl bg-purple-500/20 p-3 text-purple-400">
-                                            <Users className="h-8 w-8" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-white">Agency Edition</h3>
-                                            <p className="text-purple-300">Büyük ölçekli ekipler ve ajanslar için</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-gray-300">
-                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                            <span>Çoklu Kullanıcı Yönetimi & Yetkilendirme</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-300">
-                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                            <span>White-Label Raporlama</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-300">
-                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                            <span>Özel API Erişimi & Entegrasyonlar</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col items-start gap-4 lg:items-end">
-                                    <div className="text-left lg:text-right">
-                                        <p className="text-sm text-gray-400">Size özel çözümler için</p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-3xl font-bold text-white">Teklif Alın</span>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => window.location.href = 'mailto:destek@influmatch.net'}
-                                        className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95"
-                                    >
-                                        Bizimle İletişime Geçin
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </section>
         </div>

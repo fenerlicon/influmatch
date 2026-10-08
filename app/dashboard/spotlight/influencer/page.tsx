@@ -1,46 +1,35 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BadgeCheck, BarChart3, Crown, HeartHandshake, Search, Sparkles, Users, Zap } from 'lucide-react'
+import { BarChart3, Crown, Search, Users } from 'lucide-react'
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { planPrice } from '@/lib/spotlight-plans'
+import { planFeatures, planPrice } from '@/lib/spotlight-plans'
 
 const features = [
     {
         icon: Crown,
-        title: 'Vitrin Rozeti',
-        description: 'Profilinde parlayan özel Spotlight rozeti ile markaların dikkatini ilk sen çek.',
+        title: 'Spotlight Rozeti',
+        description: 'Profilinde ve kartında Spotlight rozeti ve çerçevesiyle markaların dikkatini çek.',
     },
     {
         icon: Search,
         title: 'Öncelikli Listeleme',
-        description: 'Markalar influencer ararken senin profilin her zaman listenin en üst sıralarında yer alsın.',
+        description: 'Markalar keşfette influencer ararken Spotlight profilleri listenin üst sıralarında yer alır.',
     },
     {
-        icon: Zap,
-        title: 'Hızlı Eşleşme',
-        description: 'Sana en uygun kampanyalardan anında haberdar ol, başvuru sürecinde öncelik kazan.',
+        icon: Users,
+        title: 'Profil Görüntülenmeleri',
+        description: 'Profilini kaç markanın görüntülediğini panelinden takip et.',
     },
     {
         icon: BarChart3,
         title: 'Detaylı Profil Analizi',
-        description: 'Kendi profilinin detaylı analitiğini gör, etkileşimini artırmak için öneriler al.',
-    },
-    {
-        icon: HeartHandshake,
-        title: 'Marka Güven Skoru',
-        description: 'Markalara karşı güvenilirliğini kanıtla, iş birliği şansını katla.',
-    },
-    {
-        icon: Sparkles,
-        title: 'İçerik Asistanı (v1.2)',
-        description: 'Paylaşımların için içerik fikirleri ve hashtag önerileri. (Yakında)',
-        comingSoon: true,
+        description: 'İstatistiklerinden uyum skoru ve (Pro) profil koçu yorumları al.',
     },
 ]
 
@@ -151,9 +140,6 @@ export default function InfluencerSpotlightPage() {
                             SPOTLIGHT FIRSATLARI
                         </h2>
                     </div>
-                    <p className="mt-4 text-xl font-medium text-gray-300">
-                        Spotlight paketlerinde tüm kullanıcılara özel <span className="font-extrabold text-white underline decoration-wavy decoration-soft-gold">%50 İNDİRİM!</span>
-                    </p>
 
                     {/* Billing Toggle */}
                     <div className="mt-8 inline-flex items-center rounded-xl border border-white/10 bg-white/5 p-1 backdrop-blur-sm">
@@ -169,7 +155,7 @@ export default function InfluencerSpotlightPage() {
                             className={`rounded-lg px-6 py-2 text-sm font-medium transition-all ${billingInterval === 'yr' ? 'bg-soft-gold text-black shadow-[0_0_15px_rgba(212,175,55,0.5)]' : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            Yıllık <span className="ml-1 text-[10px] font-bold opacity-100 bg-white text-soft-gold px-1 rounded-full">EKSTRA İNDİRİM</span>
+                            Yıllık
                         </button>
                     </div>
                 </div>
@@ -178,13 +164,8 @@ export default function InfluencerSpotlightPage() {
                     <PricingCard
                         title="Spotlight Basic"
                         price={planPrice('ibasic', billingInterval).price}
-                        originalPrice={planPrice('ibasic', billingInterval).originalPrice}
-                        interval={billingInterval}
-                        features={[
-                            { text: "Vitrin Rozeti", highlight: true },
-                            { text: "Öncelikli Listeleme" },
-                            { text: "Temel Profil Analizi" },
-                        ]}
+                                                interval={billingInterval}
+                        features={planFeatures('ibasic')}
                         variant="influencer"
                         buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : "Yakında / İletişime Geç"}
                         isCurrentPlan={spotlightActive && subscriptionTier === 'ibasic'}
@@ -196,15 +177,8 @@ export default function InfluencerSpotlightPage() {
                     <PricingCard
                         title="Spotlight Pro"
                         price={planPrice('ipro', billingInterval).price}
-                        originalPrice={planPrice('ipro', billingInterval).originalPrice}
-                        interval={billingInterval}
-                        features={[
-                            { text: "Vitrin Rozeti", highlight: true },
-                            { text: "En Üst Sırada Listeleme", highlight: true },
-                            { text: "Hızlı Eşleşme Önceliği (Premium)", highlight: true },
-                            { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
-                            { text: "İçerik Asistanı" },
-                        ]}
+                                                interval={billingInterval}
+                        features={planFeatures('ipro')}
                         recommended
                         variant="influencer"
                         buttonText={userRole === 'brand' ? "Influencer Hesabı Gerekli" : "Yakında / İletişime Geç"}
@@ -215,57 +189,6 @@ export default function InfluencerSpotlightPage() {
                         onCancel={handleCancel}
                     />
 
-                    {/* Agency Edition Card */}
-                    <div className="md:col-span-2 lg:col-span-2">
-                        <div className="relative overflow-hidden rounded-3xl border border-purple-500/30 bg-[#1A1B26] p-8 shadow-[0_0_40px_-10px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500/50 hover:shadow-[0_0_60px_-15px_rgba(168,85,247,0.3)]">
-                            <div className="absolute top-0 right-0 rounded-bl-3xl bg-purple-600 px-6 py-2 text-sm font-bold text-white shadow-lg">
-                                KURUMSAL
-                            </div>
-
-                            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="rounded-xl bg-purple-500/20 p-3 text-purple-400">
-                                            <Users className="h-8 w-8" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-white">Agency Edition</h3>
-                                            <p className="text-purple-300">Talent management ajansları için</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-gray-300">
-                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                            <span>Sınırsız Talent Yönetimi</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-300">
-                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                            <span>Toplu Başvuru & Portfolyo Sunumu</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-300">
-                                            <BadgeCheck className="h-5 w-5 text-purple-500" />
-                                            <span>Markalara Özel Talent Vitrini</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col items-start gap-4 lg:items-end">
-                                    <div className="text-left lg:text-right">
-                                        <p className="text-sm text-gray-400">Ajanslar için özel çözümler</p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-3xl font-bold text-white">Teklif Alın</span>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => window.location.href = 'mailto:destek@influmatch.net'}
-                                        className="rounded-xl bg-purple-600 px-8 py-4 font-bold text-white transition-all hover:bg-purple-700 hover:scale-105 active:scale-95"
-                                    >
-                                        Ajans Başvurusu
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </section>
         </div>
