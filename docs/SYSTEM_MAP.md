@@ -319,7 +319,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     bütçe NaN/negatif kontrolü yok, alıcının influencer olduğu kontrol edilmiyor.
   - ✅ ~~**3.6-S2 [YÜKSEK]**~~ (5.4-S1 ile: yeni teklifte site içi bildirim + e-posta) Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1).
   - ✅ ~~**3.6-S5 [KRİTİK]**~~ (2026-10-09, yeni bulgu) Teklif penceresi 2026-01-06'dan beri olmayan `payment_type` kolonuna yazıyordu: webden hiçbir teklif kaydedilemedi (son teklif 2026-01-04). Kolon `20261009000004` ile ekleniyor; kod kolon yokken de kaydediyor. Bütçe, kampanya adı ve alıcı rolü sunucuda doğrulanıyor.
-  - **3.6-S6 [DÜŞÜK]** Teklif listelerinde ödeme türü (nakit / barter) gösterilmiyor; `payment_type` canlıya eklenince yapılacak.
+  - ✅ ~~**3.6-S6 [DÜŞÜK]**~~ (kolon canlıda; influencer ve marka teklif ekranlarında "Bütçe (nakit)" / "Barter (ürün değeri)") Teklif listelerinde ödeme türü (nakit / barter) gösterilmiyordu.
   - ✅ ~~**3.6-S3 [ORTA]**~~ (sayımlar paralel ve yalnızca `count` dönüyor; okundu bilgisi 5.3-S1 ile metadata'dan) Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
   - ✅ ~~**3.6-S4 [DÜŞÜK]**~~ (`rooms` kanalı `brand_id` ile filtreli; `undismissInfluencer` ve `'hold'` daha önce kaldırılmıştı) `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
 
@@ -683,7 +683,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.2 Zamanlanmış işler
 - **Vercel cron** (`vercel.json`): `refresh-stats` her gün 09:00 UTC.
 - **Supabase pg_cron** (`supabase/cron/hourly_jobs.sql`): her saat `/api/cron/hourly`, gizli anahtar Vault'ta.
-- **Sorunlar:** ✅ ~~**8.2-S1 [YÜKSEK]**~~ (Spotlight kısmı) Süresi dolan Spotlight'ı kapatan bir iş yok (4.3-S1); `refresh-stats` zaman aşımı (2.2-S2).
+- **Sorunlar:**
+  - ✅ ~~**8.2-S2 [ORTA]**~~ (2026-10-09, yeni bulgu) Saatlik ve günlük cron yeni Apify koşusunu 25. saniyeye kadar başlatıyordu; koşu 45 sn sürebildiği için görev 60 sn sınırını aşıyor, pg_net zaman aşımı alıyordu (8 Ekim 06:00 ve 09:00). Yeni koşu en geç 10. saniyede başlıyor.
+  - ✅ ~~**8.2-S1 [YÜKSEK]**~~ (Spotlight kısmı) Süresi dolan Spotlight'ı kapatan bir iş yok (4.3-S1); `refresh-stats` zaman aşımı (2.2-S2).
 
 ### 8.3 API anahtar havuzu
 - **Dosyalar:** `lib/api-keys.ts` (`withApiKey`, otomatik geçiş, bekleme süreleri), `lib/apify.ts`, `lib/gemini.ts`, `lib/api-key-health.ts`

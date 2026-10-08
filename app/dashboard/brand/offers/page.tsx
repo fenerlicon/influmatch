@@ -10,6 +10,7 @@ export interface BrandOfferItem {
   campaign_name: string | null
   campaign_type: string | null
   budget: number | null
+  payment_type?: 'cash' | 'barter' | null
   message: string | null
   status: 'pending' | 'accepted' | 'rejected'
   created_at: string
@@ -50,7 +51,7 @@ export default async function BrandOffersPage() {
   const { data: offers, error } = await supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, message, status, created_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
       receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status, displayed_badges)`,
     )
     .eq('sender_user_id', user.id)

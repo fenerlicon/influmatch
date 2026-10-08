@@ -56,23 +56,16 @@ export async function createOffer(payload: CreateOfferPayload) {
     return { error: 'Bütçe geçerli bir tutar olmalı.' }
   }
 
-  const offer = {
+  const { error } = await supabase.from('offers').insert({
     sender_user_id: user.id,
     receiver_user_id: payload.receiverId,
     campaign_name: campaignName,
     campaign_type: payload.campaignType,
     budget: budgetValue,
+    payment_type: paymentType,
     message: payload.message?.trim() || null,
     status: 'pending',
-  }
-
-  // payment_type kolonu 20261009000004 ile eklendi. Kolon henüz yoksa (SQL çalıştırılmadıysa) teklif yine
-  // kaydedilir; ödeme türü yalnızca o arada kaybolur. Eski kod bu kolon yüzünden 2026-01-06'dan beri
-  // hiçbir teklifi kaydedemiyordu (SYSTEM_MAP 3.6-S5).
-  let { error } = await supabase.from('offers').insert({ ...offer, payment_type: paymentType })
-  if (error && /payment_type/.test(error.message)) {
-    ;({ error } = await supabase.from('offers').insert(offer))
-  }
+  })
 
   if (error) {
     console.error('[createOffer] insert error:', error)

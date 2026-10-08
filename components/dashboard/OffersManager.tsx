@@ -13,6 +13,7 @@ export interface OfferListItem {
   campaign_name: string | null
   campaign_type: string | null
   budget: number | null
+  payment_type?: 'cash' | 'barter' | null
   message: string | null
   status: string
   created_at: string
@@ -92,7 +93,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
       const { data: offer } = await supabase
         .from('offers')
         .select(
-          `id, campaign_name, campaign_type, budget, message, status, created_at,
+          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
         sender:sender_user_id(id, full_name, avatar_url, username, social_links, displayed_badges)`,
         )
         .eq('id', offerId)
@@ -577,7 +578,9 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               ) : null}
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Bütçe</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">
+                {selectedOffer.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'}
+              </p>
               <p className="mt-2 text-lg font-semibold text-white">{formatBudget(selectedOffer.budget)}</p>
             </div>
             <div>
