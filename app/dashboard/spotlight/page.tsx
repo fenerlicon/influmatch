@@ -1,4 +1,4 @@
-import { BadgeDollarSign, Building2, Crown, Sparkles } from 'lucide-react'
+import { BadgeDollarSign, Crown, Sparkles } from 'lucide-react'
 import SpotlightSelectionCard from '@/components/spotlight/SpotlightSelectionCard'
 import SpotlightShowcase from '@/components/spotlight/SpotlightShowcase'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
@@ -43,7 +43,7 @@ export default async function SpotlightSelectionPage() {
                 </p>
             </header>
 
-            <div className="grid gap-6 px-4 md:grid-cols-3 lg:gap-8">
+            <div className="grid gap-6 px-4 md:grid-cols-2 lg:gap-8">
                 <SpotlightSelectionCard
                     title="Influencer Edition"
                     description="Keşfedilme gücünü artır, markaların radarına daha sık gir. Vitrin rozeti, öncelikli listeleme ve daha fazlası."
@@ -56,21 +56,12 @@ export default async function SpotlightSelectionPage() {
 
                 <SpotlightSelectionCard
                     title="Brand Edition"
-                    description="Doğru influencer'la eşleşmek için kişiselleştirilmiş zeka. AI eşleşme, detaylı filtreler ve kampanya yönetimi."
+                    description="Doğru influencer'la eşleşmek için kişiselleştirilmiş öneriler. Akıllı eşleşme, detaylı filtreler ve kampanya yönetimi."
                     icon={BadgeDollarSign}
                     href="/dashboard/spotlight/brand"
                     variant="brand"
                     disabled={role !== 'brand' && role !== 'admin'}
                     disabledReason="Marka Hesabı Gerekli"
-                />
-
-                <SpotlightSelectionCard
-                    title="Agency Edition"
-                    description="Ajanslar için gelişmiş ağ yönetimi, çoklu marka yönetimi ve otomatik casting altyapısı."
-                    icon={Building2}
-                    href="/dashboard/spotlight/agency"
-                    variant="agency"
-                    isComingSoon
                 />
             </div>
 

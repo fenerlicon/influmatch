@@ -45,7 +45,7 @@ export default function PublicSpotlightPage() {
                         Potansiyelini <span className="text-transparent bg-clip-text bg-gradient-to-r from-soft-gold to-yellow-200">Keşfet</span>
                     </h1>
                     <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        İster marka ol, ister influencer. Spotlight paketleri ile yapay zeka destekli özellikleri kullan, rakiplerinin önüne geç.
+                        İster marka ol, ister influencer. Spotlight paketleri ile akıllı eşleştirme ve detaylı analiz özelliklerini kullan, rakiplerinin önüne geç.
                     </p>
 
                     {/* Toggle */}
@@ -104,7 +104,7 @@ export default function PublicSpotlightPage() {
                                     originalPrice={planPrice('mbasic', billingInterval).originalPrice}
                                     interval={billingInterval}
                                     features={[
-                                        { text: "Sınırsız AI Eşleşme", highlight: true },
+                                        { text: "Sınırsız Akıllı Eşleşme", highlight: true },
                                         { text: "Anti-Bot Analizleri" },
                                         { text: "Temel Filtreleme" },
                                     ]}
@@ -118,7 +118,7 @@ export default function PublicSpotlightPage() {
                                     originalPrice={planPrice('mpro', billingInterval).originalPrice}
                                     interval={billingInterval}
                                     features={[
-                                        { text: "Sınırsız AI Eşleşme", highlight: true },
+                                        { text: "Sınırsız Akıllı Eşleşme", highlight: true },
                                         { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
                                         { text: "Gelişmiş Filtreleme & Look-alike", highlight: true },
                                         { text: "Brief Önceliklendirme (Premium)", highlight: true },
@@ -206,7 +206,7 @@ export default function PublicSpotlightPage() {
                                         { text: "En Üst Sırada Listeleme", highlight: true },
                                         { text: "Hızlı Eşleşme Önceliği (Premium)", highlight: true },
                                         { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
-                                        { text: "AI İçerik Asistanı" },
+                                        { text: "İçerik Asistanı" },
                                     ]}
                                     recommended
                                     variant="influencer"

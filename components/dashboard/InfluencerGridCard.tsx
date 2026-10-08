@@ -404,7 +404,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                 <span className="text-lg">🤖</span>
                             </div>
                             <div>
-                                <h4 className="text-sm font-bold text-white">AI Analizi</h4>
+                                <h4 className="text-sm font-bold text-white">Profil Analizi</h4>
                                 <p className="text-[10px] text-gray-400">Neden bu profil?</p>
                             </div>
                         </div>

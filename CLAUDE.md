@@ -47,8 +47,13 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
    - E-posta (8.4-S1): Resend ücretsiz planda kalınır; doğrulama/şifre e-postaları öncelikli, kota %80'i geçince
      bildirim e-postaları durur (site içi bildirim sürer), admin'e uyarı.
    - Mobil: kural 3.
-   - Kuyruğun en sonu (dokunma, sonda hatırlat): "AI analiz" metni (2.9-S1), ortak logoları (9.1-S2), sabit pazarlama
-     rakamları (9.1-S3), KVKK metinleri, 5 Yıldız rozeti. Ayrıntı `docs/HANDOFF.md` bölüm 8.
+   - **2026-10-10 kararları:** arayüzde "AI / yapay zeka" denmez, "akıllı eşleştirme / profil analizi" denir (gerçek
+     yapay zekâ yok; sahte bekleme ve rastgelelik yok). Ana sayfada ortaklık iddiası yok ("Desteklenen Platformlar":
+     yalnızca Instagram, TikTok) ve sabit pazarlama rakamı yok. Yasal metinlerin tek kaynağı `app/legal/page.tsx`;
+     hukuki içerik avukat yazınca değişir, Claude yasal metin yazmaz. Ajans paketi sayfası yok. Kodla doğrulayanlara
+     sınır OAuth açılınca konuşulur (3.13-N2). Drive yapısı (8.9-N1) sonra. Mobil uygulama adı "Influmatch",
+     paket kimliği `net.influmatch.app` (iOS ve Android).
+   - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`
    içine gerçek `CRON_SECRET` yazılmış haliyle **commit etme** (repodaki hali `BURAYA_CRON_SECRET` yer tutucusuyla).

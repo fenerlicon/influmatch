@@ -29,7 +29,7 @@ const features = [
     {
         icon: BarChart3,
         title: 'Detaylı Profil Analizi',
-        description: 'Kendi profilinin detaylı analitiğini gör, etkileşimini artırmak için yapay zeka önerileri al.',
+        description: 'Kendi profilinin detaylı analitiğini gör, etkileşimini artırmak için öneriler al.',
     },
     {
         icon: HeartHandshake,
@@ -38,8 +38,8 @@ const features = [
     },
     {
         icon: Sparkles,
-        title: 'AI İçerik Asistanı (v1.2)',
-        description: 'Paylaşımların için yapay zeka destekli içerik fikirleri ve hashtag önerileri. (Yakında)',
+        title: 'İçerik Asistanı (v1.2)',
+        description: 'Paylaşımların için içerik fikirleri ve hashtag önerileri. (Yakında)',
         comingSoon: true,
     },
 ]
@@ -203,7 +203,7 @@ export default function InfluencerSpotlightPage() {
                             { text: "En Üst Sırada Listeleme", highlight: true },
                             { text: "Hızlı Eşleşme Önceliği (Premium)", highlight: true },
                             { text: "Detaylı Profil Analizi & İçgörü", highlight: true },
-                            { text: "AI İçerik Asistanı" },
+                            { text: "İçerik Asistanı" },
                         ]}
                         recommended
                         variant="influencer"

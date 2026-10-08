@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { generateVerificationCode, verifyInstagramAccount } from '@/app/actions/social-verification';
 import { BadgeCheck, Instagram } from 'lucide-react';
-import { USER_AGREEMENT } from '@/lib/legal-constants';
-import LegalModal from '@/components/ui/LegalModal';
 
 interface InstagramConnectProps {
     userId: string;
@@ -23,7 +21,6 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
     const [error, setError] = useState('');
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [agreedToConsent, setAgreedToConsent] = useState(false);
-    const [modalState, setModalState] = useState({ isOpen: false, title: '', content: '' });
 
     const STORAGE_KEY = `instagram_verification_state_${userId}`;
     const EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
@@ -69,10 +66,6 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
             localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
         }
     }, [step, username, verificationCode, userId, isVerified]);
-
-    const openModal = (title: string, content: string) => {
-        setModalState({ isOpen: true, title, content });
-    };
 
     // Calculate time since last update
     // Calculate time since last update
@@ -266,16 +259,14 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                                     <BadgeCheck className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 transition-opacity peer-checked:opacity-100" />
                                 </div>
                                 <span className="text-xs text-gray-400 group-hover:text-gray-300">
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            openModal('Kullanıcı Sözleşmesi', USER_AGREEMENT);
-                                        }}
+                                    <a
+                                        href="/legal?tab=terms"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="text-soft-gold hover:underline"
                                     >
                                         Sözleşmeleri
-                                    </button>
+                                    </a>
                                     {' '}kabul ediyorum.
                                 </span>
                             </label>
@@ -388,13 +379,6 @@ export default function InstagramConnect({ userId, isVerified = false, initialUs
                     {error}
                 </div>
             )}
-
-            <LegalModal
-                isOpen={modalState.isOpen}
-                onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
-                title={modalState.title}
-                content={modalState.content}
-            />
 
             <div className="mt-6 flex justify-end md:hidden">
                 <p className="max-w-md text-right text-[10px] italic text-gray-400 leading-relaxed">

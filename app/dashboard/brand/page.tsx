@@ -216,7 +216,7 @@ export default async function BrandDashboardPage() {
             <div>
               <div className="inline-flex items-center gap-2 mb-2 rounded-full border border-blue-500/30 bg-blue-500/20 px-3 py-1">
                 <Sparkles className="h-3 w-3 text-blue-400" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300">AI Powered</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300">Akıllı Eşleştirme</span>
               </div>
               <h2 className="text-xl font-semibold text-white">Sizin İçin Önerilenler</h2>
               <p className="text-sm text-gray-400 mt-1">Marka profilinize ve hedeflerinize en uygun influencer'lar.</p>
@@ -256,7 +256,7 @@ export default async function BrandDashboardPage() {
                   <Lock className="h-8 w-8" />
                 </div>
                 <h3 className="text-xl font-bold text-white">Spotlight İle Kilidi Aç</h3>
-                <p className="text-sm text-gray-400 mt-2 mb-6 max-w-sm">Yapay zeka destekli önerileri görmek ve en doğru eşleşmeleri yakalamak için Spotlight'a geçin.</p>
+                <p className="text-sm text-gray-400 mt-2 mb-6 max-w-sm">Akıllı eşleştirme önerilerini görmek ve en doğru profilleri yakalamak için Spotlight'a geçin.</p>
                 <Link href="/dashboard/spotlight/brand" className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-500 transition shadow-lg shadow-blue-900/20">
                   Spotlight Satın Al
                 </Link>

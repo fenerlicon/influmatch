@@ -212,7 +212,7 @@ export default function InfluencerStats({
             } else if (result.analysis) {
                 setCurrentAnalysis(result.analysis)
                 setLastAnalysisType(type)
-                toast.success('Yapay zeka analizi tamamlandı!')
+                toast.success('Profil analizi tamamlandı!')
             }
         })
     }
@@ -482,10 +482,10 @@ export default function InfluencerStats({
                     {/* AI Feature Selector */}
                     <div className="mb-6 flex flex-wrap gap-2">
                         <AnalysisButton type="basic" label="Genel Özet" icon={Sparkles} requiredTier="FREE" />
-                        <AnalysisButton type="match_score" label="AI Uyum Skoru" icon={Activity} requiredTier="SPOTLIGHT" />
+                        <AnalysisButton type="match_score" label="Uyum Skoru" icon={Activity} requiredTier="SPOTLIGHT" />
 
                         {mode === 'influencer-view' && (
-                            <AnalysisButton type="profile_coach" label="AI Koç" icon={Zap} requiredTier="SPOTLIGHT_PLUS" />
+                            <AnalysisButton type="profile_coach" label="Profil Koçu" icon={Zap} requiredTier="SPOTLIGHT_PLUS" />
                         )}
 
                         {mode === 'brand-view' && viewerRole === 'brand' && (
@@ -504,7 +504,7 @@ export default function InfluencerStats({
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-lg font-bold text-white">
-                                    {isPending ? 'Yapay Zeka Düşünüyor...' : 'Detaylı Profil Analizi'}
+                                    {isPending ? 'Analiz ediliyor...' : 'Detaylı Profil Analizi'}
                                 </h3>
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${
                                     isTikTok 
@@ -547,7 +547,7 @@ export default function InfluencerStats({
                             <h3 className="text-xl font-bold text-white">Bu Özelliği Aç</h3>
                             <p className="mb-6 mt-2 text-sm text-gray-400 max-w-sm">
                                 {showPaywall === 'match_score' ? 'Detaylı uyum skorlarını görmek için Spotlight paketine geçin.' :
-                                    showPaywall === 'profile_coach' ? 'Kişisel AI koçunuzu aktifleştirmek için Spotlight+ paketine geçin.' :
+                                    showPaywall === 'profile_coach' ? 'Profil koçunu aktifleştirmek için Spotlight+ paketine geçin.' :
                                         'Kampanya ve ROI analizleri için Brand Pro paketi gereklidir.'}
                             </p>
                             <div className="flex gap-3">

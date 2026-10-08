@@ -41,7 +41,7 @@ export default async function AIRecommendationsPage() {
 
     return (
         <div className="min-h-screen space-y-8 pb-10">
-            {/* Header Section with Futuristic/AI Theme */}
+            {/* Başlık */}
             <header className="relative overflow-hidden rounded-3xl border border-blue-500/30 bg-[#0A0B10] p-8 shadow-[0_0_40px_rgba(59,130,246,0.15)]">
                 {/* Decorative Background Elements */}
                 <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-blue-600/20 blur-[80px] pointer-events-none" />
@@ -63,8 +63,8 @@ export default async function AIRecommendationsPage() {
                                     <Sparkles className="h-5 w-5 text-white" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-blue-400">AI Powered Analysis</span>
-                                    <span className="text-xs text-gray-400">Powered by Influmatch Engine v2.0</span>
+                                    <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-blue-400">Akıllı Eşleştirme</span>
+                                    <span className="text-xs text-gray-400">Kategori, etkileşim ve doğrulama verilerine göre</span>
                                 </div>
                             </div>
 
@@ -72,7 +72,7 @@ export default async function AIRecommendationsPage() {
                                 Sizin İçin Önerilenler
                             </h1>
                             <p className="mt-4 max-w-2xl text-lg text-gray-300 leading-relaxed">
-                                Yapay zeka algoritmamız, <span className="text-blue-400 font-semibold">{category || 'Sektörünüz'}</span> kategorisindeki en etkili ve güvenilir profilleri analiz etti ve markanızla %95+ uyumlu bu listeyi oluşturdu.
+                                <span className="text-blue-400 font-semibold">{category || 'Sektörünüz'}</span> kategorisindeki profiller kategori uyumu, etkileşim ve doğrulama durumuna göre puanlandı; en yüksek puanlılar aşağıda. Puan 100 üzerinden eşleşme skorudur.
                             </p>
                         </div>
 
