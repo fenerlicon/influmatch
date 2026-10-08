@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView,
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { resolveHomeRoute } from '../lib/routing';
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, MapPin, AlignLeft, Globe, Instagram, Youtube, Music2, ChevronRight, ChevronLeft, Hash, Building, AtSign, AlertCircle, X, Search, CheckCircle, XCircle, Camera, Check } from 'lucide-react-native';
 import { CustomToast } from '../components/CustomToast';
@@ -237,9 +238,10 @@ export default function OnboardingScreen({ navigation }) {
             });
 
             showToast('Profiliniz oluşturuldu!', 'success');
+            // Influencer doğrulanmış sosyal hesabı yoksa zorunlu doğrulama ekranına gider (lib/routing.js).
+            const dest = await resolveHomeRoute(user.id).catch(() => (role === 'brand' ? 'BrandDashboard' : 'Dashboard'));
             setTimeout(() => {
-                const dest = role === 'brand' ? 'BrandDashboard' : 'Dashboard';
-                navigation.replace(dest);
+                navigation.replace(dest === 'Rejected' ? 'Login' : dest === 'Onboarding' ? (role === 'brand' ? 'BrandDashboard' : 'Dashboard') : dest);
             }, 1000);
 
         } catch (error) {

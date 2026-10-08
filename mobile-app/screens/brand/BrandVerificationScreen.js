@@ -1,13 +1,31 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Shield, Building2, FileText, Phone, CheckCircle2, Clock, AlertCircle } from 'lucide-react-native';
-import { supabase } from '../../lib/supabase';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { decode } from 'base64-arraybuffer';
+import { ArrowLeft, Shield, Building2, FileText, Mail, MapPin, CheckCircle2, Clock, XCircle, AlertCircle, ChevronDown, X } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { supabase } from '../../lib/supabase';
+import { apiRequest } from '../../lib/api';
+import { TURKISH_CITIES } from '../../constants/cities';
 
-// ─── Design ───────────────────────────────────────────────────────────────────
+// Marka doğrulaması web ile aynı akış: kurumsal kimlik (unvan, vergi no, daire, il) → kurumsal e-posta kodu →
+// vergi levhası. Tüm kurallar sunucuda (lib/brand-verification.ts, lib/corporate-email-verification.ts).
+// Vergi levhası yalnızca kendi sunucumuzda kontrol edilir; dış servislere gönderilmez.
+
+const MAX_BYTES = 5 * 1024 * 1024;
+
+const TAX_STATUS = {
+    processing: { title: 'İnceleniyor', color: '#fbbf24', Icon: Clock },
+    needs_review: { title: 'Ekibimiz inceliyor', color: '#fbbf24', Icon: Clock },
+    auto_approved: { title: 'Vergi levhanız doğrulandı', color: '#4ade80', Icon: CheckCircle2 },
+    approved: { title: 'Vergi levhanız doğrulandı', color: '#4ade80', Icon: CheckCircle2 },
+    rejected: { title: 'Belge kabul edilmedi', color: '#f87171', Icon: XCircle },
+};
+
 const GlassCard = ({ children, className }) => (
     <View className={`rounded-[24px] overflow-hidden border border-white/10 relative ${className}`}>
         <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="absolute inset-0" />
@@ -15,102 +33,161 @@ const GlassCard = ({ children, className }) => (
     </View>
 );
 
-const InputField = ({ label, value, onChange, placeholder, keyboardType = 'default', multiline = false }) => (
-    <View className="mb-6">
-        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-3 ml-1">{label}</Text>
-        <View className={`bg-black/30 border border-white/10 rounded-2xl px-4 ${multiline ? 'py-4 min-h-[100px]' : 'h-14 justify-center'}`}>
+const InputField = ({ label, value, onChange, placeholder, keyboardType = 'default', editable = true, autoCapitalize }) => (
+    <View className="mb-4">
+        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">{label}</Text>
+        <View className={`border border-white/10 rounded-2xl px-4 h-14 justify-center ${editable ? 'bg-black/30' : 'bg-white/5'}`}>
             <TextInput
-                className="text-white text-sm"
+                className={`text-sm ${editable ? 'text-white' : 'text-gray-400'}`}
                 value={value}
                 onChangeText={onChange}
                 placeholder={placeholder}
                 placeholderTextColor="#4b5563"
                 keyboardType={keyboardType}
-                multiline={multiline}
-                textAlignVertical={multiline ? 'top' : 'center'}
+                editable={editable}
+                autoCapitalize={autoCapitalize}
             />
         </View>
     </View>
 );
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+const SectionTitle = ({ Icon, title, done }) => (
+    <View className="flex-row items-center gap-2 mb-3">
+        <Icon color={done ? '#4ade80' : '#D4AF37'} size={16} />
+        <Text className="text-white font-bold text-sm flex-1">{title}</Text>
+        {done && <CheckCircle2 color="#4ade80" size={16} />}
+    </View>
+);
+
+const Notice = ({ color, Icon, title, children }) => (
+    <View className="rounded-2xl border p-3 mb-3" style={{ borderColor: `${color}66`, backgroundColor: `${color}14` }}>
+        <View className="flex-row items-center gap-2">
+            <Icon color={color} size={16} />
+            <Text style={{ color }} className="font-semibold text-sm flex-1">{title}</Text>
+        </View>
+        {children}
+    </View>
+);
+
 export default function BrandVerificationScreen({ navigation }) {
-    const [profile, setProfile] = useState(null);
+    const [state, setState] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [busy, setBusy] = useState(null);
+    const [error, setError] = useState(null);
+    const [message, setMessage] = useState(null);
 
-    const [form, setForm] = useState({
-        company_legal_name: '',
-        tax_id: '',
-        phone: '',
-        website: '',
-        notes: '',
-    });
+    const [identity, setIdentity] = useState({ companyLegalName: '', taxId: '', taxOffice: '', taxOfficeCity: '' });
+    const [editingIdentity, setEditingIdentity] = useState(false);
+    const [cityPickerVisible, setCityPickerVisible] = useState(false);
+    const [email, setEmail] = useState('');
+    const [code, setCode] = useState('');
+    const [codeSent, setCodeSent] = useState(false);
 
-    const fetchProfile = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data: publicData } = await supabase
-            .from('users')
-            .select('company_legal_name, social_links, verification_status')
-            .eq('id', user.id)
-            .maybeSingle();
-        // Vergi no ve telefon gizli kolonlarda; sadece sahibine açık RPC ile okunur.
-        const { data: privateData } = await supabase.rpc('get_my_private_profile').maybeSingle();
-        const data = publicData
-            ? { ...publicData, tax_id: privateData?.tax_id ?? null, phone: privateData?.phone ?? null }
-            : null;
-        if (data) {
-            setProfile(data);
-            setForm(prev => ({
-                ...prev,
-                company_legal_name: data.company_legal_name || '',
-                tax_id: data.tax_id || '',
-                phone: data.phone || '',
-                website: data.social_links?.website || '',
-                social_links: data.social_links || {},
-            }));
+    const load = useCallback(async () => {
+        const result = await apiRequest('brand-verification');
+        if (result.error) {
+            setError(result.error);
+        } else {
+            const s = result.state;
+            setState(s);
+            setIdentity({
+                companyLegalName: s.companyLegalName || '',
+                taxId: s.taxId || '',
+                taxOffice: s.taxOffice || '',
+                taxOfficeCity: s.taxOfficeCity || '',
+            });
+            setEditingIdentity(!s.taxId);
+            setEmail(s.corporateEmail || '');
+            setCodeSent(!!s.corporateEmail && !s.corporateEmailVerified);
         }
         setLoading(false);
     }, []);
 
-    useFocusEffect(useCallback(() => { fetchProfile(); }, [fetchProfile]));
+    useFocusEffect(useCallback(() => { load(); }, [load]));
 
-    const handleSubmit = async () => {
-        if (!form.company_legal_name.trim()) {
-            Alert.alert('Eksik Bilgi', 'Lütfen şirket / marka adınızı girin.');
-            return;
+    const run = async (key, body, { onSuccess, successMessage } = {}) => {
+        setBusy(key);
+        setError(null);
+        setMessage(null);
+        const result = await apiRequest('brand-verification', { method: 'POST', body });
+        setBusy(null);
+        if (result.error) {
+            setError(result.error);
+            return null;
         }
-        if (!form.tax_id.trim()) {
-            Alert.alert('Eksik Bilgi', 'Lütfen vergi numaranızı girin.');
-            return;
-        }
+        setMessage(result.message || successMessage || null);
+        onSuccess?.(result);
+        await load();
+        return result;
+    };
 
-        setSaving(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    company_legal_name: form.company_legal_name.trim(),
-                    tax_id: form.tax_id.trim(),
-                    phone: form.phone.trim() || null,
-                    social_links: { ...(form.social_links || {}), website: form.website.trim() || null },
-                    verification_status: 'pending',
-                })
-                .eq('id', user.id);
-
-            if (error) throw error;
-
+    const saveIdentity = () => {
+        const doSave = () => run('identity', { action: 'identity', ...identity }, { successMessage: 'Kurumsal bilgiler kaydedildi.' });
+        // Onaylı marka yasal bilgilerini değiştirirse onay düşer (web ile aynı kural, veritabanında uygulanıyor).
+        const changed = state && (
+            identity.companyLegalName.trim() !== (state.companyLegalName || '') ||
+            identity.taxId.replace(/[\s.-]/g, '') !== (state.taxId || '') ||
+            identity.taxOffice.trim() !== (state.taxOffice || '') ||
+            identity.taxOfficeCity !== (state.taxOfficeCity || '')
+        );
+        if (changed && (state.verificationStatus === 'verified' || state.taxIdVerified)) {
             Alert.alert(
-                'Başvuru Alındı ✓',
-                'Doğrulama başvurunuz alındı. Ekibimiz 1-3 iş günü içinde inceleyecektir.',
-                [{ text: 'Tamam', onPress: () => navigation.goBack() }]
+                'Onay yeniden incelenecek',
+                'Yasal bilgilerinizi değiştirirseniz mevcut onayınız ve Resmi İşletme rozeti kaldırılır; yeniden doğrulamanız gerekir.',
+                [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Kaydet', style: 'destructive', onPress: doSave }]
             );
+            return;
+        }
+        doSave();
+    };
+
+    const uploadTaxDocument = async (bytes, extension, contentType) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Oturumunuz bulunamadı.');
+        const path = `${user.id}/${Date.now()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+            .from('tax-documents')
+            .upload(path, bytes, { contentType, upsert: false });
+        if (uploadError) throw new Error('Belge yüklenemedi. Lütfen tekrar deneyin.');
+        await run('tax', { action: 'tax', filePath: path });
+    };
+
+    const pickPdf = async () => {
+        try {
+            const picked = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+            if (picked.canceled || !picked.assets?.[0]) return;
+            const asset = picked.assets[0];
+            if (asset.size && asset.size > MAX_BYTES) return setError('Belge en fazla 5 MB olabilir.');
+            setBusy('tax');
+            setError(null);
+            const bytes = await (await fetch(asset.uri)).arrayBuffer();
+            if (bytes.byteLength > MAX_BYTES) {
+                setBusy(null);
+                return setError('Belge en fazla 5 MB olabilir.');
+            }
+            await uploadTaxDocument(bytes, 'pdf', 'application/pdf');
         } catch (e) {
-            Alert.alert('Hata', e.message || 'Başvuru gönderilemedi.');
-        } finally {
-            setSaving(false);
+            setBusy(null);
+            setError(e.message || 'Belge yüklenemedi.');
+        }
+    };
+
+    const pickPhoto = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaType.Images,
+                quality: 0.8,
+                base64: true,
+            });
+            if (result.canceled || !result.assets?.[0]?.base64) return;
+            const bytes = decode(result.assets[0].base64);
+            if (bytes.byteLength > MAX_BYTES) return setError('Belge en fazla 5 MB olabilir.');
+            setBusy('tax');
+            setError(null);
+            await uploadTaxDocument(bytes, 'jpg', 'image/jpeg');
+        } catch (e) {
+            setBusy(null);
+            setError(e.message || 'Belge yüklenemedi.');
         }
     };
 
@@ -123,141 +200,220 @@ export default function BrandVerificationScreen({ navigation }) {
         );
     }
 
-    const isPending = profile?.verification_status === 'pending';
-    const isVerified = profile?.verification_status === 'verified';
+    const identityComplete = !!(state?.companyLegalName && state?.taxId && state?.taxOffice && state?.taxOfficeCity);
+    const latest = state?.latestTaxVerification;
+    const latestApproved = latest && (latest.status === 'approved' || latest.status === 'auto_approved');
+    // Onaylı levha sonrası yasal bilgiler değiştiyse onay düşmüştür; eski "doğrulandı" sonucu gösterilmez (web ile aynı).
+    const shownTax = latestApproved && !state?.taxIdVerified ? null : latest;
+    const taxView = shownTax ? TAX_STATUS[shownTax.status] : null;
+    const showTaxUpload = !state?.taxIdVerified && shownTax?.status !== 'processing';
+    const emailChanged = email.trim().toLowerCase() !== (state?.corporateEmail || '').toLowerCase();
+    const accountVerified = state?.verificationStatus === 'verified';
 
     return (
         <View className="flex-1 bg-[#020617]">
             <StatusBar style="light" />
             <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
-            <View className="absolute top-0 right-0 w-72 h-72 bg-amber-500/5 rounded-full blur-[80px]" />
 
             <SafeAreaView className="flex-1">
-                {/* Header */}
                 <View className="px-5 py-4 flex-row items-center gap-3 border-b border-white/5">
-                    <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        className="w-10 h-10 bg-white/5 rounded-2xl items-center justify-center border border-white/10"
-                    >
+                    <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-white/5 rounded-2xl items-center justify-center border border-white/10">
                         <ArrowLeft color="white" size={20} />
                     </TouchableOpacity>
                     <View className="flex-1">
                         <Text className="text-white font-bold text-base">İşletme Doğrulama</Text>
-                        <Text className="text-gray-500 text-xs">Resmi İşletme rozeti için başvur</Text>
+                        <Text className="text-gray-500 text-xs">Kurumsal kimlik, kurumsal e-posta ve vergi levhası</Text>
                     </View>
                     <View className="w-10 h-10 bg-amber-500/15 rounded-2xl border border-amber-500/25 items-center justify-center">
                         <Shield color="#fbbf24" size={18} />
                     </View>
                 </View>
 
-                <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60, paddingTop: 20 }}>
+                <ScrollView className="flex-1 px-5" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 60, paddingTop: 20 }}>
+                    <Notice
+                        color={accountVerified ? '#4ade80' : '#fbbf24'}
+                        Icon={accountVerified ? CheckCircle2 : Clock}
+                        title={accountVerified ? 'Hesabınız onaylı' : 'Hesabınız henüz onaylanmadı'}
+                    >
+                        <Text className="text-gray-400 text-xs mt-1 leading-5">
+                            {accountVerified
+                                ? 'Teklif gönderebilir ve ilan oluşturabilirsiniz.'
+                                : 'Teklif göndermek ve ilan oluşturmak için hesabınızın onaylanması gerekir. Aşağıdaki bilgileri tamamlamanız incelemeyi kolaylaştırır.'}
+                        </Text>
+                    </Notice>
+                    <Text className="text-gray-500 text-xs leading-5 mb-5">
+                        Vergi levhanız ekibimizce onaylandığında ve kurumsal e-postanız doğrulandığında "Resmi İşletme" rozeti verilir.
+                    </Text>
 
-                    {/* Status Banner */}
-                    {isVerified && (
-                        <GlassCard className="p-4 mb-10 border-green-500/20">
-                            <LinearGradient colors={['rgba(74,222,128,0.08)', 'transparent']} className="absolute inset-0" />
-                            <View className="flex-row items-center gap-3">
-                                <CheckCircle2 color="#4ade80" size={22} />
-                                <View className="flex-1">
-                                    <Text className="text-green-400 font-bold text-sm">Hesabınız Doğrulandı</Text>
-                                    <Text className="text-gray-500 text-xs mt-0.5">İşletmeniz onaylı marka statüsüne sahip.</Text>
-                                </View>
-                            </View>
-                        </GlassCard>
+                    {error && (
+                        <Notice color="#f87171" Icon={AlertCircle} title={error} />
+                    )}
+                    {message && !error && (
+                        <Notice color="#4ade80" Icon={CheckCircle2} title={message} />
                     )}
 
-                    {isPending && (
-                        <GlassCard className="p-4 mb-10 border-amber-500/20">
-                            <LinearGradient colors={['rgba(251,191,36,0.08)', 'transparent']} className="absolute inset-0" />
-                            <View className="flex-row items-center gap-3">
-                                <Clock color="#fbbf24" size={22} />
-                                <View className="flex-1">
-                                    <Text className="text-amber-300 font-bold text-sm">Başvurunuz İnceleniyor</Text>
-                                    <Text className="text-gray-500 text-xs mt-0.5">Ekibimiz 1-3 iş günü içinde dönüş yapacaktır.</Text>
-                                </View>
+                    {/* 1. Kurumsal kimlik */}
+                    <GlassCard className="p-5 mb-5">
+                        <SectionTitle Icon={Building2} title="Kurumsal Kimlik" done={identityComplete && !editingIdentity} />
+                        <InputField label="Resmi Şirket Unvanı" value={identity.companyLegalName} editable={editingIdentity}
+                            onChange={(v) => setIdentity((f) => ({ ...f, companyLegalName: v }))} placeholder="Şirket Adı A.Ş." />
+                        <InputField label="Vergi Numarası" value={identity.taxId} editable={editingIdentity} keyboardType="number-pad"
+                            onChange={(v) => setIdentity((f) => ({ ...f, taxId: v }))} placeholder="10 haneli VKN veya 11 haneli TCKN" />
+                        <InputField label="Vergi Dairesi" value={identity.taxOffice} editable={editingIdentity}
+                            onChange={(v) => setIdentity((f) => ({ ...f, taxOffice: v }))} placeholder="Vergi dairesini girin" />
+                        <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">Vergi Levhası İli</Text>
+                        <TouchableOpacity disabled={!editingIdentity} onPress={() => setCityPickerVisible(true)}
+                            className={`border border-white/10 rounded-2xl px-4 h-14 flex-row items-center justify-between mb-4 ${editingIdentity ? 'bg-black/30' : 'bg-white/5'}`}>
+                            <View className="flex-row items-center gap-2">
+                                <MapPin color="#6b7280" size={14} />
+                                <Text className={identity.taxOfficeCity ? (editingIdentity ? 'text-white text-sm' : 'text-gray-400 text-sm') : 'text-gray-600 text-sm'}>
+                                    {identity.taxOfficeCity || 'İl seçin'}
+                                </Text>
                             </View>
-                        </GlassCard>
-                    )}
+                            {editingIdentity && <ChevronDown color="#6b7280" size={16} />}
+                        </TouchableOpacity>
 
-                    {/* Info Card */}
-                    {!isVerified && !isPending && (
-                        <GlassCard className="p-6 mb-24 border-amber-500/15">
-                            <LinearGradient colors={['rgba(245,158,11,0.06)', 'transparent']} className="absolute inset-0" />
-                            <View className="flex-row items-start gap-4">
-                                <AlertCircle color="#fbbf24" size={20} style={{ marginTop: 2 }} />
-                                <View className="flex-1">
-                                    <Text className="text-amber-300 font-bold text-sm mb-5">Neden Doğrulayalım?</Text>
-                                    <View className="gap-y-4">
-                                        <Text className="text-gray-400 text-xs leading-6"><Text className="text-white font-medium">• Resmi İşletme</Text> rozeti kazanırsınız</Text>
-                                        <Text className="text-gray-400 text-xs leading-6">• Influencer'lar güvenilir marka olarak görür</Text>
-                                        <Text className="text-gray-400 text-xs leading-6">• Başvurularınız öncelikli incelenir</Text>
-                                        <Text className="text-gray-400 text-xs leading-6">• Platform'da öne çıkma fırsatı kazanırsınız</Text>
-                                    </View>
-                                </View>
+                        {state?.taxIdVerified && !editingIdentity && (
+                            <Notice color="#4ade80" Icon={CheckCircle2} title="Vergi numaranız doğrulandı." />
+                        )}
+
+                        {editingIdentity ? (
+                            <View className="flex-row gap-3">
+                                {identityComplete && (
+                                    <TouchableOpacity onPress={() => { setEditingIdentity(false); load(); }}
+                                        className="flex-1 h-12 rounded-2xl border border-white/10 items-center justify-center">
+                                        <Text className="text-gray-300 font-semibold">Vazgeç</Text>
+                                    </TouchableOpacity>
+                                )}
+                                <TouchableOpacity onPress={saveIdentity} disabled={!!busy}
+                                    className="flex-1 h-12 rounded-2xl bg-soft-gold items-center justify-center">
+                                    {busy === 'identity' ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold">Kaydet</Text>}
+                                </TouchableOpacity>
                             </View>
-                        </GlassCard>
-                    )}
-
-                    {/* Form */}
-                    {!isVerified && (
-                        <>
-                            <Text className="text-soft-gold/70 text-[11px] font-bold tracking-widest mb-8 mt-6 ml-1">ŞİRKET BİLGİLERİ</Text>
-
-                            <InputField
-                                label="Şirket / Marka Adı *"
-                                value={form.company_legal_name}
-                                onChange={v => setForm(f => ({ ...f, company_legal_name: v }))}
-                                placeholder="Şirket Adı A.Ş."
-                            />
-                            <InputField
-                                label="Vergi Numarası *"
-                                value={form.tax_id}
-                                onChange={v => setForm(f => ({ ...f, tax_id: v }))}
-                                placeholder="1234567890"
-                                keyboardType="number-pad"
-                            />
-                            <InputField
-                                label="Telefon"
-                                value={form.phone}
-                                onChange={v => setForm(f => ({ ...f, phone: v }))}
-                                placeholder="+90 5XX XXX XX XX"
-                                keyboardType="phone-pad"
-                            />
-                            <InputField
-                                label="Web Sitesi"
-                                value={form.website}
-                                onChange={v => setForm(f => ({ ...f, website: v }))}
-                                placeholder="https://sirketiniz.com"
-                                keyboardType="url"
-                            />
-                            <InputField
-                                label="Ek Notlar (İsteğe Bağlı)"
-                                value={form.notes}
-                                onChange={v => setForm(f => ({ ...f, notes: v }))}
-                                placeholder="Şirketiniz hakkında eklemek istedikleriniz..."
-                                multiline
-                            />
-
-                            <Text className="text-gray-600 text-[10px] text-center mt-2 mb-6 leading-4">
-                                Gönderilen bilgiler gizli tutulur ve yalnızca doğrulama amacıyla kullanılır.
-                            </Text>
-
-                            <TouchableOpacity
-                                onPress={handleSubmit}
-                                disabled={saving || isPending}
-                                className={`h-14 rounded-2xl items-center justify-center shadow-lg ${isPending ? 'bg-gray-700' : 'bg-amber-500 shadow-amber-500/20'}`}
-                            >
-                                {saving
-                                    ? <ActivityIndicator color="black" />
-                                    : <Text className={`font-bold text-base ${isPending ? 'text-gray-500' : 'text-black'}`}>
-                                        {isPending ? 'Başvuru Gönderildi' : 'Doğrulama Başvurusu Yap'}
-                                    </Text>
-                                }
+                        ) : (
+                            <TouchableOpacity onPress={() => setEditingIdentity(true)}
+                                className="h-11 rounded-2xl border border-soft-gold/40 bg-soft-gold/10 items-center justify-center">
+                                <Text className="text-soft-gold font-semibold text-sm">Düzenle</Text>
                             </TouchableOpacity>
-                        </>
-                    )}
+                        )}
+                    </GlassCard>
+
+                    {/* 2. Kurumsal e-posta */}
+                    <GlassCard className="p-5 mb-5">
+                        <SectionTitle Icon={Mail} title="Kurumsal E-posta" done={state?.corporateEmailVerified && !emailChanged} />
+                        <Text className="text-gray-500 text-xs leading-5 mb-4">
+                            Web sitenizin alan adına ait bir e-postayı (ör. ad@markaniz.com) kodla doğrulayın. Giriş e-postanızdan farklı olabilir.
+                        </Text>
+                        {!state?.website ? (
+                            <Notice color="#fbbf24" Icon={AlertCircle} title="Önce profilinize web sitenizi ekleyin.">
+                                <Text className="text-gray-400 text-xs mt-1">Kurumsal e-postanın alan adı web sitenizle eşleşmelidir.</Text>
+                            </Notice>
+                        ) : (
+                            <>
+                                <InputField label="Kurumsal E-posta" value={email} onChange={setEmail} placeholder="ad@markaniz.com"
+                                    keyboardType="email-address" autoCapitalize="none" />
+                                {state?.corporateEmailVerified && !emailChanged ? (
+                                    <Notice color="#4ade80" Icon={CheckCircle2} title={`${state.corporateEmail} doğrulandı.`} />
+                                ) : (
+                                    <TouchableOpacity disabled={!!busy || !email.trim()} onPress={() => run('email', { action: 'email', email: email.trim() }, { onSuccess: () => { setCodeSent(true); setCode(''); } })}
+                                        className={`h-12 rounded-2xl items-center justify-center mb-3 ${email.trim() ? 'bg-soft-gold' : 'bg-white/10'}`}>
+                                        {busy === 'email' ? <ActivityIndicator color="black" /> : <Text className={email.trim() ? 'text-black font-bold' : 'text-gray-500 font-bold'}>Doğrulama kodu gönder</Text>}
+                                    </TouchableOpacity>
+                                )}
+                                {codeSent && !emailChanged && !state?.corporateEmailVerified && (
+                                    <>
+                                        <InputField label="6 Haneli Kod" value={code} onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+                                            placeholder="123456" keyboardType="number-pad" />
+                                        <View className="flex-row gap-3">
+                                            <TouchableOpacity disabled={!!busy} onPress={() => run('resend', { action: 'resend' })}
+                                                className="flex-1 h-12 rounded-2xl border border-white/10 items-center justify-center">
+                                                {busy === 'resend' ? <ActivityIndicator color="#D4AF37" /> : <Text className="text-gray-300 font-semibold">Tekrar gönder</Text>}
+                                            </TouchableOpacity>
+                                            <TouchableOpacity disabled={!!busy || code.length !== 6} onPress={() => run('confirm', { action: 'confirm', code })}
+                                                className={`flex-1 h-12 rounded-2xl items-center justify-center ${code.length === 6 ? 'bg-soft-gold' : 'bg-white/10'}`}>
+                                                {busy === 'confirm' ? <ActivityIndicator color="black" /> : <Text className={code.length === 6 ? 'text-black font-bold' : 'text-gray-500 font-bold'}>Doğrula</Text>}
+                                            </TouchableOpacity>
+                                        </View>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </GlassCard>
+
+                    {/* 3. Vergi levhası */}
+                    <GlassCard className="p-5 mb-5">
+                        <SectionTitle Icon={FileText} title="Vergi Levhası" done={!!state?.taxIdVerified} />
+                        <Text className="text-gray-500 text-xs leading-5 mb-4">
+                            e-Devlet veya GİB İnternet Vergi Dairesi'nden indirdiğiniz vergi levhası PDF'ini yükleyin. Fotoğraflar da kabul edilir
+                            ancak incelemesi daha uzun sürebilir.
+                        </Text>
+
+                        {taxView && shownTax && !(state?.taxIdVerified && shownTax.status === 'rejected') && (
+                            <Notice color={taxView.color} Icon={taxView.Icon} title={taxView.title}>
+                                {shownTax.status !== 'approved' && shownTax.status !== 'auto_approved' && (shownTax.reasons?.length ?? 0) > 0 && (
+                                    <View className="mt-2">
+                                        {shownTax.reasons.map((reason) => (
+                                            <Text key={reason} className="text-gray-400 text-xs leading-5">• {reason}</Text>
+                                        ))}
+                                    </View>
+                                )}
+                            </Notice>
+                        )}
+
+                        {showTaxUpload && (
+                            <>
+                                {!identityComplete && (
+                                    <Text className="text-gray-400 text-xs mb-3">Önce resmi unvan, vergi numarası, vergi dairesi ve ili kaydedin.</Text>
+                                )}
+                                {busy === 'tax' ? (
+                                    <View className="h-12 rounded-2xl bg-white/5 flex-row items-center justify-center gap-2">
+                                        <ActivityIndicator color="#D4AF37" />
+                                        <Text className="text-gray-300 text-sm">Belge kontrol ediliyor...</Text>
+                                    </View>
+                                ) : (
+                                    <View className="flex-row gap-3">
+                                        <TouchableOpacity disabled={!identityComplete || !!busy} onPress={pickPdf}
+                                            className={`flex-1 h-12 rounded-2xl border items-center justify-center ${identityComplete ? 'border-soft-gold/60 bg-soft-gold/10' : 'border-white/10 bg-white/5'}`}>
+                                            <Text className={identityComplete ? 'text-soft-gold font-semibold' : 'text-gray-600 font-semibold'}>PDF yükle</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity disabled={!identityComplete || !!busy} onPress={pickPhoto}
+                                            className={`flex-1 h-12 rounded-2xl border items-center justify-center ${identityComplete ? 'border-white/20 bg-white/5' : 'border-white/10 bg-white/5'}`}>
+                                            <Text className={identityComplete ? 'text-gray-200 font-semibold' : 'text-gray-600 font-semibold'}>Fotoğraf yükle</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                                <Text className="text-gray-600 text-[10px] leading-4 mt-3">
+                                    Belgeniz sadece Influmatch sunucularında kontrol edilir; yapay zeka servislerine veya üçüncü taraflara gönderilmez.
+                                    İnceleme için güvenli bir alanda saklanır.
+                                </Text>
+                            </>
+                        )}
+                    </GlassCard>
                 </ScrollView>
             </SafeAreaView>
+
+            <Modal visible={cityPickerVisible} animationType="slide" transparent onRequestClose={() => setCityPickerVisible(false)}>
+                <View className="flex-1 bg-black/70 justify-end">
+                    <View className="bg-[#0F1014] rounded-t-[28px] border-t border-white/10 max-h-[70%]">
+                        <View className="flex-row items-center justify-between px-6 py-4 border-b border-white/5">
+                            <Text className="text-white font-bold">Vergi Levhası İli</Text>
+                            <TouchableOpacity onPress={() => setCityPickerVisible(false)} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
+                                <X color="white" size={18} />
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={TURKISH_CITIES}
+                            keyExtractor={(item) => item}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity onPress={() => { setIdentity((f) => ({ ...f, taxOfficeCity: item })); setCityPickerVisible(false); }}
+                                    className="px-6 py-3.5 border-b border-white/5">
+                                    <Text className={item === identity.taxOfficeCity ? 'text-soft-gold font-semibold' : 'text-gray-200'}>{item}</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }

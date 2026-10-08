@@ -27,10 +27,9 @@ Kararsız yapılabilecek web maddeleri bitti (PR #32–#36). Kalanlar:
    nedeniyle bekliyor), mobil sürüm çıkınca `DROP POLICY "avatars insert"`.
 3. **OAuth açılırsa:** 2.3-S2, 2.3-S3, 2.3-S4.
 2a. **Mobil eşitleme (2026-10-09 başladı, test aşaması, hedef web ile tam uyum):** Parça 1 teklifler + ortak mesajlaşma (#41),
-   parça 2 ilanlar + başvurular (`/api/mobile/adverts`, `/api/mobile/applications`, `lib/adverts.ts`). Bekleyen SQL:
-   `supabase/manual/2026-10-09_kapak_politikasi.sql` (parça 2 PR'ı yayına çıktıktan **sonra** çalıştırılmalı).
-   Sıradaki parçalar: 3) doğrulama (influencer sosyal doğrulama zorunlu, marka vergi levhası + kurumsal e-posta),
-   4) push bildirimleri, 5) sahte ekranlar (AiAssistant, keşif istatistikleri, signup creator_type, şifre sıfırlama),
+   parça 2 ilanlar + başvurular (#42, kapak politikası SQL'i çalıştırıldı), parça 3 doğrulama (influencer zorunlu sosyal
+   doğrulama kapısı, marka kurumsal kimlik + kurumsal e-posta + vergi levhası; Expo paket sürümleri SDK 54'e eşitlendi).
+   Sıradaki parçalar: 4) push bildirimleri, 5) sahte ekranlar (AiAssistant, keşif istatistikleri, signup creator_type, şifre sıfırlama),
    6) DB sıkılaştırma (2.1-S8 doğrulama kodu kolonu, `DROP POLICY "avatars insert"`). Uygulama adı/paket kimliği mağaza kararı: kullanıcıya sor.
 4. **Son temizlik SQL'i** hazır: `supabase/manual/2026-10-09_temizlik.sql` (7.4-S9). Kullanıcı çalıştırınca haritada ✅.
 5. **Takip panosu:** yerel oturum panoya erişemiyor (artifact başka hesapta, bu hesapla paylaşılmamış). Harita güncel; erişimi olan ilk oturum `scripts/tracker_sync.py` ile eşitlemeli.

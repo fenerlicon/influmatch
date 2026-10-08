@@ -37,6 +37,8 @@ import BrandDashboardScreen from './screens/brand/BrandDashboardScreen';
 import BrandAdvertsScreen from './screens/brand/BrandAdvertsScreen';
 import BrandProfileScreen from './screens/brand/BrandProfileScreen';
 import BrandVerificationScreen from './screens/brand/BrandVerificationScreen';
+import SocialVerifyGateScreen from './screens/influencer/SocialVerifyGateScreen';
+import { resolveHomeRoute } from './lib/routing';
 
 // ─── Shared Screens ───────────────────────────────────────────────────────────
 import MessagesScreen from './screens/MessagesScreen';
@@ -228,19 +230,13 @@ export default function App() {
     }
 
     try {
-      // Fetch user role to determine correct tab navigator
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (userData?.role === 'brand') {
-        setInitialRoute('BrandDashboard');
+      // Web ile aynı yönlendirme kuralları (lib/routing.js): reddedilmiş hesap, eksik profil, zorunlu sosyal doğrulama.
+      const route = await resolveHomeRoute(session.user.id);
+      if (route === 'Rejected') {
+        await supabase.auth.signOut();
+        setInitialRoute('Login');
       } else {
-        setInitialRoute('Dashboard');
+        setInitialRoute(route);
       }
     } catch (e) {
       console.warn('Session check error:', e);
@@ -277,6 +273,7 @@ export default function App() {
           <Stack.Screen name="RegisterForm" component={RegisterFormScreen} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="SocialVerifyGate" component={SocialVerifyGateScreen} options={{ gestureEnabled: false }} />
 
           {/* ── Influencer Main ── */}
           <Stack.Screen name="Dashboard" component={InfluencerTabs} />
