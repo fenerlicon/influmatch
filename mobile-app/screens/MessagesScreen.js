@@ -61,6 +61,13 @@ export default function MessagesScreen({ route }) {
     const listSubRef = useRef(null);
     const userIdRef = useRef(null);
     const openedRoomRef = useRef(null);
+    const openRoomIdRef = useRef(null);
+
+    // Odayı okundu işaretler (web ile aynı room_reads, sunucu ucu üzerinden).
+    const markRead = (roomId) => {
+        if (!roomId) return;
+        apiRequest('messages', { method: 'PATCH', body: { roomIds: [roomId] } });
+    };
 
     const fetchConversations = useCallback(async () => {
         try {
@@ -78,6 +85,13 @@ export default function MessagesScreen({ route }) {
                 .or(`brand_id.eq.${user.id},influencer_id.eq.${user.id}`);
             if (error) throw error;
 
+            // Okundu bilgisi web ile ortak room_reads tablosundan (kullanıcı yalnızca kendi satırlarını görür).
+            const { data: reads } = await supabase
+                .from('room_reads')
+                .select('room_id, last_read_at')
+                .eq('user_id', user.id);
+            const lastReadByRoom = new Map((reads || []).map((r) => [r.room_id, r.last_read_at]));
+
             const list = await Promise.all((rooms || []).map(async (room) => {
                 const { data: msgs } = await supabase
                     .from('messages')
@@ -92,7 +106,10 @@ export default function MessagesScreen({ route }) {
                     partner,
                     lastMessage: last ? (attachmentPath(last.content) ? '📷 Fotoğraf' : last.content) : 'Henüz mesaj yok.',
                     lastAt: last?.created_at || null,
-                    unread: last ? last.sender_id !== user.id : false,
+                    unread: last
+                        ? last.sender_id !== user.id
+                            && (!lastReadByRoom.get(room.id) || new Date(last.created_at) > new Date(lastReadByRoom.get(room.id)))
+                        : false,
                 };
             }));
             list.sort((a, b) => (b.lastAt || '').localeCompare(a.lastAt || ''));
@@ -109,7 +126,7 @@ export default function MessagesScreen({ route }) {
                             ...c,
                             lastMessage: attachmentPath(nm.content) ? '📷 Fotoğraf' : nm.content,
                             lastAt: nm.created_at,
-                            unread: nm.sender_id !== userIdRef.current,
+                            unread: nm.sender_id !== userIdRef.current && openRoomIdRef.current !== nm.room_id,
                         }));
                     })
                     .subscribe();
@@ -153,6 +170,9 @@ export default function MessagesScreen({ route }) {
 
     const openChat = async (conv) => {
         setSelectedChat(conv);
+        openRoomIdRef.current = conv.id;
+        setConversations((prev) => prev.map((c) => c.id === conv.id ? { ...c, unread: false } : c));
+        markRead(conv.id);
         setMessages([]);
         roomSubRef.current?.unsubscribe();
 
@@ -169,6 +189,7 @@ export default function MessagesScreen({ route }) {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${conv.id}` }, (payload) => {
                 const nm = payload.new;
                 setMessages((prev) => prev.some((m) => m.id === nm.id) ? prev : [...prev, nm]);
+                if (nm.sender_id !== userIdRef.current) markRead(conv.id);
                 signImages([nm]);
                 setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
             })
@@ -177,6 +198,7 @@ export default function MessagesScreen({ route }) {
 
     const closeChat = () => {
         setSelectedChat(null);
+        openRoomIdRef.current = null;
         roomSubRef.current?.unsubscribe();
         fetchConversations();
     };

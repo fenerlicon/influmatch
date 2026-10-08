@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plus, Sparkles, TrendingUp, X, Award, Zap, Star, Shield, Info, Lock } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
+import { apiRequest } from '../../lib/api';
+import { influencerCategoryLabel } from '../../constants/categories';
 import { useFocusEffect } from '@react-navigation/native';
 import { calculateTrustScore } from '../../utils/calculation';
 import { getThumbnailUrl } from '../../utils/image';
@@ -221,7 +223,8 @@ export default function BrandDashboardScreen({ navigation }) {
         // Mark all as read
         const unread = notifications.filter(n => !n.is_read).map(n => n.id);
         if (unread.length > 0) {
-            await supabase.from('notifications').update({ is_read: true }).in('id', unread);
+            const result = await apiRequest('notifications', { method: 'PATCH', body: { ids: unread } });
+            if (!result.success) return;
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             setUnreadNotifCount(0);
         }
@@ -388,7 +391,7 @@ export default function BrandDashboardScreen({ navigation }) {
                                             {/* Info Content */}
                                             <View className="absolute bottom-5 left-5 right-5">
                                                 <View className="bg-soft-gold/20 self-start px-2 py-0.5 rounded-lg mb-2 border border-soft-gold/30">
-                                                    <Text className="text-soft-gold text-[9px] font-bold uppercase tracking-wider">{inf.category || 'Lifestyle'}</Text>
+                                                    <Text className="text-soft-gold text-[9px] font-bold uppercase tracking-wider">{influencerCategoryLabel(inf.category) || 'Genel'}</Text>
                                                 </View>
                                                 <Text className="text-white font-bold text-lg tracking-tight" numberOfLines={1}>{inf.full_name}</Text>
 

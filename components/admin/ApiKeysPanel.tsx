@@ -23,12 +23,6 @@ const PROVIDERS: { id: ApiProvider; name: string; usage: string; placeholder: st
     usage: 'Instagram/TikTok verileri, kayıt sırasında hesap doğrulama ve günlük istatistik yenileme.',
     placeholder: 'apify_api_...',
   },
-  {
-    id: 'gemini',
-    name: 'Gemini',
-    usage: 'Şu an hiçbir modül kullanmıyor (vergi levhası kontrolü sunucuda, yapay zekasız yapılır). İleride kişisel veri içermeyen yapay zeka modülleri için; ücretsiz katmana gönderilen veriler Google tarafından incelenebilir.',
-    placeholder: 'AIza...',
-  },
 ]
 
 const STATUS_STYLES: Record<ApiKeyStatus, { label: string; className: string }> = {
@@ -62,7 +56,6 @@ export default function ApiKeysPanel({ initialDashboard }: { initialDashboard: A
   const [busyId, setBusyId] = useState<string | null>(null)
   const [forms, setForms] = useState<Record<ApiProvider, { label: string; secret: string }>>({
     apify: { label: '', secret: '' },
-    gemini: { label: '', secret: '' },
   })
 
   const run = (busyKey: string, action: () => ReturnType<typeof checkApiKeys>, onSuccess?: () => void) => {
@@ -217,9 +210,6 @@ export default function ApiKeysPanel({ initialDashboard }: { initialDashboard: A
                         <KeyRound className="h-5 w-5 text-soft-gold" /> {provider.name}
                       </h2>
                       <p className="mt-1 text-sm text-gray-400">{provider.usage}</p>
-                      {provider.id === 'gemini' && (
-                        <p className="mt-1 text-xs text-gray-500">Model: {dashboard.geminiModel}</p>
-                      )}
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs">
                       <span className={`rounded-full border px-3 py-1 ${poolDown ? 'border-red-500/40 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/5 text-gray-300'}`}>

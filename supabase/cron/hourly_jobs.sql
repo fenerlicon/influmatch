@@ -3,7 +3,7 @@
 --
 -- Vercel Hobby planı saatte bir çalışan cron görevine izin vermediği için saatlik
 -- bakım görevi (/api/cron/hourly) Supabase tarafından tetiklenir:
---   - Apify ve Gemini anahtarlarının kredi ve geçerlilik kontrolü
+--   - Apify anahtarlarının kredi ve geçerlilik kontrolü
 --   - Sorun varsa admin e-postasına özet
 --   - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar vb.)
 --

@@ -19,7 +19,7 @@ const HOURLY_STATS_START_BUDGET_MS = 10_000
  * Vercel Hobby planı saatlik cron'a izin vermediği için Supabase pg_cron tarafından çağrılır
  * (kurulum: supabase/cron/hourly_jobs.sql). İstek "Authorization: Bearer <CRON_SECRET>" taşımalıdır.
  *
- * - Apify / Gemini anahtarlarının sağlık ve kredi kontrolü; sorun varsa admin'e özet e-posta.
+ * - Apify anahtarlarının sağlık ve kredi kontrolü; sorun varsa admin'e özet e-posta.
  * - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar, eşiğin altına düşenler).
  * - Sarı tik (Resmi İşletme) kurala göre eşitlenir; geri alınana bildirim gider.
  * - Milyon Kulübü rozeti (doğrulanmış hesapta 1M+ takipçi) ve etkinlik rozetleri (lib/activity-badges.ts).

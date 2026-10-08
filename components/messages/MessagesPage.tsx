@@ -10,6 +10,7 @@ import ModernChatWindow from '@/components/chat/ModernChatWindow'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
 import { getCategoryLabel } from '@/utils/categories'
+import { markRoomsRead } from '@/lib/room-reads'
 
 interface Conversation {
   roomId: string
@@ -364,24 +365,13 @@ export default function MessagesPage({ currentUserId, role, initialConversations
   const handleSelectConversation = async (roomId: string) => {
     setSelectedRoomId(roomId)
 
-    // Mark all messages in this room as read by updating user metadata
-    const now = new Date().toISOString()
-
     // Update local conversation list immediately
     setConversations((prev) =>
       prev.map((conv) => (conv.roomId === roomId ? { ...conv, unreadCount: 0 } : conv)),
     )
 
-    // Persist to database (User Metadata)
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: {
-        [`last_read_${roomId}`]: now
-      }
-    })
-
-    if (updateError) {
-      console.error('Failed to update read status:', updateError)
-    }
+    // Okundu bilgisi room_reads tablosuna; aynı kişiyle olan diğer odalar sohbet penceresi açılınca işaretlenir.
+    await markRoomsRead(supabase, currentUserId, [roomId])
   }
 
   const handleOpenProfile = useCallback(

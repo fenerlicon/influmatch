@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { markNotificationsReadAs } from '@/lib/notification-reads'
 
 export type NotificationType = 'system' | 'info' | 'warning' | 'success'
 
@@ -122,16 +123,9 @@ export async function markNotificationAsRead(notificationId: string) {
     if (!user) return { success: false, error: 'Yetkisiz erişim.' }
 
     try {
-        const { error } = await supabase
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('id', notificationId)
-            .eq('user_id', user.id) // IDOR koruması
-
-        if (error) {
-            console.error('Error marking notification as read:', error)
-            return { success: false, error: error.message }
-        }
+        // Ortak kod (lib/notification-reads.ts); mobil uç da aynısını kullanır.
+        const result = await markNotificationsReadAs(supabase, user.id, [notificationId])
+        if (!result.success) return result
 
         revalidatePath('/dashboard')
         return { success: true }
@@ -151,16 +145,8 @@ export async function markAllNotificationsAsRead(userId: string) {
     }
 
     try {
-        const { error } = await supabase
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('user_id', userId)
-            .eq('is_read', false)
-
-        if (error) {
-            console.error('Error marking all notifications as read:', error)
-            return { success: false, error: error.message }
-        }
+        const result = await markNotificationsReadAs(supabase, user.id)
+        if (!result.success) return result
 
         revalidatePath('/dashboard')
         return { success: true }

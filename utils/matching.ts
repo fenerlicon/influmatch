@@ -1,4 +1,5 @@
 import { type DiscoverInfluencer } from '@/types/influencer'
+import { categoryMatchLevel, influencerCategoriesForBrand } from '@/lib/category-map'
 
 function parseMultiplier(str: string): number {
     if (!str) return 0
@@ -84,13 +85,12 @@ export function calculateMatchScore(influencer: DiscoverInfluencer, criteria: Ma
     let score = 0
     const stats = influencer.stats
 
-    // 1. Category Match (+40)
-    if (criteria.targetCategory && influencer.category) {
-        if (influencer.category.toLowerCase() === criteria.targetCategory.toLowerCase()) {
-            score += 40
-        } else if (influencer.category.toLowerCase().includes(criteria.targetCategory.toLowerCase())) {
-            score += 20 // Partial match
-        }
+    // 1. Kategori uyumu (+40): marka sektörü influencer kategorilerine lib/category-map.ts ile eşlenir.
+    // Birincil kategori 40, ilgili kategori 25 puan. Hedef yoksa ya da sektör her kategoriyle çalışıyorsa 10.
+    if (criteria.targetCategory && influencerCategoriesForBrand(criteria.targetCategory).length > 0) {
+        const level = categoryMatchLevel(criteria.targetCategory, influencer.category)
+        if (level === 'primary') score += 40
+        else if (level === 'related') score += 25
     } else {
         score += 10
     }
@@ -118,11 +118,9 @@ export function getMatchReason(influencer: DiscoverInfluencer, criteria: Matchin
     const trust = calculateTrustScore(influencer)
 
     // Category
-    if (criteria.targetCategory && influencer.category) {
-        if (influencer.category.toLowerCase() === criteria.targetCategory.toLowerCase()) {
-            reasons.push('Kategori Eşleşmesi')
-        }
-    }
+    const level = categoryMatchLevel(criteria.targetCategory, influencer.category)
+    if (level === 'primary') reasons.push('Kategori Eşleşmesi')
+    else if (level === 'related') reasons.push('İlgili Kategori')
 
     // Engagement/Reach
     if (stats) {

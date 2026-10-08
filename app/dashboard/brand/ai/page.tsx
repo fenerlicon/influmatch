@@ -6,6 +6,7 @@ import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import { Sparkles, ArrowLeft, Zap } from 'lucide-react'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { brandCategoryLabel } from '@/lib/category-map'
 
 export default async function AIRecommendationsPage() {
     const supabase = createSupabaseServerClient()
@@ -72,7 +73,7 @@ export default async function AIRecommendationsPage() {
                                 Sizin İçin Önerilenler
                             </h1>
                             <p className="mt-4 max-w-2xl text-lg text-gray-300 leading-relaxed">
-                                <span className="text-blue-400 font-semibold">{category || 'Sektörünüz'}</span> kategorisindeki profiller kategori uyumu, etkileşim ve doğrulama durumuna göre puanlandı; en yüksek puanlılar aşağıda. Puan 100 üzerinden eşleşme skorudur.
+                                <span className="text-blue-400 font-semibold">{brandCategoryLabel(category) || 'Sektörünüz'}</span> sektörüyle ilişkili kategorilerdeki profiller kategori uyumu, etkileşim ve doğrulama durumuna göre puanlandı; en yüksek puanlılar aşağıda. Puan 100 üzerinden eşleşme skorudur.
                             </p>
                         </div>
 
@@ -131,7 +132,7 @@ export default async function AIRecommendationsPage() {
                         </div>
                         <h3 className="text-xl font-semibold text-white">Henüz Eşleşme Bulunamadı</h3>
                         <p className="mt-2 text-gray-400 max-w-md">
-                            "{category}" kategorisi için şu an uygun kriterlerde influencer bulunamadı. Kategori ayarlarınızı güncellemeyi deneyebilirsiniz.
+                            "{brandCategoryLabel(category) || category}" sektörü için şu an uygun kriterlerde influencer bulunamadı. Kategori ayarlarınızı güncellemeyi deneyebilirsiniz.
                         </p>
                         <Link
                             href="/dashboard/brand/settings"

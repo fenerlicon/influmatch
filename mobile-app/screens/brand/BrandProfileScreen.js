@@ -10,6 +10,8 @@ import { signOutAndClearPush } from '../../utils/notifications';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import { useFocusEffect } from '@react-navigation/native';
 import { decode } from 'base64-arraybuffer';
+import { apiRequest } from '../../lib/api';
+import SupportTicketForm from '../../components/SupportTicketForm';
 
 // ─── Design ───────────────────────────────────────────────────────────────────
 const GlassCard = ({ children, className }) => (
@@ -66,25 +68,6 @@ export default function BrandProfileScreen({ navigation }) {
     const [editValue, setEditValue] = useState('');
 
     const [supportOpen, setSupportOpen] = useState(false);
-    const [supportSubject, setSupportSubject] = useState('');
-    const [supportMessage, setSupportMessage] = useState('');
-    const [sendingSupport, setSendingSupport] = useState(false);
-
-    const sendSupport = async () => {
-        if (!supportSubject.trim() || !supportMessage.trim()) return Alert.alert('Eksik', 'Konu ve mesaj alanlarını doldur.');
-        setSendingSupport(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase.from('support_tickets').insert({
-            user_id: user?.id, subject: supportSubject.trim(), message: supportMessage.trim(), status: 'open', priority: 'Orta'
-        });
-        setSendingSupport(false);
-        if (error) {
-            console.error(error);
-            return Alert.alert('Hata', error.message);
-        }
-        Alert.alert('Gönderildi', 'Destek talebiniz başarıyla oluşturuldu. Yöneticilerimiz en kısa sürede size dönüş yapacaktır.');
-        setSupportSubject(''); setSupportMessage(''); setSupportOpen(false);
-    };
 
     const fetchProfile = useCallback(async () => {
         try {
@@ -157,8 +140,9 @@ export default function BrandProfileScreen({ navigation }) {
             const { data: urlD } = supabase.storage.from('avatars').getPublicUrl(path);
             const url = `${urlD.publicUrl}?t=${Date.now()}`;
 
-            const { error: dbErr } = await supabase.from('users').update({ avatar_url: url }).eq('id', user.id);
-            if (dbErr) throw dbErr;
+            // Logo web'in profil koduyla aynı sunucu ucundan kaydedilir (adres doğrulaması dahil).
+            const result = await apiRequest('profile', { method: 'PATCH', body: { avatarUrl: url } });
+            if (!result.success) throw new Error(result.error);
 
             setProfile(p => ({ ...p, avatar_url: url }));
             Alert.alert('Başarılı', 'Profil fotoğrafı güncellendi.');
@@ -170,41 +154,20 @@ export default function BrandProfileScreen({ navigation }) {
         }
     };
 
+    // Alan adı -> /api/mobile/profile gövde anahtarı (web marka profil formuyla aynı alanlar).
+    const FIELD_KEYS = { full_name: 'brandName', company_legal_name: 'companyLegalName', website: 'website', city: 'city', bio: 'bio' };
+
     const saveField = async () => {
-        if (!editField) return;
+        if (!editField || !FIELD_KEYS[editField]) return;
         setSaving(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            let updates = { [editField]: editValue.trim() };
-            console.log(`[BrandProfile] Updating field ${editField} with value:`, editValue.trim());
-
-            if (editField === 'website') {
-                const newSocial = { ...(profile.social_links || {}), website: editValue.trim() };
-                updates = { social_links: newSocial };
-
-                const { error } = await supabase.from('users').update(updates).eq('id', user.id);
-                if (error) throw error;
-
-                setProfile(prev => ({
-                    ...prev,
-                    website: editValue.trim(),
-                    social_links: newSocial
-                }));
-            } else {
-                const { error } = await supabase.from('users').update(updates).eq('id', user.id);
-                if (error) throw error;
-
-                setProfile(prev => ({ ...prev, [editField]: editValue.trim() }));
-            }
-            console.log('[BrandProfile] Update successful');
-
-            setEditField(null);
-        } catch (e) {
-            console.error('[BrandProfile] saveField error:', e);
-            Alert.alert('Hata', e.message || 'Bilgi güncellenemedi.');
-        } finally {
-            setSaving(false);
-        }
+        const value = editValue.trim();
+        const result = await apiRequest('profile', { method: 'PATCH', body: { [FIELD_KEYS[editField]]: value } });
+        setSaving(false);
+        if (!result.success) return Alert.alert('Hata', result.error || 'Bilgi güncellenemedi.');
+        setProfile(prev => (editField === 'website'
+            ? { ...prev, website: value, social_links: { ...(prev.social_links || {}), website: value } }
+            : { ...prev, [editField]: value }));
+        setEditField(null);
     };
 
     const handleLogout = () => {
@@ -298,10 +261,10 @@ export default function BrandProfileScreen({ navigation }) {
                     <SectionLabel title="ŞİRKET BİLGİLERİ" />
                     <GlassCard>
                         {[
-                            { label: 'Şirket / Marka Adı', field: 'company_legal_name', icon: Building2 },
-                            { label: 'Yetkili Ad Soyad', field: 'full_name', icon: null },
-                            { label: 'E-posta', field: 'email', icon: Mail },
-                            { label: 'Telefon', field: 'phone', icon: Phone },
+                            // Web marka profil formuyla aynı alanlar (Marka Adı = full_name).
+                            { label: 'Marka Adı', field: 'full_name', icon: null },
+                            { label: 'Şirket Ünvanı', field: 'company_legal_name', icon: Building2 },
+                            { label: 'Şehir', field: 'city', icon: null },
                             { label: 'İnternet Sitesi', field: 'website', icon: Globe },
                         ].map((row, i, arr) => (
                             <InfoRow
@@ -381,31 +344,7 @@ export default function BrandProfileScreen({ navigation }) {
                                 style={{ transform: [{ rotate: supportOpen ? '90deg' : '0deg' }] }} />
                         </TouchableOpacity>
 
-                        {supportOpen && (
-                            <View className="mx-4 mb-4 mt-1 p-4 rounded-xl border border-white/[0.07] bg-black/20">
-                                <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">KONU *</Text>
-                                <View className="bg-black/30 rounded-xl border border-white/10 px-4 h-12 justify-center mb-3">
-                                    <TextInput className="text-white text-sm" value={supportSubject} onChangeText={setSupportSubject}
-                                        placeholder="Örn: Ödeme Sorunu, Şikayet, vs." placeholderTextColor="#4b5563" />
-                                </View>
-
-                                <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">MESAJ *</Text>
-                                <View className="bg-black/30 rounded-xl border border-white/10 p-4 min-h-[90px] mb-4">
-                                    <TextInput className="text-white text-sm leading-5" value={supportMessage} onChangeText={setSupportMessage}
-                                        placeholder="Detaylı bir şekilde açıklayın..." placeholderTextColor="#4b5563" multiline textAlignVertical="top" />
-                                </View>
-
-                                <TouchableOpacity onPress={sendSupport} disabled={sendingSupport}
-                                    className="bg-soft-gold h-11 rounded-xl items-center justify-center">
-                                    {sendingSupport ? <ActivityIndicator color="black" size="small" /> : (
-                                        <View className="flex-row items-center gap-2">
-                                            <Send color="black" size={15} />
-                                            <Text className="text-midnight font-bold text-sm">Talebi Gönder</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        )}
+                        {supportOpen && <SupportTicketForm onSent={() => setSupportOpen(false)} />}
 
                         <TouchableOpacity className={`px-5 py-4 flex-row items-center gap-4 ${supportOpen ? 'border-t border-white/[0.06]' : ''}`}
                             onPress={() => Alert.alert('Koşullar', 'influmatch.net/terms adresinden erişebilirsiniz.')}>

@@ -10,8 +10,9 @@ import { CustomToast } from '../components/CustomToast';
 import { getTurkishErrorMessage } from '../lib/errorUtils';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+// Web ile aynı kategori anahtarları (utils/categories.ts); tek kategori seçilir.
+import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '../constants/categories';
 
-const CATEGORIES = ['Moda', 'Güzellik', 'Teknoloji', 'Oyun', 'Spor', 'Yaşam', 'Seyahat', 'Yemek', 'Sanat', 'Eğlence'];
 // Web'deki seçeneklerle aynı (components/onboarding/InfluencerForm.tsx).
 const CREATOR_TYPES = [
     { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
@@ -41,7 +42,7 @@ export default function OnboardingScreen({ navigation }) {
         tiktok: '',
         youtube: '',
         taxId: '',
-        category: [],
+        category: '',
         creatorType: '',
         avatar_url: '',
     });
@@ -123,16 +124,7 @@ export default function OnboardingScreen({ navigation }) {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const toggleCategory = (cat) => {
-        setFormData(prev => {
-            const current = prev.category;
-            if (current.includes(cat)) {
-                return { ...prev, category: current.filter(c => c !== cat) };
-            } else {
-                return { ...prev, category: [...current, cat] };
-            }
-        });
-    };
+    const selectCategory = (key) => updateField('category', key);
 
     const filteredCities = TURKEY_CITIES.filter(city =>
         city.toLowerCase().includes(citySearch.toLowerCase())
@@ -200,8 +192,8 @@ export default function OnboardingScreen({ navigation }) {
             return;
         }
 
-        if (role === 'influencer' && formData.category.length === 0) {
-            showToast('Lütfen en az bir kategori seçin.', 'info');
+        if (role === 'influencer' && !formData.category) {
+            showToast('Lütfen bir kategori seçin.', 'info');
             return;
         }
 
@@ -230,7 +222,7 @@ export default function OnboardingScreen({ navigation }) {
                     website: formData.website
                 },
                 ...(role === 'influencer'
-                    ? { category: formData.category.join(', '), creator_type: formData.creatorType }
+                    ? { category: formData.category, creator_type: formData.creatorType }
                     : {
                         company_legal_name: formData.corporateName.trim() || null,
                         tax_id: formData.taxId.trim() || null,
@@ -388,20 +380,20 @@ export default function OnboardingScreen({ navigation }) {
                                 </View>
                             )}
 
-                            {/* Kategori Seçimi (SADECE INFLUENCER) - Çoklu Seçim */}
+                            {/* Kategori Seçimi (SADECE INFLUENCER) */}
                             {role === 'influencer' && (
                                 <View className="space-y-2">
-                                    <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">İlgi Alanları (Çoklu Seçim)</Text>
+                                    <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Kategori</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row py-1">
-                                        {CATEGORIES.map((cat) => {
-                                            const isSelected = formData.category.includes(cat);
+                                        {INFLUENCER_CATEGORY_KEYS.map((cat) => {
+                                            const isSelected = formData.category === cat;
                                             return (
                                                 <TouchableOpacity
                                                     key={cat}
-                                                    onPress={() => toggleCategory(cat)}
+                                                    onPress={() => selectCategory(cat)}
                                                     className={`mr-2 px-4 py-2 rounded-full border ${isSelected ? 'bg-soft-gold border-soft-gold' : 'bg-surface border-white/10'}`}
                                                 >
-                                                    <Text className={`${isSelected ? 'text-[#0B0F19] font-bold' : 'text-gray-400'}`}>{cat}</Text>
+                                                    <Text className={`${isSelected ? 'text-[#0B0F19] font-bold' : 'text-gray-400'}`}>{INFLUENCER_CATEGORIES[cat]}</Text>
                                                 </TouchableOpacity>
                                             );
                                         })}

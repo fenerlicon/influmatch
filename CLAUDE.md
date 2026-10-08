@@ -22,7 +22,7 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
 1. **Vergi belgeleri ve kişisel veriler hiçbir dış yapay zekâya / üçüncü tarafa gönderilmez.** Özellikle Google
    Gemini ücretsiz katmanı yasak ("eğitim amacıyla veriyor ve dönütleri inceliyorlar"). Vergi levhası
    yerelde doğrulanır (`lib/tax-verification.ts`); otomatik onay `TAX_AUTO_APPROVE` ile ve varsayılan **kapalı**.
-   `lib/gemini.ts`'te yalnızca anahtar sağlık kontrolü var, içerik üretme yok — geri ekleme.
+   Gemini 2026-10-10'da tamamen kaldırıldı (anahtar havuzunda yalnızca Apify var, 6.7-S1); geri ekleme.
 2. **Giriş yapmadan profiller görünmez.** `/profile/*` korumalı, site haritasında yok, robots engelliyor. Değiştirme.
 3. **Mobil (2026-10-09 kararı):** dondurma kalktı. Uygulama **test aşamasında** (mağazada değil, gerçek kullanıcı yok);
    hedef **web ile tam uyum**: web'in kuralları ve özellikleri (zorunlu hesap doğrulama, vergi levhası + kurumsal e-posta,
@@ -51,9 +51,15 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
      yapay zekâ yok; sahte bekleme ve rastgelelik yok). Ana sayfada ortaklık iddiası yok ("Desteklenen Platformlar":
      yalnızca Instagram, TikTok) ve sabit pazarlama rakamı yok. Yasal metinlerin tek kaynağı `app/legal/page.tsx`;
      hukuki içerik avukat yazınca değişir, Claude yasal metin yazmaz. Ajans paketi sayfası yok. Kodla doğrulayanlara
-     sınır OAuth açılınca konuşulur (3.13-N2). Drive yapısı (8.9-N1) sonra. Mobil uygulama adı "Influmatch",
+     sınır OAuth açılınca konuşulur (3.13-N2). Drive yapısı (8.9-N1) Cloudflare R2 ile Kasım'da, Akademi ile birlikte. Mobil uygulama adı "Influmatch",
      paket kimliği `net.influmatch.app` (iOS ve Android).
-   - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi); avukattan gelecek yasal metinler.
+   - **2026-10-10 (2. tur):** OAuth (2.3-S2/S3/S4, 3.13 kod/OAuth ayrımı) mobil uygulamanın **mağaza yayınından sonra**
+     açılır. 5 Yıldız rozeti de yayından sonra. Okundu bilgisi `room_reads` tablosunda (5.3-S2), mobil kritik yazımlar
+     web uçlarında, marka sektörü → influencer kategorisi eşlemesi `lib/category-map.ts` (3.5-S2), gönderisiz hesap
+     doğrulanmaz (3.13-N6), Gemini tamamen kaldırıldı (6.7-S1).
+   - **Strateji ve takvim:** `docs/ROADMAP.md` (Aralık son hafta 0₺ kampanya, şirket 1 Ocak'ta, satış Ocak ortası–sonu,
+     Akademi kararları, R2 "Drive", mağazaya önce bireysel hesapla çıkış). Kasım'ın ana işi Akademi + R2.
+   - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi, yayından sonra); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`
    içine gerçek `CRON_SECRET` yazılmış haliyle **commit etme** (repodaki hali `BURAYA_CRON_SECRET` yer tutucusuyla).

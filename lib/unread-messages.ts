@@ -1,15 +1,10 @@
-// Okunmamış mesaj sayısı (istemci). Tek okundu kaynağı, mesaj kutusunun yazdığı
-// auth user_metadata["last_read_<roomId>"] zamanıdır (components/messages/MessagesPage.tsx).
-// Eski message_reads tablosu canlı veritabanında yok; ona dayanan sayılar hep 0 çıkıyordu.
+// Okunmamış mesaj sayısı (istemci). Okundu kaynağı public.room_reads tablosudur (lib/room-reads.ts).
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getLastReadMap } from '@/lib/room-reads'
 
 export async function countUnreadInRoom(supabase: SupabaseClient, roomId: string, userId: string): Promise<number> {
-  // getSession yerel oturumu okur (ağ isteği yok); mesaj kutusu updateUser ile aynı oturumu günceller.
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  const lastRead = session?.user?.user_metadata?.[`last_read_${roomId}`] as string | undefined
+  const lastRead = (await getLastReadMap(supabase, userId, [roomId])).get(roomId)
 
   let query = supabase
     .from('messages')

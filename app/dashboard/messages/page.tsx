@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import MessagesPage from '@/components/messages/MessagesPage'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { getLastReadMap } from '@/lib/room-reads'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -58,7 +59,7 @@ export default async function DashboardMessagesPage({
   // Her oda için yalnızca son mesaj ve okunmamış sayısı çekilir. Tüm mesajları tek sorguda
   // almak PostgREST'in 1000 satır sınırına takılıyor, son mesajlar ve sayılar kesiliyordu.
   const roomIds = rooms?.map((r) => r.id) ?? []
-  const userMetadata = user.user_metadata || {}
+  const lastReadMap = await getLastReadMap(supabase, user.id, roomIds)
   const lastMessageMap = new Map<string, { id: string; room_id: string; sender_id: string; content: string; created_at: string }>()
   const unreadCounts = new Map<string, number>()
 
@@ -66,7 +67,7 @@ export default async function DashboardMessagesPage({
   for (let i = 0; i < roomIds.length; i += ROOM_BATCH) {
     await Promise.all(
       roomIds.slice(i, i + ROOM_BATCH).map(async (roomId) => {
-        const lastRead = userMetadata[`last_read_${roomId}`] as string | undefined
+        const lastRead = lastReadMap.get(roomId)
         let unreadQuery = supabase
           .from('messages')
           .select('id', { count: 'exact', head: true })

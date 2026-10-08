@@ -9,6 +9,7 @@ import Image from 'next/image'
 import { chatAttachmentPath, parseChatImageUrl } from '@/lib/chat-image'
 import { isUserBlocked } from '@/app/dashboard/users/block/actions'
 import { sendMessage } from '@/app/dashboard/messages/send/actions'
+import { markRoomsRead } from '@/lib/room-reads'
 
 export interface ChatMessage {
     id: string
@@ -149,17 +150,10 @@ export default function ModernChatWindow({
     useEffect(() => {
         if (!roomId || !currentUserId) return
 
-        const markAsRead = async () => {
-            const now = new Date().toISOString()
-            await supabase.auth.updateUser({
-                data: {
-                    [`last_read_${roomId}`]: now
-                }
-            })
-        }
-
-        markAsRead()
-    }, [roomId, currentUserId, messages.length, supabase])
+        // Aynı kişiyle birleşik gösterilen tüm odalar okundu sayılır (room_reads).
+        const roomsToMark = activeRoomIds && activeRoomIds.length > 0 ? activeRoomIds : [roomId]
+        markRoomsRead(supabase, currentUserId, roomsToMark)
+    }, [roomId, currentUserId, messages.length, supabase, activeRoomIds])
 
     // Scroll to bottom
     useEffect(() => {

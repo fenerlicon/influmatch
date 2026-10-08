@@ -14,6 +14,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { signOutAndClearPush } from '../utils/notifications';
 import { useFocusEffect } from '@react-navigation/native';
+import SupportTicketForm from '../components/SupportTicketForm';
 
 const SectionLabel = ({ title }) => (
     <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest mt-7 mb-3 ml-1 uppercase">
@@ -133,50 +134,21 @@ const PasswordSection = () => {
     );
 };
 
-const NotificationsSection = () => {
-    const [enabled, setEnabled] = useState(true);
-    const [saving, setSaving] = useState(false);
-
-    useFocusEffect(useCallback(() => {
-        (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            const { data } = await supabase.from('users').select('push_notifications_enabled').eq('id', user.id).maybeSingle();
-            if (data && data.push_notifications_enabled !== null) setEnabled(data.push_notifications_enabled);
-        })();
-    }, []));
-
-    const toggle = async (val) => {
-        setEnabled(val);
-        setSaving(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            await supabase.from('users').update({ push_notifications_enabled: val }).eq('id', user.id);
-        } catch (e) {
-            setEnabled(!val);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    return (
-        <View className="flex-row items-center px-5 py-4">
-            <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]"
-                style={{ backgroundColor: '#f59e0b15' }}>
-                <Bell color="#f59e0b" size={17} />
-            </View>
-            <View className="flex-1">
-                <Text className="text-white font-semibold text-[15px]">Bildirimler</Text>
-                <Text className="text-gray-500 text-[12px] mt-0.5">
-                    {saving ? 'Kaydediliyor...' : enabled ? 'Aktif' : 'Kapalı'}
-                </Text>
-            </View>
-            <Switch value={enabled} onValueChange={toggle}
-                trackColor={{ false: '#1f2937', true: '#D4AF37' }}
-                thumbColor={enabled ? '#fff' : '#6b7280'} />
+// Push bildirimlerinin açılıp kapanması telefonun bildirim izniyle yönetilir (sunucuda ayrı bir tercih yok;
+// e-posta tercihleri web ayarlarında). Eski anahtar var olmayan bir kolona yazıyordu ve hiçbir şeyi değiştirmiyordu.
+const NotificationsSection = () => (
+    <TouchableOpacity onPress={() => Linking.openSettings()} activeOpacity={0.7} className="flex-row items-center px-5 py-4">
+        <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center mr-4 border border-white/[0.07]"
+            style={{ backgroundColor: '#f59e0b15' }}>
+            <Bell color="#f59e0b" size={17} />
         </View>
-    );
-};
+        <View className="flex-1">
+            <Text className="text-white font-semibold text-[15px]">Bildirimler</Text>
+            <Text className="text-gray-500 text-[12px] mt-0.5">Bildirim iznini telefon ayarlarından yönet</Text>
+        </View>
+        <ChevronRight color="#4B5563" size={18} />
+    </TouchableOpacity>
+);
 
 const UsernameInfoSection = () => {
     const [username, setUsername] = useState('');
@@ -218,22 +190,6 @@ const UsernameInfoSection = () => {
 
 const SupportSection = () => {
     const [open, setOpen] = useState(false);
-    const [subject, setSubject] = useState('');
-    const [message, setMessage] = useState('');
-    const [sending, setSending] = useState(false);
-
-    const send = async () => {
-        if (!subject.trim() || !message.trim()) return Alert.alert('Eksik', 'Konu ve mesaj alanlarını doldur.');
-        setSending(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase.from('support_tickets').insert({
-            user_id: user?.id, subject: subject.trim(), message: message.trim(), status: 'open',
-        });
-        setSending(false);
-        if (error) return Alert.alert('Hata', error.message);
-        Alert.alert('Gönderildi', 'Talebiniz alındı. En kısa sürede dönüş yapacağız.');
-        setSubject(''); setMessage(''); setOpen(false);
-    };
 
     return (
         <View>
@@ -250,29 +206,7 @@ const SupportSection = () => {
                     style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }} />
             </TouchableOpacity>
 
-            {open && (
-                <View className="mx-4 mb-4 mt-1 p-4 rounded-2xl border border-white/[0.07] bg-black/20">
-                    <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">KONU</Text>
-                    <View className="bg-black/30 rounded-xl border border-white/10 px-4 h-12 justify-center mb-3">
-                        <TextInput className="text-white text-sm" value={subject} onChangeText={setSubject}
-                            placeholder="Konu başlığı" placeholderTextColor="#4b5563" />
-                    </View>
-                    <Text className="text-gray-500 text-[10px] font-bold tracking-widest mb-2">MESAJ</Text>
-                    <View className="bg-black/30 rounded-xl border border-white/10 p-4 min-h-[90px] mb-4">
-                        <TextInput className="text-white text-sm leading-5" value={message} onChangeText={setMessage}
-                            placeholder="Sorunu açıkla..." placeholderTextColor="#4b5563" multiline textAlignVertical="top" />
-                    </View>
-                    <TouchableOpacity onPress={send} disabled={sending}
-                        className="bg-soft-gold h-11 rounded-xl items-center justify-center">
-                        {sending ? <ActivityIndicator color="black" size="small" /> : (
-                            <View className="flex-row items-center gap-2">
-                                <Send color="black" size={15} />
-                                <Text className="text-midnight font-bold text-sm">Talebi Gönder</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            )}
+            {open && <SupportTicketForm onSent={() => setOpen(false)} />}
         </View>
     );
 };

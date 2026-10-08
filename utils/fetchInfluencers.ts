@@ -1,41 +1,66 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { type DiscoverInfluencer } from '@/types/influencer'
+import { categoryQueryValues, influencerCategoriesForBrand } from '@/lib/category-map'
 
-export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?: number }) {
+// `.in(...)` listeleri URL'ye yazıldığı için kimlikler parça parça sorgulanır (3.5-S2).
+const ID_CHUNK = 100
+
+function chunk<T>(items: T[], size: number): T[][] {
+    const out: T[][] = []
+    for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size))
+    return out
+}
+
+const USER_COLUMNS = 'id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status, creator_type, user_badges(badge_id)'
+
+export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?: number, requireVerifiedAccount?: boolean }) {
     const supabase = createSupabaseServerClient()
 
-    let query = supabase
+    const baseQuery = () => supabase
         .from('users')
-        .select('id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status, creator_type, user_badges(badge_id)')
+        .select(USER_COLUMNS)
         .eq('role', 'influencer')
         .eq('verification_status', 'verified')
         .eq('is_showcase_visible', true)
 
+    let data: any[] = []
     if (filters?.ids && filters.ids.length > 0) {
-        query = query.in('id', filters.ids)
-    }
-
-    if (filters?.limit) {
-        query = query.limit(filters.limit)
-    }
-
-    query = query.order('spotlight_active', { ascending: false }).order('full_name', { ascending: true })
-
-    const { data, error } = await query
-
-    if (error) {
-        console.error('Error fetching influencers:', error)
-        return []
+        const ids = Array.from(new Set(filters.ids))
+        const results = await Promise.all(chunk(ids, ID_CHUNK).map((part) => baseQuery().in('id', part)))
+        for (const result of results) {
+            if (result.error) {
+                console.error('Error fetching influencers:', result.error)
+                return []
+            }
+            data.push(...(result.data ?? []))
+        }
+        data.sort((a, b) => Number(!!b.spotlight_active) - Number(!!a.spotlight_active) || String(a.full_name ?? '').localeCompare(String(b.full_name ?? ''), 'tr'))
+        if (filters.limit) data = data.slice(0, filters.limit)
+    } else {
+        let query = baseQuery()
+        if (filters?.limit) {
+            query = query.limit(filters.limit)
+        }
+        query = query.order('spotlight_active', { ascending: false }).order('full_name', { ascending: true })
+        const result = await query
+        if (result.error) {
+            console.error('Error fetching influencers:', result.error)
+            return []
+        }
+        data = result.data ?? []
     }
 
     if (!data || data.length === 0) return []
 
     // 2. Fetch Social Accounts (Only return verified ones)
     const userIds = data.map(u => u.id)
-    const { data: socialData } = await supabase
-        .from('social_accounts')
-        .select('user_id, platform, follower_count, engagement_rate, stats_payload, is_verified')
-        .in('user_id', userIds)
+    const socialResults = await Promise.all(
+        chunk(userIds, ID_CHUNK).map((part) => supabase
+            .from('social_accounts')
+            .select('user_id, platform, follower_count, engagement_rate, stats_payload, is_verified')
+            .in('user_id', part)),
+    )
+    const socialData = socialResults.flatMap((result) => result.data ?? [])
 
     const socialAccountsMap: Record<string, any[]> = {}
     if (socialData) {
@@ -52,7 +77,9 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
     // Keşif listelerinde yalnızca en az bir doğrulanmış sosyal hesabı olanlar gösterilir
     // (hesabı olmayan profil kartta "Pasif" görünüyordu). Kimlikle istenen listeler
     // (favoriler, listeler) markanın kaydettiği herkesi göstermeye devam eder.
-    const visibleUsers = filters?.ids ? data : data.filter((user) => (socialAccountsMap[user.id]?.length ?? 0) > 0)
+    const visibleUsers = filters?.ids && !filters.requireVerifiedAccount
+        ? data
+        : data.filter((user) => (socialAccountsMap[user.id]?.length ?? 0) > 0)
 
     // 3. Merge
     const influencers: DiscoverInfluencer[] = visibleUsers.map((user) => {
@@ -64,7 +91,7 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
             : []
         let chosen: string[] = []
         if (Array.isArray(user.displayed_badges)) {
-            chosen = user.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)
+            chosen = user.displayed_badges.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
         } else if (typeof user.displayed_badges === 'string') {
             try {
                 const parsed = JSON.parse(user.displayed_badges)
@@ -139,6 +166,8 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
     return influencers
 }
 
+const MAX_AI_CANDIDATES = 200
+
 export async function getAIRecommendations(
     userId: string,
     filterCategory?: string | null,
@@ -146,43 +175,38 @@ export async function getAIRecommendations(
 ): Promise<DiscoverInfluencer[]> {
     const { calculateMatchScore, getMatchReason } = await import('@/utils/matching')
 
-    // Önce kategoriye göre aday kimlikleri SQL ile seçilir, ardından zenginleştirilip puanlanır.
+    // Önce marka sektörüne uyan influencer kategorilerinden (lib/category-map.ts) aday kimlikler SQL ile seçilir,
+    // ardından zenginleştirilip puanlanır. Aday sayısı sınırlı (sınırsız `.in('id', ids)` yerine).
     const supabase = createSupabaseServerClient()
-    let query = supabase
+    const candidateQuery = () => supabase
         .from('users')
         .select('id')
         .eq('role', 'influencer')
+        .eq('verification_status', 'verified')
         .eq('is_showcase_visible', true)
         .neq('id', userId)
+        .order('spotlight_active', { ascending: false })
+        .limit(MAX_AI_CANDIDATES)
 
-    if (filterCategory) {
-        // approximate strict match
-        query = query.ilike('category', `%${filterCategory}%`)
+    const targetKeys = influencerCategoriesForBrand(filterCategory)
+    let potentialMatches: { id: string }[] | null = null
+    if (targetKeys.length > 0) {
+        const { data } = await candidateQuery().in('category', categoryQueryValues(targetKeys))
+        potentialMatches = data
     }
 
-    let { data: potentialMatches } = await query
-
-    // FALLBACK: If strict match returns nothing, fetch top diverse influencers
-    // This ensures the homepage section is never empty
+    // Eşleşen kategori yoksa (ya da sektör her kategoriyle çalışıyorsa) genel havuz; bölüm boş kalmaz.
     if (!potentialMatches || potentialMatches.length === 0) {
-        const { data: fallbackMatches } = await supabase
-            .from('users')
-            .select('id')
-            .eq('role', 'influencer')
-            .eq('is_showcase_visible', true)
-            .neq('id', userId)
-            .order('spotlight_active', { ascending: false }) // Prioritize paid members
-            .limit(limit ? limit * 2 : 20) // Fetch a standardized pool
-
-        potentialMatches = fallbackMatches
+        const { data } = await candidateQuery()
+        potentialMatches = data
     }
 
     if (!potentialMatches || potentialMatches.length === 0) return []
 
     const ids = potentialMatches.map(u => u.id)
 
-    // Now get enriched data for these IDs
-    const influencers = await getEnrichedInfluencers({ ids })
+    // Yalnızca doğrulanmış sosyal hesabı olanlar önerilir (keşif listesiyle aynı kural).
+    const influencers = await getEnrichedInfluencers({ ids, requireVerifiedAccount: true })
 
     // Calculate Scores & Sort
     const scored = influencers.map(inf => {

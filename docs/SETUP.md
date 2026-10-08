@@ -35,7 +35,7 @@ Vercel'de (Production + Preview) ve yerelde `.env.local`'de tanımlanır. Şablo
 | `EXPO_ACCESS_TOKEN` | hayır | Mobil push. Yalnızca Expo hesabında "Enhanced push security" açılırsa gerekir. |
 | `ALERT_EMAIL_TO`, `ALERT_EMAIL_FROM` | hayır | Admin uyarılarının alıcısı/göndericisi (boşsa admin hesaplarına gider) |
 | `RESEND_DAILY_LIMIT`, `RESEND_MONTHLY_LIMIT` | hayır | Kota izleme eşikleri (ücretsiz plan 100 / 3000) |
-| `APIFY_API_TOKEN`, `GEMINI_API_KEY`, `GEMINI_MODEL` | hayır | Anahtar havuzu boşken bir kez aktarılır; asıl yönetim `/admin/api-keys` |
+| `APIFY_API_TOKEN` | hayır | Anahtar havuzu boşken bir kez aktarılır; asıl yönetim `/admin/api-keys` |
 | `TAX_AUTO_APPROVE` | hayır | Vergi levhası otomatik onayı. Varsayılan **kapalı**; kapalı kalmalı. |
 | `TIKTOK_VIDEO_SAMPLE` | hayır | TikTok etkileşim hesabında örnek video sayısı (varsayılan 1) |
 | `SOCIAL_OAUTH_ENABLED` | hayır | `true` olmadan Instagram/TikTok OAuth uçları başlamaz (şu an kapalı) |

@@ -2,12 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { isAllowedAttachmentUrl } from '@/lib/attachment-url'
-
-interface SubmitFeedbackPayload {
-  description: string
-  imageUrl?: string | null
-}
+import { submitFeedbackAs, type SubmitFeedbackPayload } from '@/lib/feedback'
 
 export async function submitFeedback(payload: SubmitFeedbackPayload) {
   const supabase = createSupabaseServerClient()
@@ -20,37 +15,10 @@ export async function submitFeedback(payload: SubmitFeedbackPayload) {
     return { error: 'Oturum bulunamadı. Lütfen yeniden giriş yapın.' }
   }
 
-  if (!payload.description || payload.description.trim().length === 0) {
-    return { error: 'Lütfen geri bildiriminizi yazın.' }
-  }
-
-  if (!isAllowedAttachmentUrl(payload.imageUrl)) {
-    return { error: 'Görsel bağlantısı geçersiz. Lütfen görseli yeniden yükleyin.' }
-  }
-
-  // Get user role
-  const { data: userProfile } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const role = (userProfile?.role ?? 'influencer') as 'influencer' | 'brand' | 'admin'
-
-  const { error: insertError } = await supabase.from('feedback_submissions').insert({
-    user_id: user.id,
-    role,
-    description: payload.description.trim(),
-    image_url: payload.imageUrl || null,
-    status: 'pending',
-  })
-
-  if (insertError) {
-    console.error('[submitFeedback] insert error', insertError)
-    return { error: 'Geri bildirim gönderilemedi. Lütfen tekrar deneyin.' }
-  }
+  // Doğrulama ve kayıt ortak kodda (lib/feedback.ts); mobil uç da aynısını kullanır.
+  const result = await submitFeedbackAs(supabase, user.id, payload)
+  if (result.error) return { error: result.error }
 
   revalidatePath('/admin/feedback')
   return { success: true }
 }
-
