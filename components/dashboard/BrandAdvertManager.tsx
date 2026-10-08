@@ -131,8 +131,12 @@ export default function BrandAdvertManager({ projects, verificationStatus = 'pen
 
     try {
       const fileExt = file.name.split('.').pop()
-      const fileName = `${crypto.randomUUID()}.${fileExt}`
-      const filePath = `${fileName}`
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('Oturumunuz bulunamadı. Lütfen yeniden giriş yapın.')
+      // Dosyalar kullanıcının kendi klasörüne yazılır (kova yükleme politikası bunu ister).
+      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`
 
       const { error: uploadError } = await supabase.storage.from(HERO_IMAGE_BUCKET).upload(filePath, file, {
         upsert: true,

@@ -11,6 +11,7 @@ import {
     Search, Filter, Bell, Camera, ImageIcon, MoreVertical, Pause, Play, Trash2, Edit2
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
+import { apiRequest } from '../../lib/api';
 import { useFocusEffect } from '@react-navigation/native';
 
 // ─── Design ───────────────────────────────────────────────────────────────────
@@ -261,7 +262,12 @@ export default function BrandAdvertsScreen({ navigation }) {
     };
 
     const updateAppStatus = async (appId, newStatus) => {
-        await supabase.from('advert_applications').update({ status: newStatus }).eq('id', appId);
+        // Durum değişikliği sunucudan geçer (lib/adverts.ts): yetki ve influencer bildirimi web ile aynı.
+        const result = await apiRequest(`applications/${appId}`, { method: 'PATCH', body: { status: newStatus } });
+        if (result.error) {
+            Alert.alert('Hata', result.error);
+            return;
+        }
         setProjectApps(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
         // Update allApps too
         setAllApps(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
@@ -295,7 +301,8 @@ export default function BrandAdvertsScreen({ navigation }) {
         setUploadingHero(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            const fileName = `${user.id}_${Date.now()}.jpg`;
+            // Web ile aynı: dosyalar kullanıcının kendi klasörüne yazılır (kova yükleme politikası bunu ister).
+            const fileName = `${user.id}/${Date.now()}.jpg`;
             const { error: uploadError } = await supabase.storage
                 .from('advert-hero-images')
                 .upload(fileName, decode(base64Data), { contentType: 'image/jpeg', upsert: true });
@@ -342,12 +349,9 @@ export default function BrandAdvertsScreen({ navigation }) {
     const toggleProjectStatus = async (proj) => {
         setActionSheetProject(null);
         const newStatus = proj.status === 'open' ? 'closed' : 'open';
-        const { error } = await supabase
-            .from('advert_projects')
-            .update({ status: newStatus })
-            .eq('id', proj.id);
+        const { error } = await apiRequest(`adverts/${proj.id}`, { method: 'PATCH', body: { status: newStatus } });
         if (error) {
-            Alert.alert('Hata', error.message);
+            Alert.alert('Hata', error);
         } else {
             setMyProjects(prev => prev.map(p => p.id === proj.id ? { ...p, status: newStatus } : p));
         }
@@ -363,12 +367,9 @@ export default function BrandAdvertsScreen({ navigation }) {
                 {
                     text: 'Sil', style: 'destructive',
                     onPress: async () => {
-                        const { error } = await supabase
-                            .from('advert_projects')
-                            .delete()
-                            .eq('id', proj.id);
+                        const { error } = await apiRequest(`adverts/${proj.id}`, { method: 'DELETE' });
                         if (error) {
-                            Alert.alert('Hata', error.message);
+                            Alert.alert('Hata', error);
                         } else {
                             setMyProjects(prev => prev.filter(p => p.id !== proj.id));
                         }
@@ -384,54 +385,21 @@ export default function BrandAdvertsScreen({ navigation }) {
         }
         setSaving(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            // Profil onay durumu ve rol bilgisi alınıyor
-            const { data: userProfile, error: profileError } = await supabase
-                .from('users')
-                .select('role, verification_status')
-                .eq('id', user.id)
-                .single();
-
-            if (profileError || !userProfile) {
-                throw new Error('Kullanıcı bilgileri alınamadı.');
-            }
-
-            if (userProfile.role !== 'brand') {
-                throw new Error('Sadece MARKALAR ilan oluşturabilir.');
-            }
-
-            if (userProfile.verification_status !== 'verified') {
-                throw new Error('Hesabınız henüz onaylanmadı. İlan oluşturabilmek için hesabınızın onaylanması gerekmektedir.');
-            }
-
-            const payload = {
+            // Rol, onay, kapak görseli ve bütçe kuralları sunucuda (lib/adverts.ts) web ile aynı uygulanır.
+            // Uzun açıklama yalnızca yeni ilanda yazılır; düzenlemede web'de girilmiş açıklama ezilmez.
+            const body = {
                 title: form.title.trim(),
                 summary: form.description.trim(),
-                description: form.description.trim(),
                 budget_min: form.budget ? parseFloat(form.budget) : null,
                 category: form.category.trim() || null,
                 deadline: form.deadline.trim() || null,
                 hero_image: heroImageUrl || null,
             };
+            if (editMode && editId) body.id = editId;
+            else body.description = form.description.trim();
 
-            if (editMode && editId) {
-                // UPDATE existing
-                const { error } = await supabase
-                    .from('advert_projects')
-                    .update(payload)
-                    .eq('id', editId);
-                if (error) throw error;
-            } else {
-                // INSERT new
-                const { error } = await supabase.from('advert_projects').insert({
-                    ...payload,
-                    brand_user_id: user.id,
-                    brand_id: user.id,
-                    status: 'open',
-                });
-                if (error) throw error;
-            }
+            const result = await apiRequest('adverts', { method: 'POST', body });
+            if (result.error) throw new Error(result.error);
 
             closeModal();
             fetchMyProjects(currentUserId);

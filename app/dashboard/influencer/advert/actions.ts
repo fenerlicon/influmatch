@@ -2,154 +2,28 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { createSupabaseAdminClient } from '@/utils/supabase/admin'
-import { displayNameOf, notifyUser } from '@/lib/notify'
+import { applyToAdvertAs, cancelApplicationAs, type ApplyInput } from '@/lib/adverts'
 
-interface ApplyToAdvertPayload {
-  advertId: string
-  coverLetter: string
-  deliverableIdea?: string
-  budgetExpectation?: number | null
-}
+// Başvuru kuralları lib/adverts.ts'te (mobil uçlar da aynı kodu kullanır).
 
-export async function applyToAdvert(payload: ApplyToAdvertPayload) {
-  const { advertId, coverLetter, deliverableIdea, budgetExpectation } = payload
-  if (!advertId) {
-    return { error: 'İlan bulunamadı.' }
-  }
-
+export async function applyToAdvert(payload: ApplyInput) {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return { error: 'Oturum açmanız gerekiyor.' }
-  }
-
-  // Check verification status
-  const { data: userProfile } = await supabase
-    .from('users')
-    .select('role, verification_status')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (userProfile?.role !== 'influencer') {
-    return { error: 'İlanlara yalnızca influencer hesapları başvurabilir.' }
-  }
-
-  if (userProfile?.verification_status !== 'verified') {
-    return { error: 'Hesabınız henüz onaylanmadı. İlanlara başvurabilmek için hesabınızın onaylanması gerekmektedir.' }
-  }
-
-  const trimmedCoverLetter = coverLetter?.trim()
-  if (!trimmedCoverLetter) {
-    return { error: 'Kısa bir niyet mesajı paylaşmalısınız.' }
-  }
-
-  const { data: advert, error: advertError } = await supabase.from('advert_projects').select('id, status, deadline, title, brand_user_id').eq('id', advertId).maybeSingle()
-
-  if (advertError || !advert) {
-    return { error: 'İlan bilgisi alınamadı.' }
-  }
-
-  if (advert.status !== 'open') {
-    return { error: 'Bu ilan artık başvuruya kapalı.' }
-  }
-
-  // Son başvuru günü dahil (Türkiye saatiyle); DB politikası da aynı kuralı uygular.
-  const todayIstanbul = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' })
-  if (advert.deadline && advert.deadline < todayIstanbul) {
-    return { error: 'Bu ilanın son başvuru tarihi geçti.' }
-  }
-
-  const { error: insertError } = await supabase.from('advert_applications').insert({
-    advert_id: advertId,
-    influencer_id: user.id, // Database column name
-    influencer_user_id: user.id, // Also set this if both columns exist
-    cover_letter: trimmedCoverLetter,
-    deliverable_idea: deliverableIdea?.trim() || null,
-    budget_expectation: typeof budgetExpectation === 'number' && !Number.isNaN(budgetExpectation) ? budgetExpectation : null,
-  })
-
-  if (insertError) {
-    if (insertError.code === '23505') {
-      return { error: 'Bu ilana zaten başvurdunuz.' }
-    }
-    console.error('[applyToAdvert] insert error', {
-      message: insertError.message,
-      code: insertError.code,
-      details: insertError.details,
-      hint: insertError.hint,
-    })
-    return { error: 'Başvuru kaydedilemedi. Lütfen tekrar deneyin.' }
-  }
-
-  if (advert.brand_user_id) {
-    const admin = createSupabaseAdminClient()
-    const influencerName = await displayNameOf(admin, user.id)
-    await notifyUser(
-      {
-        userId: advert.brand_user_id,
-        event: 'application_new',
-        title: 'İlanınıza yeni başvuru',
-        message: `${influencerName}, "${advert.title ?? 'ilanınıza'}" ilanına başvurdu.`,
-        link: '/dashboard/brand/advert?tab=applications',
-      },
-      admin,
-    )
-  }
-
-  revalidatePath('/dashboard/influencer/advert')
-  return { success: true }
+  if (!user) return { error: 'Oturum açmanız gerekiyor.' }
+  const result = await applyToAdvertAs(supabase, user.id, payload)
+  if ('success' in result) revalidatePath('/dashboard/influencer/advert')
+  return result
 }
 
 export async function cancelApplication(applicationId: string) {
-  if (!applicationId) return { error: 'Başvuru bulunamadı.' }
-
   const supabase = createSupabaseServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { error: 'Oturum açmanız gerekiyor.' }
-
-  // Fetch the application — ensure it belongs to this user
-  const { data: application, error: fetchError } = await supabase
-    .from('advert_applications')
-    .select('id, status, influencer_id, influencer_user_id')
-    .eq('id', applicationId)
-    .maybeSingle()
-
-  if (fetchError || !application) return { error: 'Başvuru bulunamadı.' }
-
-  // Sahiplik: DB kuralı iki kimlik kolonundan birini kabul ediyor
-  if (application.influencer_id !== user.id && application.influencer_user_id !== user.id) {
-    return { error: 'Bu başvuruyu iptal etme yetkiniz yok.' }
-  }
-
-  // Yalnızca bekleyen başvuru geri çekilebilir. DB kuralı da kabul edilmiş ve ön listeye
-  // alınmış başvurunun silinmesine izin vermiyor (20261007000005).
-  if (application.status !== 'pending') {
-    return {
-      error: application.status === 'accepted'
-        ? 'Kabul edilen bir başvuruyu geri çekemezsiniz.'
-        : application.status === 'shortlisted'
-          ? 'Ön listeye alınan bir başvuruyu geri çekemezsiniz. Marka ile mesajlaşarak iletebilirsiniz.'
-          : 'Bu başvuru geri çekilemez.',
-    }
-  }
-
-  const { data: deleted, error: deleteError } = await supabase
-    .from('advert_applications')
-    .delete()
-    .eq('id', applicationId)
-    .select('id')
-
-  if (deleteError || !deleted || deleted.length === 0) {
-    if (deleteError) console.error('[cancelApplication] delete error', deleteError)
-    return { error: 'Başvuru geri çekilemedi. Lütfen tekrar deneyin.' }
-  }
-
-  revalidatePath('/dashboard/influencer/advert')
-  return { success: true }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Oturum açmanız gerekiyor.' }
+  const result = await cancelApplicationAs(supabase, user.id, applicationId)
+  if ('success' in result) revalidatePath('/dashboard/influencer/advert')
+  return result
 }
-

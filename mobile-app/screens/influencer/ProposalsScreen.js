@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Clock, CheckCircle2, ChevronRight, Briefcase, Building2, Calendar, DollarSign, X, CheckCircle, BarChart3, TrendingUp, Info } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
+import { apiRequest } from '../../lib/api';
 import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
@@ -123,6 +124,16 @@ export default function ProposalsScreen({ route, navigation }) {
         setSelectedApplication(null);
     };
 
+    const cancelApplication = async (application) => {
+        const result = await apiRequest(`applications/${application.id}`, { method: 'DELETE' });
+        if (result.error) {
+            Alert.alert('İşlem yapılamadı', result.error);
+            return;
+        }
+        closeApplication();
+        fetchData();
+    };
+
     const handleApply = (project) => {
         if (!project) return;
         setSelectedProject(project);
@@ -134,31 +145,23 @@ export default function ProposalsScreen({ route, navigation }) {
         if (!selectedProject) return;
         setIsApplying(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Kullanıcı bulunamadı.');
-
             if (!coverLetter.trim()) {
                 Alert.alert('Eksik Bilgi', 'Lütfen bir niyet mesajı yazın.');
                 setIsApplying(false);
                 return;
             }
 
-            const { error } = await supabase
-                .from('advert_applications')
-                .insert({
-                    advert_id: selectedProject.id,
-                    influencer_id: user.id,
-                    influencer_user_id: user.id,     // canlıda ikisi de NOT NULL (web ile aynı)
-                    status: 'pending',
-                    cover_letter: coverLetter.trim() || null,
-                    deliverable_idea: deliveryItem.trim() || null,  // Save to its own column
-                    budget_expectation: budgetExpectation ? parseInt(budgetExpectation) : 0
-                });
-
-            if (error) {
-                console.error('Başvuru hatası:', error);
-                throw new Error("Başvuru gönderilemedi: " + error.message);
-            }
+            // Başvuru web'in sunucu kodundan geçer (lib/adverts.ts): ilan açık mı, mükerrer mi, bildirim.
+            const result = await apiRequest('applications', {
+                method: 'POST',
+                body: {
+                    advertId: selectedProject.id,
+                    coverLetter: coverLetter.trim(),
+                    deliverableIdea: deliveryItem.trim() || null,
+                    budgetExpectation: budgetExpectation || null,
+                },
+            });
+            if (result.error) throw new Error(result.error);
 
             setConfirmModalVisible(false);
             Alert.alert("Başarılı", "Başvurunuz markaya iletildi!");
@@ -457,15 +460,17 @@ export default function ProposalsScreen({ route, navigation }) {
                                 </View>
                             </View>
 
-                            <TouchableOpacity
-                                onPress={() => Alert.alert('Başvuruyu İptal Et', 'Bu başvuruyu iptal etmek istediğinize emin misiniz?', [
-                                    { text: 'Vazgeç', style: 'cancel' },
-                                    { text: 'İptal Et', style: 'destructive', onPress: () => closeApplication() }
-                                ])}
-                                className="mt-auto w-full h-14 rounded-xl border border-red-500/30 items-center justify-center bg-red-500/5"
-                            >
-                                <Text className="text-red-500 font-bold">Başvuruyu İptal Et</Text>
-                            </TouchableOpacity>
+                            {selectedApplication.status === 'pending' && (
+                                <TouchableOpacity
+                                    onPress={() => Alert.alert('Başvuruyu Geri Çek', 'Bu başvuruyu geri çekmek istediğinize emin misiniz?', [
+                                        { text: 'Vazgeç', style: 'cancel' },
+                                        { text: 'Geri Çek', style: 'destructive', onPress: () => cancelApplication(selectedApplication) }
+                                    ])}
+                                    className="mt-auto w-full h-14 rounded-xl border border-red-500/30 items-center justify-center bg-red-500/5"
+                                >
+                                    <Text className="text-red-500 font-bold">Başvuruyu Geri Çek</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
                 )}
