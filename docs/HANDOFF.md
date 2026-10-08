@@ -1,39 +1,38 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Tarih: 2026-10-07, PR #30 birleştikten sonra. `main` = `88fd1fa` + bu belge.
-> Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md`.
+> Son güncelleme: 2026-10-09, PR #46 birleştikten sonra. Tüm işler `main`'de ve Vercel'de canlı, açık PR yok.
+> Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
 ## 1. Şu anki durum (kısa)
 
-- Web düzeltmeleri numaralı listeden yürüyor. Başta ~209 madde vardı. Kalan açık maddeler aşağıda (bölüm 6).
-- Tüm işler `main`'de ve Vercel'de canlı. Açık PR yok. Çalışma dalı `claude/web-fixes-batch` = `main`.
-- Kullanıcı liste bitince çok hesapla toplu test yapacak. Ara testler istemiyor.
-- Mobil uygulama donduruldu (bkz. CLAUDE.md kural 3). Web bitince kullanıcıya **hatırlat**.
-- **Bekleyen toplu SQL (2026-10-08):** `supabase/manual/2026-10-08_toplu.sql` (RLS performansı, erişim açıkları, profil
-  görüntülenmeleri, çevrimiçi durumu, kopya politikalar). Kullanıcı SQL Editor'de çalıştırınca ilgili PR birleştirilir.
-  Yerel oturum canlıya migration uygulayamıyor (izin sistemi "production deploy" diye engelliyor); okuma sorguları çalışıyor.
-- Mobil sürüm sonrası çalıştırılacak SQL:
-  `DROP POLICY "avatars insert" ON storage.objects;` Bu SQL yalnızca yeni mobil sürüm yayınlandıktan sonra çalıştırılacak.
+- **Web:** kararsız yapılabilecek tüm maddeler bitti; 2026-10-09 ürün kararları (bildirimler, doğrudan mesaj, sarı tikler,
+  "Markayla görüş", kota, Resend) uygulandı (#37–#40).
+- **Mobil (test aşaması, hedef web ile tam uyum):** 6 parça bitti ve birleşti (#41–#46):
+  1. Teklifler + ortak mesaj ekranı (`/api/mobile/offers`, `/api/mobile/messages`).
+  2. İlanlar + başvurular (`/api/mobile/adverts`, `/api/mobile/applications`, `lib/adverts.ts`).
+  3. Doğrulama: influencer zorunlu sosyal doğrulama kapısı (`mobile-app/lib/routing.js`, `SocialVerifyGate`), marka kurumsal
+     kimlik + kurumsal e-posta + vergi levhası (`/api/mobile/brand-verification`, `lib/brand-verification.ts`). Expo paketleri SDK 54'e eşitlendi.
+  4. Push: her bildirim push olarak da gider (`lib/push.ts`, `/api/mobile/push-token`); metin e-postadaki sade metin.
+  5. Sahte AI asistan kaldırıldı, mobil şifre sıfırlama (`/api/mobile/forgot-password`, token_hash bağlantısı), içerik üretici türü.
+  6. DB sıkılaştırma: `social_accounts.verification_code` istemcilere kapalı, "avatars insert" kaldırıldı.
+- **Canlı SQL:** bekleyen yok. 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
+- Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
 
-## 2. Sıradaki işler (2026-10-09 itibarıyla)
+## 2. Sıradaki işler
 
-Kararsız yapılabilecek web maddeleri bitti (PR #32–#36). Kalanlar:
-
-1. **Kullanıcı kararı bekleyen web işleri** (bölüm 4): bildirimler ve e-postalar (5.4-S1, 3.6-S2, 3.8-S3, 1.9-S5, 6.5-S1),
-   doğrudan mesaj (5.1-S1, 5.3-S2 ile birlikte), ücretsiz marka kotası ve sayfalama (3.13, 3.2-S2), eski sarı tikler (3.11-S1),
-   teklif "Beklet" (2.13-S1), Resend ücretli plan (8.4-S1).
-2. **Mobil** (CLAUDE.md kural 3, kullanıcıya hatırlatılacak): SYSTEM_MAP 10.3, 2.1-S8 (doğrulama kodu kolonu, mobil `select('*')`
-   nedeniyle bekliyor), mobil sürüm çıkınca `DROP POLICY "avatars insert"`.
-3. **OAuth açılırsa:** 2.3-S2, 2.3-S3, 2.3-S4.
-2a. **Mobil eşitleme (2026-10-09 başladı, test aşaması, hedef web ile tam uyum):** Parça 1 teklifler + ortak mesajlaşma (#41),
-   parça 2 ilanlar + başvurular (#42, kapak politikası SQL'i çalıştırıldı), parça 3 doğrulama (influencer zorunlu sosyal
-   doğrulama kapısı, marka kurumsal kimlik + kurumsal e-posta + vergi levhası; Expo paket sürümleri SDK 54'e eşitlendi).
-   Parça 4 push (sunucu + uygulama hazır; EAS proje kimliği ve FCM kullanıcıdan bekleniyor). Parça 5 sahte ekranlar, şifre sıfırlama, içerik üretici türü (yapıldı). Sıradaki:
-   Parça 6 DB sıkılaştırma: `supabase/manual/2026-10-09_mobil_sikilastirma.sql` PR birleşip yayına çıktıktan sonra çalıştırılacak. Uygulama adı/paket kimliği mağaza kararı: kullanıcıya sor.
-4. **Son temizlik SQL'i** hazır: `supabase/manual/2026-10-09_temizlik.sql` (7.4-S9). Kullanıcı çalıştırınca haritada ✅.
-5. **Takip panosu:** yerel oturum panoya erişemiyor (artifact başka hesapta, bu hesapla paylaşılmamış). Harita güncel; erişimi olan ilk oturum `scripts/tracker_sync.py` ile eşitlemeli.
-6. **Kuyruğun en sonu:** bölüm 8.
+1. **Kullanıcı adımları (mobil push):** Expo hesabında `eas init` (app.json'a `extra.eas.projectId` yazar) ve Android için
+   FCM kimlik bilgisi. Bunlar olmadan cihaz push token alamaz; kod hazır. `npx expo install --check` ile paketler kurulmalı.
+2. **Kullanıcıya sorulacak:** uygulama adı ve paket kimliği (`app.json` şu an "mobile-app"; mağaza kararı).
+3. **Mobilde kalan küçük işler (istersen bak, karar gerektirmez):** bazı ekranlar `users` tablosuna doğrudan yazıyor
+   (beyaz liste tetikleyicisi korumalı: izin dışı kolonlar sessizce düşer, ör. MyProfile `portfolio_urls`); destek/geri bildirim
+   ve bildirim okundu işaretleme doğrudan tabloya. Güvenlik açığı değil; web ile tam aynı akış istenirse sunucu uçlarına taşınabilir.
+4. **8.7-S1:** rocketapi.io anahtarının panelden iptali kullanıcıda; iptal edilince ✅.
+5. **OAuth açılırsa:** 2.3-S2, 2.3-S3, 2.3-S4. **5.3-S2** (okundu bilgisi için `room_reads` tablosu) mesajlaşma tasarımıyla birlikte, acil değil.
+6. **Takip panosu:** artifact başka hesapta; bu hesap (hello@socialartajans.com) erişemiyor. Erişimi olan oturum
+   `scripts/tracker_sync.py` ile eşitlemeli. Kullanıcı panoyu bu hesapla paylaşırsa yerel oturum da yazabilir.
+7. **Kuyruğun en sonu:** bölüm 8 ("ne kaldı" sorulunca hatırlat).
+8. Kullanıcı daha sonra **strateji** konuşmak istiyor.
 
 ## 3. Kullanıcının verdiği kararlar (kronolojik, 6–7 Ekim 2026)
 
@@ -114,67 +113,29 @@ Hepsi 2026-10-09'da karara bağlandı (bölüm 3 ve CLAUDE.md kural 6). Kuyruğu
 | #28 | Realtime for UI tables, external call timeouts, dead code removal |
 | #29 | Clear a batch of small issues from the system map |
 | #30 | Web fixes: delete re-auth, list validation, avatar URL check, realtime cleanup |
+| #31–#36 | Web fix batches (badges, presence, profile views, cleanup, schema baseline) |
+| #37–#40 | 2026-10-09 decisions: notifications, offer "Markayla görüş", yellow ticks, paging, offer payment type, cron budget |
+| #41 | Mobile part 1: offers, shared messaging, influencer detail |
+| #42 | Mobile part 2: adverts and applications |
+| #43 | Mobile part 3: brand and creator verification |
+| #44 | Mobile part 4: push notifications |
+| #45 | Mobile part 5: fake screens, password reset, creator type |
+| #46 | Mobile part 6: database hardening |
 
 Canlı şemanın temeli `supabase/migrations/20261009000000_schema_baseline.sql`; önceki migration'lar `supabase/migrations/_archive/` altında; ne zaman, nasıl uygulandıkları SYSTEM_MAP 11.3'te.
 Saatlik görev Supabase pg_cron ile çalışıyor. `supabase/cron/hourly_jobs.sql` repoda yer tutucuyla duruyor; gerçek secret yalnızca Supabase'de.
 
-## 6. Açık maddeler (SYSTEM_MAP'ten, 2026-10-07)
+## 6. Açık maddeler (SYSTEM_MAP'ten, 2026-10-09)
 
-Ayrıntı ve bağlam için haritadaki ilgili satıra bak. Takip panosu bu tabloyla eşit (7 Ekim); her değişiklikte panoyu da güncelle (CLAUDE.md → Çalışma akışı). "NOT" satırları ürün notudur, kod işi değildir.
+Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapılacak kod işi değil.
 
-| ID | Seviye | Özet |
+| ID | Seviye | Durum |
 |---|---|---|
-| 1.9-S5 | ORTA | `email_notifications` tercihleri kaydediliyor ama hiçbir kod bu tercihlere göre e-posta göndermiyor (bkz. 5.4). |
-| 2.1-S8 | DÜŞÜK | (canlıda kontrol edildi: jeton kolonu yok; okunabilen doğrulama kodu başkasının biyografisine yazılamayacağı için işe yaramaz. Düşük) `social_accounts` SELECT herkese açık (`USING(true)`, tüm kolonlar); `verification_code` okunabilir. |
-| 2.3-S2 | YÜKSEK | (OAuth kapatıldığı için etkisiz; açılmadan önce `user.info.profile` kapsamı + `username` alanı gerekli. Canlıda OAuth ile bağlanmış hesap yok) TikTok OAuth kullanıcı adı yerine `display_name` kaydediyor, `syncBlueTick` çağırmıyor; sonraki yenileme yanlış he… |
-| 2.3-S3 | ORTA | Meta yolu `platform_user_id`'yi Graph business id ile yazıyor (Apify IG pk yazıyor) → aynı IG hesabı iki kullanıcıya bağlanabilir. `last_scraped_at` set edilmiyor, diğer kullanıcılarla çakışma kontrolü yok. |
-| 2.3-S4 | DÜŞÜK | Token'lar saklanmıyor (OAuth kazımaya göre bir şey katmıyor); `video.list` kapsamı kullanılmıyor. |
-| 2.6-S2 | DÜŞÜK | Tamamlama doğrulanmış hesapları değil elle girilen `social_links`'i sayıyor; `phone`/`email` görevleri hiç üretilmiyor. |
-| 2.9-S1 | ORTA | "AI analiz" yerel kural motoru + rastgele karıştırma + sahte 800 ms gecikme; LLM yok. Pazarlama dili yanıltıcı. |
-| 2.9-S2 | ORTA | Her marka ücretsiz BRAND_PRO seviyesini alıyor; seviye eşlemesi dosyalar arasında farklı (`ipro`/`mpro`, eski `pro`/`elite`). |
-| 2.9-S3 | DÜŞÜK | ("TikTok Resmi Entegrasyonu Aktif" → "Herkese açık TikTok profilinden alındı") `match_score` / `profile_coach` "Çok yakında" ile kapalı; `statsPayload.changes` hiç yazılmıyor; "TikTok Resmi Entegrasyonu Aktif" yazısı yanlış. |
-| 2.13-S1 | ORTA | (bilinçli görünüyor: teklif beklemede kalır, görüşmek için sohbet açılır; ürün kararı bekliyor) "Beklet" durumu kaydedilmiyor ama sohbet odası yine açılıyor. |
-| 3.2-S2 | ORTA | (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor. |
-| 3.5-S2 | DÜŞÜK | "%95+ uyumlu" sabit iddia; marka ve influencer kategorileri farklı listelerden geldiği için eşleşme genelde boş havuza düşüyor; sınırsız `.in('id', ids)`. |
-| 3.6-S2 | YÜKSEK | Influencer'a yeni teklif için bildirim veya e-posta gitmiyor (bkz. 5.4-S1). |
-| 3.8-S3 | ORTA | Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor. |
-| 3.11-S1 | ORTA | Bu kuraldan önce verilmiş sarı tikler otomatik geri alınmadı (karar bekliyor). |
-| 4.1-S3 | DÜŞÜK | Katalogda verme mantığı olmayan rozetler: `brand-ambassador`, `lightning-fast`, `five-star`, `trendsetter`, `million-club`, `conversion-wizard`, marka v1.2/v1.3 rozetleri. |
-| 4.2-S2 | DÜŞÜK | (ölü `profile/badges/actions.ts` dosyaları silindi) `influencer/profile/badges/actions.ts` (`updateDisplayedBadges`) ölü; marka rozet sayfası kazanılanları göstermiyor. |
-| 4.3-S2 | ORTA | Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor. |
-| 4.3-S3 | DÜŞÜK | `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında". |
-| 4.5-S3 | DÜŞÜK | `view_profile` / `click_profile` analitik olayları hiç gönderilmiyor. |
-| 4.6-S2 | DÜŞÜK | Yalnızca `view_advert` izleniyor; influencer tarafında analitik yok. |
-| 5.1-S1 | YÜKSEK | Doğrudan sohbet başlatma bozuk: `MessagesPage.tsx` `offer_id`/`advert_application_id` olmadan oda ekliyor, `restrict_rooms_insert` trigger'ı reddediyor; `?userId=` ile mevcut oda yoksa yalnızca konsola hata düşüyor. Mobilde de aynı (10.3-S4). |
-| 5.3-S2 | ORTA | (canlıda ölçüldü: en büyük metadata 550 bayt, en çok 4 oda anahtarı; acil değil, mesajlaşma tasarımıyla birlikte `room_reads` tablosuna taşınacak) Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyo… |
-| 5.4-S1 | YÜKSEK | Yeni teklif, teklif durumu, yeni başvuru, başvuru durumu, yeni mesaj, destek yanıtı için hiçbir bildirim ya da e-posta üretilmiyor. Tek üreticiler admin paneli ve Spotlight bildirimi. |
-| 6.1-S2 | DÜŞÜK | (PGRST116 artık rate limit sayılmıyor; bakım mesajı genelleştirildi) `PGRST116` rate limit sayılıyor; eski "21-23 Kasım bakım" mesajı sabit; başka statüdeki kullanıcılar hiçbir listede yok. |
-| 7.1-S1 | YÜKSEK | (kısmen: bilinen sapmalar `20261007000011` ile kapatıldı, `20260316000001` artık influencer_id'yi kendisi ekliyor. Tam doğrulama için repo dosyalarını boş bir veritabanında sırayla çalıştıran bir deneme gerekir) Canlı DB repodan neredeyse kesin sapmış (bkz.… |
-| 7.3-S1 | ORTA | Beyaz listede `push_notifications_enabled`, `website` var ama bu kolonlar yok; `push_token` ise ne kolon ne beyaz listede (mobil push hiç kaydedilmiyor). |
-| 7.4-S3 | DÜŞÜK | `handle_delete_auth_user` boş taslak, trigger'ı yorumda. |
-| 7.5-S1 | YÜKSEK | Ölü "Tam Yetki" politikaları silindi. Kalan tek iş: mobil sürüm çıkınca `DROP POLICY "avatars insert"`. |
-| 7.5-S2 | ORTA | `chat-attachments` bucket'ı migration'da yok (yükleme kuralı `20261007000017` ile daraltıldı); özel bucket + imzalı URL'ye geçilmeli. |
-| 7.6-S4 | DÜŞÜK | `feedback` tablosu (mobil), `rooms.last_message_at`, `messages.receiver_id`, `messages.is_read`, `advert_projects.brand_id`, `users.push_token`. |
-| 7.7-S3 | DÜŞÜK | `handle_new_auth_user` 8 kez yeniden tanımlanmış; `spotlight_plan` CHECK → enum → enum geçişi kayıplı eşleme yapmış, kodda hâlâ `'basic'\|'pro'` cast'i var. |
-| 8.7-S1 | KRİTİK | Dosya silindi; RocketAPI anahtarının rocketapi.io panelinde iptali kullanıcıda. |
-| 8.4-S1 | YÜKSEK | Ücretsiz plan günde 100, ayda 3000 e-posta. Kurumsal e-posta kodları ve admin uyarıları aynı kotayı paylaşıyor; kota dolunca markalara kod gitmez. İzleme ve uyarı eklendi, risk sürüyor (çözüm: ücretli plan veya ikinci sağlayıcı). |
-| 9.1-S2 | ORTA | PartnersSection TikTok, Instagram, Meta, YouTube, Google logolarını "partner" olarak gösteriyor (ortaklık izlenimi / marka hakkı riski). |
-| 9.1-S3 | DÜŞÜK | (Footer `/discover` → `/spotlight`; gizlilik linki zaten düzgün) Sabit pazarlama rakamları ("%5.2", "10K+", "50+", "%100"); Footer'da kırık linkler (`/discover`, `/legal/privacy`); production'da `console.log`. |
-| 10.3-S1 | YÜKSEK | Influencer sosyal doğrulama zorunluluğu mobilde yok (web'de de yalnızca arayüz kapısı; DB zorlamıyor). |
-| 10.3-S2 | YÜKSEK | Marka doğrulama ekranı: VKN/TCKN istemci kontrolü yok, vergi dairesi/il yok, vergi levhası yükleme yok, kurumsal e-posta yok; |
-| 10.3-S4 | YÜKSEK | Doğrudan sohbet engelleniyor (`InfluencerDetailScreen.js` bağlantısız oda açıyor). |
-| 10.3-S7 | ORTA | Push token'ları ve bildirim tercihi hiç kaydedilmiyor (7.3-S1). |
-| 10.3-S9 | ORTA | (sahte güven skoru satırı kaldırıldı; kullanılmıyordu) Keşfette doğrulanmamış istatistikler ve sahte güven skoru (`75 + charCode % 22`). |
-| 10.3-S10 | ORTA | AiAssistant ekranı sabit cevaplı sahte sohbet; şifre sıfırlama kırık (1.4-S1); signup `creator_type` göndermiyor. |
-| 10.3-S11 | DÜŞÜK | İlan ekleme var olmayabilecek `brand_id` kolonu gönderiyor; kapak görseli klasörsüz. |
-| 3.13-N1 | NOT | Kod (bio) ile doğrulayan Instagram/TikTok hesaplarının belli verileri çekilemiyor: kazıma yalnızca herkese açık |
-| 3.13-N2 | NOT | OAuth yerine kod ile doğrulayanlar dezavantajlı olmalı. Seçenekler: güven skorunda tavan, mavi tik/rozet yok, |
-| 3.13-N3 | NOT | Ücret ödemeyen markalar yalnızca kod ile doğrulanmış influencer/UGC'lere ulaşabilsin; OAuth ile bağlanmış |
-| 3.13-N4 | NOT | Ücret ödemeyen markalar tüm listeyi göremesin. Sistem markanın ihtiyacını (kategori, bütçe, ilanlar, hedef kitle) |
-| 3.13-N5 | NOT | Listeler (Inflist) şimdilik tüm doğrulanmış markalara ücretsiz; ileride Spotlight'a dahil edilecek |
-| 3.13-N6 | NOT | İleride gönderisi olmayan Instagram/TikTok hesapları doğrulamada kabul edilmeyecek (bugün 2.1-S2 düzeltmesiyle |
-| 8.9-N1 | NOT | Siteye Drive benzeri bir dosya yapısı kurulacak (karar, 7 Ekim): görseller ve dosyalar (avatar, logo, ilan kapakları, |
-| 10.4-N1 | NOT | `@testermobilapp` (marka, auth e-postası geçici bir test adresi) mobil uygulama testleri için bilinçli olarak tutuluyor; silinmeyecek (karar, 7 Ekim). |
+| 8.7-S1 | KRİTİK | Dosya silindi; rocketapi.io anahtarının iptali kullanıcıda. |
+| 2.3-S2, 2.3-S3, 2.3-S4 | YÜKSEK/ORTA/DÜŞÜK | OAuth kapalı; açılırsa yapılacak. |
+| 5.3-S2 | ORTA | Okundu bilgisi `room_reads` tablosuna; mesajlaşma tasarımıyla birlikte. |
+| 4.3-S3 | DÜŞÜK | Ajans Spotlight sayfası notu (haritaya bak). |
+| 2.9-S1, 3.5-S2, 9.1-S2, 9.1-S3 | — | Kuyruğun en sonu (bölüm 8, kullanıcı kararı). |
 
 ## 7. Teknik notlar (tekrar keşfetmemek için)
 
@@ -190,6 +151,18 @@ Ayrıntı ve bağlam için haritadaki ilgili satıra bak. Takip panosu bu tabloy
 - **Dış çağrılar:** `lib/api-keys.ts` `fetchExternal` 50 sn zaman aşımıyla çalışıyor. Apify çağrıları `?timeout=45`, Resend 15 sn.
 - **Hesap silme:** `lib/account-deletion.ts` `deleteAccountCompletely` storage dosyalarını da siliyor. Kullanıcıdan şifre tekrar isteniyor.
 - **Avatar/logo adresi:** sunucuda `lib/avatar-url.ts` ile doğrulanıyor. Yalnızca `avatars/{uid}/` altındaki ya da zaten kayıtlı olan adres kabul ediliyor.
+- **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
+  `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
+  (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
+- **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
+  kolonları geçirir (rol, onay, spotlight vb. sessizce düşer); onaylı markanın yasal bilgisi değişirse onay düşer.
+- **Canlıya DDL:** bu ortamda `apply_migration` izin sisteminde engelli; SQL `supabase/manual/` altına yazılır, kullanıcı SQL Editor'de
+  çalıştırır. SQL Editor uyumu: fonksiyonlarda DECLARE yok, yorumlarda kesme işareti ve soru işareti yok.
+- **git push:** düz push sessizce asılı kalabiliyor; `GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git -c credential.helper=
+  -c "credential.helper=!gh auth git-credential" push ...`, sonra `git ls-remote` ile doğrula. Repoda GitHub auto-merge kapalı;
+  önizleme yeşilse `gh pr merge <n> --merge`.
+- **Mobil sözdizimi kontrolü:** `npx tsc --noEmit --allowJs --checkJs false --jsx preserve --noResolve --skipLibCheck <dosyalar>`
+  (mobile-app içinde; node_modules kurulu değil).
 - **Build:** `next build` için `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` gerekli. Route sildikten sonra `rm -rf .next/types` çalıştır.
 
 ## 8. Kuyruğun en sonu (kullanıcı kararı, 8 Ekim — "ne kaldı" sorulunca hatırlat)
