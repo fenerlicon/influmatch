@@ -169,7 +169,7 @@ export default function BrandOffersList({
       const { data: offer } = await supabase
         .from('offers')
         .select(
-          `id, campaign_name, campaign_type, budget, message, status, created_at,
+          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
           receiver:receiver_user_id(id, full_name, avatar_url, username, displayed_badges)`,
         )
         .eq('id', offerId)
@@ -476,7 +476,9 @@ export default function BrandOffersList({
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Bütçe</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
+                      {latestOffer.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'}
+                    </p>
                     <p className="mt-1 text-sm font-semibold text-soft-gold">
                       {formatBudget(latestOffer.budget)}
                     </p>
@@ -618,7 +620,9 @@ export default function BrandOffersList({
 
                         <div className="grid gap-4 md:grid-cols-2 mt-4">
                           <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Bütçe</p>
+                            <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
+                              {offer.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'}
+                            </p>
                             <p className="mt-1 text-base font-semibold text-soft-gold">
                               {formatBudget(offer.budget)}
                             </p>

@@ -23,7 +23,7 @@ export default async function DashboardOffersPage() {
   const { data: offers, error } = await supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, message, status, created_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
       sender:sender_user_id(id, full_name, avatar_url, username, social_links, verification_status, displayed_badges)`,
     )
     .eq('receiver_user_id', user.id)

@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { refreshStaleAccounts } from '@/lib/social-stats'
 
-// Vercel Hobby fonksiyon sınırı. Yeni Apify koşusuna yalnızca ilk 25 saniyede başlanır.
+// Vercel Hobby fonksiyon sınırı.
 export const maxDuration = 60
-const START_BUDGET_MS = 25_000
+// Apify koşusu 45 sn sürebilir; 60 sn fonksiyon sınırının altında kalmak için yeni koşu en geç 10. saniyede başlar.
+const START_BUDGET_MS = 10_000
 
 /**
  * BU API UCU HER GÜN VERCEL CRON TARAFINDAN ÇALIŞTIRILIR (vercel.json).

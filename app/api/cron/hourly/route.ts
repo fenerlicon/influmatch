@@ -11,6 +11,9 @@ import { refreshStaleAccounts } from '@/lib/social-stats'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+/** Bir kazıma en fazla ~45 sn; 60 sn sınırının altında kalmak için yeni koşu bu süreden sonra başlamaz. */
+const HOURLY_STATS_START_BUDGET_MS = 10_000
+
 /**
  * SAATLİK BAKIM GÖREVİ.
  * Vercel Hobby planı saatlik cron'a izin vermediği için Supabase pg_cron tarafından çağrılır
@@ -88,9 +91,11 @@ export async function GET(req: Request) {
     result.activityBadgesError = error instanceof Error ? error.message : String(error)
   }
 
-  // Bayat istatistikleri kalan zamanda küçük parçalar halinde yenile (yeni koşu en geç 25. saniyede başlar).
+  // Bayat istatistikleri kalan zamanda küçük parçalar halinde yenile. Bir Apify koşusu 45 saniyeye kadar
+  // sürdüğü için yeni koşu en geç 10. saniyede başlar; aksi halde görev 60 saniyelik sınırı aşıyordu
+  // (pg_net zaman aşımı, 2026-10-08). Taramalar uzun sürdüyse bu turda yenileme yapılmaz, günlük cron sürdürür.
   try {
-    result.statsRefresh = await refreshStaleAccounts(admin, { deadline: startedAt + 25_000, limit: 10 })
+    result.statsRefresh = await refreshStaleAccounts(admin, { deadline: startedAt + HOURLY_STATS_START_BUDGET_MS, limit: 10 })
   } catch (error) {
     console.error('[cron/hourly] İstatistik yenileme başarısız:', error)
     result.statsRefreshError = error instanceof Error ? error.message : String(error)
