@@ -743,7 +743,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**8.7-S4 [ORTA]**~~ (JSON-LD, sitemap ve robots influmatch.net) Alan adı tutarsızlığı: sitemap/robots/JSON-LD `influmatch.com`, geri kalan her şey `influmatch.net`.
 
 ### 8.9 Ürün notu: dosya depolama ("Drive" yapısı)
-- **8.9-N1** (2026-10-10, kullanıcı kararı: sonra; şimdilik dokunulmuyor) Siteye Drive benzeri bir dosya yapısı kurulacak (karar, 7 Ekim): görseller ve dosyalar (avatar, logo, ilan kapakları,
+- **8.9-N1** (2026-10-10, güncel karar: Cloudflare R2 ile kurulacak, Akademi videolarıyla birlikte Kasım'da; bkz. `docs/ROADMAP.md`) Siteye Drive benzeri bir dosya yapısı kurulacak (karar, 7 Ekim): görseller ve dosyalar (avatar, logo, ilan kapakları,
   sohbet ekleri, vergi belgeleri) için düzenli klasör yapısı ve daha düşük depolama/aktarım maliyeti. Bugünkü durum: Supabase
   Storage'da `avatars` (çoğu `{uid}/` klasöründe, eskiler kökte), `advert-hero-images` ve `feedback-images` (kökte, rastgele ad),
   `chat-attachments` (`{uid}/{oda}/...`), `tax-documents` (özel). Hepsi herkese açık URL ile servis ediliyor (vergi hariç),

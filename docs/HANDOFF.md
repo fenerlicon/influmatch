@@ -26,6 +26,8 @@
 
 ## 2. Sıradaki işler
 
+> Strateji ve takvim: `docs/ROADMAP.md` (Akademi, R2 Drive, kampanya, şirket/POS). Kasım'ın ana işi Akademi + R2.
+
 1. **Kullanıcı adımları (mobil push):** Expo hesabında `eas init` (app.json'a `extra.eas.projectId` yazar) ve Android için
    FCM kimlik bilgisi. Bunlar olmadan cihaz push token alamaz; kod hazır. `npx expo install --check` ile paketler kurulmalı.
 2. **Uygulama adı kararı verildi (2026-10-10):** "Influmatch", paket kimliği `net.influmatch.app`; `mobile-app/app.json`'a yazıldı
