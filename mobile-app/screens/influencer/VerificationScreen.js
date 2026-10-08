@@ -49,7 +49,7 @@ export default function VerificationScreen({ navigation }) {
 
             const [{ data: userData }, { data: socialData }] = await Promise.all([
                 supabase.from('users').select('full_name, verification_status').eq('id', user.id).single(),
-                supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle()
+                supabase.from('social_accounts').select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle()
             ]);
 
             setProfile(userData);

@@ -128,7 +128,7 @@ export default function BrandDashboardScreen({ navigation }) {
                 const spotlightIds = spotlightInfs.map(si => si.id);
                 const { data: spotlightSocials } = await supabase
                     .from('social_accounts')
-                    .select('*')
+                    .select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at')
                     .in('user_id', spotlightIds);
 
                 const recs = spotlightInfs.map(si => ({
@@ -187,7 +187,7 @@ export default function BrandDashboardScreen({ navigation }) {
                 const infIds = apps.map(a => a.influencer?.id).filter(Boolean);
                 const { data: socials } = await supabase
                     .from('social_accounts')
-                    .select('*')
+                    .select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at')
                     .in('user_id', infIds);
 
                 const appsWithScores = apps.map(app => ({
