@@ -31,9 +31,13 @@ interface BrandDiscoverGridProps {
   isSpotlightMember?: boolean
   spotlightPlan?: string | null
   defaultCategory?: string | null
+  /** Doğrulanmış markaya: influencer → fiyat kartındaki en düşük başlangıç fiyatı (RLS ile gelir). */
+  minPrices?: Record<string, number>
+  /** Influencer → tamamlanan iş birliği sayısı. */
+  completedCounts?: Record<string, number>
 }
 
-export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole, isSpotlightMember = false, spotlightPlan, defaultCategory }: BrandDiscoverGridProps) {
+export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole, isSpotlightMember = false, spotlightPlan, defaultCategory, minPrices, completedCounts }: BrandDiscoverGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORY_OPTIONS)[number]>('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [verifiedOnly, setVerifiedOnly] = useState(false)
@@ -43,6 +47,9 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
   const [isFiltersOpen, setIsFiltersOpen] = useState(true)
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['instagram', 'tiktok'])
   const [creatorTypeFilter, setCreatorTypeFilter] = useState<'all' | 'influencer' | 'ugc'>('all')
+  // Bütçe filtresi: girilince yalnızca en az bir başlangıç fiyatı bütçeye sığan profiller kalır.
+  const [budgetInput, setBudgetInput] = useState('')
+  const budget = Number(budgetInput.replace(/\D/g, '')) || 0
 
   const isPro = isProPlan(spotlightPlan)
 
@@ -77,7 +84,10 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
         (creatorTypeFilter === 'influencer' && (influencer.creator_type === 'influencer' || influencer.creator_type === 'both' || !influencer.creator_type)) ||
         (creatorTypeFilter === 'ugc' && (influencer.creator_type === 'ugc' || influencer.creator_type === 'both'))
 
-      return matchesCategory && matchesSearch && matchesVerifiedData && matchesVerifiedAccount && matchesPlatforms && matchesCreatorType
+      const minPrice = minPrices?.[influencer.id]
+      const matchesBudget = !minPrices || budget <= 0 || (typeof minPrice === 'number' && minPrice <= budget)
+
+      return matchesCategory && matchesSearch && matchesVerifiedData && matchesVerifiedAccount && matchesPlatforms && matchesCreatorType && matchesBudget
     })
 
     result.sort((a, b) => {
@@ -110,11 +120,11 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
       }
     })
     return result
-  }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, isSpotlightMember, selectedPlatforms, defaultCategory, creatorTypeFilter])
+  }, [influencers, selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, isSpotlightMember, selectedPlatforms, defaultCategory, creatorTypeFilter, minPrices, budget])
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, selectedPlatforms, creatorTypeFilter])
+  }, [selectedCategory, searchQuery, verifiedOnly, verifiedAccountsOnly, sortBy, selectedPlatforms, creatorTypeFilter, budget])
 
   const visibleInfluencers = filteredInfluencers.slice(0, visibleCount)
   const remainingCount = Math.max(0, filteredInfluencers.length - visibleInfluencers.length)
@@ -165,6 +175,27 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
+
+                    {/* Bütçe (fiyat kartı) */}
+                    {minPrices && (
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-wider text-gray-400" htmlFor="discover-budget">Bütçem (₺)</label>
+                        <input
+                          id="discover-budget"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Örn. 5000"
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-soft-gold/50 focus:bg-white/10"
+                          value={budgetInput}
+                          onChange={(e) => setBudgetInput(e.target.value.replace(/[^\d.]/g, '').slice(0, 11))}
+                        />
+                        <p className="text-[11px] text-gray-500">
+                          {budget > 0
+                            ? 'Fiyat kartında bu bütçeye sığan en az bir başlangıç fiyatı olan profiller gösteriliyor.'
+                            : 'Girerseniz yalnızca fiyat kartı bütçenize uyan profiller gösterilir.'}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Platform Filter */}
                     <div className="space-y-2">
@@ -383,6 +414,8 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                     userRole={userRole}
                     matchScore={userRole === 'influencer' ? undefined : matchScore}
                     isSpotlightMember={isSpotlightMember}
+                    startingPrice={minPrices?.[influencer.id] ?? null}
+                    completedCollaborations={completedCounts?.[influencer.id] ?? 0}
                   />
                 )
               })}
