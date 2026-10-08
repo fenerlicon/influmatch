@@ -9,6 +9,7 @@ import {
     BadgeCheck, MessageSquare
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
+import { signOutAndClearPush } from '../../utils/notifications';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -76,7 +77,7 @@ export default function ProfileScreen({ navigation }) {
     useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        await signOutAndClearPush();
         navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     };
 

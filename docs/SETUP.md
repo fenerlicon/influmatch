@@ -32,6 +32,7 @@ Vercel'de (Production + Preview) ve yerelde `.env.local`'de tanımlanır. Şablo
 | `NEXT_PUBLIC_SITE_URL` | evet | Yönlendirmeler, e-posta bağlantıları, sitemap (`https://influmatch.net`) |
 | `CRON_SECRET` | evet | `/api/cron/*` uçları yalnızca `Authorization: Bearer <CRON_SECRET>` ile çalışır |
 | `RESEND_API_KEY`, `EMAIL_FROM` | evet | Kurumsal e-posta kodları ve admin uyarıları. Resend'de influmatch.net alan adı doğrulanmış olmalı. |
+| `EXPO_ACCESS_TOKEN` | hayır | Mobil push. Yalnızca Expo hesabında "Enhanced push security" açılırsa gerekir. |
 | `ALERT_EMAIL_TO`, `ALERT_EMAIL_FROM` | hayır | Admin uyarılarının alıcısı/göndericisi (boşsa admin hesaplarına gider) |
 | `RESEND_DAILY_LIMIT`, `RESEND_MONTHLY_LIMIT` | hayır | Kota izleme eşikleri (ücretsiz plan 100 / 3000) |
 | `APIFY_API_TOKEN`, `GEMINI_API_KEY`, `GEMINI_MODEL` | hayır | Anahtar havuzu boşken bir kez aktarılır; asıl yönetim `/admin/api-keys` |

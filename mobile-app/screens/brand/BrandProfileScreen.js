@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Building2, Mail, Phone, Globe, Camera, LogOut, ChevronRight, Shield, FileText, HelpCircle, Edit3, Check, X, Send, Settings } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
+import { signOutAndClearPush } from '../../utils/notifications';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import { useFocusEffect } from '@react-navigation/native';
 import { decode } from 'base64-arraybuffer';
@@ -212,7 +213,7 @@ export default function BrandProfileScreen({ navigation }) {
             {
                 text: 'Çıkış Yap', style: 'destructive',
                 onPress: async () => {
-                    await supabase.auth.signOut();
+                    await signOutAndClearPush();
                     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
                 }
             }

@@ -793,7 +793,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S4 [YÜKSEK]**~~ (2026-10-09: detay ekranı oda açmıyor; marka teklif gönderiyor, mevcut sohbet varsa "Sohbete git") Doğrudan sohbet engelleniyor (`InfluencerDetailScreen.js` bağlantısız oda açıyor).
 - ✅ ~~**10.3-S5 [YÜKSEK]**~~ (influencer_user_id de gönderiliyor) İlana başvuru bozuk (`influencer_user_id` NOT NULL, yalnızca `influencer_id` gönderiliyor).
 - ✅ ~~**10.3-S6 [ORTA]**~~ (`<uid>/…` yolu) Avatar yüklemeleri `public/<uid>/…` yoluna gidiyor, politika ihlali (MyProfile hariç).
-- **10.3-S7 [ORTA]** Push token'ları ve bildirim tercihi hiç kaydedilmiyor (7.3-S1).
+- ✅ ~~**10.3-S7 [ORTA]**~~ (2026-10-09: sunucu her bildirimde push da gönderiyor (`lib/push.ts`, metin e-postadaki sade metin, mesaj içeriği yok); token `/api/mobile/push-token` ile kaydediliyor, aynı cihazdaki eski hesaptan kaldırılıyor, çıkışta siliniyor; bildirime dokununca ilgili sekme açılıyor. **Kullanıcı adımı:** `eas init` ile EAS proje kimliği ve Android için FCM kimlik bilgisi — bunlar olmadan cihaz token alamaz) Push token'ları ve bildirim tercihi hiç kaydedilmiyor (7.3-S1).
 - ✅ ~~**10.3-S8 [ORTA]**~~ (`feedback_submissions`'a yazıyor, hata gösteriliyor) Geri bildirim var olmayan `feedback` tablosuna gidiyor ama başarı gösteriliyor.
 - **10.3-S9 [ORTA]** (sahte güven skoru satırı kaldırıldı; kullanılmıyordu) Keşfette doğrulanmamış istatistikler ve sahte güven skoru (`75 + charCode % 22`).
 - **10.3-S10 [ORTA]** AiAssistant ekranı sabit cevaplı sahte sohbet; şifre sıfırlama kırık (1.4-S1); signup `creator_type` göndermiyor.
