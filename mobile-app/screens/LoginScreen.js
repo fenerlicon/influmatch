@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvo
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { resolveHomeRoute, REJECTED_MESSAGE } from '../lib/routing';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { CustomToast } from '../components/CustomToast';
@@ -56,32 +57,26 @@ export default function LoginScreen({ navigation }) {
             showToast(getTurkishErrorMessage(error), 'error');
             setLoading(false);
         } else {
-            const status = data.user?.user_metadata?.verification_status;
+            // Yönlendirme veritabanındaki bilgilere göre (lib/routing.js); user_metadata'ya güvenilmez.
+            let route;
+            try {
+                route = await resolveHomeRoute(data.user.id);
+            } catch (e) {
+                showToast('Profil bilgileri alınamadı. Lütfen tekrar deneyin.', 'error');
+                setLoading(false);
+                return;
+            }
 
-            // Reddedilen kullanıcı kontrolü
-            if (status === 'rejected') {
-                showToast('Başvurunuz onaylanmadı. Lütfen web sitemizden iletişime geçin.', 'error');
-                await supabase.auth.signOut(); // Oturumu geri kapat
+            if (route === 'Rejected') {
+                showToast(REJECTED_MESSAGE, 'error');
+                await supabase.auth.signOut();
                 setLoading(false);
                 return;
             }
 
             showToast('Giriş başarılı, yönlendiriliyorsunuz...', 'success');
-
-            setTimeout(async () => {
-                const isOnboarded = data.user?.user_metadata?.is_onboarded;
-                if (isOnboarded === true) {
-                    // Fetch role from DB to route correctly
-                    const { data: userData } = await supabase
-                        .from('users')
-                        .select('role')
-                        .eq('id', data.user.id)
-                        .maybeSingle();
-                    const dest = userData?.role === 'brand' ? 'BrandDashboard' : 'Dashboard';
-                    navigation.replace(dest);
-                } else {
-                    navigation.replace('Onboarding');
-                }
+            setTimeout(() => {
+                navigation.replace(route);
                 setLoading(false);
             }, 1000);
         }

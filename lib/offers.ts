@@ -8,6 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { fetchAccountRole } from '@/lib/viewer-role'
 import { displayNameOf, notifyUser } from '@/lib/notify'
+import { hasVerifiedSocialAccount, SOCIAL_VERIFICATION_REQUIRED } from '@/lib/creator-verification'
 
 export interface CreateOfferInput {
   receiverId: string
@@ -109,6 +110,9 @@ export async function respondToOfferAs(
   if (offerError || !offer) return { error: 'Teklif bulunamadı.' }
   if (offer.receiver_user_id !== userId) return { error: 'Bu teklif üzerinde işlem yapma yetkiniz yok.' }
   if (offer.status !== 'pending') return { error: 'Bu teklif zaten yanıtlanmış.' }
+  if (response !== 'rejected' && !(await hasVerifiedSocialAccount(supabase, userId))) {
+    return { error: SOCIAL_VERIFICATION_REQUIRED }
+  }
 
   if (response !== 'hold') {
     const { error: updateError } = await supabase.from('offers').update({ status: response }).eq('id', offerId)

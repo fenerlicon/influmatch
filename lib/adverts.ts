@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 import { displayNameOf, notifyUser } from '@/lib/notify'
+import { hasVerifiedSocialAccount, SOCIAL_VERIFICATION_REQUIRED } from '@/lib/creator-verification'
 
 export type AdvertStatus = 'open' | 'paused' | 'closed'
 export type ApplicationStatus = 'pending' | 'shortlisted' | 'rejected' | 'accepted'
@@ -176,6 +177,7 @@ export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, 
   if (profile.verification_status !== 'verified') {
     return { error: 'Hesabınız henüz onaylanmadı. İlanlara başvurabilmek için hesabınızın onaylanması gerekmektedir.' }
   }
+  if (!(await hasVerifiedSocialAccount(supabase, userId))) return { error: SOCIAL_VERIFICATION_REQUIRED }
 
   const coverLetter = input.coverLetter?.trim() ?? ''
   if (!coverLetter) return { error: 'Kısa bir niyet mesajı paylaşmalısınız.' }

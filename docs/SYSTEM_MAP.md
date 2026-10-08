@@ -786,8 +786,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - `app.json` varsayılan slug/ad ("mobile-app").
 
 ### 10.3 Web kurallarıyla uyumsuzluklar
-- **10.3-S1 [YÜKSEK]** Influencer sosyal doğrulama zorunluluğu mobilde yok (web'de de yalnızca arayüz kapısı; DB zorlamıyor).
-- **10.3-S2 [YÜKSEK]** Marka doğrulama ekranı: VKN/TCKN istemci kontrolü yok, vergi dairesi/il yok, vergi levhası yükleme yok, kurumsal e-posta yok;
+- ✅ ~~**10.3-S1 [YÜKSEK]**~~ (2026-10-09: mobilde `lib/routing.js` web paneliyle aynı kapı; doğrulanmış Instagram/TikTok yoksa zorunlu `SocialVerifyGate` ekranı. Sunucuda da ilan başvurusu ve teklif kabul/görüşme doğrulanmış hesap ister: `lib/creator-verification.ts`) Influencer sosyal doğrulama zorunluluğu mobilde yok (web'de de yalnızca arayüz kapısı; DB zorlamıyor).
+- ✅ ~~**10.3-S2 [YÜKSEK]**~~ (2026-10-09: ekran web akışıyla yeniden yazıldı — kurumsal kimlik, kurumsal e-posta kodu, vergi levhası PDF/fotoğraf; `/api/mobile/brand-verification`, ortak `lib/brand-verification.ts`. Sahte "Başvuru alındı, 1-3 iş günü" mesajı ve doğrulanmamış fayda iddiaları kaldırıldı) Marka doğrulama ekranı: VKN/TCKN istemci kontrolü yok, vergi dairesi/il yok, vergi levhası yükleme yok, kurumsal e-posta yok;
   `verification_status` yazımı beyaz liste tarafından sessizce düşürülüyor.
 - ✅ ~~**10.3-S3 [YÜKSEK]**~~ (brand_id kullanılıyor; kalp yalnızca markalara) Favoriler bozuk (`user_id` kolonu kullanılıyor, tablo `brand_id`); influencer'lara da kalp gösteriliyor.
 - ✅ ~~**10.3-S4 [YÜKSEK]**~~ (2026-10-09: detay ekranı oda açmıyor; marka teklif gönderiyor, mevcut sohbet varsa "Sohbete git") Doğrudan sohbet engelleniyor (`InfluencerDetailScreen.js` bağlantısız oda açıyor).
@@ -802,6 +802,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S14 [ORTA]**~~ (2026-10-09, yeni bulgu) Influencer detay ekranında sabit cümlelerden oluşan "Detaylı Profil Analizi" ve "Akıllı Algoritma" ibaresi, uyuşmayan rozet adları, eksik şehirde "ANKARA", olmayan kovadan avatar. Analiz kaldırıldı; rozetler web kataloğundan (`constants/badges.js` web ile eşitlendi).
 - ✅ ~~**10.3-S11 [DÜŞÜK]**~~ (2026-10-09: ilan kaydı/durum/silme `/api/mobile/adverts` üzerinden `lib/adverts.ts` ile; kapak web ve mobilde `{uid}/` klasörüne, yükleme politikası `2026-10-09_kapak_politikasi.sql` ile daraltılıyor) İlan ekleme var olmayabilecek `brand_id` kolonu gönderiyor; kapak görseli klasörsüz.
 - ✅ ~~**10.3-S15 [ORTA]**~~ (2026-10-09, yeni bulgu) Mobilde başvuru, başvuru durumu ve ilan işlemleri doğrudan tabloya yazıyordu: ilan açık mı / mükerrer mi kontrolü, kapak görseli doğrulaması ve bildirimler atlanıyordu; influencer "Başvuruyu İptal Et" düğmesi hiçbir şey yapmıyordu. Hepsi `/api/mobile/adverts`, `/api/mobile/applications` üzerinden web ile ortak `lib/adverts.ts`; geri çekme gerçek ve yalnızca bekleyen başvuruda. Mobil düzenleme web'de girilmiş platform/teslimat/açıklama alanlarını artık ezmiyor.
+- ✅ ~~**10.3-S16 [YÜKSEK]**~~ (2026-10-09, yeni bulgu) `expo-constants`, `expo-device`, `expo-notifications` SDK 55 sürümlerindeydi (uygulama SDK 54): yerel derleme/push kırılır. SDK 54 sürümlerine çekildi, `expo-document-picker` eklendi, `package-lock.json` güncellendi. Cihazda kurulum: `npx expo install --check`.
+- ✅ ~~**10.3-S17 [ORTA]**~~ (2026-10-09, yeni bulgu) Mobil giriş yönlendirmesi ve reddedilmiş hesap kontrolü kullanıcının değiştirebildiği `user_metadata`'ya (`is_onboarded`, `verification_status`) bakıyordu. Artık veritabanından (`lib/routing.js`), web paneliyle aynı kurallarla.
 
 ---
 
