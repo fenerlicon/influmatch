@@ -17,6 +17,9 @@ import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { API_BASE, apiRequest } from '../../lib/api';
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '../../constants/categories';
+import { RATE_CARD_ITEMS } from '../../constants/rateCard';
+
+const EMPTY_PRICES = Object.fromEntries(RATE_CARD_ITEMS.map((item) => [item.key, '']));
 
 // ─── Production API URL ───────────────────────────────────────────────────────
 
@@ -70,6 +73,11 @@ export default function MyProfileScreen({ navigation }) {
     const [busy, setBusy] = useState(false);
     const [verifiedData, setVerifiedData] = useState(null);
 
+    // Fiyat kartı (yalnızca doğrulanmış markalar görür; kayıt /api/mobile/rate-card → lib/rate-card.ts)
+    const [ratePrices, setRatePrices] = useState(EMPTY_PRICES);
+    const [rateNegotiable, setRateNegotiable] = useState(false);
+    const [savingRate, setSavingRate] = useState(false);
+
     // ── Fetch data ─────────────────────────────────────────────────────────────
     const fetchProfile = useCallback(async () => {
         try {
@@ -98,6 +106,13 @@ export default function MyProfileScreen({ navigation }) {
             }
             setIgAccount(social || null);
             setTiktokAccount(tiktok || null);
+
+            const rate = await apiRequest('rate-card');
+            if (!rate.error) {
+                const prices = rate.rateCard?.prices || {};
+                setRatePrices(Object.fromEntries(RATE_CARD_ITEMS.map((item) => [item.key, prices[item.key] ? String(prices[item.key]) : ''])));
+                setRateNegotiable(!!rate.rateCard?.negotiable);
+            }
         } catch (e) {
             console.error('[MyProfile]', e);
         } finally {
@@ -119,6 +134,14 @@ export default function MyProfileScreen({ navigation }) {
         if (!result.success) return Alert.alert('Hata', result.error || 'Kaydedilemedi.');
         Alert.alert('Başarılı ✓', 'Profil bilgilerin güncellendi.');
         navigation.goBack();
+    };
+
+    const handleSaveRateCard = async () => {
+        setSavingRate(true);
+        const result = await apiRequest('rate-card', { method: 'PUT', body: { prices: ratePrices, negotiable: rateNegotiable } });
+        setSavingRate(false);
+        if (!result.success) return Alert.alert('Hata', result.error || 'Fiyat kartı kaydedilemedi.');
+        Alert.alert('Kaydedildi', result.rateCard ? 'Fiyat kartınız kaydedildi.' : 'Fiyat kartınız kaldırıldı.');
     };
 
     // ── Avatar upload ──────────────────────────────────────────────────────────
@@ -366,6 +389,41 @@ export default function MyProfileScreen({ navigation }) {
                                 </Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+
+                    {/* Fiyat kartı */}
+                    <View className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 mb-6">
+                        <Text className="text-white font-bold text-base">Fiyat Kartı</Text>
+                        <Text className="text-gray-500 text-xs mt-1 mb-4 leading-4">
+                            Her teslimat türü için başlangıç fiyatınızı (₺) girin; vermediğiniz türleri boş bırakın. Yalnızca doğrulanmış markalar görür.
+                        </Text>
+                        {RATE_CARD_ITEMS.map((item) => (
+                            <View key={item.key} className="flex-row items-center justify-between mb-3">
+                                <Text className="text-gray-300 text-sm">{item.label}</Text>
+                                <View className="flex-row items-center bg-black/30 border border-white/10 rounded-xl px-3 h-11 w-40">
+                                    <Text className="text-gray-500 mr-1">₺</Text>
+                                    <TextInput
+                                        className="flex-1 text-white text-sm"
+                                        value={ratePrices[item.key]}
+                                        onChangeText={(v) => setRatePrices((p) => ({ ...p, [item.key]: v.replace(/[^0-9]/g, '') }))}
+                                        keyboardType="number-pad"
+                                        maxLength={8}
+                                        placeholder="Boş"
+                                        placeholderTextColor="#374151"
+                                    />
+                                </View>
+                            </View>
+                        ))}
+                        <TouchableOpacity onPress={() => setRateNegotiable((v) => !v)} className="flex-row items-center gap-2 mt-1 mb-4">
+                            <View className={`w-5 h-5 rounded-md border items-center justify-center ${rateNegotiable ? 'bg-soft-gold border-soft-gold' : 'border-white/20'}`}>
+                                {rateNegotiable ? <CheckCircle2 size={12} color="black" /> : null}
+                            </View>
+                            <Text className="text-gray-300 text-sm">Pazarlığa açığım</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleSaveRateCard} disabled={savingRate}
+                            className="h-11 rounded-xl border border-soft-gold/50 bg-soft-gold/10 items-center justify-center">
+                            {savingRate ? <ActivityIndicator color="#D4AF37" /> : <Text className="text-soft-gold font-bold text-sm">Fiyat kartını kaydet</Text>}
+                        </TouchableOpacity>
                     </View>
 
                     {/* Save */}

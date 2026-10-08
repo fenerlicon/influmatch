@@ -8,6 +8,7 @@ import { getThumbnailUrl } from '../../utils/image';
 import { apiRequest } from '../../lib/api';
 import { influencerBadges } from '../../constants/badges';
 import { influencerCategoryLabel } from '../../constants/categories';
+import { RATE_CARD_ITEMS, RATE_CARD_SELECT, formatTry } from '../../constants/rateCard';
 
 const BADGES_BY_ID = Object.fromEntries(influencerBadges.map((b) => [b.id, b]));
 
@@ -47,6 +48,9 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     const [offerVisible, setOfferVisible] = useState(false);
     const [sending, setSending] = useState(false);
     const [existingRoomId, setExistingRoomId] = useState(null);
+    // Tamamlanan iş birliği sayısı herkese açık; fiyat kartını RLS yalnızca doğrulanmış markaya ve sahibine döndürür.
+    const [completedCount, setCompletedCount] = useState(0);
+    const [rateCard, setRateCard] = useState(null);
     const [form, setForm] = useState({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
 
     useEffect(() => {
@@ -62,7 +66,16 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                 }
             }
         };
+        const loadTrust = async () => {
+            const [{ data: counts }, { data: card }] = await Promise.all([
+                supabase.rpc('completed_collaboration_counts', { p_user_ids: [influencer.id] }),
+                supabase.from('rate_cards').select(RATE_CARD_SELECT).eq('user_id', influencer.id).maybeSingle(),
+            ]);
+            setCompletedCount(counts?.[0]?.completed_count ?? 0);
+            setRateCard(card || null);
+        };
         checkRole();
+        loadTrust();
     }, []);
 
     const openChat = useCallback(() => {
@@ -161,6 +174,10 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                             <Text className="text-white/50 text-[11px] leading-5 font-medium mb-5">
                                 {influencer.bio || ''}
                             </Text>
+                            <View className="flex-row items-center gap-2 self-start bg-white/5 px-4 py-1.5 rounded-xl border border-white/10 mb-3">
+                                <Text className="text-white font-black text-[11px]">{completedCount}</Text>
+                                <Text className="text-white/60 text-[10px] font-semibold">tamamlanan iş birliği</Text>
+                            </View>
                             {influencer.city ? (
                                 <View className="flex-row items-center gap-2 self-start bg-white/5 px-4 py-1.5 rounded-xl border border-white/10 justify-center">
                                     <MapPin color="#fbbf24" size={12} fill="#fbbf2420" />
@@ -203,6 +220,22 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                     <RealMetric title="ORT. İZLENME" value={formatFollowers(currentStats?.stats_payload?.avg_views)} icon={Zap} />
                     <RealMetric title="PAYLAŞIM SIKLIĞI" value={currentStats?.stats_payload?.posting_frequency_per_week ? `${(7 / currentStats.stats_payload.posting_frequency_per_week).toFixed(0)} günde bir` : '-'} icon={Activity} />
                 </View>
+
+                {rateCard && RATE_CARD_ITEMS.some((item) => rateCard[item.column]) ? (
+                    <View className="px-6 mb-8">
+                        <View className="bg-[#0f1118] rounded-[32px] p-6 border border-white/10">
+                            <Text className="text-amber-500 text-[10px] font-black tracking-[4px] uppercase">FİYAT KARTI</Text>
+                            <Text className="text-white/40 text-[10px] mt-1 mb-4">Teslimat başına başlangıç fiyatları</Text>
+                            {RATE_CARD_ITEMS.filter((item) => rateCard[item.column]).map((item) => (
+                                <View key={item.key} className="flex-row justify-between items-center py-2.5 border-b border-white/5">
+                                    <Text className="text-white/80 text-sm font-semibold">{item.label}</Text>
+                                    <Text className="text-white text-sm font-black">{formatTry(rateCard[item.column])}+</Text>
+                                </View>
+                            ))}
+                            {rateCard.negotiable ? <Text className="text-emerald-400 text-xs mt-3">Pazarlığa açık</Text> : null}
+                        </View>
+                    </View>
+                ) : null}
 
                 <View className="px-6 mb-12">
                     <Text className="text-white font-black text-xl tracking-tight uppercase mb-6">Rozetler</Text>

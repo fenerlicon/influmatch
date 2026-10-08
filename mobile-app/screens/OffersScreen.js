@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Modal, ActivityIndicat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, X, MessageCircle, CheckCircle2, XCircle, Clock } from 'lucide-react-native';
+import { Mail, X, MessageCircle, CheckCircle2, XCircle, Clock, Handshake } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiRequest } from '../lib/api';
 
@@ -119,7 +119,16 @@ export default function OffersScreen({ navigation }) {
             <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
             <SafeAreaView className="flex-1" edges={['top']}>
                 <View className="px-6 pt-4 pb-2">
-                    <Text className="text-soft-gold text-xs font-bold uppercase tracking-widest mb-1">TEKLİFLER</Text>
+                    <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-soft-gold text-xs font-bold uppercase tracking-widest">TEKLİFLER</Text>
+                        <TouchableOpacity
+                            onPress={() => navigation.navigate('Collaborations')}
+                            className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border border-soft-gold/40 bg-soft-gold/10"
+                        >
+                            <Handshake color="#D4AF37" size={14} />
+                            <Text className="text-soft-gold text-xs font-semibold">İş Birlikleri</Text>
+                        </TouchableOpacity>
+                    </View>
                     <Text className="text-white text-3xl font-bold tracking-tight">
                         {role === 'brand' ? 'Gönderdiklerim' : 'Gelen Teklifler'}
                     </Text>
