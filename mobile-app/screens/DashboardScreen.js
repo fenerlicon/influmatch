@@ -240,8 +240,8 @@ export default function DashboardScreen({ navigation }) {
             const [{ data: profileData }, { data: projectsData }, { data: socialData }, { data: tiktokData }, { data: notifData }] = await Promise.all([
                 supabase.from('users').select(OWN_PROFILE_COLUMNS).eq('id', user.id).single(),
                 supabase.from('advert_projects').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(5),
-                supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
-                supabase.from('social_accounts').select('*').eq('user_id', user.id).eq('platform', 'tiktok').maybeSingle(),
+                supabase.from('social_accounts').select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
+                supabase.from('social_accounts').select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at').eq('user_id', user.id).eq('platform', 'tiktok').maybeSingle(),
                 supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
             ]);
 
