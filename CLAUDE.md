@@ -9,7 +9,7 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
 
 - Influencer/UGC ↔ marka eşleştirme platformu. Web: Next.js 14.2.35 (app router, server actions), Tailwind,
   Vercel Hobby. Veri: Supabase (Postgres + RLS + kolon yetkileri, Auth, Storage, Realtime, pg_cron).
-  Mobil: `mobile-app/` (Expo) — **şu an dondurulmuş, aşağıya bak**.
+  Mobil: `mobile-app/` (Expo) — test aşamasında, web ile tam uyum hedefi (kural 3).
 - Kullanıcı Türkçe yazar; yanıtlar Türkçe, sade ve kısa olmalı. Kod yorumları Türkçe (mevcut stil).
 - Supabase projesi: `aiftdpagcnwqzzemtkwt`. Vercel takımı `team_Htk8Xf8Vn8T348y3KswsfwHn`, proje
   `prj_cn5IhkAOOUtEDCxCumw9MMWjk5Dx` (influmatch). GitHub: `fenerlicon/influmatch`. Alan adı: influmatch.net.
@@ -24,9 +24,11 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
    yerelde doğrulanır (`lib/tax-verification.ts`); otomatik onay `TAX_AUTO_APPROVE` ile ve varsayılan **kapalı**.
    `lib/gemini.ts`'te yalnızca anahtar sağlık kontrolü var, içerik üretme yok — geri ekleme.
 2. **Giriş yapmadan profiller görünmez.** `/profile/*` korumalı, site haritasında yok, robots engelliyor. Değiştirme.
-3. **Mobil uygulamaya dokunma** (2026-10-07: "Önce Web'i düzenleyelim, Web'e göre mobil entegrasyonlar sağlarız").
-   Web bitince kullanıcıya **hatırlat**. Bekleyen mobil maddeler: SYSTEM_MAP 10.3, ve mobil sürüm çıkınca
-   `DROP POLICY "avatars insert" ON storage.objects;`
+3. **Mobil (2026-10-09 kararı):** dondurma kalktı. Uygulama **test aşamasında** (mağazada değil, gerçek kullanıcı yok);
+   hedef **web ile tam uyum**: web'in kuralları ve özellikleri (zorunlu hesap doğrulama, vergi levhası + kurumsal e-posta,
+   bildirimler + push, teklif/başvuru akışları), sahte ekranlar kaldırılır, kritik işlemler web'in sunucu uçlarına taşınır.
+   Gerçek kullanıcı olmadığı için eski mobil sürümle uyumluluk gerekmiyor (ör. `avatars insert` politikası ve
+   `social_accounts.verification_code` kolonu kapatılabilir). Mağaza yayını (hesap, paket adı) kullanıcının işi.
 4. **Canlı veritabanı:** risksiz şema düzeltmeleri (kısıt genişletme, indeks, GRANT/REVOKE, idempotent kolon,
    ALTER POLICY ile daraltma) doğrudan uygulanabilir **ve** `supabase/migrations/` altına dosya olarak yazılır.
    Riskli olanlar (DROP POLICY, veri silme, kısıt daraltma vb.) biriktirilir, sonunda kullanıcıya sırasıyla tek
@@ -44,7 +46,7 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
    - Ücretsiz marka kotası (3.13): **şimdilik açık**; keşfete yalnızca sayfalama. Kota kullanıcı sayısı büyüyünce.
    - E-posta (8.4-S1): Resend ücretsiz planda kalınır; doğrulama/şifre e-postaları öncelikli, kota %80'i geçince
      bildirim e-postaları durur (site içi bildirim sürer), admin'e uyarı.
-   - Mobil: bu kararlar uygulanınca mobile geçilir (10.3, push bildirimleri bildirim sistemine bağlanır).
+   - Mobil: kural 3.
    - Kuyruğun en sonu (dokunma, sonda hatırlat): "AI analiz" metni (2.9-S1), ortak logoları (9.1-S2), sabit pazarlama
      rakamları (9.1-S3), KVKK metinleri, 5 Yıldız rozeti. Ayrıntı `docs/HANDOFF.md` bölüm 8.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.

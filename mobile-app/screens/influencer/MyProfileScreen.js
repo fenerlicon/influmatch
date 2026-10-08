@@ -15,9 +15,9 @@ import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
+import { API_BASE } from '../../lib/api';
 
 // ─── Production API URL ───────────────────────────────────────────────────────
-const API_BASE = __DEV__ ? 'http://192.168.1.108:3000' : 'https://influmatch.net';
 
 // ─── Input Field Component ────────────────────────────────────────────────────
 const Field = ({ label, icon: Icon, value, onChange, placeholder, multiline = false }) => (

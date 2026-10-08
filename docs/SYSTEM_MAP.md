@@ -790,13 +790,16 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **10.3-S2 [YÜKSEK]** Marka doğrulama ekranı: VKN/TCKN istemci kontrolü yok, vergi dairesi/il yok, vergi levhası yükleme yok, kurumsal e-posta yok;
   `verification_status` yazımı beyaz liste tarafından sessizce düşürülüyor.
 - ✅ ~~**10.3-S3 [YÜKSEK]**~~ (brand_id kullanılıyor; kalp yalnızca markalara) Favoriler bozuk (`user_id` kolonu kullanılıyor, tablo `brand_id`); influencer'lara da kalp gösteriliyor.
-- **10.3-S4 [YÜKSEK]** Doğrudan sohbet engelleniyor (`InfluencerDetailScreen.js` bağlantısız oda açıyor).
+- ✅ ~~**10.3-S4 [YÜKSEK]**~~ (2026-10-09: detay ekranı oda açmıyor; marka teklif gönderiyor, mevcut sohbet varsa "Sohbete git") Doğrudan sohbet engelleniyor (`InfluencerDetailScreen.js` bağlantısız oda açıyor).
 - ✅ ~~**10.3-S5 [YÜKSEK]**~~ (influencer_user_id de gönderiliyor) İlana başvuru bozuk (`influencer_user_id` NOT NULL, yalnızca `influencer_id` gönderiliyor).
 - ✅ ~~**10.3-S6 [ORTA]**~~ (`<uid>/…` yolu) Avatar yüklemeleri `public/<uid>/…` yoluna gidiyor, politika ihlali (MyProfile hariç).
 - **10.3-S7 [ORTA]** Push token'ları ve bildirim tercihi hiç kaydedilmiyor (7.3-S1).
 - ✅ ~~**10.3-S8 [ORTA]**~~ (`feedback_submissions`'a yazıyor, hata gösteriliyor) Geri bildirim var olmayan `feedback` tablosuna gidiyor ama başarı gösteriliyor.
 - **10.3-S9 [ORTA]** (sahte güven skoru satırı kaldırıldı; kullanılmıyordu) Keşfette doğrulanmamış istatistikler ve sahte güven skoru (`75 + charCode % 22`).
 - **10.3-S10 [ORTA]** AiAssistant ekranı sabit cevaplı sahte sohbet; şifre sıfırlama kırık (1.4-S1); signup `creator_type` göndermiyor.
+- ✅ ~~**10.3-S12 [YÜKSEK]**~~ (2026-10-09, yeni bulgu) Mobilde teklif özelliği hiç yoktu: marka teklif gönderemiyor, influencer teklif göremiyordu. `Teklifler` sekmesi (iki rol), detay ekranında teklif formu; işlemler `/api/mobile/offers` üzerinden web ile aynı kodla (`lib/offers.ts`).
+- ✅ ~~**10.3-S13 [ORTA]**~~ (2026-10-09, yeni bulgu) İki ayrı mesaj ekranı vardı; mesajlar doğrudan tabloya yazıldığı için engel kontrolü ve bildirim atlanıyordu, influencer ekranı belirli sohbeti açamıyordu. Ortak `MessagesScreen`, gönderim `/api/mobile/messages` (`lib/messages.ts`), gizli kovadaki fotoğraflar imzalı bağlantıyla.
+- ✅ ~~**10.3-S14 [ORTA]**~~ (2026-10-09, yeni bulgu) Influencer detay ekranında sabit cümlelerden oluşan "Detaylı Profil Analizi" ve "Akıllı Algoritma" ibaresi, uyuşmayan rozet adları, eksik şehirde "ANKARA", olmayan kovadan avatar. Analiz kaldırıldı; rozetler web kataloğundan (`constants/badges.js` web ile eşitlendi).
 - **10.3-S11 [DÜŞÜK]** İlan ekleme var olmayabilecek `brand_id` kolonu gönderiyor; kapak görseli klasörsüz.
 
 ---
