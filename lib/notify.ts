@@ -3,6 +3,8 @@
 // - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı.
 //   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez.
 // - Kullanıcının ayarlardaki e-posta tercihleri (users.email_notifications) uygulanır.
+// - Mobil uygulaması olan kullanıcıya push da gider (lib/push.ts); push metni e-postadaki sade metindir
+//   (mesaj içeriği gönderilmez). Push'u kullanıcı telefonun bildirim ayarlarından kapatır.
 // - Resend kotası %80'i geçince bildirim e-postaları durur; doğrulama kodu / şifre e-postaları etkilenmez
 //   (onlar bu modülden geçmez). Site içi bildirim her durumda yazılır.
 //
@@ -15,6 +17,7 @@ import { getSystemState } from '@/lib/api-keys'
 import { sendEmail } from '@/lib/email'
 import { resendLimits, rolloverUsage, RESEND_USAGE_STATE_KEY, type ResendUsage } from '@/lib/resend-status'
 import { isOnline } from '@/lib/presence'
+import { sendPushToUser } from '@/lib/push'
 
 export type NotificationEvent =
   | 'offer_new'
@@ -123,7 +126,14 @@ export async function notifyUser(input: NotifyInput, admin: SupabaseClient | nul
     })
     if (error) console.error(`[notify] ${input.event} bildirimi yazılamadı:`, error.message)
 
-    await maybeSendEmail(admin, input)
+    await Promise.all([
+      maybeSendEmail(admin, input),
+      sendPushToUser(admin, input.userId, {
+        title: input.email?.subject ?? input.title,
+        body: input.email?.text ?? input.message,
+        link: input.link ?? null,
+      }),
+    ])
   } catch (error) {
     console.error(`[notify] ${input.event} işlenemedi:`, error)
   }

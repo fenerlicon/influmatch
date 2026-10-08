@@ -12,6 +12,7 @@ import {
     HelpCircle, Send, Info
 } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
+import { signOutAndClearPush } from '../utils/notifications';
 import { useFocusEffect } from '@react-navigation/native';
 
 const SectionLabel = ({ title }) => (
@@ -294,7 +295,7 @@ export default function SettingsScreen({ navigation }) {
             {
                 text: 'Çıkış Yap', style: 'destructive',
                 onPress: async () => {
-                    await supabase.auth.signOut();
+                    await signOutAndClearPush();
                     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
                 }
             }

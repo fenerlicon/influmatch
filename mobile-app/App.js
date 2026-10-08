@@ -14,7 +14,7 @@ import RegisterRoleScreen from './screens/RegisterRoleScreen';
 import RegisterFormScreen from './screens/RegisterFormScreen';
 import VerifyEmailScreen from './screens/VerifyEmailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
-import { registerForPushNotificationsAsync, savePushTokenToDb } from './utils/notifications';
+import { registerForPushNotificationsAsync, savePushToken, listenForNotificationTaps, routeForLink } from './utils/notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -215,10 +215,24 @@ export default function App() {
     };
   }, []);
 
+  // Bildirime dokununca ilgili ekranı aç (mesaj → sohbet, teklif → Teklifler ...).
+  useEffect(() => {
+    if (loading || !session?.user) return;
+    const openLink = async (link) => {
+      const { data } = await supabase.from('users').select('role').eq('id', session.user.id).maybeSingle();
+      const target = routeForLink(link, data?.role);
+      if (!target) return;
+      const go = () => navigationRef.navigate(target.name, target.params);
+      if (navigationRef.isReady()) go();
+      else setTimeout(() => navigationRef.isReady() && go(), 500);
+    };
+    return listenForNotificationTaps(openLink);
+  }, [loading, session?.user?.id]);
+
   const handlePushRegistration = async (userId) => {
     const token = await registerForPushNotificationsAsync();
     if (token) {
-      await savePushTokenToDb(userId, token);
+      await savePushToken(token);
     }
   };
 

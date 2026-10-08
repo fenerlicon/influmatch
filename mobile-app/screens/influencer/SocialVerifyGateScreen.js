@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import { ShieldCheck, Instagram, Copy, CheckCircle2, LogOut } from 'lucide-react-native';
-import { supabase } from '../../lib/supabase';
+import { signOutAndClearPush } from '../../utils/notifications';
 import { apiRequest } from '../../lib/api';
 
 // Zorunlu sosyal hesap doğrulaması (web: /onboarding/verify). Influencer / UGC, Instagram veya TikTok
@@ -129,7 +129,7 @@ export default function SocialVerifyGateScreen({ navigation }) {
                         </>
                     )}
 
-                    <TouchableOpacity onPress={() => supabase.auth.signOut().then(() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] }))}
+                    <TouchableOpacity onPress={() => signOutAndClearPush().then(() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] }))}
                         className="flex-row items-center justify-center gap-2 mt-10">
                         <LogOut color="#6b7280" size={16} />
                         <Text className="text-gray-500 text-sm">Çıkış yap</Text>
