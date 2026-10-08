@@ -12,6 +12,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 
 const CATEGORIES = ['Moda', 'Güzellik', 'Teknoloji', 'Oyun', 'Spor', 'Yaşam', 'Seyahat', 'Yemek', 'Sanat', 'Eğlence'];
+// Web'deki seçeneklerle aynı (components/onboarding/InfluencerForm.tsx).
+const CREATOR_TYPES = [
+    { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
+    { value: 'ugc', label: 'UGC Kreatörü', desc: 'Markalara özel' },
+    { value: 'both', label: 'Her İkisi De', desc: 'Kitle + üretim' },
+];
 
 const TURKEY_CITIES = [
     "İstanbul", "Ankara", "İzmir", "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Aksaray", "Amasya", "Antalya", "Ardahan", "Artvin", "Aydın", "Balıkesir", "Bartın", "Batman", "Bayburt", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Düzce", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Iğdır", "Isparta", "Kahramanmaraş", "Karabük", "Karaman", "Kars", "Kastamonu", "Kayseri", "Kırıkkale", "Kırklareli", "Kırşehir", "Kilis", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Mardin", "Mersin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Osmaniye", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Şanlıurfa", "Şırnak", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Uşak", "Van", "Yalova", "Yozgat", "Zonguldak"
@@ -36,6 +42,7 @@ export default function OnboardingScreen({ navigation }) {
         youtube: '',
         taxId: '',
         category: [],
+        creatorType: '',
         avatar_url: '',
     });
 
@@ -188,6 +195,11 @@ export default function OnboardingScreen({ navigation }) {
             return;
         }
 
+        if (role === 'influencer' && !formData.creatorType) {
+            showToast('Lütfen içerik üretici türünüzü seçin.', 'info');
+            return;
+        }
+
         if (role === 'influencer' && formData.category.length === 0) {
             showToast('Lütfen en az bir kategori seçin.', 'info');
             return;
@@ -218,7 +230,7 @@ export default function OnboardingScreen({ navigation }) {
                     website: formData.website
                 },
                 ...(role === 'influencer'
-                    ? { category: formData.category.join(', ') }
+                    ? { category: formData.category.join(', '), creator_type: formData.creatorType }
                     : {
                         company_legal_name: formData.corporateName.trim() || null,
                         tax_id: formData.taxId.trim() || null,
@@ -353,6 +365,28 @@ export default function OnboardingScreen({ navigation }) {
                                     {usernameStatus === 'valid' && <Text className="text-green-400 text-[10px] font-bold">Kullanıcı adı uygun</Text>}
                                 </View>
                             </View>
+
+                            {/* İçerik üretici türü (web ile aynı seçenekler) */}
+                            {role === 'influencer' && (
+                                <View className="space-y-2">
+                                    <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">İçerik Üretici Türü</Text>
+                                    <View className="flex-row gap-2">
+                                        {CREATOR_TYPES.map((type) => {
+                                            const isSelected = formData.creatorType === type.value;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={type.value}
+                                                    onPress={() => updateField('creatorType', type.value)}
+                                                    className={`flex-1 items-center rounded-2xl border px-2 py-3 ${isSelected ? 'bg-soft-gold/10 border-soft-gold' : 'bg-surface border-white/10'}`}
+                                                >
+                                                    <Text className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-gray-400'}`}>{type.label}</Text>
+                                                    <Text className="text-[10px] text-gray-500 mt-0.5">{type.desc}</Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            )}
 
                             {/* Kategori Seçimi (SADECE INFLUENCER) - Çoklu Seçim */}
                             {role === 'influencer' && (

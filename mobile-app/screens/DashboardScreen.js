@@ -507,17 +507,6 @@ export default function DashboardScreen({ navigation }) {
 
                         {/* Stats Info */}
                         <View className="flex-row gap-4 mt-2">
-                             {/* AI Assistant */}
-                             <GlassCard
-                                style={{ flex: 1 }}
-                                className="p-5 items-center bg-blue-500/5 border-blue-500/10"
-                                onPress={() => navigation.navigate('AiAssistant')}
-                            >
-                                <Sparkles size={24} color="#3b82f6" className="mb-2 opacity-80" />
-                                <Text className="text-white text-lg font-bold">AI Asistan</Text>
-                                <Text className="text-blue-500/60 text-[10px] font-bold uppercase tracking-widest mt-1">İpucu Al</Text>
-                            </GlassCard>
-
                             <GlassCard style={{ flex: 1 }} className="p-5 items-center bg-amber-500/5 border-amber-500/10" onPress={() => navigation.navigate('Analysis')}>
                                 <Zap size={24} color="#f59e0b" className="mb-2 opacity-80" />
                                 <Text className="text-white text-lg font-bold">Analiz Et</Text>
