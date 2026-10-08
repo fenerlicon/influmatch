@@ -641,7 +641,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | Bucket | Tanım | Politika | Risk |
 |---|---|---|---|
 | `avatars` | elle | public okuma; yazma ilk klasör = uid | web marka/influencer ve mobil yükleme yolları uymuyor |
-| `advert-hero-images` | elle | herhangi bir authenticated yükler; sahibi siler | kök dizine yükleme |
+| `advert-hero-images` | elle | yalnızca kendi `{uid}/` klasörüne yükler (2026-10-09_kapak_politikasi.sql); sahibi siler | eski dosyalar kökte |
 | `feedback-images` | elle | aynı desen | destek ekleri de burada (public) |
 | `tax-documents` | migration | özel; yalnızca kendi klasörüne INSERT | — |
 | `chat-attachments` | `20261008000004` | gizli; okuma ve yükleme oda taraflarına | imzalı URL |
@@ -800,7 +800,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S12 [YÜKSEK]**~~ (2026-10-09, yeni bulgu) Mobilde teklif özelliği hiç yoktu: marka teklif gönderemiyor, influencer teklif göremiyordu. `Teklifler` sekmesi (iki rol), detay ekranında teklif formu; işlemler `/api/mobile/offers` üzerinden web ile aynı kodla (`lib/offers.ts`).
 - ✅ ~~**10.3-S13 [ORTA]**~~ (2026-10-09, yeni bulgu) İki ayrı mesaj ekranı vardı; mesajlar doğrudan tabloya yazıldığı için engel kontrolü ve bildirim atlanıyordu, influencer ekranı belirli sohbeti açamıyordu. Ortak `MessagesScreen`, gönderim `/api/mobile/messages` (`lib/messages.ts`), gizli kovadaki fotoğraflar imzalı bağlantıyla.
 - ✅ ~~**10.3-S14 [ORTA]**~~ (2026-10-09, yeni bulgu) Influencer detay ekranında sabit cümlelerden oluşan "Detaylı Profil Analizi" ve "Akıllı Algoritma" ibaresi, uyuşmayan rozet adları, eksik şehirde "ANKARA", olmayan kovadan avatar. Analiz kaldırıldı; rozetler web kataloğundan (`constants/badges.js` web ile eşitlendi).
-- **10.3-S11 [DÜŞÜK]** İlan ekleme var olmayabilecek `brand_id` kolonu gönderiyor; kapak görseli klasörsüz.
+- ✅ ~~**10.3-S11 [DÜŞÜK]**~~ (2026-10-09: ilan kaydı/durum/silme `/api/mobile/adverts` üzerinden `lib/adverts.ts` ile; kapak web ve mobilde `{uid}/` klasörüne, yükleme politikası `2026-10-09_kapak_politikasi.sql` ile daraltılıyor) İlan ekleme var olmayabilecek `brand_id` kolonu gönderiyor; kapak görseli klasörsüz.
+- ✅ ~~**10.3-S15 [ORTA]**~~ (2026-10-09, yeni bulgu) Mobilde başvuru, başvuru durumu ve ilan işlemleri doğrudan tabloya yazıyordu: ilan açık mı / mükerrer mi kontrolü, kapak görseli doğrulaması ve bildirimler atlanıyordu; influencer "Başvuruyu İptal Et" düğmesi hiçbir şey yapmıyordu. Hepsi `/api/mobile/adverts`, `/api/mobile/applications` üzerinden web ile ortak `lib/adverts.ts`; geri çekme gerçek ve yalnızca bekleyen başvuruda. Mobil düzenleme web'de girilmiş platform/teslimat/açıklama alanlarını artık ezmiyor.
 
 ---
 
