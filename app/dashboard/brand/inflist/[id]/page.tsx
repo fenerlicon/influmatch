@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ArrowLeft, Layers } from 'lucide-react'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { areFavoritesLocked } from '@/lib/favorites'
 
 export const revalidate = 0
 
@@ -31,6 +32,11 @@ export default async function InflistDetailsPage({ params }: InflistDetailsPageP
     const verificationStatus = (userData?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
     if (verificationStatus !== 'verified') {
         return <BrandLockScreen status={verificationStatus} />
+    }
+
+    // Ücretsiz markada (sınırlar açıkken) listeler kilitli: favoriler sayfası açıklama kartını gösterir.
+    if (await areFavoritesLocked(user.id)) {
+        redirect('/dashboard/brand/favorites')
     }
 
     // 1. Get List Details

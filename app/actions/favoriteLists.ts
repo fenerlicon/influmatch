@@ -2,45 +2,19 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { areFavoritesLocked, createListAs, deleteListAs, toggleInListAs } from '@/lib/favorites'
 
-const LIST_NAME_MAX = 50
+// Yazımlar ortak kodda (lib/favorites.ts): doğrulanmış marka + ücretsiz markada (bayrak açıkken) kilit.
 
 export async function createList(name: string) {
-    const trimmedName = typeof name === 'string' ? name.trim() : ''
-    if (!trimmedName) return { error: 'Liste adı boş olamaz.' }
-    if (trimmedName.length > LIST_NAME_MAX) return { error: `Liste adı en fazla ${LIST_NAME_MAX} karakter olabilir.` }
-
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    // Check if user is a verified brand
-    const { data: profile } = await supabase
-        .from('users')
-        .select('role, verification_status')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || profile.role !== 'brand') {
-        return { error: 'Sadece markalar liste oluşturabilir.' }
-    }
-
-    if (profile.verification_status !== 'verified') {
-        return { error: 'Liste oluşturabilmek için hesabınızın doğrulanmış olması gerekmektedir.' }
-    }
-
-    const { data, error } = await supabase
-        .from('favorite_lists')
-        .insert({ brand_id: user.id, name: trimmedName })
-        .select()
-        .single()
-
-    if (error) {
-        console.error('[createList] error:', error)
-        return { error: 'Liste oluşturulamadı.' }
-    }
+    const result = await createListAs(supabase, user.id, name)
+    if (result.error !== undefined) return { error: result.error }
     revalidatePath('/dashboard/brand/favorites')
-    return { data }
+    return { data: result.data }
 }
 
 export async function deleteList(listId: string) {
@@ -48,16 +22,8 @@ export async function deleteList(listId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    const { error } = await supabase
-        .from('favorite_lists')
-        .delete()
-        .eq('id', listId)
-        .eq('brand_id', user.id)
-
-    if (error) {
-        console.error('[deleteList] error:', error)
-        return { error: 'Liste silinemedi.' }
-    }
+    const result = await deleteListAs(supabase, user.id, listId)
+    if (result.error !== undefined) return { error: result.error }
     revalidatePath('/dashboard/brand/favorites')
     return { success: true }
 }
@@ -67,59 +33,16 @@ export async function toggleInList(listId: string, influencerId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    // Check if user is a verified brand
-    const { data: profile } = await supabase
-        .from('users')
-        .select('role, verification_status')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || profile.role !== 'brand') {
-        return { error: 'Sadece markalar bu işlemi yapabilir.' }
-    }
-
-    if (profile.verification_status !== 'verified') {
-        return { error: 'Influencerları listeye eklemek için hesabınızın doğrulanmış olması gerekmektedir.' }
-    }
-
-    // Check if exists
-    const { data: existing } = await supabase
-        .from('favorite_list_items')
-        .select('id')
-        .eq('list_id', listId)
-        .eq('influencer_id', influencerId)
-        .maybeSingle()
-
-    if (existing) {
-        // Remove
-        const { error } = await supabase
-            .from('favorite_list_items')
-            .delete()
-            .eq('id', existing.id)
-
-        if (error) {
-            console.error('[toggleInList] delete error:', error)
-            return { error: 'Listeden çıkarılamadı.' }
-        }
-        return { added: false }
-    } else {
-        // Add
-        const { error } = await supabase
-            .from('favorite_list_items')
-            .insert({ list_id: listId, influencer_id: influencerId })
-
-        if (error) {
-            console.error('[toggleInList] insert error:', error)
-            return { error: 'Listeye eklenemedi.' }
-        }
-        return { added: true }
-    }
+    const result = await toggleInListAs(supabase, user.id, listId, influencerId)
+    if (result.error !== undefined) return { error: result.error }
+    return { added: result.added }
 }
 
 export async function getInfluencerLists(influencerId: string) {
     const supabase = createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
+    if (await areFavoritesLocked(user.id)) return []
 
     // Get all lists for user
     const { data: lists } = await supabase
@@ -150,6 +73,7 @@ export async function getListItems(listId: string) {
     // GÜVENLİK: Auth kontrolü ve sahiplik doğrulaması
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
+    if (await areFavoritesLocked(user.id)) return []
 
     // Listenin bu kullanıcıya ait olduğunu doğrula
     const { data: list } = await supabase

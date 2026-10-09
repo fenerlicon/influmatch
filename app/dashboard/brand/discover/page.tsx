@@ -6,6 +6,8 @@ import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { visibleMinPrices } from '@/lib/rate-card'
 import { completedCollaborationCounts } from '@/lib/collaborations'
 import { getWheelState } from '@/lib/discovery-wheel'
+import { getBrandLimitContext } from '@/lib/brand-limits'
+import { areFavoritesLocked } from '@/lib/favorites'
 import DiscoveryWheelCard from '@/components/dashboard/DiscoveryWheelCard'
 
 export const revalidate = 0
@@ -29,7 +31,10 @@ export default async function BrandDiscoverPage() {
 
   // Keşif çarkı (ücretsiz marka sınırları açıkken): yalnızca güncel çevirmedeki profiller listelenir.
   // Bayrak kapalıyken ya da Spotlight markada { limited: false } döner ve liste bugünkü gibidir.
-  const wheel = await getWheelState(user.id)
+  const limitContext = await getBrandLimitContext(user.id)
+  const wheel = await getWheelState(user.id, limitContext)
+  // Ücretsiz markada (sınırlar açıkken) favori / liste kilitli; kalpler kilitli görünür.
+  const favoritesLocked = await areFavoritesLocked(user.id, limitContext)
   const influencers = !wheel.limited
     ? await getEnrichedInfluencers()
     : wheel.spin && wheel.spin.influencer_ids.length > 0
@@ -43,10 +48,12 @@ export default async function BrandDiscoverPage() {
   ])
 
   // 4. Fetch Favorites
-  const { data: favorites } = await supabase
-    .from('favorites')
-    .select('influencer_id')
-    .eq('brand_id', user.id)
+  const { data: favorites } = favoritesLocked
+    ? { data: [] as { influencer_id: string }[] }
+    : await supabase
+        .from('favorites')
+        .select('influencer_id')
+        .eq('brand_id', user.id)
 
   // ...
   const favoritedIds = new Set(favorites?.map((f: { influencer_id: string }) => f.influencer_id) || [])
@@ -83,6 +90,7 @@ export default async function BrandDiscoverPage() {
         defaultCategory={userData?.category}
         minPrices={minPrices}
         completedCounts={Object.fromEntries(counts)}
+        favoritesLocked={favoritesLocked}
       />}
     </div>
   )

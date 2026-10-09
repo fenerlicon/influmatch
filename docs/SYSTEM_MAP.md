@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-10 (3.17) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-10 (3.17-N5) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -295,13 +295,13 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.2-S2 [ORTA]**~~ (kullanıcı kararı: kota şimdilik yok; keşfet ızgarası 24'er profil, "Daha fazla göster") (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
 
 ### 3.3 Favoriler
-- **Dosyalar:** `app/dashboard/brand/favorites/page.tsx`, `app/actions/favorites.ts`
+- **Dosyalar:** `app/dashboard/brand/favorites/page.tsx`, `app/actions/favorites.ts`, ortak `lib/favorites.ts`, mobil `/api/mobile/favorites` (3.17-N5)
 - **Sorunlar:** ✅ ~~**3.3-S1 [ORTA]**~~ (toggle tüm eşleşen satırlara bakıyor; tekil indeks `20261007000010` canlıda uygulandı) `favorites` tablosundaki UNIQUE kısıtı bir migration'da düşürülmüş; tekrar varsa `.single()` hata verip
   silmek yerine bir kopya daha ekliyor.
 
 ### 3.4 Inflist (adlandırılmış listeler)
 - **Karar (7 Ekim):** listeler favoriler sayfasında (`/dashboard/brand/favorites`) favorilerle birlikte yönetilir; marka panelindeki ayrı bölüm kaldırıldı.
-- **Dosyalar:** `components/dashboard/InflistManager.tsx`, `AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`
+- **Dosyalar:** `components/dashboard/InflistManager.tsx`, `AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`, ortak `lib/favorites.ts` (Spotlight kilidi, 3.17-N5)
 - **Sorunlar:**
   - ✅ ~~**3.4-S1 [ORTA]**~~ (karar: listeler şimdilik ücretsiz, kilit kaldırıldı; ileride Spotlight, bkz. 3.13-N5) Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
   - ✅ ~~**3.4-S3 [ORTA]**~~ (2026-10-09, yeni bulgu) Listeye ekleme penceresinde çöp kutusu silinecek listeyi seçiyor ama onay penceresi hiç çizilmediği için liste silinemiyordu. Onay penceresi bağlandı.
@@ -389,7 +389,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.13-N4**~~ (2026-10-10, 3. tur kararıyla: keşif çarkı + teklif/ilan sınırları kapalı bayrakla yapıldı, bkz. 3.17) Ücret ödemeyen markalar tüm listeyi göremesin. Sistem markanın ihtiyacını (kategori, bütçe, ilanlar, hedef kitle)
     analiz edip ücretsiz olarak belli oranda/kotada profil önersin. Kısıt sunucuda uygulanmalı (bugün premium veri istemciye
     gidip yalnızca CSS ile bulanıklaştırılıyor, bkz. 3.1-S1).
-  - **3.13-N5** Listeler (Inflist) şimdilik tüm doğrulanmış markalara ücretsiz; ileride Spotlight'a dahil edilecek
+  - ✅ ~~**3.13-N5**~~ (2026-10-10 kararı: ücretsiz markada favori ve liste yok, yalnızca Spotlight; aynı kapalı bayrakla, bkz. 3.17-N5) Listeler (Inflist) şimdilik tüm doğrulanmış markalara ücretsiz; ileride Spotlight'a dahil edilecek
     (o zaman `createList` / `toggleInList` sunucuda da kontrol etmeli).
   - ✅ ~~**3.13-N6**~~ (2026-10-10: `lib/social-stats.ts` yeni doğrulamada gönderi/video sayısı 0 ve son gönderi/video yoksa
     "Gönderisi olmayan Instagram hesapları doğrulanamıyor..." / "Videosu olmayan TikTok hesapları..." mesajıyla reddediyor (kod `no_posts`);
@@ -492,12 +492,22 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     yalnızca yenisini açamaz) Aktif ilan sınırı yoktu.
   - ✅ ~~**3.17-S1 [DÜŞÜK]**~~ (2026-10-10, yeni bulgu) Mobil marka ana sayfasındaki öneri kartlarında sabit "%94 Uyumlu" / "Eşleşme oranını gör" yazısı
     (gerçek hesap yoktu) kaldırıldı.
+  - ✅ ~~**3.17-N5 [ÖZELLİK]**~~ (2026-10-10 kararı: ücretsiz markada favori ve liste (Inflist) yok, yalnızca Spotlight Basic/Pro; **aynı bayrak**
+    `free_brand_limits_enabled`. Ortak kod `lib/favorites.ts` (`areFavoritesLocked`, `toggleFavoriteAs`, `createListAs`, `deleteListAs`, `toggleInListAs`,
+    `listFavoriteIdsAs`); web `app/actions/favorites.ts` + `favoriteLists.ts` bunu çağırır, mobil favori artık doğrudan tabloya değil
+    `/api/mobile/favorites` (GET `{locked, ids}`, POST `{influencerId}`) üzerinden yazar. Bayrak açık + ücretsiz markada: favoriler sayfası açıklama
+    kartı (`FavoritesLockedCard`, fiyat yok, Spotlight sayfasına bağlantı), liste detay sayfası favorilere yönlendirir, marka ana sayfasında "son eklenenler"
+    gizli, kartlarda kalp kilit simgesi (Spotlight sayfasına), "Listeye ekle" gizli; mobil Keşfet'te kalp kilit simgesi + açıklama. Kayıtlı favoriler/listeler
+    silinmez, Spotlight ile geri gelir. DB yedeği `enforce_brand_favorites_lock` (favorites, favorite_lists, favorite_list_items; INSERT/UPDATE/DELETE,
+    yalnızca istemci oturumu; `brand_favorites_locked()`), anon yazma yetkileri ve istemci TRUNCATE/REFERENCES/TRIGGER kaldırıldı; migration
+    `20261010000030` canlıda, rollback'li denemeyle doğrulandı (bayrak kapalı: ücretsiz marka ekler; açık: ücretsiz marka reddedilir, Pro ekler). Admin
+    "Marka Sınırları" metni güncellendi. Bayrak kapalıyken davranış aynı) Favoriler / listeler ücretsiz markada da açıktı.
 - **Sorunlar / notlar:**
   - **3.17-S2 [ORTA]** (yeni bulgu, bayrak açılmadan önce karar) `users` ve `social_accounts` tabloları her oturumlu kullanıcıya okunur (RLS `true`);
     çark web/mobil arayüzde ve sunucu sayfalarında uygulanır, ama teknik bilgisi olan ücretsiz marka Supabase istemcisiyle tüm profilleri doğrudan
     sorgulayabilir. Tam koruma için marka rolüne `users`/`social_accounts` okumasının daraltılması (riskli politika değişikliği, mobil ekranlar
     doğrudan okuyor) ya da profil verisinin sunucu uçlarına taşınması gerekir.
-  - **3.17-S3 [DÜŞÜK]** (yeni bulgu) Favoriler / listeler sayfaları ve web marka ana sayfasındaki "son favoriler" ücretsiz markada da kaydedilmiş
+  - ✅ ~~**3.17-S3 [DÜŞÜK]**~~ (2026-10-10 kararıyla kapandı: bayrak açıkken ücretsiz markada favoriler/listeler gizli, bkz. 3.17-N5) Favoriler / listeler sayfaları ve web marka ana sayfasındaki "son favoriler" ücretsiz markada da kaydedilmiş
     profillerin kartlarını gösterir (profil sayfası çark kuralıyla kapalı). Karar: favoriler çark dışında kalsın mı?
   - **3.17-S4 [DÜŞÜK]** (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
     isteklerde bir fazla geçebilir. Bugünkü kullanıcı sayısında sorun değil.
@@ -973,7 +983,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı).
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı). `20261010000030` favori/liste kilidi: `brand_favorites_locked`, `enforce_brand_favorites_lock` tetikleyicileri, anon yazma yetkileri geri alındı (3.17-N5; execute_sql ile, rollback'li denemeyle doğrulandı).
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).
