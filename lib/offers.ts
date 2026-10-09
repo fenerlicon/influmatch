@@ -11,6 +11,8 @@ import { displayNameOf, notifyUser } from '@/lib/notify'
 import { hasVerifiedSocialAccount, SOCIAL_VERIFICATION_REQUIRED } from '@/lib/creator-verification'
 import { createCollaborationFor } from '@/lib/collaborations'
 import { OFFER_EXPIRY_DAYS, OFFER_EXPIRY_MS, effectiveOfferStatus } from '@/lib/offer-shared'
+import { brandLimitErrorFromDb, getBrandLimitContext, getOfferQuota, offerQuotaError } from '@/lib/brand-limits'
+import { canBrandViewInfluencer, getWheelState } from '@/lib/discovery-wheel'
 
 export interface CreateOfferInput {
   receiverId: string
@@ -77,6 +79,23 @@ export async function createOfferAs(
   if ('error' in fields) return { error: fields.error }
   const { campaignName, campaignType, budgetValue, paymentType, message } = fields
 
+  // Ücretsiz marka teklif sınırı (bayrak kapalıyken kota null döner, kontrol yapılmaz). Sayım okunamazsa
+  // DB tetikleyicisi (enforce_brand_offer_limits) yedek olarak sınırı yine uygular.
+  // Keşif çarkı açıkken ücretsiz marka yalnızca açabildiği profillere (çark / önceki ilişki) teklif gönderir.
+  try {
+    const limitContext = await getBrandLimitContext(userId)
+    if (limitContext.active) {
+      const wheel = await getWheelState(userId, limitContext)
+      if (wheel.limited && !(await canBrandViewInfluencer(userId, input.receiverId, wheel))) {
+        return { error: 'Bu profil şu anki keşif çarkında değil. Teklifi çarktaki profillere ya da daha önce çalıştığın profillere gönderebilirsin.' }
+      }
+    }
+    const quotaError = offerQuotaError(await getOfferQuota(userId, limitContext))
+    if (quotaError) return { error: quotaError }
+  } catch (quotaReadError) {
+    console.error('[createOffer] quota read error:', quotaReadError)
+  }
+
   const { error } = await supabase.from('offers').insert({
     sender_user_id: userId,
     receiver_user_id: input.receiverId,
@@ -90,7 +109,7 @@ export async function createOfferAs(
 
   if (error) {
     console.error('[createOffer] insert error:', error)
-    return { error: 'Teklif gönderilemedi. Lütfen tekrar deneyin.' }
+    return { error: brandLimitErrorFromDb(error.message) ?? 'Teklif gönderilemedi. Lütfen tekrar deneyin.' }
   }
 
   const admin = createSupabaseAdminClient()

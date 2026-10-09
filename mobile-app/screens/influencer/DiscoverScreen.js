@@ -9,6 +9,8 @@ import { RATE_CARD_ITEMS, RATE_CARD_SELECT } from '../../constants/rateCard';
 import { supabase } from '../../lib/supabase';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { getThumbnailUrl } from '../../utils/image';
+import { apiRequest } from '../../lib/api';
+import DiscoveryWheelCard from '../../components/DiscoveryWheelCard';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48 - 12) / 2;
@@ -117,6 +119,10 @@ export default function DiscoverScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isBrand, setIsBrand] = useState(false);
+    // Keşif çarkı (ücretsiz marka sınırları açıkken; web ile aynı kural, /api/mobile/discovery-wheel).
+    // null: sınır yok, liste bugünkü gibi.
+    const [wheel, setWheel] = useState(null);
+    const [spinning, setSpinning] = useState(false);
     // Bütçe filtresi (yalnızca marka): girilince fiyat kartında en az bir başlangıç fiyatı bütçeye sığanlar kalır.
     // Fiyat kartlarını RLS yalnızca doğrulanmış markaya döndürür (web keşfiyle aynı kural).
     const [budgetInput, setBudgetInput] = useState('');
@@ -127,21 +133,31 @@ export default function DiscoverScreen({ navigation }) {
             const { data: { user } } = await supabase.auth.getUser();
             const myId = user?.id;
 
-            const { data: users, error } = await supabase
-                .from('users')
-                .select('id, full_name, username, avatar_url, category, bio, spotlight_active, verification_status, is_showcase_visible, displayed_badges')
-                .eq('role', 'influencer')
-                .eq('verification_status', 'verified')
-                .eq('is_showcase_visible', true);
-            
-            if (error) throw error;
-
             // Favoriler yalnızca markalar içindir (tablo brand_id ile tutulur).
             const { data: me } = myId
                 ? await supabase.from('users').select('role').eq('id', myId).maybeSingle()
                 : { data: null };
             const viewerIsBrand = me?.role === 'brand';
             setIsBrand(viewerIsBrand);
+
+            // Ücretsiz markada (sınırlar açıkken) yalnızca güncel çarktaki profiller listelenir.
+            const wheelState = viewerIsBrand ? await apiRequest('discovery-wheel') : null;
+            const limited = !!wheelState?.limited;
+            setWheel(limited ? wheelState : null);
+
+            let users;
+            if (limited) {
+                users = wheelState.profiles || [];
+            } else {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('id, full_name, username, avatar_url, category, bio, spotlight_active, verification_status, is_showcase_visible, displayed_badges')
+                    .eq('role', 'influencer')
+                    .eq('verification_status', 'verified')
+                    .eq('is_showcase_visible', true);
+                if (error) throw error;
+                users = data || [];
+            }
 
             const { data: myFavs } = viewerIsBrand ? await supabase
                 .from('favorites')
@@ -192,6 +208,11 @@ export default function DiscoverScreen({ navigation }) {
             }, {});
 
             const results = [];
+            if (limited) {
+                if (filtered.length > 0) results.push({ title: 'Çarktaki profiller', data: filtered });
+                setSections(results);
+                return;
+            }
             if (spotlight.length > 0) results.push({ title: 'Featured', data: spotlight });
             
             Object.keys(categoryGroups).forEach(cat => {
@@ -207,6 +228,17 @@ export default function DiscoverScreen({ navigation }) {
     };
 
     useEffect(() => { fetchInfluencers(); }, [searchQuery, budget]);
+
+    const spinWheel = async () => {
+        setSpinning(true);
+        const result = await apiRequest('discovery-wheel', { method: 'POST' });
+        setSpinning(false);
+        if (result.error) {
+            Alert.alert('Çark çevrilemedi', result.error);
+            return;
+        }
+        await fetchInfluencers();
+    };
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -257,6 +289,18 @@ export default function DiscoverScreen({ navigation }) {
                     )}
                 </View>
 
+                {!loading && wheel && (
+                    <View className="px-6 mb-4">
+                        <DiscoveryWheelCard
+                            profilesPerSpin={wheel.profilesPerSpin}
+                            windowHours={wheel.windowHours}
+                            expiresAt={wheel.spin?.expires_at || null}
+                            spinning={spinning}
+                            onSpin={spinWheel}
+                        />
+                    </View>
+                )}
+
                 {loading ? (
                     <ActivityIndicator color="#ec4899" className="mt-10" />
                 ) : (
@@ -273,7 +317,7 @@ export default function DiscoverScreen({ navigation }) {
                         )}
                         contentContainerStyle={{ paddingBottom: 100 }}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ec4899" />}
-                        ListEmptyComponent={<Text className="text-gray-600 text-center mt-10">Hiçbir influencer bulunamadı.</Text>}
+                        ListEmptyComponent={wheel && !wheel.spin ? null : <Text className="text-gray-600 text-center mt-10">Hiçbir influencer bulunamadı.</Text>}
                     />
                 )}
             </SafeAreaView>

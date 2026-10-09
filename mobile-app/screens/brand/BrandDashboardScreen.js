@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Ref
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plus, Sparkles, TrendingUp, X, Award, Zap, Star, Shield, Info, Lock } from 'lucide-react-native';
+import { Bell, Briefcase, Users, ChevronRight, CheckCircle2, Clock, XCircle, Plus, Sparkles, X, Award, Zap, Star, Shield, Info, Lock } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { influencerCategoryLabel } from '../../constants/categories';
@@ -118,14 +118,23 @@ export default function BrandDashboardScreen({ navigation }) {
                 .maybeSingle();
             setProfile(prof);
 
-            // Fetch Spotlight Influencers
-            const { data: spotlightInfs } = await supabase
-                .from('users')
-                .select('id, full_name, username, avatar_url, category, verification_status')
-                .eq('role', 'influencer')
-                .eq('is_showcase_visible', true)
-                .order('spotlight_active', { ascending: false })
-                .limit(10);
+            // Öne çıkan profiller. Ücretsiz marka sınırları açıkken (keşif çarkı) yalnızca güncel çarktaki profiller
+            // gösterilir; sınır yoksa bugünkü gibi ilk 10 vitrin profili.
+            const wheel = await apiRequest('discovery-wheel');
+            let spotlightInfs = [];
+            if (wheel?.limited) {
+                spotlightInfs = wheel.profiles || [];
+            } else {
+                const { data } = await supabase
+                    .from('users')
+                    .select('id, full_name, username, avatar_url, category, verification_status')
+                    .eq('role', 'influencer')
+                    .eq('is_showcase_visible', true)
+                    .order('spotlight_active', { ascending: false })
+                    .limit(10);
+                spotlightInfs = data || [];
+            }
+            if (spotlightInfs.length === 0) setRecommendations([]);
 
             if (spotlightInfs && spotlightInfs.length > 0) {
                 const spotlightIds = spotlightInfs.map(si => si.id);
@@ -398,17 +407,6 @@ export default function BrandDashboardScreen({ navigation }) {
                                                 </View>
                                                 <Text className="text-white font-bold text-lg tracking-tight" numberOfLines={1}>{inf.full_name}</Text>
 
-                                                {profile?.spotlight_active ? (
-                                                    <View className="flex-row items-center gap-1.5 mt-1">
-                                                        <TrendingUp color="#4ade80" size={12} />
-                                                        <Text className="text-green-400 text-[11px] font-bold">%94 Uyumlu</Text>
-                                                    </View>
-                                                ) : (
-                                                    <View className="flex-row items-center gap-1.5 mt-1 opacity-60">
-                                                        <Sparkles color="#a855f7" size={12} />
-                                                        <Text className="text-purple-300 text-[10px] font-bold italic">Eşleşme oranını gör</Text>
-                                                    </View>
-                                                )}
                                             </View>
 
                                             {!profile?.spotlight_active && (

@@ -5,6 +5,8 @@ import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { visibleMinPrices } from '@/lib/rate-card'
 import { completedCollaborationCounts } from '@/lib/collaborations'
+import { getWheelState } from '@/lib/discovery-wheel'
+import DiscoveryWheelCard from '@/components/dashboard/DiscoveryWheelCard'
 
 export const revalidate = 0
 
@@ -25,7 +27,14 @@ export default async function BrandDiscoverPage() {
     return <BrandLockScreen status={verificationStatus} />
   }
 
-  const influencers = await getEnrichedInfluencers()
+  // Keşif çarkı (ücretsiz marka sınırları açıkken): yalnızca güncel çevirmedeki profiller listelenir.
+  // Bayrak kapalıyken ya da Spotlight markada { limited: false } döner ve liste bugünkü gibidir.
+  const wheel = await getWheelState(user.id)
+  const influencers = !wheel.limited
+    ? await getEnrichedInfluencers()
+    : wheel.spin && wheel.spin.influencer_ids.length > 0
+      ? await getEnrichedInfluencers({ ids: wheel.spin.influencer_ids, requireVerifiedAccount: true })
+      : []
   const influencerIds = influencers.map((influencer) => influencer.id)
   // Fiyatlar markanın kendi istemcisiyle okunur: RLS yalnızca doğrulanmış markaya satır döndürür.
   const [minPrices, counts] = await Promise.all([
@@ -57,7 +66,15 @@ export default async function BrandDiscoverPage() {
         </p>
       </header>
 
-      <BrandDiscoverGrid
+      {wheel.limited && (
+        <DiscoveryWheelCard
+          profilesPerSpin={wheel.profilesPerSpin}
+          windowHours={wheel.windowHours}
+          expiresAt={wheel.spin?.expires_at ?? null}
+        />
+      )}
+
+      {(!wheel.limited || wheel.spin) && <BrandDiscoverGrid
         influencers={influencers}
         initialFavoritedIds={Array.from(favoritedIds) as string[]}
         userRole={userRole}
@@ -66,7 +83,7 @@ export default async function BrandDiscoverPage() {
         defaultCategory={userData?.category}
         minPrices={minPrices}
         completedCounts={Object.fromEntries(counts)}
-      />
+      />}
     </div>
   )
 }

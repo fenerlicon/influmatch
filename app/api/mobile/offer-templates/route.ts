@@ -1,4 +1,5 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
+import { getOfferQuota, offerQuotaError, offerQuotaSummary } from '@/lib/brand-limits'
 import { deleteOfferTemplateAs, lastOfferDraftAs, listOfferTemplatesAs, saveOfferTemplateAs } from '@/lib/offer-templates'
 
 export const dynamic = 'force-dynamic'
@@ -11,7 +12,14 @@ export async function GET(request: Request) {
   const list = await listOfferTemplatesAs(ctx.supabase, ctx.user.id)
   if (!list.success) return mobileJson({ error: list.error }, 403)
   const last = await lastOfferDraftAs(ctx.supabase, ctx.user.id)
-  return mobileJson({ templates: list.templates, lastOffer: last.success ? last.draft : null })
+  // Teklif formunun yanındaki "Bu ay X teklif hakkın kaldı" (yalnızca sınır uygulanan markada; yoksa null).
+  const quota = await getOfferQuota(ctx.user.id).catch(() => null)
+  return mobileJson({
+    templates: list.templates,
+    lastOffer: last.success ? last.draft : null,
+    quotaText: offerQuotaSummary(quota),
+    quotaError: offerQuotaError(quota),
+  })
 }
 
 /** Şablon kaydeder (id verilirse günceller). Gövde: { id?, name, campaignName, campaignType?, budget?, paymentType?, message? } */
