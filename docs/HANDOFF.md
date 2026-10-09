@@ -30,7 +30,7 @@
 - **`claude/map-cleanup-cookies`:** mobil onboarding web sunucu koduna taşındı (`lib/onboarding.ts`, `/api/mobile/onboarding`, 10.3-S23);
   `moveApiKey` tek SQL fonksiyonu `move_api_key` (6.7-S2, canlıda); vergi levhası yalnızca imzalı yükleme adresiyle (3.10-S1);
   web kök layout'ta çerez banner'ı, Speed Insights yalnızca "Tümünü kabul et" sonrası (1.12-S2). **Banner metni avukat onayından geçmeli.**
-- **`claude/first-steps-checklist`:** "İlk adımlar" kartı (SYSTEM_MAP 3.15) web influencer/marka panelinde ve mobil iki ana sayfada;
+- **`claude/first-steps-checklist`:** "İlk adımlar" kartı (SYSTEM_MAP 3.16; 3.15 `claude/offers-templates-alerts` dalında) web influencer/marka panelinde ve mobil iki ana sayfada;
   durum `lib/first-steps.ts` (web sayfaları + `/api/mobile/first-steps`), "Gizle" web'de çerez, mobilde AsyncStorage. Şema değişikliği yok. PR açılmadı.
 - **Canlı SQL:** `20261010000002_move_api_key.sql` canlıda. **Bekleyen:** `supabase/manual/2026-10-10_vergi_yukleme.sql` (3.10-S1,
   depolama INSERT politikasını kapatır) — `claude/map-cleanup-cookies` birleşip yayın READY olduktan **sonra** çalıştırılmalı.

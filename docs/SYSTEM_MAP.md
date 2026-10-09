@@ -423,7 +423,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.14-N1** Fiyat kartı bugün tüm doğrulanmış markalara açık; ücretsiz/ücretli marka ayrımı (3.13-N3/N4) gelince burada da ele alınmalı.
   - **3.14-N2** Revize hakkı, teslimat listesi, taslak onayı ve anlaşma özeti yol haritasının 2. aşamasında (ROADMAP "Buluşturmayı kolaylaştıran özellikler" 2).
 
-### 3.15 İlk adımlar kontrol listesi (2026-10-10 kararı)
+### 3.16 İlk adımlar kontrol listesi (2026-10-10 kararı)
+> 3.15 numarası `claude/offers-templates-alerts` dalında (teklif süresi, şablon, ilan alarmı); iki dal birleşince bölüm sırası 3.15 → 3.16 olur.
 - **Dosyalar:** `lib/first-steps.ts` (sunucu hesabı), `lib/first-steps-shared.ts` (tipler, çerez adı, "4 adımdan X'i tamam" metni),
   `components/dashboard/FirstStepsCard.tsx`, `app/dashboard/{influencer,brand}/page.tsx`, `GET /api/mobile/first-steps`,
   mobil `components/FirstStepsCard.js` (`DashboardScreen`, `BrandDashboardScreen`).
@@ -434,7 +435,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - Durum her istekte sayım sorgularıyla hesaplanır (tablo yok). Hepsi bitince kart görünmez. "Gizle": web'de `im_first_steps_hidden` çerezi
   (değeri kullanıcı kimliği, 1 yıl), mobilde AsyncStorage `first_steps_hidden:<uid>`; gizliyken sunucu hesaplamaz.
 - **Sorunlar / notlar:**
-  - ✅ ~~**3.15-N1 [ÖZELLİK]**~~ (2026-10-10: "İlk adımlar" kartı web + mobil panellerde; ortak `lib/first-steps.ts`, `/api/mobile/first-steps`) Yeni kullanıcı için ilk adımlar kontrol listesi.
+  - ✅ ~~**3.16-N1 [ÖZELLİK]**~~ (2026-10-10: "İlk adımlar" kartı web + mobil panellerde; ortak `lib/first-steps.ts`, `/api/mobile/first-steps`) Yeni kullanıcı için ilk adımlar kontrol listesi.
 
 ---
 
@@ -729,7 +730,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `GET /api/cron/refresh-stats` | `Bearer CRON_SECRET` | günlük istatistik yenileme (2.2) |
 | `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14) |
 | `GET/POST /api/mobile/collaborations` · `GET/PUT /api/mobile/rate-card` | Bearer JWT | iş birliği listesi ve işlemleri, fiyat kartı (3.14) |
-| `GET /api/mobile/first-steps` | Bearer JWT | ilk adımlar kontrol listesi durumu (3.15) |
+| `GET /api/mobile/first-steps` | Bearer JWT | ilk adımlar kontrol listesi durumu (3.16) |
 | `POST /api/award-badges` | admin | rozet verme (2.6-S1) |
 | `GET /api/check-username` | yok | kullanıcı adı müsaitliği (7.3-S2) |
 | `GET /api/test-welcome` | yok | 410 dönen ölü taslak |
