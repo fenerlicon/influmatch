@@ -93,6 +93,7 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
   marka: sektöründe yeni doğrulanmış profiller). **Resend ücretli plana geçilecek** (kullanıcı onayladı; kampanyadan önce).
 - **Ekip hesabı:** bir marka hesabına birden çok kişi; ileride **ajanslara özel** bir yapı da geliştirilebilir (InfluAct'e zemin).
 - **Ödeme teyidi + teslim kilidi + marka güvenilirliği, davet kodu (Spotlight günü), admin metrik paneli:** kabul edildi (önceki tur).
+- **İlk adımlar kontrol listesi:** kabul edildi 2026-10-10 (web + mobil panelde yapıldı, SYSTEM_MAP 3.15).
 - **Spotlight paketleri:** karşılığı olmayan maddeler kaldırıldı (PR #50). Boşalan yerler **yalnızca çalışan özelliklerle** doldurulur;
   bir özellik canlıya çıkınca `lib/spotlight-plans.ts`'teki listeye eklenir. Önerilen dağılım (sayılar kullanıcı onayıyla):
 

@@ -13,6 +13,7 @@ import {
     ArrowUpRight, Wallet, Music, Star
 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import FirstStepsCard from '../components/FirstStepsCard';
 import { calculateTrustScore, calculateProfileCompletion } from '../utils/calculation';
 import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 
@@ -359,6 +360,8 @@ export default function DashboardScreen({ navigation }) {
                     contentContainerStyle={{ paddingBottom: 120 }}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fbbf24" />}
                 >
+                    <FirstStepsCard navigation={navigation} />
+
                     {/* BENTO ROW: Trust Score & Earnings */}
                     <View className="flex-row gap-4 mt-6 h-60">
                         {/* Trust Score */}

@@ -22,6 +22,10 @@ import { getProfileViewStats } from '@/lib/profile-views'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import ProfileViewsCard from '@/components/dashboard/ProfileViewsCard'
 import { resolveSubscriptionTier } from '@/lib/subscription-tier'
+import { cookies } from 'next/headers'
+import FirstStepsCard from '@/components/dashboard/FirstStepsCard'
+import { getFirstStepsStatus } from '@/lib/first-steps'
+import { FIRST_STEPS_HIDDEN_COOKIE } from '@/lib/first-steps-shared'
 
 export const revalidate = 0
 
@@ -117,6 +121,10 @@ export default async function InfluencerDashboardPage() {
   }
 
   const userTier = resolveSubscriptionTier({ ...profile, role: 'influencer' })
+
+  // "İlk adımlar": kullanıcı gizlediyse hiç hesaplanmaz.
+  const firstStepsHidden = cookies().get(FIRST_STEPS_HIDDEN_COOKIE)?.value === user.id
+  const firstSteps = firstStepsHidden ? null : await getFirstStepsStatus(supabase, user.id)
 
 
   const profileData: ProfileRecord = {
@@ -316,6 +324,8 @@ export default async function InfluencerDashboardPage() {
           })}
         </div>
       </section>
+
+      {firstSteps && !firstSteps.allDone && <FirstStepsCard userId={user.id} status={firstSteps} />}
 
       <ProfileViewsCard stats={profileViewStats} isSpotlight={spotlightActive} />
 

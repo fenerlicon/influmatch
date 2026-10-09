@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { useFocusEffect } from '@react-navigation/native';
+import FirstStepsCard from '../../components/FirstStepsCard';
 import { calculateTrustScore } from '../../utils/calculation';
 import { getThumbnailUrl } from '../../utils/image';
 
@@ -330,6 +331,8 @@ export default function BrandDashboardScreen({ navigation }) {
                     contentContainerStyle={{ paddingBottom: 100 }}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor="#D4AF37" />}
                 >
+                    <FirstStepsCard navigation={navigation} />
+
                     {/* Quick Stats */}
                     <View className="flex-row gap-3 mt-5 mb-6">
                         <StatCard icon={Briefcase} color="#D4AF37" value={stats.projects} label={'Aktif\nİlan'} />
