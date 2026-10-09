@@ -10,7 +10,7 @@ import {
     Bell, Zap, ChevronRight,
     TrendingUp, Instagram, BarChart3,
     Eye, Info, X, CheckCircle2, Sparkles,
-    ArrowUpRight, Wallet, Music, Star
+    Wallet, Music, Star
 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import FirstStepsCard from '../components/FirstStepsCard';
@@ -374,15 +374,11 @@ export default function DashboardScreen({ navigation }) {
                             <View className="w-full">
                                 <View className="flex-row justify-between items-center mb-1">
                                     <View>
-                                        <Text className="text-white font-bold text-base">Trust Score</Text>
-                                    </View>
-                                    <View className="flex-row items-center bg-green-500/10 px-1.5 py-0.5 rounded-lg">
-                                        <ArrowUpRight size={12} color="#22c55e" />
-                                        <Text className="text-green-500 text-[10px] font-bold">+5%</Text>
+                                        <Text className="text-white font-bold text-base">Güven Skoru</Text>
                                     </View>
                                 </View>
                                 <Text className="text-gray-500 text-[10px]" numberOfLines={2}>
-                                    Based on performance & engagement
+                                    Performans ve etkileşime göre
                                 </Text>
                             </View>
                         </GlassCard>
