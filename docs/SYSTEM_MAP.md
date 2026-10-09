@@ -503,10 +503,19 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     `20261010000030` canlıda, rollback'li denemeyle doğrulandı (bayrak kapalı: ücretsiz marka ekler; açık: ücretsiz marka reddedilir, Pro ekler). Admin
     "Marka Sınırları" metni güncellendi. Bayrak kapalıyken davranış aynı) Favoriler / listeler ücretsiz markada da açıktı.
 - **Sorunlar / notlar:**
-  - **3.17-S2 [ORTA]** (yeni bulgu, bayrak açılmadan önce karar) `users` ve `social_accounts` tabloları her oturumlu kullanıcıya okunur (RLS `true`);
-    çark web/mobil arayüzde ve sunucu sayfalarında uygulanır, ama teknik bilgisi olan ücretsiz marka Supabase istemcisiyle tüm profilleri doğrudan
-    sorgulayabilir. Tam koruma için marka rolüne `users`/`social_accounts` okumasının daraltılması (riskli politika değişikliği, mobil ekranlar
-    doğrudan okuyor) ya da profil verisinin sunucu uçlarına taşınması gerekir.
+  - **3.17-S2 [ORTA]** (yeni bulgu; 2026-10-10 kullanıcı onayladı; **kod hazır, politika daraltma birleştirme ve yayın sonrası**) `users` ve
+    `social_accounts` tabloları her oturumlu kullanıcıya okunur (RLS `true`; `social_accounts` politikası `public` rolündeydi, giriş yapmadan da okunuyordu);
+    teknik bilgisi olan ücretsiz marka Supabase istemcisiyle tüm profilleri sorgulayıp çarkı aşabilir, herkes tüm profilleri toplayabilir.
+    **Yapılan (`claude/profile-reads-server`):** başka kullanıcıların profil verisi yalnızca sunucudan, `lib/profile-reads.ts` (service role,
+    kurallar uygulanarak): keşif listesi (`listDiscoverProfiles`: onaysız marka kilitli, ücretsiz markada yalnızca çark), profil detayı
+    (`getProfileForViewer`: web `/profile/[username]` ve mobil `/api/mobile/profiles/[id]`; onay + çark/ilişki kuralı), çark kartları, ilan sahibi
+    kartları (`getAdvertOwnerCards`, yalnızca ilanı olan hesaplar), kullanıcı adı kontrolü (`isUsernameTaken`). Web keşif/favori/öneri yardımcıları
+    (`utils/fetchInfluencers.ts`), benzer profiller (çarka uyar), ilan sayfaları, engelleme ve profil kaydetme bunları kullanır. Mobil Keşfet, profil
+    detayı, marka ana sayfası öne çıkanlar, ilanlar ve onboarding kullanıcı adı kontrolü yeni uçlarda (`/api/mobile/discover`, `profiles/[id]`,
+    `GET adverts`, `check-username`). İlişkili taraflar (teklif, sohbet, iş birliği, ilan başvurusu) istemcide okunmaya devam eder:
+    `public.my_related_user_ids()` (canlıda, `20261010000050`). Admin `is_admin()` ile her satırı okur. Daraltma `20261010000051` (yalnızca
+    ALTER POLICY) **yayından sonra** uygulanır; rollback'li denemede doğrulandı (marka: kendi + 14 ilişkili satır, ilişkisiz 0, başvuru joinleri 22/22;
+    admin 309/309; anon `social_accounts` 0).
   - ✅ ~~**3.17-S3 [DÜŞÜK]**~~ (2026-10-10 kararıyla kapandı: bayrak açıkken ücretsiz markada favoriler/listeler gizli, bkz. 3.17-N5) Favoriler / listeler sayfaları ve web marka ana sayfasındaki "son favoriler" ücretsiz markada da kaydedilmiş
     profillerin kartlarını gösterir (profil sayfası çark kuralıyla kapalı). Karar: favoriler çark dışında kalsın mı?
   - **3.17-S4 [DÜŞÜK]** (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
@@ -983,7 +992,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı). `20261010000030` favori/liste kilidi: `brand_favorites_locked`, `enforce_brand_favorites_lock` tetikleyicileri, anon yazma yetkileri geri alındı (3.17-N5; execute_sql ile, rollback'li denemeyle doğrulandı).
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı). `20261010000030` favori/liste kilidi: `brand_favorites_locked`, `enforce_brand_favorites_lock` tetikleyicileri, anon yazma yetkileri geri alındı (3.17-N5; execute_sql ile, rollback'li denemeyle doğrulandı). `20261010000050` `my_related_user_ids()` (3.17-S2; 2026-10-10, execute_sql ile, yetki doğrulandı). `20261010000051` users/social_accounts SELECT daraltması **yayın sonrası** uygulanacak (rollback'li denemede doğrulandı).
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).

@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { profileReader } from '@/lib/profile-reads'
 import { type DiscoverInfluencer } from '@/types/influencer'
 import { categoryQueryValues, influencerCategoriesForBrand } from '@/lib/category-map'
 
@@ -13,8 +14,12 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 const USER_COLUMNS = 'id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status, creator_type, user_badges(badge_id)'
 
+// Başka kullanıcıların satırları istemci oturumuyla okunamaz (3.17-S2); bu fonksiyonlar yalnızca sunucuda, çağıran sayfa
+// oturumu ve kuralları (marka onayı, keşif çarkı, Spotlight) uyguladıktan sonra çağrılır. Okuma service role ile
+// yapılır ve yalnızca kart alanları seçilir.
 export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?: number, requireVerifiedAccount?: boolean }) {
-    const supabase = createSupabaseServerClient()
+    const supabase = profileReader(createSupabaseServerClient())
+    if (!supabase) return []
 
     const baseQuery = () => supabase
         .from('users')
@@ -177,7 +182,8 @@ export async function getAIRecommendations(
 
     // Önce marka sektörüne uyan influencer kategorilerinden (lib/category-map.ts) aday kimlikler SQL ile seçilir,
     // ardından zenginleştirilip puanlanır. Aday sayısı sınırlı (sınırsız `.in('id', ids)` yerine).
-    const supabase = createSupabaseServerClient()
+    const supabase = profileReader(createSupabaseServerClient())
+    if (!supabase) return []
     const candidateQuery = () => supabase
         .from('users')
         .select('id')

@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { getBearerUser } from '@/lib/mobile-auth'
+import { isUsernameTaken } from '@/lib/profile-reads'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateUsername } from '@/utils/usernameValidation'
 
@@ -19,36 +20,18 @@ export async function GET(request: NextRequest) {
 
   const normalizedUsername = validation.normalized || username.trim().toLowerCase()
 
-  // Hariç tutulacak kullanıcı istemciden alınmaz, oturumdan okunur. Sorgu service role ile
-  // yapılır: oturum açmamış ziyaretçide (anon) users okuma izni olmadığından sonuç her zaman
-  // "müsait" çıkıyordu. Yanıtta yalnızca müsaitlik bilgisi döner.
-  const {
-    data: { user },
-  } = await createSupabaseServerClient().auth.getUser()
-  const supabase = createSupabaseAdminClient()
-  if (!supabase) {
-    return NextResponse.json({ available: false, error: 'Kullanıcı adı kontrol edilemedi.' }, { status: 500 })
-  }
+  // Hariç tutulacak kullanıcı istemciden alınmaz, oturumdan okunur (web çerezi ya da mobil Bearer token). Sorgu
+  // service role ile yapılır (lib/profile-reads.ts): başka hesapların satırları istemci oturumuyla okunamaz.
+  // Yanıtta yalnızca müsaitlik bilgisi döner.
+  const user = request.headers.get('authorization')
+    ? await getBearerUser(request)
+    : (await createSupabaseServerClient().auth.getUser()).data.user
 
-  let query = supabase
-    .from('users')
-    .select('id')
-    .eq('username', normalizedUsername)
-    .limit(1)
-
-  if (user) {
-    query = query.neq('id', user.id)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
+  try {
+    const taken = await isUsernameTaken(normalizedUsername, user?.id ?? null)
+    return NextResponse.json({ available: !taken, normalized: normalizedUsername })
+  } catch (error) {
     console.error('Username check error:', error)
     return NextResponse.json({ available: false, error: 'Kullanıcı adı kontrol edilemedi.' }, { status: 500 })
   }
-
-  const isAvailable = !data || data.length === 0
-
-  return NextResponse.json({ available: isAvailable, normalized: normalizedUsername })
 }
-

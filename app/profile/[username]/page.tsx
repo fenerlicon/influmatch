@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation'
 import { ChevronLeft, BadgeCheck } from 'lucide-react'
 import OfferModal from '@/components/profile/OfferModal'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { fetchAccountRole } from '@/lib/viewer-role'
 import { resolveSubscriptionTier, type SubscriptionTier } from '@/lib/subscription-tier'
 import BadgeDetailList from '@/components/badges/BadgeDetailList'
 import { getCategoryLabel } from '@/utils/categories'
@@ -14,7 +13,7 @@ import { completedCollaborationCounts } from '@/lib/collaborations'
 import { getVisibleRateCard } from '@/lib/rate-card'
 import RateCardView from '@/components/profile/RateCardView'
 import DiscoveryWheelCard from '@/components/dashboard/DiscoveryWheelCard'
-import { canBrandViewInfluencer, getWheelState, type WheelState } from '@/lib/discovery-wheel'
+import { getProfileForViewer } from '@/lib/profile-reads'
 import { getOfferQuota, offerQuotaSummary } from '@/lib/brand-limits'
 
 interface ProfilePageProps {
@@ -30,31 +29,65 @@ const SOCIAL_LABELS: Record<string, string> = {
 
 export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   const supabase = createSupabaseServerClient()
+  const {
+    data: { user: viewer },
+  } = await supabase.auth.getUser()
+  // Profiller yalnızca oturum açmış kullanıcılara görünür (middleware de korur).
+  if (!viewer) notFound()
 
-  const [{ data: profile, error }, authResponse] = await Promise.all([
-    supabase
-      .from('users')
-      .select('id, full_name, username, avatar_url, city, category, bio, social_links, role, verification_status, creator_type')
-      .eq('username', params.username)
-      .single(),
-    supabase.auth.getUser(),
-  ])
+  // Başkasının profili yalnızca sunucuda, kurallar uygulanarak okunur (lib/profile-reads.ts, 3.17-S2):
+  // onaysız marka profil görmez; ücretsiz marka (sınırlar açıkken) yalnızca çarktaki ya da daha önce teklif /
+  // iş birliği / sohbet / başvuru ilişkisi olan profilleri açar. Bayrak kapalıyken herkes açılır.
+  const access = await getProfileForViewer(supabase, viewer.id, { username: params.username })
+  if (access.status === 'not_found') notFound()
 
-  if (error || !profile) {
-    notFound()
+  if (access.status === 'brand_unverified') {
+    return (
+      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div className="relative">
+            <Link
+              href="/dashboard/brand/discover"
+              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
+            >
+              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
+            </Link>
+          </div>
+          <BrandLockScreen status={access.viewer.verification_status === 'rejected' ? 'rejected' : 'pending'} />
+        </div>
+      </main>
+    )
   }
 
-  // Fetch social account stats (both Instagram and TikTok)
-  const { data: socialAccounts } = await supabase
-    .from('social_accounts')
-    .select('platform, follower_count, engagement_rate, stats_payload, updated_at, has_stats, is_verified, username')
-    .eq('user_id', profile.id)
+  if (access.status === 'wheel_blocked') {
+    return (
+      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div className="relative">
+            <Link
+              href="/dashboard/brand/discover"
+              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
+            >
+              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
+            </Link>
+          </div>
+          <DiscoveryWheelCard
+            variant="profile"
+            profilesPerSpin={access.wheel.profilesPerSpin}
+            windowHours={access.wheel.windowHours}
+            expiresAt={access.wheel.spin?.expires_at ?? null}
+          />
+        </div>
+      </main>
+    )
+  }
 
-  const instagramAccount = socialAccounts?.find((a) => a.platform === 'instagram')
-  const tiktokAccount = socialAccounts?.find((a) => a.platform === 'tiktok')
+  const { profile, socialAccounts, viewer: viewerInfo } = access
+  const instagramAccount = socialAccounts.find((a) => a.platform === 'instagram')
+  const tiktokAccount = socialAccounts.find((a) => a.platform === 'tiktok')
 
   const instagramData = instagramAccount && instagramAccount.has_stats ? {
-    username: instagramAccount.username,
+    username: instagramAccount.username ?? '',
     followerCount: instagramAccount.follower_count || 0,
     engagementRate: Number(instagramAccount.engagement_rate) || 0,
     statsPayload: instagramAccount.stats_payload as any,
@@ -62,37 +95,26 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   } : undefined
 
   const tiktokData = tiktokAccount && (tiktokAccount.has_stats || tiktokAccount.is_verified) ? {
-    username: tiktokAccount.username,
+    username: tiktokAccount.username ?? '',
     followerCount: tiktokAccount.follower_count || 0,
     engagementRate: Number(tiktokAccount.engagement_rate) || 0,
     statsPayload: tiktokAccount.stats_payload as any,
     lastUpdated: tiktokAccount.updated_at || new Date().toISOString()
   } : undefined
 
-
   const { data: userBadges } = await supabase
     .from('user_badges')
     .select('badge_id')
     .eq('user_id', profile.id)
 
-  const viewer = authResponse.data.user
-  const viewerRole = viewer ? await fetchAccountRole(supabase, viewer.id) : null
+  const viewerRole = viewerInfo.role
   const isInfluencer = profile.role === 'influencer'
   const isBrand = profile.role === 'brand'
-  const canSendOffer = viewerRole === 'brand' && isInfluencer && viewer?.id !== profile.id
-
-  // Keşif çarkı (ücretsiz marka sınırları açıkken): ücretsiz marka yalnızca güncel çarktaki ya da daha önce
-  // teklif / iş birliği / sohbet / başvuru ilişkisi olan profilleri açabilir. Bayrak kapalıyken herkes açılır.
-  let wheelState: WheelState = { limited: false }
-  let wheelBlocked = false
-  if (viewer && viewerRole === 'brand' && isInfluencer) {
-    wheelState = await getWheelState(viewer.id)
-    wheelBlocked = wheelState.limited && !(await canBrandViewInfluencer(viewer.id, profile.id, wheelState))
-  }
+  const canSendOffer = viewerRole === 'brand' && isInfluencer && viewer.id !== profile.id
 
   // Profil görüntülenmesi (kişi başına günde bir; kendi profili sayılmaz). Sayılar yalnızca Spotlight
   // üyesi profil sahibine gösterilir. Kayıt başarısız olsa da sayfa açılır.
-  if (viewer && isInfluencer && viewer.id !== profile.id && !wheelBlocked) {
+  if (isInfluencer && viewer.id !== profile.id) {
     const { error: viewError } = await supabase.rpc('record_profile_view', { p_profile_id: profile.id })
     if (viewError) console.error('[profile] görüntülenme kaydedilemedi:', viewError.message)
   }
@@ -130,68 +152,12 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
     ([, value]) => Boolean(value),
   )
 
-  // Determine Viewer's Tier and Verification Status
-  let viewerTier: SubscriptionTier = 'FREE'
-  let isViewerVerified = false
-  let viewerVerificationStatus: 'pending' | 'verified' | 'rejected' = 'pending'
-
-  if (viewer) {
-    const { data: viewerData } = await supabase
-      .from('users')
-      .select('spotlight_active, spotlight_plan, spotlight_expires_at, verification_status')
-      .eq('id', viewer.id)
-      .single()
-
-    const verificationStatus = viewerData?.verification_status ?? 'pending'
-    viewerVerificationStatus = verificationStatus as 'pending' | 'verified' | 'rejected'
-    isViewerVerified = verificationStatus === 'verified'
-    viewerTier = resolveSubscriptionTier({ ...viewerData, role: viewerRole })
-  }
-
-  // Block unverified brands from viewing influencer profiles
-  if (viewerRole === 'brand' && !isViewerVerified) {
-    return (
-      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <div className="relative">
-            <Link
-              href="/dashboard/brand/discover"
-              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
-            >
-              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
-            </Link>
-          </div>
-          <BrandLockScreen status={viewerVerificationStatus === 'rejected' ? 'rejected' : 'pending'} />
-        </div>
-      </main>
-    )
-  }
-
-  if (wheelBlocked && wheelState.limited) {
-    return (
-      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <div className="relative">
-            <Link
-              href="/dashboard/brand/discover"
-              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
-            >
-              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
-            </Link>
-          </div>
-          <DiscoveryWheelCard
-            variant="profile"
-            profilesPerSpin={wheelState.profilesPerSpin}
-            windowHours={wheelState.windowHours}
-            expiresAt={wheelState.spin?.expires_at ?? null}
-          />
-        </div>
-      </main>
-    )
-  }
+  // İzleyicinin paketi ve onay durumu
+  const isViewerVerified = viewerInfo.verification_status === 'verified'
+  const viewerTier: SubscriptionTier = resolveSubscriptionTier(viewerInfo)
 
   // Teklif hakkı bilgisi (yalnızca sınır uygulanan markada; bayrak kapalıyken null).
-  const offerQuotaText = canSendOffer && viewer ? offerQuotaSummary(await getOfferQuota(viewer.id).catch(() => null)) : null
+  const offerQuotaText = canSendOffer ? offerQuotaSummary(await getOfferQuota(viewer.id).catch(() => null)) : null
 
   // Tamamlanan iş birliği sayısı (herkes görür) ve fiyat kartı (RLS: yalnızca sahibi, doğrulanmış marka, admin).
   const [completedCounts, rateCard] = isInfluencer

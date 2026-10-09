@@ -122,6 +122,8 @@ export default function DiscoverScreen({ navigation }) {
     // Keşif çarkı (ücretsiz marka sınırları açıkken; web ile aynı kural, /api/mobile/discovery-wheel).
     // null: sınır yok, liste bugünkü gibi.
     const [wheel, setWheel] = useState(null);
+    // Onaysız marka: web ile aynı kural, profil listelenmez.
+    const [locked, setLocked] = useState(false);
     const [spinning, setSpinning] = useState(false);
     // Bütçe filtresi (yalnızca marka): girilince fiyat kartında en az bir başlangıç fiyatı bütçeye sığanlar kalır.
     // Fiyat kartlarını RLS yalnızca doğrulanmış markaya döndürür (web keşfiyle aynı kural).
@@ -140,24 +142,14 @@ export default function DiscoverScreen({ navigation }) {
             const viewerIsBrand = me?.role === 'brand';
             setIsBrand(viewerIsBrand);
 
-            // Ücretsiz markada (sınırlar açıkken) yalnızca güncel çarktaki profiller listelenir.
-            const wheelState = viewerIsBrand ? await apiRequest('discovery-wheel') : null;
-            const limited = !!wheelState?.limited;
-            setWheel(limited ? wheelState : null);
-
-            let users;
-            if (limited) {
-                users = wheelState.profiles || [];
-            } else {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('id, full_name, username, avatar_url, category, bio, spotlight_active, verification_status, is_showcase_visible, displayed_badges')
-                    .eq('role', 'influencer')
-                    .eq('verification_status', 'verified')
-                    .eq('is_showcase_visible', true);
-                if (error) throw error;
-                users = data || [];
-            }
+            // Liste web sunucusundan gelir (lib/profile-reads.ts; başka hesapların satırları istemciden okunamaz).
+            // Onaysız marka profil görmez; ücretsiz markada (sınırlar açıkken) yalnızca güncel çarktaki profiller listelenir.
+            const result = await apiRequest('discover');
+            if (result.error) throw new Error(result.error);
+            setLocked(!!result.locked);
+            const limited = !!result.limited;
+            setWheel(limited ? result : null);
+            const users = result.profiles || [];
 
             // Favoriler sunucudan (web ile aynı kural; kilitliyse locked: true ve boş liste).
             const favState = viewerIsBrand ? await apiRequest('favorites') : null;
@@ -316,7 +308,9 @@ export default function DiscoverScreen({ navigation }) {
                         )}
                         contentContainerStyle={{ paddingBottom: 100 }}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ec4899" />}
-                        ListEmptyComponent={wheel && !wheel.spin ? null : <Text className="text-gray-600 text-center mt-10">Hiçbir influencer bulunamadı.</Text>}
+                        ListEmptyComponent={locked
+                            ? <Text className="text-gray-400 text-center mt-10 px-8">Profilleri görebilmek için hesabınızın onaylanması gerekmektedir.</Text>
+                            : wheel && !wheel.spin ? null : <Text className="text-gray-600 text-center mt-10">Hiçbir influencer bulunamadı.</Text>}
                     />
                 )}
             </SafeAreaView>

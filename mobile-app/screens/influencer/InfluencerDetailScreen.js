@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,7 +38,11 @@ const RealMetric = ({ title, value, color = '#fbbf24', icon: Icon = Zap }) => (
 );
 
 export default function InfluencerDetailScreen({ navigation, route }) {
-    const { influencer } = route.params;
+    // Listeden gelen kart hemen gösterilir; ayrıntı (sosyal hesap istatistikleri) web sunucusundan yüklenir
+    // (/api/mobile/profiles/:id, lib/profile-reads.ts: başka hesapların satırları istemciden okunamaz, çark kuralı orada).
+    const baseInfluencer = route.params.influencer;
+    const [detail, setDetail] = useState(null);
+    const influencer = useMemo(() => (detail ? { ...baseInfluencer, ...detail } : baseInfluencer), [baseInfluencer, detail]);
     const [currentUserRole, setCurrentUserRole] = useState(null);
     const [selectedPlatform, setSelectedPlatform] = useState('instagram');
 
@@ -118,10 +122,21 @@ export default function InfluencerDetailScreen({ navigation, route }) {
             if (user) {
                 const { data } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
                 setCurrentUserRole(data?.role);
+                // Profil ayrıntısı sunucudan; keşif çarkı (ücretsiz marka yalnızca çarktaki ya da ilişkisi olan profilleri açar)
+                // ve onay kuralı orada uygulanır.
+                const access = await apiRequest(`profiles/${encodeURIComponent(baseInfluencer.id)}`);
+                if (access?.status === 'wheel_blocked') {
+                    setWheelBlock(access);
+                } else if (access?.status === 'ok' && access.profile) {
+                    const accounts = access.socialAccounts || [];
+                    setDetail({
+                        ...access.profile,
+                        isVerified: Array.isArray(access.profile.displayed_badges) && access.profile.displayed_badges.includes('verified-account'),
+                        instagram: accounts.find((a) => a.platform === 'instagram') || null,
+                        tiktok: accounts.find((a) => a.platform === 'tiktok') || null,
+                    });
+                }
                 if (data?.role === 'brand') {
-                    // Keşif çarkı: ücretsiz marka yalnızca çarktaki ya da ilişkisi olan profilleri açabilir.
-                    const access = await apiRequest(`discovery-wheel?profileId=${encodeURIComponent(influencer.id)}`);
-                    if (access?.limited && access.allowed === false) setWheelBlock(access);
                     // Bu influencer ile teklif veya başvuru üzerinden açılmış bir sohbet varsa gösterilir.
                     const { data: rooms } = await supabase.from('rooms').select('id').eq('brand_id', user.id).eq('influencer_id', influencer.id).limit(1);
                     setExistingRoomId(rooms?.[0]?.id ?? null);

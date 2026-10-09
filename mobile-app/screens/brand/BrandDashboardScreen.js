@@ -118,37 +118,14 @@ export default function BrandDashboardScreen({ navigation }) {
                 .maybeSingle();
             setProfile(prof);
 
-            // Öne çıkan profiller. Ücretsiz marka sınırları açıkken (keşif çarkı) yalnızca güncel çarktaki profiller
-            // gösterilir; sınır yoksa bugünkü gibi ilk 10 vitrin profili.
-            const wheel = await apiRequest('discovery-wheel');
-            let spotlightInfs = [];
-            if (wheel?.limited) {
-                spotlightInfs = wheel.profiles || [];
-            } else {
-                const { data } = await supabase
-                    .from('users')
-                    .select('id, full_name, username, avatar_url, category, verification_status')
-                    .eq('role', 'influencer')
-                    .eq('is_showcase_visible', true)
-                    .order('spotlight_active', { ascending: false })
-                    .limit(10);
-                spotlightInfs = data || [];
-            }
-            if (spotlightInfs.length === 0) setRecommendations([]);
-
-            if (spotlightInfs && spotlightInfs.length > 0) {
-                const spotlightIds = spotlightInfs.map(si => si.id);
-                const { data: spotlightSocials } = await supabase
-                    .from('social_accounts')
-                    .select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at')
-                    .in('user_id', spotlightIds);
-
-                const recs = spotlightInfs.map(si => ({
-                    ...si,
-                    trustScore: calculateTrustScore(si, spotlightSocials?.find(s => s.user_id === si.id))
-                }));
-                setRecommendations(recs);
-            }
+            // Öne çıkan profiller web sunucusundan gelir (lib/profile-reads.ts; başka hesapların satırları istemciden
+            // okunamaz). Ücretsiz marka sınırları açıkken (keşif çarkı) yalnızca güncel çarktaki profiller; onaysız markada boş.
+            const featured = await apiRequest('discover?limit=10');
+            const spotlightInfs = featured.error ? [] : (featured.profiles || []);
+            setRecommendations(spotlightInfs.map(si => ({
+                ...si,
+                trustScore: calculateTrustScore(si, si.social_accounts?.[0]),
+            })));
 
             // Fetch notifications
             const { data: notifs } = await supabase

@@ -1,35 +1,15 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { canBrandViewInfluencer, getWheelState, spinWheel, type WheelState } from '@/lib/discovery-wheel'
+import { getWheelProfileCards, wheelPayloadOf } from '@/lib/profile-reads'
 
 export const dynamic = 'force-dynamic'
 
 // Keşif çarkı (web ile aynı kod: lib/discovery-wheel.ts). Bayrak kapalıyken ve Spotlight markada { limited: false }.
 
-const CARD_COLUMNS = 'id, full_name, username, avatar_url, category, bio, spotlight_active, verification_status, displayed_badges, creator_type'
-
-async function wheelPayload(supabase: SupabaseClient, state: WheelState) {
+// Çarktaki profil kartları sunucuda service role ile okunur (lib/profile-reads.ts, 3.17-S2).
+async function wheelPayload(state: WheelState) {
   if (!state.limited) return { limited: false }
-  const ids = state.spin?.influencer_ids ?? []
-  let profiles: Record<string, unknown>[] = []
-  if (ids.length > 0) {
-    const { data } = await supabase
-      .from('users')
-      .select(CARD_COLUMNS)
-      .in('id', ids)
-      .eq('role', 'influencer')
-      .eq('verification_status', 'verified')
-      .eq('is_showcase_visible', true)
-    // Çarktaki sıra korunur.
-    profiles = (data ?? []).sort((a, b) => ids.indexOf(a.id as string) - ids.indexOf(b.id as string))
-  }
-  return {
-    limited: true,
-    profilesPerSpin: state.profilesPerSpin,
-    windowHours: state.windowHours,
-    spin: state.spin ? { created_at: state.spin.created_at, expires_at: state.spin.expires_at } : null,
-    profiles,
-  }
+  return { ...wheelPayloadOf(state), profiles: await getWheelProfileCards(state) }
 }
 
 /**
@@ -52,7 +32,7 @@ export async function GET(request: Request) {
       expiresAt: state.limited ? (state.spin?.expires_at ?? null) : null,
     })
   }
-  return mobileJson(await wheelPayload(ctx.supabase, state))
+  return mobileJson(await wheelPayload(state))
 }
 
 /** Çarkı çevirir (pencere başına bir kez; süresi dolmamış çevirme varsa onu döndürür). */
@@ -62,5 +42,5 @@ export async function POST(request: Request) {
 
   const result = await spinWheel(ctx.user.id)
   if ('error' in result) return mobileJson({ error: result.error }, 400)
-  return mobileJson(await wheelPayload(ctx.supabase, await getWheelState(ctx.user.id)))
+  return mobileJson(await wheelPayload(await getWheelState(ctx.user.id)))
 }

@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { profileReader } from '@/lib/profile-reads'
 
 export async function blockUser(blockedUserId: string) {
   const supabase = createSupabaseServerClient()
@@ -17,8 +18,10 @@ export async function blockUser(blockedUserId: string) {
     return { success: false, error: 'Cannot block yourself' }
   }
 
-  // Check if user exists
-  const { data: blockedUser, error: userError } = await supabase
+  // Check if user exists (başka hesabın satırı oturumla okunamaz; yalnızca rol okunur, 3.17-S2)
+  const reader = profileReader(supabase)
+  if (!reader) return { success: false, error: 'User not found' }
+  const { data: blockedUser, error: userError } = await reader
     .from('users')
     .select('id, role')
     .eq('id', blockedUserId)
