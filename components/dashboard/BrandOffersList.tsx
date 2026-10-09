@@ -9,6 +9,7 @@ import { MessageCircle, CalendarDays, X, BadgeCheck } from 'lucide-react'
 import { dismissInfluencer } from '@/app/dashboard/brand/offers/dismiss/actions'
 import type { BrandOfferItem } from '@/app/dashboard/brand/offers/page'
 import { countUnreadInRoom } from '@/lib/unread-messages'
+import { effectiveOfferStatus } from '@/lib/offer-shared'
 
 interface BrandOffersListProps {
   initialOffers: BrandOfferItem[]
@@ -21,12 +22,14 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Yanıt Bekleniyor',
   accepted: 'Kabul Edildi',
   rejected: 'Reddedildi',
+  expired: 'Süresi Doldu',
 }
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'text-yellow-200 border-yellow-400/60 bg-yellow-400/10',
   accepted: 'text-emerald-200 border-emerald-400/60 bg-emerald-400/10',
   rejected: 'text-red-200 border-red-400/60 bg-red-400/10',
+  expired: 'text-gray-300 border-white/20 bg-white/5',
 }
 
 const formatBudget = (value: number | null) => {
@@ -494,10 +497,10 @@ export default function BrandOffersList({
                     <span>{formatRelativeTime(latestOffer.created_at)}</span>
                   </div>
                   <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[latestOffer.status] ?? 'border-white/15 text-gray-400'
+                    className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[effectiveOfferStatus(latestOffer)] ?? 'border-white/15 text-gray-400'
                       }`}
                   >
-                    {STATUS_LABELS[latestOffer.status] ?? latestOffer.status}
+                    {STATUS_LABELS[effectiveOfferStatus(latestOffer)] ?? latestOffer.status}
                   </span>
                 </div>
 
@@ -605,10 +608,10 @@ export default function BrandOffersList({
                             {offer.campaign_name ?? 'İsimsiz Kampanya'}
                           </h3>
                           <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[offer.status] ?? 'border-white/15 text-gray-400'
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[effectiveOfferStatus(offer)] ?? 'border-white/15 text-gray-400'
                               }`}
                           >
-                            {STATUS_LABELS[offer.status] ?? offer.status}
+                            {STATUS_LABELS[effectiveOfferStatus(offer)] ?? offer.status}
                           </span>
                         </div>
 

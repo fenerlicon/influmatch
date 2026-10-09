@@ -1,7 +1,7 @@
 // Kullanıcı bildirimleri (kullanıcı kararı, 2026-10-09):
 // - Her olay site içi bildirim (notifications tablosu, zil) olarak yazılır.
 // - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı,
-//   iş birliği yayın linki / tamamlanma / iptal.
+//   iş birliği yayın linki / tamamlanma / iptal, süresi dolan teklif (markaya), ilan alarmı (influencer'a).
 //   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez.
 // - Kullanıcının ayarlardaki e-posta tercihleri (users.email_notifications) uygulanır.
 // - Mobil uygulaması olan kullanıcıya push da gider (lib/push.ts); push metni e-postadaki sade metindir
@@ -33,6 +33,8 @@ export type NotificationEvent =
   | 'collab_published'
   | 'collab_completed'
   | 'collab_cancelled'
+  | 'offer_expired'
+  | 'advert_alert'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -50,6 +52,10 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   collab_published: { preference: 'offers', email: true },
   collab_completed: { preference: 'offers', email: true },
   collab_cancelled: { preference: 'offers', email: true },
+  // Yanıtlanmadan süresi dolan teklif markaya bildirilir.
+  offer_expired: { preference: 'offers', email: true },
+  // İlan alarmı: influencer'ın kurduğu alarma uyan yeni ilan ("İlan Başvuruları" e-posta tercihi).
+  advert_alert: { preference: 'advert_applications', email: true },
 }
 
 const NOTIFICATION_EMAIL_MAX_RATIO = 0.8
