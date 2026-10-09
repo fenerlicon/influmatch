@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, FormEvent } from 'react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { createOffer, deleteOfferTemplate, getLastOfferDraft, listOfferTemplates, saveOfferTemplate } from '@/app/profile/actions'
 import { OFFER_TEMPLATE_LIMIT } from '@/lib/offer-shared'
 import type { OfferDraft, OfferTemplate } from '@/lib/offer-templates'
@@ -10,6 +11,8 @@ interface OfferModalProps {
   receiverId: string
   receiverName: string
   isViewerVerified: boolean
+  /** Sınır uygulanan markada kalan teklif hakkı (ör. "Bu ay 12 teklif hakkın kaldı"); yoksa gösterilmez. */
+  quotaText?: string | null
 }
 
 const CAMPAIGN_TYPES = ['Story', 'Reel', 'Post', 'YouTube'] as const
@@ -34,7 +37,8 @@ function draftToForm(draft: OfferDraft): typeof initialFormState {
   }
 }
 
-export default function OfferModal({ receiverId, receiverName, isViewerVerified }: OfferModalProps) {
+export default function OfferModal({ receiverId, receiverName, isViewerVerified, quotaText }: OfferModalProps) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [formState, setFormState] = useState(initialFormState)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -163,6 +167,8 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified 
         setFormState(initialFormState)
         setIsOpen(false)
         setToast({ type: 'success', message: 'Teklifiniz gönderildi!' })
+        // Kalan teklif hakkı bilgisi (sınır uygulanan markada) güncellensin.
+        if (quotaText) router.refresh()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Teklif gönderilemedi.'
         setToast({ type: 'error', message })
@@ -273,6 +279,9 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified 
             </div>
 
             <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+              {quotaText && (
+                <p className="rounded-2xl border border-soft-gold/30 bg-soft-gold/10 px-4 py-2 text-xs text-soft-gold">{quotaText}</p>
+              )}
               <label className="block text-sm text-gray-400">
                 Kampanya Başlığı
                 <input

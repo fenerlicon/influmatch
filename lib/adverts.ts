@@ -9,6 +9,7 @@ import { storagePathFromPublicUrl } from '@/lib/account-deletion'
 import { displayNameOf, notifyUser } from '@/lib/notify'
 import { hasVerifiedSocialAccount, SOCIAL_VERIFICATION_REQUIRED } from '@/lib/creator-verification'
 import { createCollaborationFor, hasActiveCollaboration } from '@/lib/collaborations'
+import { advertQuotaError, brandLimitErrorFromDb, getAdvertQuota } from '@/lib/brand-limits'
 
 export type AdvertStatus = 'open' | 'paused' | 'closed'
 export type ApplicationStatus = 'pending' | 'shortlisted' | 'rejected' | 'accepted'
@@ -46,6 +47,19 @@ export function isAllowedHeroImage(url: string | null | undefined, currentUrl?: 
   return !!base && url.startsWith(`${base}/`) && location?.bucket === 'advert-hero-images' && !location.path.includes('..')
 }
 
+/**
+ * Aktif ilan sınırı (ücretsiz marka; bayrak kapalıyken kota null döner). İlan açık olarak oluşturulurken ya da
+ * kapalı/duraklatılmış ilan yeniden açılırken çağrılır. Sayım okunamazsa DB tetikleyicisi yedek olarak uygular.
+ */
+async function openAdvertLimitError(userId: string): Promise<string | null> {
+  try {
+    return advertQuotaError(await getAdvertQuota(userId))
+  } catch (error) {
+    console.error('[adverts] quota read error', error)
+    return null
+  }
+}
+
 function cleanNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   const n = Number(value)
@@ -66,10 +80,12 @@ export async function saveAdvertAs(supabase: SupabaseClient, userId: string, inp
   }
 
   let currentHero: string | null = null
+  let currentStatus: string | null = null
   if (input.id) {
-    const { data: existing } = await supabase.from('advert_projects').select('hero_image').eq('id', input.id).eq('brand_user_id', userId).maybeSingle()
+    const { data: existing } = await supabase.from('advert_projects').select('hero_image, status').eq('id', input.id).eq('brand_user_id', userId).maybeSingle()
     if (!existing) return { error: 'İlan bulunamadı veya düzenleme yetkiniz yok.' }
     currentHero = existing.hero_image as string | null
+    currentStatus = existing.status as string | null
   }
   if (!isAllowedHeroImage(input.hero_image, currentHero)) {
     return { error: 'Kapak fotoğrafı geçersiz. Lütfen görseli yeniden yükleyin.' }
@@ -104,25 +120,39 @@ export async function saveAdvertAs(supabase: SupabaseClient, userId: string, inp
   if (input.status && ['open', 'paused', 'closed'].includes(input.status)) row.status = input.status
 
   if (input.id) {
+    if (row.status === 'open' && currentStatus !== 'open') {
+      const limitError = await openAdvertLimitError(userId)
+      if (limitError) return { error: limitError }
+    }
     const { error } = await supabase.from('advert_projects').update(row).eq('id', input.id).eq('brand_user_id', userId)
     if (error) {
       console.error('[saveAdvert] update error', error.message)
-      return { error: 'İlan güncellenemedi. Lütfen tekrar deneyin.' }
+      return { error: brandLimitErrorFromDb(error.message) ?? 'İlan güncellenemedi. Lütfen tekrar deneyin.' }
     }
     return { success: true, id: input.id }
   }
+
+  const limitError = await openAdvertLimitError(userId)
+  if (limitError) return { error: limitError }
 
   row.status = 'open'
   const { data: created, error } = await supabase.from('advert_projects').insert(row).select('id').single()
   if (error || !created) {
     console.error('[saveAdvert] insert error', error?.message)
-    return { error: 'İlan oluşturulamadı. Lütfen tekrar deneyin.' }
+    return { error: brandLimitErrorFromDb(error?.message) ?? 'İlan oluşturulamadı. Lütfen tekrar deneyin.' }
   }
   return { success: true, id: created.id as string }
 }
 
 export async function updateAdvertStatusAs(supabase: SupabaseClient, userId: string, advertId: string, status: AdvertStatus): Promise<Result> {
   if (!['open', 'paused', 'closed'].includes(status)) return { error: 'Geçersiz durum.' }
+  if (status === 'open') {
+    const { data: current } = await supabase.from('advert_projects').select('status').eq('id', advertId).eq('brand_user_id', userId).maybeSingle()
+    if (current && current.status !== 'open') {
+      const limitError = await openAdvertLimitError(userId)
+      if (limitError) return { error: limitError }
+    }
+  }
   const { data, error } = await supabase
     .from('advert_projects')
     .update({ status })
@@ -131,7 +161,7 @@ export async function updateAdvertStatusAs(supabase: SupabaseClient, userId: str
     .select('id')
   if (error) {
     console.error('[updateAdvertStatus] error', error.message)
-    return { error: 'Durum güncellenemedi. Lütfen tekrar deneyin.' }
+    return { error: brandLimitErrorFromDb(error.message) ?? 'Durum güncellenemedi. Lütfen tekrar deneyin.' }
   }
   if (!data || data.length === 0) return { error: 'İlan bulunamadı veya yetkiniz yok.' }
   return { success: true }

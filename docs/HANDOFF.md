@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-10. `main` canlı (PR #48–#53 dahil). PR #54 (yol haritası adım 2) dahil; `claude/first-steps-checklist` PR'da.
+> Son güncelleme: 2026-10-10. `main` canlı (PR #48–#55 dahil). Yol haritası adım 3 `claude/free-brand-limits` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -36,8 +36,14 @@
   web kök layout'ta çerez banner'ı, Speed Insights yalnızca "Tümünü kabul et" sonrası (1.12-S2). **Banner metni avukat onayından geçmeli.**
 - **`claude/first-steps-checklist`:** "İlk adımlar" kartı (SYSTEM_MAP 3.16) web influencer/marka panelinde ve mobil iki ana sayfada;
   durum `lib/first-steps.ts` (web sayfaları + `/api/mobile/first-steps`), "Gizle" web'de çerez, mobilde AsyncStorage. Şema değişikliği yok.
+- **Yol haritası adım 3 (`claude/free-brand-limits`, SYSTEM_MAP 3.17):** ücretsiz marka sınırları + keşif çarkı **kapalı bayrakla**.
+  Ayarlar `platform_settings` (yalnızca service role), admin `/admin/limits` (panelde "Marka Sınırları"): bayrak, çark 10 profil / 24 saat,
+  ücretsiz teklif günde 3 / ayda 15, 1 aktif ilan; Basic değerleri boş (= sınırsız, kullanıcı kararı bekliyor), Pro sınırsız. Bayrak açılınca ücretsiz
+  marka keşifte (web + mobil) yalnızca çarktaki profilleri görür, profil sayfası çark/ilişki dışında kapalı; teklif ve ilan sınırları `lib/offers.ts`,
+  `lib/adverts.ts` ve DB tetikleyicileriyle. **Bayrak KAPALI; satış (POS) başlayınca admin açar.** Açmadan önce 3.17-S2 (users tablosu tüm oturumlara
+  okunur) ve 3.17-S3 (favoriler) kararı verilmeli. Tablolar canlıda (`20261010000020`), rollback'li denemeyle doğrulandı.
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -94,7 +100,7 @@
 | Doğrudan mesaj (9 Ekim) | Açılmayacak; teklifsiz sohbet yolları kaldırılır. |
 | Eski sarı tikler (9 Ekim) | Kurala uymayanınki geri alınır, markaya bildirim gider (33 markanın hiçbirinde kurumsal e-posta doğrulaması yoktu). |
 | Beklet (9 Ekim) | Davranış aynı, buton "Markayla görüş". |
-| Ücretsiz marka kotası (9 Ekim) | Şimdilik açık; yalnızca sayfalama. |
+| Ücretsiz marka kotası (9 Ekim) | Şimdilik açık; yalnızca sayfalama. **10 Ekim (3. tur) kararıyla değişti:** keşif çarkı + teklif/ilan sınırları satış başlayınca açılır; altyapı kapalı bayrakla hazır (3.17). |
 | Resend (9 Ekim) | Ücretsiz planda kal; doğrulama e-postaları öncelikli, %80 kotada bildirim e-postaları durur. |
 | Mobil (9 Ekim) | Bu kararlar uygulanınca başlanır. |
 | OAuth (10 Ekim) | Mobil uygulama mağazada yayınlandıktan **sonra** açılacak (2.3-S2/S3/S4, 3.13 kod/OAuth ayrımı). |
@@ -187,6 +193,9 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
   Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/offer-templates.ts`, `lib/advert-alerts.ts`, `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`, `lib/onboarding.ts`.
+- **Platform ayarları / bayraklar:** `platform_settings` (anahtar/değer) yalnızca service role; okuma `lib/platform-settings.ts` (hata olursa
+  varsayılan = bayrak kapalı). Sınır kuralı iki yerde: `lib/brand-limits.ts` ve DB `brand_limit_for()` + tetikleyiciler; ikisi birlikte değişir.
+  Tetikleyici `CREATE OR REPLACE TRIGGER` ile (DROP gerekmez).
 - **Vergi levhası yükleme:** istemci kovaya doğrudan yüklemez; `createTaxUploadUrlAs` imzalı adres verir (`uploadToSignedUrl`).
   Mobil kategori listesi `mobile-app/constants/categories.js` web `utils/categories.ts` ile aynı tutulmalı.
 - **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
@@ -215,4 +224,4 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   `app/legal/page.tsx`'e yerleştirilir (Claude kendisi hukuki metin yazmaz).
 - 5 Yıldız rozeti (puanlama sistemi) mağaza yayınından sonra (karar 2026-10-10).
 - Ertelenenler: Drive yapısı (8.9-N1, "sonra"), kodla doğrulayanlara sınır (3.13-N2, OAuth açılınca), ücretsiz marka kotası
-  (3.13-N3/N4, kullanıcı sayısı büyüyünce).
+  (3.13-N3; N4 keşif çarkıyla yapıldı, bayrak satış başlayınca açılır, 3.17).

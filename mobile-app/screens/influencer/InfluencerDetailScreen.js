@@ -9,6 +9,7 @@ import { apiRequest } from '../../lib/api';
 import { influencerBadges } from '../../constants/badges';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { RATE_CARD_ITEMS, RATE_CARD_SELECT, formatTry } from '../../constants/rateCard';
+import DiscoveryWheelCard from '../../components/DiscoveryWheelCard';
 
 const BADGES_BY_ID = Object.fromEntries(influencerBadges.map((b) => [b.id, b]));
 
@@ -57,6 +58,9 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     const [lastOffer, setLastOffer] = useState(null);
     const [templateName, setTemplateName] = useState('');
     const [savingTemplate, setSavingTemplate] = useState(false);
+    // Ücretsiz marka sınırları açıkken: kalan teklif hakkı ve keşif çarkı erişimi (web ile aynı sunucu kodu).
+    const [quotaText, setQuotaText] = useState(null);
+    const [wheelBlock, setWheelBlock] = useState(null);
 
     const draftToForm = (draft) => ({
         campaignName: draft.campaign_name || '',
@@ -72,6 +76,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
         const result = await apiRequest('offer-templates');
         setTemplates(result.templates || []);
         setLastOffer(result.lastOffer || null);
+        setQuotaText(result.quotaText || null);
     };
 
     const saveTemplate = async () => {
@@ -114,6 +119,9 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                 const { data } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
                 setCurrentUserRole(data?.role);
                 if (data?.role === 'brand') {
+                    // Keşif çarkı: ücretsiz marka yalnızca çarktaki ya da ilişkisi olan profilleri açabilir.
+                    const access = await apiRequest(`discovery-wheel?profileId=${encodeURIComponent(influencer.id)}`);
+                    if (access?.limited && access.allowed === false) setWheelBlock(access);
                     // Bu influencer ile teklif veya başvuru üzerinden açılmış bir sohbet varsa gösterilir.
                     const { data: rooms } = await supabase.from('rooms').select('id').eq('brand_id', user.id).eq('influencer_id', influencer.id).limit(1);
                     setExistingRoomId(rooms?.[0]?.id ?? null);
@@ -154,6 +162,8 @@ export default function InfluencerDetailScreen({ navigation, route }) {
             return;
         }
         setOfferVisible(false);
+        // Kalan teklif hakkı bir sonraki açılışta yeniden okunur.
+        if (quotaText) setTemplates(null);
         setLastOffer({ campaign_name: form.campaignName, campaign_type: form.campaignType, payment_type: form.paymentType, budget: form.budget || null, message: form.message });
         setForm({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
         Alert.alert('Teklif gönderildi', 'Influencer yanıt verdiğinde bildirim alacaksınız.', [
@@ -173,6 +183,26 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     };
 
     const currentStats = selectedPlatform === 'instagram' ? influencer.instagram : influencer.tiktok;
+
+    if (wheelBlock) {
+        return (
+            <View className="flex-1 bg-[#010204] px-6" style={{ paddingTop: 60 }}>
+                <StatusBar style="light" />
+                <TouchableOpacity onPress={() => navigation.goBack()} className="w-11 h-11 bg-white/5 rounded-[18px] items-center justify-center border border-white/10 mb-6">
+                    <ChevronLeft color="white" size={24} />
+                </TouchableOpacity>
+                <DiscoveryWheelCard
+                    variant="profile"
+                    profilesPerSpin={wheelBlock.profilesPerSpin}
+                    windowHours={wheelBlock.windowHours}
+                    expiresAt={wheelBlock.expiresAt}
+                />
+                <TouchableOpacity onPress={() => navigation.navigate('BrandDashboard', { screen: 'Keşfet' })} className="mt-4 self-start rounded-2xl border border-white/10 bg-white/5 px-5 py-3">
+                    <Text className="text-white font-bold text-sm">Keşfete dön</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <View className="flex-1 bg-[#010204]">
@@ -340,6 +370,12 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                                 <X color="white" size={18} />
                             </TouchableOpacity>
                         </View>
+
+                        {quotaText ? (
+                            <View className="mb-4 rounded-2xl border border-soft-gold/30 bg-soft-gold/10 px-4 py-2">
+                                <Text className="text-soft-gold text-xs">{quotaText}</Text>
+                            </View>
+                        ) : null}
 
                         {templates === null ? (
                             <ActivityIndicator color="#fbbf24" className="mb-4" />

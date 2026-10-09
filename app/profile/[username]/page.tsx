@@ -13,6 +13,9 @@ import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { completedCollaborationCounts } from '@/lib/collaborations'
 import { getVisibleRateCard } from '@/lib/rate-card'
 import RateCardView from '@/components/profile/RateCardView'
+import DiscoveryWheelCard from '@/components/dashboard/DiscoveryWheelCard'
+import { canBrandViewInfluencer, getWheelState, type WheelState } from '@/lib/discovery-wheel'
+import { getOfferQuota, offerQuotaSummary } from '@/lib/brand-limits'
 
 interface ProfilePageProps {
   params: { username: string }
@@ -78,9 +81,18 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   const isBrand = profile.role === 'brand'
   const canSendOffer = viewerRole === 'brand' && isInfluencer && viewer?.id !== profile.id
 
+  // Keşif çarkı (ücretsiz marka sınırları açıkken): ücretsiz marka yalnızca güncel çarktaki ya da daha önce
+  // teklif / iş birliği / sohbet / başvuru ilişkisi olan profilleri açabilir. Bayrak kapalıyken herkes açılır.
+  let wheelState: WheelState = { limited: false }
+  let wheelBlocked = false
+  if (viewer && viewerRole === 'brand' && isInfluencer) {
+    wheelState = await getWheelState(viewer.id)
+    wheelBlocked = wheelState.limited && !(await canBrandViewInfluencer(viewer.id, profile.id, wheelState))
+  }
+
   // Profil görüntülenmesi (kişi başına günde bir; kendi profili sayılmaz). Sayılar yalnızca Spotlight
   // üyesi profil sahibine gösterilir. Kayıt başarısız olsa da sayfa açılır.
-  if (viewer && isInfluencer && viewer.id !== profile.id) {
+  if (viewer && isInfluencer && viewer.id !== profile.id && !wheelBlocked) {
     const { error: viewError } = await supabase.rpc('record_profile_view', { p_profile_id: profile.id })
     if (viewError) console.error('[profile] görüntülenme kaydedilemedi:', viewError.message)
   }
@@ -154,6 +166,32 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
       </main>
     )
   }
+
+  if (wheelBlocked && wheelState.limited) {
+    return (
+      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div className="relative">
+            <Link
+              href="/dashboard/brand/discover"
+              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
+            >
+              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
+            </Link>
+          </div>
+          <DiscoveryWheelCard
+            variant="profile"
+            profilesPerSpin={wheelState.profilesPerSpin}
+            windowHours={wheelState.windowHours}
+            expiresAt={wheelState.spin?.expires_at ?? null}
+          />
+        </div>
+      </main>
+    )
+  }
+
+  // Teklif hakkı bilgisi (yalnızca sınır uygulanan markada; bayrak kapalıyken null).
+  const offerQuotaText = canSendOffer && viewer ? offerQuotaSummary(await getOfferQuota(viewer.id).catch(() => null)) : null
 
   // Tamamlanan iş birliği sayısı (herkes görür) ve fiyat kartı (RLS: yalnızca sahibi, doğrulanmış marka, admin).
   const [completedCounts, rateCard] = isInfluencer
@@ -328,10 +366,12 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
               <div className="rounded-3xl border border-soft-gold/30 bg-soft-gold/10 p-6 text-center">
                 <h3 className="text-lg font-semibold text-white mb-2">İş Birliği Yap</h3>
                 <p className="text-sm text-gray-300 mb-4">Bu influencer ile çalışmak için teklif gönder.</p>
+                {offerQuotaText && <p className="mb-4 text-xs text-soft-gold">{offerQuotaText}</p>}
                 <OfferModal
                   receiverId={profile.id}
                   receiverName={profile.full_name || profile.username || ''}
                   isViewerVerified={isViewerVerified}
+                  quotaText={offerQuotaText}
                 />
               </div>
             )}
