@@ -105,7 +105,7 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 ### Güncel iş sırası (Aralık sonuna kadar)
 1. ✅ İş birliği akışı + fiyat kartı (PR #51)
 2. Cevapsız teklif süresi, teklif şablonu, kaydedilen ilanlar + ilan alarmı
-3. Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları
+3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır)
 4. İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + teslim kilidi (R2'ye bağlı)
 5. Akademi + R2 "Drive" (Kasım)
 6. UGC portföyü + sonuç raporu

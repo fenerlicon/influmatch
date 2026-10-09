@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-10 · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-10 (3.17) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -386,7 +386,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     keşifte alt sıra, "resmi veri" etiketi yok, Spotlight sınırı.
   - **3.13-N3** Ücret ödemeyen markalar yalnızca kod ile doğrulanmış influencer/UGC'lere ulaşabilsin; OAuth ile bağlanmış
     profiller ücretli markalara ayrılsın.
-  - **3.13-N4** Ücret ödemeyen markalar tüm listeyi göremesin. Sistem markanın ihtiyacını (kategori, bütçe, ilanlar, hedef kitle)
+  - ✅ ~~**3.13-N4**~~ (2026-10-10, 3. tur kararıyla: keşif çarkı + teklif/ilan sınırları kapalı bayrakla yapıldı, bkz. 3.17) Ücret ödemeyen markalar tüm listeyi göremesin. Sistem markanın ihtiyacını (kategori, bütçe, ilanlar, hedef kitle)
     analiz edip ücretsiz olarak belli oranda/kotada profil önersin. Kısıt sunucuda uygulanmalı (bugün premium veri istemciye
     gidip yalnızca CSS ile bulanıklaştırılıyor, bkz. 3.1-S1).
   - **3.13-N5** Listeler (Inflist) şimdilik tüm doğrulanmış markalara ücretsiz; ileride Spotlight'a dahil edilecek
@@ -464,6 +464,44 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   (değeri kullanıcı kimliği, 1 yıl), mobilde AsyncStorage `first_steps_hidden:<uid>`; gizliyken sunucu hesaplamaz.
 - **Sorunlar / notlar:**
   - ✅ ~~**3.16-N1 [ÖZELLİK]**~~ (2026-10-10: "İlk adımlar" kartı web + mobil panellerde; ortak `lib/first-steps.ts`, `/api/mobile/first-steps`) Yeni kullanıcı için ilk adımlar kontrol listesi.
+
+### 3.17 Ücretsiz marka sınırları ve keşif çarkı (yol haritası adım 3, 2026-10-10; KAPALI BAYRAKLA)
+- **Karar:** 2026-10-10 (3. tur). Altyapı hazır, **bayrak kapalı** (`free_brand_limits_enabled = false`); satış başlayınca (POS) admin
+  `/admin/limits` sayfasından açar. Kapalıyken hiçbir davranış değişmez (sunucu kodu ayar okuyup çıkar; DB tetikleyicileri ilk satırda döner).
+- **Dosyalar:** `lib/platform-settings{,-shared}.ts`, `lib/brand-limits.ts`, `lib/discovery-wheel.ts`, `lib/offers.ts`, `lib/adverts.ts`,
+  `app/admin/limits/{page,actions}.ts(x)`, `components/admin/PlatformSettingsPanel.tsx`, `app/dashboard/brand/discover/{page,actions}.ts(x)`,
+  `components/dashboard/DiscoveryWheelCard.tsx`, `app/profile/[username]/page.tsx`, `components/profile/OfferModal.tsx`,
+  `/api/mobile/discovery-wheel` (GET/POST, `?profileId=`), `/api/mobile/offer-templates` (`quotaText`), mobil `components/DiscoveryWheelCard.js`,
+  `DiscoverScreen`, `InfluencerDetailScreen`, `BrandDashboardScreen`; migration `20261010000020_free_brand_limits.sql` (canlıda).
+- **Ayarlar:** `platform_settings` (anahtar/değer jsonb; RLS açık, anon/authenticated'a hiçbir yetki yok, yalnızca service role).
+  Varsayılanlar: çark 10 profil / 24 saat, ücretsiz marka teklif günde 3 / ayda 15 (takvim ayı, Türkiye saati), 1 aktif ilan;
+  Basic değerleri boş (= sınırsız, paket içeriği kararı bekliyor); Pro her zaman sınırsız. Influencer/UGC sınırlanmaz.
+- **Plan:** aktif Spotlight + `mpro` = Pro, diğer aktif Spotlight = Basic, yoksa ücretsiz (`brandPlanOf`; DB'de `brand_limit_for()` aynı kural).
+- **Maddeler:**
+  - ✅ ~~**3.17-N1 [ÖZELLİK]**~~ (2026-10-10: admin ayar sayfası `/admin/limits`, panelde "Marka Sınırları"; bayrağı değiştirirken onay sorulur; rol kontrolü sunucuda) Sınır değerleri ve bayrak tek yerden, admin panelinden.
+  - ✅ ~~**3.17-N2 [ÖZELLİK]**~~ (2026-10-10, keşif çarkı: ücretsiz marka web keşfinde ve mobil Keşfet/ana sayfada yalnızca güncel çevirmedeki profilleri görür.
+    "Çarkı çevir" pencere başına bir kez; sunucu sektöre uyan (`lib/category-map.ts`) onaylı, vitrinde, doğrulanmış sosyal hesaplı profilleri seçer,
+    yetmezse diğer doğrulanmış profiller; önceki çevirmelerde gösterilenler havuz bitene kadar gelmez. `discovery_spins` (marka yalnızca kendi
+    satırını okur, yazım service role). Çevirmeden önce / süre bitince açıklama kartı (fiyat yok, "Spotlight markalar tüm profilleri görür").
+    Profil sayfası (web + mobil detay): ücretsiz marka yalnızca çarktaki ya da teklif / iş birliği / sohbet / ilan başvurusu ilişkisi olan profili açar,
+    diğerlerinde aynı kart; engellenen ziyaret görüntülenme sayılmaz) Ücretsiz marka tüm listeyi görüyordu.
+  - ✅ ~~**3.17-N3 [ÖZELLİK]**~~ (2026-10-10, teklif sınırı: `createOfferAs` (web + mobil) gün / takvim ayı sayar, net Türkçe hata ve kalan hak;
+    teklif penceresinde ve mobil formda "Bu ay X teklif hakkın kaldı (bugün Y)". Çark açıkken ücretsiz marka teklifi yalnızca açabildiği profile (çark / önceki ilişki) gönderebilir. DB yedeği `enforce_brand_offer_limits` tetikleyicisi (istemci oturumu)) Teklif sınırı yoktu.
+  - ✅ ~~**3.17-N4 [ÖZELLİK]**~~ (2026-10-10, aktif ilan sınırı: `saveAdvertAs` yeni ilanda ve kapalı/duraklatılmış ilanı açarken, `updateAdvertStatusAs`
+    yeniden açarken kontrol eder; DB yedeği `enforce_brand_advert_limits`. Bayrak açıldığında sınırın üstünde açık ilanı olan marka mevcut ilanlarını korur,
+    yalnızca yenisini açamaz) Aktif ilan sınırı yoktu.
+  - ✅ ~~**3.17-S1 [DÜŞÜK]**~~ (2026-10-10, yeni bulgu) Mobil marka ana sayfasındaki öneri kartlarında sabit "%94 Uyumlu" / "Eşleşme oranını gör" yazısı
+    (gerçek hesap yoktu) kaldırıldı.
+- **Sorunlar / notlar:**
+  - **3.17-S2 [ORTA]** (yeni bulgu, bayrak açılmadan önce karar) `users` ve `social_accounts` tabloları her oturumlu kullanıcıya okunur (RLS `true`);
+    çark web/mobil arayüzde ve sunucu sayfalarında uygulanır, ama teknik bilgisi olan ücretsiz marka Supabase istemcisiyle tüm profilleri doğrudan
+    sorgulayabilir. Tam koruma için marka rolüne `users`/`social_accounts` okumasının daraltılması (riskli politika değişikliği, mobil ekranlar
+    doğrudan okuyor) ya da profil verisinin sunucu uçlarına taşınması gerekir.
+  - **3.17-S3 [DÜŞÜK]** (yeni bulgu) Favoriler / listeler sayfaları ve web marka ana sayfasındaki "son favoriler" ücretsiz markada da kaydedilmiş
+    profillerin kartlarını gösterir (profil sayfası çark kuralıyla kapalı). Karar: favoriler çark dışında kalsın mı?
+  - **3.17-S4 [DÜŞÜK]** (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
+    isteklerde bir fazla geçebilir. Bugünkü kullanıcı sayısında sorun değil.
+  - **3.17-S5 [DÜŞÜK]** Fiyat kartı (3.14-N1) ve ilan alarmının anlık sürümü (3.15-S1) ücretsiz/ücretli ayrımına henüz bağlanmadı; satış başlarken kararla.
 
 ---
 
@@ -935,7 +973,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı).
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı).
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).
