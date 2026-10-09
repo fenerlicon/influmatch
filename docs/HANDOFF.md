@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-10. `main` canlı (PR #48–#55 dahil). Yol haritası adım 3 `claude/free-brand-limits` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -42,8 +42,15 @@
   marka keşifte (web + mobil) yalnızca çarktaki profilleri görür, profil sayfası çark/ilişki dışında kapalı; teklif ve ilan sınırları `lib/offers.ts`,
   `lib/adverts.ts` ve DB tetikleyicileriyle. **Bayrak KAPALI; satış (POS) başlayınca admin açar.** Açmadan önce 3.17-S2 (users tablosu tüm oturumlara
   okunur) ve 3.17-S3 (favoriler) kararı verilmeli. Tablolar canlıda (`20261010000020`), rollback'li denemeyle doğrulandı.
+- **Yol haritası özellik 2 (`claude/collab-workspace`, SYSTEM_MAP 3.18):** iş birliği detay sayfası `/dashboard/collaborations/[id]` (web) ve mobil
+  `CollaborationDetail` ekranı (`/api/mobile/collaborations/[id]`), ortak kod `lib/collaboration-workspace.ts`. Anlaşma özeti (teslimatlar, ücret + nakit/barter,
+  teslim tarihleri, kullanım hakkı, revize sayısı; bir taraf yazar, diğeri onaylar, değişiklik onayları sıfırlar; hukuki metin yok), teslimat takibi (taslak linki,
+  revize sayacı "X / Y", teslimat başına yayın linki; hepsi yayınlanınca iş birliği `published` → mevcut 7 gün kuralı), ödeme teyidi (marka "Ödeme yapıldı",
+  influencer "Ödeme alındı"), tamamlanmadan 14 gün sonra "Ödeme alamadım" → `support_tickets` (Ödeme Sorunu / Acil, admin `/admin/support`) + markaya bildirim.
+  Marka güvenilirliği "X iş birliği, Y ödeme teyitli" marka profilinde, iş birliği detayında ve mobil teklif detayında. Tablolar canlıda (`20261010000040`),
+  rollback'li RLS denemesiyle doğrulandı. **Teslim kilidi R2 ile Kasım'da** (`collaboration_submissions.file_key/file_locked` hazır). Karar bekleyen: 3.18-S1 (UGC teslimatında yayın linki).
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…40` (iş birliği takip alanı) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -181,7 +188,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   - `storage.objects` üzerinde politika oluşturma, silme ve yeniden adlandırma yetkisi yok ("must be owner"). ALTER POLICY ... WITH CHECK/USING ise çalışıyor.
   - DROP POLICY gerekirse kullanıcıya SQL olarak ver.
 - **Realtime yayını:**
-  - Yayındaki tablolar: messages, offers, advert_applications, rooms, dismissed_offers, notifications, support_tickets, message_reports, user_badges, collaborations.
+  - Yayındaki tablolar: messages, offers, advert_applications, rooms, dismissed_offers, notifications, support_tickets, message_reports, user_badges, collaborations,
+    collaboration_agreements, collaboration_deliverables, collaboration_payments.
   - `users` bilerek dışarıda (gizli kolonlar var).
 - **`users` gizli kolonları:** tax_id gibi kolonlar istemci rolüne okunamaz. Bu yüzden onboarding upsert yerine ayrı update/insert yapıyor. Gizli alanları sunucu, admin istemcisiyle yazar.
 - **Okunmamış mesaj sayısı:** `components/dashboard/useUnreadMessageCount.ts` içinde tek kanaldan izleniyor. Okundu bilgisi `room_reads`
@@ -192,7 +200,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
-  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/offer-templates.ts`, `lib/advert-alerts.ts`, `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`, `lib/onboarding.ts`.
+  Aynı desende: `lib/collaborations.ts` ve `lib/collaboration-workspace.ts` (yazımlar service role, taraf kontrolü kodda), `lib/offer-templates.ts`, `lib/advert-alerts.ts`, `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`, `lib/onboarding.ts`.
 - **Platform ayarları / bayraklar:** `platform_settings` (anahtar/değer) yalnızca service role; okuma `lib/platform-settings.ts` (hata olursa
   varsayılan = bayrak kapalı). Sınır kuralı iki yerde: `lib/brand-limits.ts` ve DB `brand_limit_for()` + tetikleyiciler; ikisi birlikte değişir.
   Tetikleyici `CREATE OR REPLACE TRIGGER` ile (DROP gerekmez).
