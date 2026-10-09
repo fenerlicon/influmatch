@@ -86,6 +86,7 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
     Spotlight markalar herkesi görür.
   - **Teklif:** ücretsiz markada **günde 3, ayda 15**. Spotlight Basic daha yüksek, Pro sınırsız (değerler paket içeriğiyle).
   - **İlan:** ücretsiz markada **1 aktif ilan**. Spotlight'ta daha fazla.
+  - **Favoriler ve listeler (Inflist):** ücretsiz markada yok, yalnızca Spotlight (Basic/Pro). Kayıtlı olanlar silinmez, Spotlight ile geri gelir.
 - **Teklif şablonu:** marka bir teklifi şablon olarak kaydeder / son teklifini kopyalayıp başka influencer'a gönderir.
 - **Kaydedilen ilanlar + ilan alarmı:** influencer ilanı kaydeder; kategori/bütçe/platform alarmı kurar, yeni uygun ilan çıkınca
   bildirim (+ e-posta tercihine göre).
@@ -105,7 +106,7 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 ### Güncel iş sırası (Aralık sonuna kadar)
 1. ✅ İş birliği akışı + fiyat kartı (PR #51)
 2. Cevapsız teklif süresi, teklif şablonu, kaydedilen ilanlar + ilan alarmı
-3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır)
+3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır); aynı bayrakla ücretsiz markada favori ve liste yok, yalnızca Spotlight (3.17-N5)
 4. İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + teslim kilidi (R2'ye bağlı)
 5. Akademi + R2 "Drive" (Kasım)
 6. UGC portföyü + sonuç raporu

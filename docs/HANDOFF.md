@@ -41,14 +41,17 @@
   ücretsiz teklif günde 3 / ayda 15, 1 aktif ilan; Basic değerleri boş (= sınırsız, kullanıcı kararı bekliyor), Pro sınırsız. Bayrak açılınca ücretsiz
   marka keşifte (web + mobil) yalnızca çarktaki profilleri görür, profil sayfası çark/ilişki dışında kapalı; teklif ve ilan sınırları `lib/offers.ts`,
   `lib/adverts.ts` ve DB tetikleyicileriyle. **Bayrak KAPALI; satış (POS) başlayınca admin açar.** Açmadan önce 3.17-S2 (users tablosu tüm oturumlara
-  okunur) ve 3.17-S3 (favoriler) kararı verilmeli. Tablolar canlıda (`20261010000020`), rollback'li denemeyle doğrulandı.
+  okunur) kararı verilmeli. Tablolar canlıda (`20261010000020`), rollback'li denemeyle doğrulandı.
+- **`claude/free-brand-favorites` (SYSTEM_MAP 3.17-N5, 3.13-N5):** aynı bayrakla ücretsiz markada favori ve liste (Inflist) kilitli, yalnızca Spotlight
+  Basic/Pro. Ortak `lib/favorites.ts`; mobil favori yazımı `/api/mobile/favorites` ucuna taşındı. Kayıtlar silinmez, gizlenir; Spotlight ile geri gelir.
+  DB yedeği `enforce_brand_favorites_lock` tetikleyicileri (`20261010000030`, canlıda, rollback'li denemeyle doğrulandı). Bayrak hâlâ KAPALI.
 - **3.17-S2 (`claude/profile-reads-server`, PR açılmadı):** başka kullanıcıların profil verisi yalnızca sunucudan (`lib/profile-reads.ts`, service role +
   onay/çark kuralı); mobilde `/api/mobile/discover`, `/api/mobile/profiles/[id]`, `GET /api/mobile/adverts`, `/api/mobile/check-username`.
   İlişkili taraflar için `public.my_related_user_ids()` canlıda (`20261010000050`). **Yayın sonrası adım (bekliyor):** bu dal birleşip Vercel
   üretimi READY olduktan sonra `supabase/migrations/20261010000051_narrow_profile_reads.sql` (iki ALTER POLICY) canlıya uygulanır, ardından
   `pg_policies` ile doğrulanır; o zaman SYSTEM_MAP 3.17-S2 ✅. Önce uygulanırsa eski kodda keşif/profil listeleri boş gelir.
 - **Canlı SQL:** 3.17-S2 daraltması yayın sonrası bekliyor (yukarıda); başka bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…50` (`my_related_user_ids`) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -61,7 +64,7 @@
    FCM kimlik bilgisi. Bunlar olmadan cihaz push token alamaz; kod hazır. `npx expo install --check` ile paketler kurulmalı.
 2. **Uygulama adı kararı verildi (2026-10-10):** "Influmatch", paket kimliği `net.influmatch.app`; `mobile-app/app.json`'a yazıldı
    (slug `influmatch`). `eas init` bu ayarlardan sonra çalıştırılmalı.
-3. **Mobil onboarding** web koduna taşındı (10.3-S23, 2026-10-10). Mobilde doğrudan tabloya yazan yalnızca favoriler (RLS'li).
+3. **Mobil onboarding** web koduna taşındı (10.3-S23, 2026-10-10). Favoriler de `/api/mobile/favorites` ucunda (3.17-N5).
 4. **8.7-S1:** rocketapi.io anahtarının panelden iptali kullanıcıda; iptal edilince ✅.
 5. **OAuth (karar 2026-10-10): mağaza yayınından sonra** açılacak: 2.3-S2, 2.3-S3, 2.3-S4 ve 3.13 kod/OAuth ayrımı.
 6. **Takip panosu:** artifact başka hesapta; bu hesap (hello@socialartajans.com) erişemiyor. Erişimi olan oturum

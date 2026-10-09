@@ -35,9 +35,11 @@ interface BrandDiscoverGridProps {
   minPrices?: Record<string, number>
   /** Influencer → tamamlanan iş birliği sayısı. */
   completedCounts?: Record<string, number>
+  /** Ücretsiz markada (sınırlar açıkken) favori / liste düğmeleri kilitli. */
+  favoritesLocked?: boolean
 }
 
-export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole, isSpotlightMember = false, spotlightPlan, defaultCategory, minPrices, completedCounts }: BrandDiscoverGridProps) {
+export default function BrandDiscoverGrid({ influencers, currentUserId, initialFavoritedIds = [], userRole, isSpotlightMember = false, spotlightPlan, defaultCategory, minPrices, completedCounts, favoritesLocked = false }: BrandDiscoverGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORY_OPTIONS)[number]>('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [verifiedOnly, setVerifiedOnly] = useState(false)
@@ -416,6 +418,7 @@ export default function BrandDiscoverGrid({ influencers, currentUserId, initialF
                     isSpotlightMember={isSpotlightMember}
                     startingPrice={minPrices?.[influencer.id] ?? null}
                     completedCollaborations={completedCounts?.[influencer.id] ?? 0}
+                    favoritesLocked={favoritesLocked}
                   />
                 )
               })}
