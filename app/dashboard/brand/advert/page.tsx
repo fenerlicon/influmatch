@@ -4,6 +4,7 @@ import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
 import { type AdvertApplication } from '@/components/dashboard/AdvertApplicationsList'
 import BrandAdvertTabs from '@/components/dashboard/BrandAdvertTabs'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 export const revalidate = 0
@@ -71,10 +72,20 @@ export default async function BrandAdvertPage() {
 
   let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null; verification_status: string | null; spotlight_active: boolean }>()
   if (brandUserIds.size > 0) {
-    const { data: brandUsers } = await supabase
-      .from('users')
-      .select('id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active, spotlight_expires_at')
-      .in('id', Array.from(brandUserIds))
+    // İlan sahibi kartları sunucuda okunur (başka hesapların satırları oturumla okunamaz, 3.17-S2).
+    // Kendi satırı ilanı olmasa da gerekir; o yüzden ayrıca kendi oturumuyla okunur.
+    const [ownerCards, { data: ownRow }] = await Promise.all([
+      getAdvertOwnerCards<{ id: string; full_name: string | null; avatar_url: string | null; displayed_badges: unknown; verification_status: string | null; spotlight_active: boolean | null; spotlight_expires_at: string | null }>(
+        Array.from(brandUserIds),
+        'id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active, spotlight_expires_at',
+      ),
+      supabase
+        .from('users')
+        .select('id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active, spotlight_expires_at')
+        .eq('id', user.id)
+        .maybeSingle(),
+    ])
+    const brandUsers = [...ownerCards.filter((card) => card.id !== user.id), ...(ownRow ? [ownRow] : [])]
 
     brandMap = new Map(
       brandUsers?.map((u) => [

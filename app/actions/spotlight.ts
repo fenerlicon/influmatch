@@ -5,6 +5,8 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { DiscoverInfluencer } from '@/types/influencer'
 import { syncBlueTick } from '@/lib/blue-tick'
 import { expireSpotlights } from '@/lib/spotlight-expiry'
+import { getViewerInfo, profileReader } from '@/lib/profile-reads'
+import { getWheelState } from '@/lib/discovery-wheel'
 
 const formatFollowers = (count: number) =>
     count >= 1_000_000 ? `${(count / 1_000_000).toFixed(1)}M` : count >= 1_000 ? `${(count / 1_000).toFixed(1)}K` : String(count)
@@ -22,9 +24,21 @@ type VerifiedAccount = {
  * olmayan instagram_stats alanı okunduğu için takipçi hep 0 çıkıyordu (4.4-S1).
  */
 export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{ data: DiscoverInfluencer[], error: string | null }> {
-    const supabase = createSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const sessionClient = createSupabaseServerClient()
+    const { data: { user } } = await sessionClient.auth.getUser()
     if (!user) return { data: [], error: 'Oturum açmanız gerekiyor.' }
+
+    // Başka profiller yalnızca sunucuda, keşifle aynı kurallarla okunur (3.17-S2): onaysız marka profil görmez,
+    // ücretsiz marka (sınırlar açıkken) yalnızca güncel çarktaki profilleri görür.
+    const viewer = await getViewerInfo(sessionClient, user.id)
+    if (!viewer) return { data: [], error: 'Oturum açmanız gerekiyor.' }
+    if (viewer.role === 'brand' && viewer.verification_status !== 'verified') return { data: [], error: null }
+    const wheel = viewer.role === 'brand' ? await getWheelState(user.id) : null
+    const wheelIds = wheel?.limited ? new Set(wheel.spin?.influencer_ids ?? []) : null
+    if (wheelIds && wheelIds.size === 0) return { data: [], error: null }
+
+    const supabase = profileReader(sessionClient)
+    if (!supabase) return { data: [], error: 'Benzer profiller aranırken hata oluştu' }
 
     const { data: baseUser, error: fetchError } = await supabase
         .from('users')
@@ -44,6 +58,7 @@ export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{
         .eq('spotlight_active', true)
         .limit(50)
     if (baseUser.category) query = query.eq('category', baseUser.category)
+    if (wheelIds) query = query.in('id', Array.from(wheelIds))
 
     const { data: candidates, error: searchError } = await query
     if (searchError) {
