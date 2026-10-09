@@ -12,6 +12,10 @@ import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import { Sparkles, Lock } from 'lucide-react'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { cookies } from 'next/headers'
+import FirstStepsCard from '@/components/dashboard/FirstStepsCard'
+import { getFirstStepsStatus } from '@/lib/first-steps'
+import { FIRST_STEPS_HIDDEN_COOKIE } from '@/lib/first-steps-shared'
 
 export default async function BrandDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -135,6 +139,10 @@ export default async function BrandDashboardPage() {
   // Öneriler yalnızca Spotlight markası için hesaplanır; diğerlerine sadece boş kart iskeleti gider.
   const recommendations = isSpotlight ? await getAIRecommendations(user.id, profileData.category, 4) : []
 
+  // "İlk adımlar": kullanıcı gizlediyse hiç hesaplanmaz.
+  const firstStepsHidden = cookies().get(FIRST_STEPS_HIDDEN_COOKIE)?.value === user.id
+  const firstSteps = firstStepsHidden ? null : await getFirstStepsStatus(supabase, user.id)
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#15161F] to-[#0C0D10] p-6 shadow-glow">
@@ -168,6 +176,8 @@ export default async function BrandDashboardPage() {
           </div>
         )}
       </section>
+
+      {firstSteps && !firstSteps.allDone && <FirstStepsCard userId={user.id} status={firstSteps} />}
 
       <section className="grid gap-6 lg:grid-cols-3">
         <BrandPipelineCard

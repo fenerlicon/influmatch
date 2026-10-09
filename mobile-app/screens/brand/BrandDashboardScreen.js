@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { useFocusEffect } from '@react-navigation/native';
+import FirstStepsCard from '../../components/FirstStepsCard';
 import { calculateTrustScore } from '../../utils/calculation';
 import { getThumbnailUrl } from '../../utils/image';
 
@@ -330,6 +331,8 @@ export default function BrandDashboardScreen({ navigation }) {
                     contentContainerStyle={{ paddingBottom: 100 }}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor="#D4AF37" />}
                 >
+                    <FirstStepsCard navigation={navigation} />
+
                     {/* Quick Stats */}
                     <View className="flex-row gap-3 mt-5 mb-6">
                         <StatCard icon={Briefcase} color="#D4AF37" value={stats.projects} label={'Aktif\nİlan'} />
@@ -337,12 +340,12 @@ export default function BrandDashboardScreen({ navigation }) {
                         <StatCard icon={CheckCircle2} color="#4ade80" value={stats.accepted} label={'Kabul\nEdilen'} />
                     </View>
 
-                    {/* Spotlight / AI Recommendations */}
+                    {/* Spotlight / akıllı eşleştirme önerileri */}
                     <View className="mb-10">
                         <View className="flex-row items-center justify-between mb-5 pl-1">
                             <View>
                                 <View className="flex-row items-center gap-2 mb-1.5">
-                                    <Text className="text-purple-400 text-[11px] font-extrabold tracking-widest uppercase">Spotlight AI</Text>
+                                    <Text className="text-purple-400 text-[11px] font-extrabold tracking-widest uppercase">Akıllı Eşleştirme</Text>
                                 </View>
                                 <Text className="text-white font-bold text-2xl tracking-tight">Sizin İçin Seçtiklerimiz</Text>
                             </View>
@@ -523,12 +526,12 @@ export default function BrandDashboardScreen({ navigation }) {
                         )}
                     </View>
 
-                    {/* AI Tip */}
+                    {/* İpucu */}
                     <GlassCard className="p-5 mt-4 border-purple-500/20">
                         <LinearGradient colors={['rgba(168,85,247,0.1)', 'transparent']} className="absolute inset-0" />
                         <View className="flex-row items-center gap-2 mb-2">
                             <Sparkles color="#a855f7" size={15} />
-                            <Text className="text-purple-300 font-bold text-xs tracking-widest uppercase">INFLU AI İPUCU</Text>
+                            <Text className="text-purple-300 font-bold text-xs tracking-widest uppercase">İPUCU</Text>
                         </View>
                         <Text className="text-gray-300 text-sm leading-5">
                             Bütçenizi ve teslimat beklentilerinizi ilanda açıkça belirtin. Daha kaliteli başvurular almak için kategori eşleşmesine dikkat edin.

@@ -452,6 +452,19 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.15-S3 [DÜŞÜK]** (yeni bulgu) Bir ilanın alıcıları saatlik görevin süre bütçesine sığmazsa kalanlar o ilan için atlanır (ilan önce
     "işlendi" işaretlenir; çift bildirim yerine eksik bildirim tercih edildi). Bugünkü kullanıcı sayısında sorun değil.
 
+### 3.16 İlk adımlar kontrol listesi (2026-10-10 kararı)
+- **Dosyalar:** `lib/first-steps.ts` (sunucu hesabı), `lib/first-steps-shared.ts` (tipler, çerez adı, "4 adımdan X'i tamam" metni),
+  `components/dashboard/FirstStepsCard.tsx`, `app/dashboard/{influencer,brand}/page.tsx`, `GET /api/mobile/first-steps`,
+  mobil `components/FirstStepsCard.js` (`DashboardScreen`, `BrandDashboardScreen`).
+- **Adımlar:** influencer/UGC — doğrulanmış Instagram/TikTok hesabı, profil doluluğu %100 (`utils/profileCompletion.ts`, paneldeki kartla aynı eşik),
+  fiyat kartında en az bir fiyat (`rate_cards`), en az bir ilan başvurusu. Marka — kurumsal e-posta doğrulandı (`corporate_email_verified_at`,
+  gizli kolon; sunucuda yalnızca sahibinin kendi satırı service role ile okunur), son vergi levhası kaydı reddedilmemiş (işleniyor / incelemede
+  "İnceleniyor" etiketi), en az bir ilan, en az bir gönderilmiş teklif.
+- Durum her istekte sayım sorgularıyla hesaplanır (tablo yok). Hepsi bitince kart görünmez. "Gizle": web'de `im_first_steps_hidden` çerezi
+  (değeri kullanıcı kimliği, 1 yıl), mobilde AsyncStorage `first_steps_hidden:<uid>`; gizliyken sunucu hesaplamaz.
+- **Sorunlar / notlar:**
+  - ✅ ~~**3.16-N1 [ÖZELLİK]**~~ (2026-10-10: "İlk adımlar" kartı web + mobil panellerde; ortak `lib/first-steps.ts`, `/api/mobile/first-steps`) Yeni kullanıcı için ilk adımlar kontrol listesi.
+
 ---
 
 ## 4. Ortak: rozetler, Spotlight, profil
@@ -749,6 +762,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14), teklif süresi ve ilan alarmları (3.15) |
 | `GET/POST/DELETE /api/mobile/offer-templates` · `GET/POST /api/mobile/saved-adverts` · `GET/POST/DELETE /api/mobile/advert-alerts` | Bearer JWT | teklif şablonları (marka), kaydedilen ilanlar ve alarmlar (influencer) (3.15) |
 | `GET/POST /api/mobile/collaborations` · `GET/PUT /api/mobile/rate-card` | Bearer JWT | iş birliği listesi ve işlemleri, fiyat kartı (3.14) |
+| `GET /api/mobile/first-steps` | Bearer JWT | ilk adımlar kontrol listesi durumu (3.16) |
 | `POST /api/award-badges` | admin | rozet verme (2.6-S1) |
 | `GET /api/check-username` | yok | kullanıcı adı müsaitliği (7.3-S2) |
 | `GET /api/test-welcome` | yok | 410 dönen ölü taslak |
