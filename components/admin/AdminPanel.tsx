@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle, KeyRound, Link2 } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle, KeyRound, Link2, SlidersHorizontal } from 'lucide-react'
 import { verifyUser, rejectUser, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, setBlueTickOverride, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -968,6 +968,13 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
               >
                 <KeyRound className="h-4 w-4" />
                 API Anahtarları
+              </Link>
+              <Link
+                href="/admin/limits"
+                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Marka Sınırları
               </Link>
               <Link
                 href="/admin/feedback"
