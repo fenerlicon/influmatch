@@ -3,6 +3,7 @@ import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
 import { type AdvertApplication } from '@/components/dashboard/AdvertApplicationsList'
 import InfluencerAdvertTabs from '@/components/dashboard/InfluencerAdvertTabs'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { listAdvertAlertsAs, listSavedAdvertIdsAs } from '@/lib/advert-alerts'
 
@@ -44,10 +45,11 @@ export default async function InfluencerAdvertPage() {
 
   let brandMap = new Map<string, { id: string; full_name: string | null; avatar_url: string | null; displayed_badges: string[] | null; verification_status: string | null; spotlight_active: boolean }>()
   if (brandUserIds.size > 0) {
-    const { data: brandUsers } = await supabase
-      .from('users')
-      .select('id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active, spotlight_expires_at')
-      .in('id', Array.from(brandUserIds))
+    // İlan sahibi kartları sunucuda okunur (başka hesapların satırları oturumla okunamaz, 3.17-S2).
+    const brandUsers = await getAdvertOwnerCards<{ id: string; full_name: string | null; avatar_url: string | null; displayed_badges: unknown; verification_status: string | null; spotlight_active: boolean | null; spotlight_expires_at: string | null }>(
+      Array.from(brandUserIds),
+      'id, full_name, avatar_url, displayed_badges, verification_status, spotlight_active, spotlight_expires_at',
+    )
 
     brandMap = new Map(
       brandUsers?.map((u) => [
@@ -118,10 +120,10 @@ export default async function InfluencerAdvertPage() {
     })
 
     if (brandIds.size > 0) {
-      const { data: brands } = await supabase
-        .from('users')
-        .select('id, full_name, username, avatar_url, verification_status, displayed_badges')
-        .in('id', Array.from(brandIds))
+      const brands = await getAdvertOwnerCards<{ id: string; full_name: string | null; username: string | null; avatar_url: string | null; verification_status: string | null; displayed_badges: string[] | null }>(
+        Array.from(brandIds),
+        'id, full_name, username, avatar_url, verification_status, displayed_badges',
+      )
 
       brandMapForApplications = new Map(brands?.map((b) => [b.id, b]) ?? [])
     }

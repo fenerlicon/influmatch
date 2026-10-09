@@ -5,6 +5,8 @@ import type { DiscoverInfluencer } from '@/types/influencer'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import InflistManager from '@/components/dashboard/InflistManager'
+import FavoritesLockedCard from '@/components/dashboard/FavoritesLockedCard'
+import { areFavoritesLocked } from '@/lib/favorites'
 
 export const revalidate = 0
 
@@ -23,6 +25,26 @@ export default async function BrandFavoritesPage() {
     const verificationStatus = (userData?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
     if (verificationStatus !== 'verified') {
         return <BrandLockScreen status={verificationStatus} />
+    }
+
+    const header = (
+        <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
+            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Favoriler</p>
+            <h1 className="mt-2 text-2xl font-semibold">Favoriler ve Listeler</h1>
+            <p className="mt-2 text-gray-300 max-w-2xl">
+                Favorilerinize eklediğiniz profilleri inceleyebilir, isimli listelere ayırabilirsiniz.
+            </p>
+        </header>
+    )
+
+    // Ücretsiz markada (sınırlar açıkken) favoriler ve listeler kilitli; kayıtlar silinmez, yalnızca gizlenir.
+    if (await areFavoritesLocked(user.id)) {
+        return (
+            <div className="space-y-6">
+                {header}
+                <FavoritesLockedCard />
+            </div>
+        )
     }
 
     // 1. Fetch Favorite IDs
@@ -48,13 +70,7 @@ export default async function BrandFavoritesPage() {
 
     return (
         <div className="space-y-6">
-            <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
-                <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Favoriler</p>
-                <h1 className="mt-2 text-2xl font-semibold">Favoriler ve Listeler</h1>
-                <p className="mt-2 text-gray-300 max-w-2xl">
-                    Favorilerinize eklediğiniz profilleri inceleyebilir, isimli listelere ayırabilirsiniz.
-                </p>
-            </header>
+            {header}
 
             <InflistManager initialLists={(userLists ?? []) as { id: string; name: string }[]} />
 

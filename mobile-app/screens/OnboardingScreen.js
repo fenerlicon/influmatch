@@ -89,25 +89,12 @@ export default function OnboardingScreen({ navigation }) {
         setUsernameStatus('checking');
 
         const timeoutId = setTimeout(async () => {
-            try {
-                const { data } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('username', username)
-                    .neq('id', user.id)
-                    .single();
-
-                if (data) {
-                    setUsernameStatus('taken');
-                } else {
-                    setUsernameStatus('valid');
-                }
-            } catch (err) {
-                if (err.code === 'PGRST116') {
-                    setUsernameStatus('valid');
-                } else {
-                    setUsernameStatus('idle');
-                }
+            // Başka hesapların satırları istemciden okunamaz; kontrol web sunucusunda (/api/check-username ile aynı kod).
+            const result = await apiRequest(`check-username?username=${encodeURIComponent(username)}`);
+            if (result.error || typeof result.available !== 'boolean') {
+                setUsernameStatus('idle');
+            } else {
+                setUsernameStatus(result.available ? 'valid' : 'taken');
             }
         }, 500);
 

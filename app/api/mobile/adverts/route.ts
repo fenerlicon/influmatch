@@ -1,7 +1,17 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { saveAdvertAs } from '@/lib/adverts'
+import { listOpenAdvertsWithOwners } from '@/lib/profile-reads'
 
 export const dynamic = 'force-dynamic'
+
+/** Açık ilanlar + ilan sahibi marka kartları (başka hesapların satırları istemciden okunamaz, 3.17-S2). ?limit= (en fazla 100). */
+export async function GET(request: Request) {
+  const ctx = await getBearerContext(request)
+  if (!ctx) return mobileJson({ error: 'Oturum gerekli.' }, 401)
+  const limit = Number(new URL(request.url).searchParams.get('limit')) || 40
+  const result = await listOpenAdvertsWithOwners(ctx.supabase, limit)
+  return mobileJson(result, 'error' in result ? 500 : 200)
+}
 
 /** İlan oluşturur ya da günceller (gövdede id varsa). Kurallar lib/adverts.ts. */
 export async function POST(request: Request) {

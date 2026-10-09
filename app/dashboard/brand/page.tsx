@@ -16,6 +16,7 @@ import { cookies } from 'next/headers'
 import FirstStepsCard from '@/components/dashboard/FirstStepsCard'
 import { getFirstStepsStatus } from '@/lib/first-steps'
 import { FIRST_STEPS_HIDDEN_COOKIE } from '@/lib/first-steps-shared'
+import { areFavoritesLocked } from '@/lib/favorites'
 
 export default async function BrandDashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -109,21 +110,28 @@ export default async function BrandDashboardPage() {
   const dismissedReceiverIds = new Set(dismissedOffers?.map((d) => d.receiver_user_id) ?? [])
 
 
+  // Ücretsiz markada (sınırlar açıkken) favoriler kilitli: "son eklenenler" gösterilmez (kayıtlar silinmez).
+  const favoritesLocked = await areFavoritesLocked(user.id)
+
   // Fetch All Favorite IDs for checking status
-  const { data: allFavorites } = await supabase
-    .from('favorites')
-    .select('influencer_id')
-    .eq('brand_id', user.id)
+  const { data: allFavorites } = favoritesLocked
+    ? { data: [] as { influencer_id: string }[] }
+    : await supabase
+        .from('favorites')
+        .select('influencer_id')
+        .eq('brand_id', user.id)
 
   const favoritedSet = new Set(allFavorites?.map((f: any) => f.influencer_id) ?? [])
 
   // Fetch Recent Favorites (for display)
-  const { data: recentFavs } = await supabase
-    .from('favorites')
-    .select('influencer_id')
-    .eq('brand_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(4)
+  const { data: recentFavs } = favoritesLocked
+    ? { data: [] as { influencer_id: string }[] }
+    : await supabase
+        .from('favorites')
+        .select('influencer_id')
+        .eq('brand_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(4)
 
   let favoriteInfluencers: DiscoverInfluencer[] = []
   if (recentFavs && recentFavs.length > 0) {

@@ -158,42 +158,26 @@ export default function BrandAdvertsScreen({ navigation }) {
     const fetchAllProjects = async () => {
         setLoadingAll(true);
         try {
-            // Step 1: fetch open ads with same columns as web
-            const { data: rows, error } = await supabase
-                .from('advert_projects')
-                .select('id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, platforms, deliverables, location, hero_image, deadline, status, created_at, brand_user_id')
-                .eq('status', 'open')
-                .order('created_at', { ascending: false })
-                .limit(40);
-
-            if (error) {
-                console.error('[BrandAdverts] fetchAllProjects error:', error.message);
+            // Açık ilanlar ve ilan sahibi marka kartları web sunucusundan (lib/profile-reads.ts): başka hesapların
+            // satırları istemciden okunamaz.
+            const result = await apiRequest('adverts?limit=40');
+            if (result.error) {
+                console.error('[BrandAdverts] fetchAllProjects error:', result.error);
                 setAllProjects([]);
                 return;
             }
-
-            if (!rows || rows.length === 0) {
+            const rows = result.adverts || [];
+            if (rows.length === 0) {
                 setAllProjects([]);
                 return;
-            }
-
-            // Step 2: fetch brand user info separately (same pattern as web)
-            const brandUserIds = [...new Set(rows.map(r => r.brand_user_id).filter(Boolean))];
-            let brandMap = {};
-            if (brandUserIds.length > 0) {
-                const { data: brandUsers } = await supabase
-                    .from('users')
-                    .select('id, full_name, company_legal_name, avatar_url, verification_status')
-                    .in('id', brandUserIds);
-                brandUsers?.forEach(u => { brandMap[u.id] = u; });
             }
 
             // Step 3: merge — use brand_name field first, then company_legal_name, then full_name
             const merged = rows.map(row => {
-                const brandUser = row.brand_user_id ? brandMap[row.brand_user_id] : null;
+                const brandUser = row.brand || null;
                 return {
                     ...row,
-                    brand: brandUser || null,
+                    brand: brandUser,
                     displayBrandName: row.brand_name || brandUser?.company_legal_name || brandUser?.full_name || 'Marka',
                 };
             });

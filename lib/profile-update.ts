@@ -7,6 +7,7 @@ import { isAllowedAvatarUrl } from '@/lib/avatar-url'
 import { validateInstagram, validateTikTok, validateYouTube, validateKick, validateTwitter, validateTwitch, validateLinkedIn, validateWebsite } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
 import { validateTaxNumber } from '@/lib/tax-id'
+import { isUsernameTaken } from '@/lib/profile-reads'
 
 export interface UpdateProfilePayload {
   fullName: string
@@ -77,14 +78,8 @@ export async function saveInfluencerProfile(supabase: SupabaseClient, userId: st
 
     const normalizedUsername = usernameValidation.normalized || trimmedUsername
 
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', normalizedUsername)
-      .neq('id', userId)
-      .maybeSingle()
-
-    if (existingUser) {
+    // Başka hesapların satırları oturumla okunamaz (3.17-S2); kontrol sunucuda service role ile yapılır.
+    if (await isUsernameTaken(normalizedUsername, userId)) {
       throw new Error('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
     }
 
@@ -304,14 +299,8 @@ export async function saveBrandProfile(supabase: SupabaseClient, userId: string,
 
     const normalizedUsername = usernameValidation.normalized || trimmedUsername
 
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', normalizedUsername)
-      .neq('id', userId)
-      .maybeSingle()
-
-    if (existingUser) {
+    // Başka hesapların satırları oturumla okunamaz (3.17-S2); kontrol sunucuda service role ile yapılır.
+    if (await isUsernameTaken(normalizedUsername, userId)) {
       throw new Error('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.')
     }
 

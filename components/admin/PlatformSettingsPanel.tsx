@@ -46,8 +46,8 @@ export default function PlatformSettingsPanel({ initialSettings }: { initialSett
     event.preventDefault()
     if (form.free_brand_limits_enabled !== saved.free_brand_limits_enabled) {
       const message = form.free_brand_limits_enabled
-        ? 'Ücretsiz marka sınırları ve keşif çarkı AÇILACAK. Spotlight olmayan markalar tüm profilleri göremeyecek ve teklif/ilan sınırları başlayacak. Devam edilsin mi?'
-        : 'Ücretsiz marka sınırları KAPATILACAK; bütün markalar yeniden tüm profilleri görecek. Devam edilsin mi?'
+        ? 'Ücretsiz marka sınırları ve keşif çarkı AÇILACAK. Spotlight olmayan markalar tüm profilleri göremeyecek, teklif/ilan sınırları başlayacak ve favoriler/listeler kilitlenecek. Devam edilsin mi?'
+        : 'Ücretsiz marka sınırları KAPATILACAK; bütün markalar yeniden tüm profilleri, favorilerini ve listelerini görecek. Devam edilsin mi?'
       if (!window.confirm(message)) return
     }
     startTransition(async () => {
@@ -75,7 +75,9 @@ export default function PlatformSettingsPanel({ initialSettings }: { initialSett
           <p className="mt-2 text-sm text-gray-400">
             Karar (2026-10-10): satış başlayana kadar kapalı kalır. Kapalıyken hiçbir sınır uygulanmaz, keşif bugünkü gibidir.
             Açıkken Spotlight olmayan markalar keşifte yalnızca çarktaki profilleri görür; Basic sınırları aşağıdaki değerlerle
-            (boş = sınırsız), Pro her zaman sınırsızdır. Influencer/UGC hesapları sınırlanmaz.
+            (boş = sınırsız), Pro her zaman sınırsızdır. Aynı bayrak ücretsiz markalarda favorileri ve listeleri (Inflist) de kilitler:
+            favori ekleme/çıkarma ve liste işlemleri yapılamaz, kayıtlı favoriler ve listeler silinmez, yalnızca gizlenir ve marka
+            Spotlight alınca geri gelir. Influencer/UGC hesapları sınırlanmaz.
           </p>
         </header>
 
@@ -83,7 +85,7 @@ export default function PlatformSettingsPanel({ initialSettings }: { initialSett
           <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
             <label className="flex items-center justify-between gap-4">
               <span>
-                <span className="block font-semibold">Sınırlar ve keşif çarkı</span>
+                <span className="block font-semibold">Sınırlar, keşif çarkı ve favori/liste kilidi</span>
                 <span className="block text-sm text-gray-400">
                   Şu an: {saved.free_brand_limits_enabled ? 'AÇIK' : 'KAPALI'}
                 </span>
