@@ -202,7 +202,13 @@ export default function CollaborationsScreen({ navigation }) {
                                         </TouchableOpacity>
                                     ) : null}
 
+                                    <Text className="text-gray-400 text-xs mt-1">
+                                        Anlaşma özeti: {item.agreement_state === 'confirmed' ? 'iki taraf onayladı' : item.agreement_state === 'pending' ? 'onay bekliyor' : 'hazırlanmadı'}
+                                        {item.deliverable_total > 0 ? ` · Teslimat: ${item.deliverable_published} / ${item.deliverable_total} yayınlandı` : ''}
+                                    </Text>
+
                                     <View className="flex-row flex-wrap mt-3">
+                                        <ActionButton label="Ayrıntılar ve teslimatlar" color="#D4AF37" onPress={() => navigation.navigate('CollaborationDetail', { id: item.id })} />
                                         {item.room_id
                                             ? <ActionButton label="Sohbete git" color="#e5e7eb" onPress={() => openChat(item, item.room_id)} />
                                             : item.actions.includes('open_room') && <ActionButton label="Sohbeti aç" color="#e5e7eb" disabled={busy} onPress={() => run(item, 'open_room')} />}

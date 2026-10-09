@@ -44,6 +44,7 @@ import { resolveHomeRoute } from './lib/routing';
 import MessagesScreen from './screens/MessagesScreen';
 import OffersScreen from './screens/OffersScreen';
 import CollaborationsScreen from './screens/CollaborationsScreen';
+import CollaborationDetailScreen from './screens/CollaborationDetailScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import FeedbackScreen from './screens/FeedbackScreen';
 
@@ -308,6 +309,7 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Feedback" component={FeedbackScreen} />
           <Stack.Screen name="Collaborations" component={CollaborationsScreen} />
+          <Stack.Screen name="CollaborationDetail" component={CollaborationDetailScreen} />
 
           {/* ── Brand Sub-screens ── */}
           <Stack.Screen name="BrandVerification" component={BrandVerificationScreen} />

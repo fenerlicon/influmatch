@@ -70,6 +70,8 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
    - **Revize hakkı anlaşmada belirlenir** (ör. 2); sistem sayar ve sınırı gösterir.
    - Anlaşma özeti: teslimatlar, ücret, tarihler, kullanım hakkı, revize sayısı; iki taraf uygulamada onaylar.
      **Şablon/hukuki metin avukattan** gelir; o gelene kadar yalnızca alanların özeti ve iki tarafın onay kaydı.
+   - ✅ 2026-10-10 yapıldı (SYSTEM_MAP 3.18): anlaşma özeti + onaylar, teslimat takibi (taslak linki, revize sayacı, yayın linki), ödeme teyidi,
+     "Ödeme alamadım" bildirimi, marka güvenilirliği satırı. Taslak dosyası yükleme ve teslim kilidi R2 ile (Kasım).
 3. **UGC portföyü + sonuç raporu** (Kasım sonu; R2'ye bağlı)
    - Profilde örnek videolar (R2, imzalı bağlantı). Yayın linkinden Apify ile beğeni/izlenme/yorum → markaya kampanya raporu.
 4. **Kampanya sihirbazı + müsaitlik** (Aralık başı)
@@ -107,7 +109,7 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 1. ✅ İş birliği akışı + fiyat kartı (PR #51)
 2. Cevapsız teklif süresi, teklif şablonu, kaydedilen ilanlar + ilan alarmı
 3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır); aynı bayrakla ücretsiz markada favori ve liste yok, yalnızca Spotlight (3.17-N5)
-4. İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + teslim kilidi (R2'ye bağlı)
+4. ✅ İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + marka güvenilirliği (SYSTEM_MAP 3.18, `claude/collab-workspace`). **Teslim kilidi bekliyor** (R2 ile Kasım'da; veri modeli hazır, 3.18-N4)
 5. Akademi + R2 "Drive" (Kasım)
 6. UGC portföyü + sonuç raporu
 7. Kampanya sihirbazı + müsaitlik, davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)

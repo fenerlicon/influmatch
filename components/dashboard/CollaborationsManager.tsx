@@ -213,6 +213,18 @@ export default function CollaborationsManager({ initialItems, currentUserId, rol
 
                 {item.cancel_reason && <p className="mt-2 text-xs text-gray-400">İptal gerekçesi: {item.cancel_reason}</p>}
 
+                <p className="mt-2 text-xs text-gray-400">
+                  Anlaşma özeti:{' '}
+                  <span className="text-gray-200">
+                    {item.agreement_state === 'confirmed' ? 'iki taraf onayladı' : item.agreement_state === 'pending' ? 'onay bekliyor' : 'hazırlanmadı'}
+                  </span>
+                  {item.deliverable_total > 0 && (
+                    <>
+                      {' · '}Teslimat: <span className="text-gray-200">{item.deliverable_published} / {item.deliverable_total} yayınlandı</span>
+                    </>
+                  )}
+                </p>
+
                 {item.publish_url && (
                   <a
                     href={item.publish_url}
@@ -225,6 +237,12 @@ export default function CollaborationsManager({ initialItems, currentUserId, rol
                 )}
 
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/collaborations/${item.id}`}
+                    className="rounded-xl border border-soft-gold/40 bg-soft-gold/10 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:bg-soft-gold/20"
+                  >
+                    Ayrıntılar ve teslimatlar
+                  </Link>
                   {item.room_id ? (
                     <Link
                       href={`/dashboard/messages?roomId=${item.room_id}`}

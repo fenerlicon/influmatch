@@ -2,6 +2,7 @@ import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { createOfferAs } from '@/lib/offers'
 import { fetchAccountRole } from '@/lib/viewer-role'
 import { effectiveOfferStatus } from '@/lib/offer-shared'
+import { brandReliability } from '@/lib/collaboration-workspace'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,12 +45,29 @@ export async function GET(request: Request) {
     dismissed = new Set((data ?? []).map((row) => row.offer_id as string))
   }
 
+  // Influencer'a gönderen markanın güvenilirliği (3.18): tamamlanan iş birliği ve ödeme teyitli sayısı.
+  const reliability =
+    role === 'influencer'
+      ? await brandReliability(
+          supabase,
+          list.map((o) => (o.sender as unknown as { id?: string } | null)?.id ?? '').filter(Boolean),
+        )
+      : new Map<string, { completed: number; confirmed: number }>()
+
   return mobileJson({
     role,
     offers: list
       .filter((offer) => !dismissed.has(offer.id))
       // Süresi dolan teklif (saatlik görev henüz işaretlemese de) 'expired' olarak döner.
-      .map((offer) => ({ ...offer, status: effectiveOfferStatus(offer), room_id: roomByOffer.get(offer.id) ?? null })),
+      .map((offer) => {
+        const senderId = (offer.sender as unknown as { id?: string } | null)?.id
+        return {
+          ...offer,
+          status: effectiveOfferStatus(offer),
+          room_id: roomByOffer.get(offer.id) ?? null,
+          sender_reliability: role === 'influencer' && senderId ? reliability.get(senderId) ?? { completed: 0, confirmed: 0 } : null,
+        }
+      }),
   })
 }
 

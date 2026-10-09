@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-10 (3.17-N5) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-10 (3.17-N5, 3.18) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -422,6 +422,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.14-S2 [DÜŞÜK]** (yeni bulgu) Mobil keşif bütçe filtresi fiyat kartlarını istemcide süzüyor (en fazla 1000 kart); kart sayısı büyüyünce sunucu ucuna taşınmalı.
   - **3.14-N1** Fiyat kartı bugün tüm doğrulanmış markalara açık; ücretsiz/ücretli marka ayrımı (3.13-N3/N4) gelince burada da ele alınmalı.
   - **3.14-N2** Revize hakkı, teslimat listesi, taslak onayı ve anlaşma özeti yol haritasının 2. aşamasında (ROADMAP "Buluşturmayı kolaylaştıran özellikler" 2).
+    ✅ Anlaşma özeti, teslimat takibi (taslak linki, revize sayacı, teslimat başına yayın linki) ve ödeme teyidi yapıldı (2026-10-10, bkz. 3.18).
+    **Kalan:** teslim kilidi (taslak dosyası yükleme, ödeme teyidine kadar kilitli dosya) Cloudflare R2 ile Kasım'da (3.18-N4).
 
 ### 3.15 Teklif süresi, teklif şablonu, kaydedilen ilanlar ve ilan alarmı (yol haritası adım 2, 2026-10-10)
 - **Dosyalar:** `lib/offer-shared.ts`, `lib/offers.ts` (`expireStaleOffers`, `validateOfferFields`), `lib/offer-templates.ts`,
@@ -503,7 +505,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     `20261010000030` canlıda, rollback'li denemeyle doğrulandı (bayrak kapalı: ücretsiz marka ekler; açık: ücretsiz marka reddedilir, Pro ekler). Admin
     "Marka Sınırları" metni güncellendi. Bayrak kapalıyken davranış aynı) Favoriler / listeler ücretsiz markada da açıktı.
 - **Sorunlar / notlar:**
-  - **3.17-S2 [ORTA]** (yeni bulgu; 2026-10-10 kullanıcı onayladı; **kod hazır, politika daraltma birleştirme ve yayın sonrası**) `users` ve
+  - ✅ ~~**3.17-S2 [ORTA]**~~ (yeni bulgu; 2026-10-10 kullanıcı onayladı; PR #58 birleşti, `20261010000051` daraltması yayından sonra canlıya uygulandı ve doğrulandı) `users` ve
     `social_accounts` tabloları her oturumlu kullanıcıya okunur (RLS `true`; `social_accounts` politikası `public` rolündeydi, giriş yapmadan da okunuyordu);
     teknik bilgisi olan ücretsiz marka Supabase istemcisiyle tüm profilleri sorgulayıp çarkı aşabilir, herkes tüm profilleri toplayabilir.
     **Yapılan (`claude/profile-reads-server`):** başka kullanıcıların profil verisi yalnızca sunucudan, `lib/profile-reads.ts` (service role,
@@ -521,6 +523,48 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.17-S4 [DÜŞÜK]** (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
     isteklerde bir fazla geçebilir. Bugünkü kullanıcı sayısında sorun değil.
   - **3.17-S5 [DÜŞÜK]** Fiyat kartı (3.14-N1) ve ilan alarmının anlık sürümü (3.15-S1) ücretsiz/ücretli ayrımına henüz bağlanmadı; satış başlarken kararla.
+
+### 3.18 İş birliği takip alanı, anlaşma özeti ve ödeme teyidi (yol haritası özellik 2, 2026-10-10)
+- **Dosyalar:** `lib/collaboration-workspace.ts` (okuma + bütün yazımlar), `lib/collaboration-workspace-shared.ts`, `lib/collaborations.ts`
+  (liste özeti, teslimatlı iş birliğinde tek yayın linki kapalı), `app/dashboard/collaborations/[id]/{page,actions}.ts(x)`,
+  `components/dashboard/CollaborationWorkspace.tsx`, `CollaborationsManager.tsx` ("Ayrıntılar ve teslimatlar"), `app/profile/[username]/page.tsx`
+  (marka güvenilirliği), `GET/POST /api/mobile/collaborations/[id]`, `/api/mobile/offers` (`sender_reliability`), mobil
+  `screens/CollaborationDetailScreen.js`, `CollaborationsScreen.js`, `OffersScreen.js`, `constants/collaborationWorkspace.js`, `utils/notifications.js`
+  (bildirim → detay ekranı); migration `20261010000040_collaboration_workspace.sql` (canlıda).
+- **Tablolar:** `collaboration_agreements` (iş birliği başına bir satır: ücret ₺ tam sayı, ödeme türü nakit/barter, kullanım hakkı ≤300, revize sayısı 0–10,
+  `version`, iki onay zaman damgası), `collaboration_deliverables` (tür story/reel/post/ugc_video/other, adet, not, teslim tarihi, durum, kullanılan revize,
+  son taslak, revize notu, yayın linki), `collaboration_submissions` (taslak geçmişi; `file_key` / `file_locked` R2 teslim kilidi için boş duruyor),
+  `collaboration_payments` (marka "ödeme yapıldı", influencer "ödeme alındı" tarih + not, ödeme alınamadı bildirimi + destek kaydı). Dördü de RLS'li,
+  istemcilere yalnızca SELECT ve yalnızca taraflar + admin (`is_collaboration_party()`); yazımlar service role. Güvenilirlik `brand_collaboration_reliability(uuid[])`
+  (yalnızca sayılar). Realtime: anlaşma, teslimat, ödeme. Canlıda rollback'li denemeyle doğrulandı: taraflar görür, taraf olmayan marka 0 satır, istemci
+  UPDATE/INSERT/DELETE reddedilir, anon SELECT ve RPC reddedilir.
+- **Maddeler:**
+  - ✅ ~~**3.18-N1 [ÖZELLİK]**~~ (2026-10-10, anlaşma özeti: iki taraftan biri yazar, diğeri onaylar; onaylar zaman damgasıyla. Değişiklik iki onayı sıfırlar,
+    kaydeden tarafın kaydı yeni sürümün onayı sayılır (karşı taraf yeniden onaylar); içerik aynıysa onaylar korunur. Sürüm kilidiyle eşzamanlı düzenleme reddedilir.
+    Taslağı gönderilmiş teslimat listeden çıkarılamaz, revize sayısı kullanılandan aza indirilemez. Hukuki metin yok; yalnızca "Bu özet iki tarafın uygulamada
+    onayladığı bilgileri gösterir." Düzenleme anlaşıldı / içerik hazırlanıyor aşamalarında) Anlaşma özeti ve iki tarafın onay kaydı.
+  - ✅ ~~**3.18-N2 [ÖZELLİK]**~~ (2026-10-10, teslimat takibi: bekliyor → taslak gönderildi → revize istendi → onaylandı → yayınlandı; teslimatlar anlaşma iki tarafça
+    onaylanınca başlar. Taslak http(s) link + not (dosya R2 ile); marka onaylar ya da notla revize ister; "X / Y revize kullanıldı", sınır dolunca marka revize
+    isteyemez (influencer yine yeni taslak gönderebilir). İlk taslakla iş birliği "İçerik hazırlanıyor" olur. Yayın linki teslimat başına (Instagram/TikTok/YouTube,
+    3.14 ile aynı doğrulama); hepsi yayınlanınca iş birliği `published` olur ve 7 günlük marka onayı / otomatik tamamlama işler. Teslimatlı iş birliğinde eski tek
+    "Yayın linkini gir" kapalı) Teslimat listesi, taslak onayı, revize sayacı.
+  - ✅ ~~**3.18-N3 [ÖZELLİK]**~~ (2026-10-10, ödeme teyidi: iptal dışındaki her aşamada marka "Ödeme yapıldı", influencer "Ödeme alındı" (tarih, isteğe bağlı not;
+    geri alınabilir). Marka profilinde ve influencer'ın gördüğü iş birliği/teklif detayında "X iş birliği, Y ödeme teyitli" (sunucuda sayılır). Tamamlanmadan
+    14 gün sonra teyit yoksa influencer'a "Ödeme alamadım": tek seferlik, `support_tickets`'a "Ödeme Sorunu / Acil" kaydı (admin `/admin/support` listesinde
+    görür; metinde iş birliği, marka, anlaşma ve markanın işareti), markaya bildirim. Otomatik yaptırım yok) Ödeme teyidi ve marka güvenilirliği.
+  - ✅ ~~**3.18-N5**~~ (2026-10-10) Bildirimler (`lib/notify.ts`): anlaşma özeti hazırlandı / değişti / onaylandı, taslak gönderildi, revize istendi, taslak onaylandı,
+    teslimat yayınlandı, ödeme işaretlendi, ödeme alınamadı. E-posta: özet hazırlandı/değişti, taslak, revize, ödeme alınamadı ("Teklif bildirimleri" tercihi);
+    diğerleri site içi + push. İş birliği bildirimleri artık detay sayfasına (`/dashboard/collaborations/<id>`) gider, mobilde detay ekranı açılır.
+- **Sorunlar / notlar:**
+  - **3.18-N4** Teslim kilidi (taslak dosyası yükleme; marka ödeme teyidine kadar orijinal dosyayı indiremez) Cloudflare R2 ile Kasım'da. Veri modeli hazır:
+    `collaboration_submissions.file_key`, `file_locked` (kontrol kısıtı url veya file_key ister).
+  - **3.18-S1 [DÜŞÜK]** (yeni bulgu, karar) UGC video teslimatı da yayın linki istiyor (Instagram/TikTok/YouTube); marka içeriği kendi hesabında yayınlıyorsa influencer
+    markanın gönderi linkini girmeli. UGC için "onaylandı = teslim edildi" ayrımı istenirse kararla eklenir.
+  - **3.18-S2 [DÜŞÜK]** (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
+    kalır. Bugün yeniden açma yalnızca başvuruda ve nadir; gerekirse yeniden açılışta sıfırlanır.
+  - **3.18-S3 [DÜŞÜK]** (yeni bulgu) Anlaşma kaydı ile teslimat değişiklikleri tek veritabanı işleminde değil (sürüm kilidi var; teslimat yazımı arada hata verirse liste
+    kısmen güncellenebilir, aynı form tekrar kaydedilince düzelir). Gerekirse service role RPC'sine taşınır.
+  - **3.18-S4 [DÜŞÜK]** (yeni bulgu) Web teklif listesinde (influencer) marka güvenilirliği satırı yok; marka profili ve iş birliği detayında var, mobilde teklif detayında var.
 
 ---
 
@@ -730,6 +774,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `corporate_email_verifications` | bekleyen e-posta kodları (hash) | yalnızca service role |
 | `collaborations` | teklif/başvuru kabulünden doğan iş birliği (3.14) | taraflar ve admin okur; yazma yalnızca sunucu |
 | `rate_cards` | influencer fiyat kartı (3.14) | sahibi, doğrulanmış marka ve admin okur; yazma yalnızca sunucu |
+| `collaboration_agreements` / `collaboration_deliverables` / `collaboration_submissions` / `collaboration_payments` | anlaşma özeti, teslimatlar, taslak geçmişi, ödeme teyidi (3.18) | taraflar ve admin okur; yazma yalnızca sunucu |
 | `offer_templates` | marka teklif şablonları (3.15) | sahibi okur; yazma yalnızca sunucu |
 | `saved_adverts` / `advert_alerts` | kaydedilen ilanlar, ilan alarmları (3.15) | sahibi okur; yazma yalnızca sunucu |
 | `advert_alert_runs` | alarm eşleştirmesi yapılan ilanlar (3.15) | yalnızca service role |
@@ -819,6 +864,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14), teklif süresi ve ilan alarmları (3.15) |
 | `GET/POST/DELETE /api/mobile/offer-templates` · `GET/POST /api/mobile/saved-adverts` · `GET/POST/DELETE /api/mobile/advert-alerts` | Bearer JWT | teklif şablonları (marka), kaydedilen ilanlar ve alarmlar (influencer) (3.15) |
 | `GET/POST /api/mobile/collaborations` · `GET/PUT /api/mobile/rate-card` | Bearer JWT | iş birliği listesi ve işlemleri, fiyat kartı (3.14) |
+| `GET/POST /api/mobile/collaborations/[id]` | Bearer JWT | takip alanı: anlaşma özeti, teslimatlar, ödeme teyidi (3.18) |
 | `GET /api/mobile/first-steps` | Bearer JWT | ilk adımlar kontrol listesi durumu (3.16) |
 | `POST /api/award-badges` | admin | rozet verme (2.6-S1) |
 | `GET /api/check-username` | yok | kullanıcı adı müsaitliği (7.3-S2) |
@@ -992,7 +1038,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı). `20261010000030` favori/liste kilidi: `brand_favorites_locked`, `enforce_brand_favorites_lock` tetikleyicileri, anon yazma yetkileri geri alındı (3.17-N5; execute_sql ile, rollback'li denemeyle doğrulandı). `20261010000050` `my_related_user_ids()` (3.17-S2; 2026-10-10, execute_sql ile, yetki doğrulandı). `20261010000051` users/social_accounts SELECT daraltması **yayın sonrası** uygulanacak (rollback'li denemede doğrulandı).
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı). `20261010000030` favori/liste kilidi: `brand_favorites_locked`, `enforce_brand_favorites_lock` tetikleyicileri, anon yazma yetkileri geri alındı (3.17-N5; execute_sql ile, rollback'li denemeyle doğrulandı). `20261010000050` `my_related_user_ids()` (3.17-S2; 2026-10-10, execute_sql ile, yetki doğrulandı). `20261010000051` users/social_accounts SELECT daraltması (3.17-S2; PR #58 yayına girdikten sonra 2026-10-10'da uygulandı, `pg_policies` ile doğrulandı). `20261010000040` iş birliği takip alanı: dört tablo, `is_collaboration_party`, `brand_collaboration_reliability`, realtime (3.18; 2026-10-10, execute_sql ile parça parça, her tablo RLS + REVOKE ile aynı çağrıda; rollback'li denemeyle doğrulandı).
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).
