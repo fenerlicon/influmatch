@@ -57,7 +57,7 @@ export default function EmailNotificationSettings({
     {
       key: 'advert_applications',
       label: 'İlan Başvuruları',
-      description: 'İlan başvurularınız ve durum güncellemeleri',
+      description: 'İlan başvurularınız, durum güncellemeleri ve ilan alarmları',
       icon: <Mail className="h-4 w-4" />,
     },
     {

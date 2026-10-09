@@ -7,6 +7,7 @@ import OfferActionButtons from '@/components/dashboard/OfferActionButtons'
 import { dismissOffer } from '@/app/dashboard/influencer/offers/dismiss/actions'
 import { X, BadgeCheck } from 'lucide-react'
 import { countUnreadInRoom } from '@/lib/unread-messages'
+import { OFFER_EXPIRY_DAYS, effectiveOfferStatus } from '@/lib/offer-shared'
 
 export interface OfferListItem {
   id: string
@@ -41,13 +42,17 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Cevap bekleniyor',
   accepted: 'Kabul edildi',
   rejected: 'Reddedildi',
+  expired: 'Süresi doldu',
 }
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'text-yellow-200 border-yellow-400/60 bg-yellow-400/10',
   accepted: 'text-emerald-200 border-emerald-400/60 bg-emerald-400/10',
   rejected: 'text-red-200 border-red-400/60 bg-red-400/10',
+  expired: 'text-gray-300 border-white/20 bg-white/5',
 }
+
+type StatusFilter = 'all' | 'pending' | 'accepted' | 'rejected' | 'expired'
 
 const formatBudget = (value: number | null) => {
   if (value === null || value === undefined) return 'Belirlenmedi'
@@ -62,7 +67,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   const supabase = useSupabaseClient()
   const [offers, setOffers] = useState<OfferListItem[]>(initialOffers)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(initialOffers[0]?.id ?? null)
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map())
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(dismissedOfferIds)
   // Marka e-postası sadece kabul edilmiş tekliflerde, DB fonksiyonu üzerinden alınır.
@@ -81,11 +86,13 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     })
   }, [initialOffers, dismissedIds])
 
-  const filterOptions: Array<{ value: 'all' | 'pending' | 'accepted' | 'rejected'; label: string }> = [
+  // "Tümü" süresi dolan teklifleri göstermez; onlar ayrı filtrede.
+  const filterOptions: Array<{ value: StatusFilter; label: string }> = [
     { value: 'all', label: 'Tümü' },
     { value: 'pending', label: 'Bekleyen' },
     { value: 'accepted', label: 'Kabul edilen' },
     { value: 'rejected', label: 'Reddedilen' },
+    { value: 'expired', label: 'Süresi dolan' },
   ]
 
   const fetchOfferById = useCallback(
@@ -241,8 +248,8 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   const filteredOffers = useMemo(() => {
     // Offers state should already be filtered, but double-check
     const notDismissed = offers.filter((offer) => !dismissedIds.has(offer.id))
-    if (statusFilter === 'all') return notDismissed
-    return notDismissed.filter((offer) => offer.status === statusFilter)
+    if (statusFilter === 'all') return notDismissed.filter((offer) => effectiveOfferStatus(offer) !== 'expired')
+    return notDismissed.filter((offer) => effectiveOfferStatus(offer) === statusFilter)
   }, [offers, statusFilter, dismissedIds])
 
   useEffect(() => {
@@ -475,10 +482,10 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               </div>
             </div>
             <span
-              className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[offer.status] ?? 'border-white/15 text-gray-400'
+              className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[effectiveOfferStatus(offer)] ?? 'border-white/15 text-gray-400'
                 }`}
             >
-              {STATUS_LABELS[offer.status] ?? offer.status}
+              {STATUS_LABELS[effectiveOfferStatus(offer)] ?? offer.status}
             </span>
           </div>
           <p className="mt-3 text-xs text-gray-400">
@@ -541,17 +548,21 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
 
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <span
-              className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[selectedOffer.status] ?? 'border-white/20 text-gray-300'
+              className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[effectiveOfferStatus(selectedOffer)] ?? 'border-white/20 text-gray-300'
                 }`}
             >
-              {STATUS_LABELS[selectedOffer.status] ?? selectedOffer.status}
+              {STATUS_LABELS[effectiveOfferStatus(selectedOffer)] ?? selectedOffer.status}
             </span>
 
-            {selectedOffer.status === 'pending' ? (
+            {effectiveOfferStatus(selectedOffer) === 'expired' ? (
+              <span className="text-xs text-gray-400">{OFFER_EXPIRY_DAYS} gün içinde yanıtlanmadığı için artık yanıtlanamaz.</span>
+            ) : null}
+
+            {effectiveOfferStatus(selectedOffer) === 'pending' ? (
               <OfferActionButtons offerId={selectedOffer.id} onStatusChange={handleStatusChange} />
             ) : null}
 
-            {(selectedOffer.status === 'accepted' || (selectedOffer.status === 'pending' && selectedOffer.room_id)) ? (
+            {(selectedOffer.status === 'accepted' || (effectiveOfferStatus(selectedOffer) === 'pending' && selectedOffer.room_id)) ? (
               <button
                 type="button"
                 onClick={(e) => handleOpenChat(selectedOffer, e)}

@@ -3,6 +3,7 @@
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { effectiveOfferStatus } from '@/lib/offer-shared'
 
 interface OfferActivityItem {
   id: string
@@ -25,12 +26,14 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Cevap bekleniyor',
   accepted: 'Kabul edildi',
   rejected: 'Reddedildi',
+  expired: 'Süresi doldu',
 }
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'text-gray-400',
   accepted: 'text-emerald-200',
   rejected: 'text-red-200',
+  expired: 'text-gray-500',
 }
 
 const formatBudget = (value: number | null) => {
@@ -194,8 +197,8 @@ export default function OfferActivityCard({ userId, initialOffers, dismissedOffe
         id: offer.id,
         title: offer.campaign_name ?? 'İsimsiz kampanya',
         brand: offer.sender?.full_name ?? 'Marka',
-        status: STATUS_LABELS[offer.status] ?? offer.status,
-        statusStyle: STATUS_STYLES[offer.status] ?? 'text-gray-400',
+        status: STATUS_LABELS[effectiveOfferStatus(offer)] ?? offer.status,
+        statusStyle: STATUS_STYLES[effectiveOfferStatus(offer)] ?? 'text-gray-400',
         budget: formatBudget(offer.budget),
       }))
   }, [dismissedIds, offers])

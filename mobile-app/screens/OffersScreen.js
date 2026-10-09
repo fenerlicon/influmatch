@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Modal, ActivityIndicat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, X, MessageCircle, CheckCircle2, XCircle, Clock, Handshake } from 'lucide-react-native';
+import { Mail, X, MessageCircle, CheckCircle2, XCircle, Clock, Handshake, TimerOff } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiRequest } from '../lib/api';
 
@@ -14,6 +14,8 @@ const STATUS = {
     pending: { label: 'Beklemede', color: '#fbbf24', Icon: Clock },
     accepted: { label: 'Kabul edildi', color: '#34d399', Icon: CheckCircle2 },
     rejected: { label: 'Reddedildi', color: '#f87171', Icon: XCircle },
+    // 7 gün yanıtlanmayan teklif (sunucu 'expired' döner; kabul edilemez).
+    expired: { label: 'Süresi doldu', color: '#9ca3af', Icon: TimerOff },
 };
 
 const formatBudget = (value) =>
@@ -52,6 +54,7 @@ export default function OffersScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [selected, setSelected] = useState(null);
     const [busy, setBusy] = useState(null);
+    const [showExpired, setShowExpired] = useState(false);
 
     const load = useCallback(async () => {
         const result = await apiRequest('offers');
@@ -112,6 +115,9 @@ export default function OffersScreen({ navigation }) {
     }
 
     const pending = offers.filter((o) => o.status === 'pending').length;
+    // Influencer: süresi dolan teklifler işlem listesinden çıkar, isteğe bağlı gösterilir.
+    const expiredCount = role === 'influencer' ? offers.filter((o) => o.status === 'expired').length : 0;
+    const visibleOffers = role === 'influencer' && !showExpired ? offers.filter((o) => o.status !== 'expired') : offers;
 
     return (
         <View className="flex-1 bg-[#020617]">
@@ -139,7 +145,7 @@ export default function OffersScreen({ navigation }) {
                     )}
                 </View>
 
-                {offers.length === 0 ? (
+                {visibleOffers.length === 0 && expiredCount === 0 ? (
                     <View className="flex-1 items-center justify-center px-8">
                         <View className="w-16 h-16 bg-white/5 rounded-full items-center justify-center mb-4 border border-white/10">
                             <Mail color="#4b5563" size={28} />
@@ -157,7 +163,7 @@ export default function OffersScreen({ navigation }) {
                         contentContainerStyle={{ paddingBottom: 100 }}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor="#D4AF37" />}
                     >
-                        {offers.map((offer) => {
+                        {visibleOffers.map((offer) => {
                             const person = counterpart(offer);
                             return (
                                 <GlassCard key={offer.id} className="p-4 mb-3" onPress={() => setSelected(offer)}>
@@ -180,6 +186,13 @@ export default function OffersScreen({ navigation }) {
                                 </GlassCard>
                             );
                         })}
+                        {expiredCount > 0 && (
+                            <TouchableOpacity onPress={() => setShowExpired((v) => !v)} className="py-3 items-center">
+                                <Text className="text-gray-400 text-xs font-semibold">
+                                    {showExpired ? 'Süresi dolan teklifleri gizle' : `Süresi dolan teklifleri göster (${expiredCount})`}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </ScrollView>
                 )}
             </SafeAreaView>
@@ -213,6 +226,14 @@ export default function OffersScreen({ navigation }) {
                             {selected.message ? (
                                 <Text className="text-gray-300 text-sm leading-5 mt-4">{selected.message}</Text>
                             ) : null}
+
+                            {selected.status === 'expired' && (
+                                <Text className="text-gray-400 text-xs mt-4">
+                                    {role === 'brand'
+                                        ? 'Teklif 7 gün içinde yanıtlanmadığı için süresi doldu. Başka bir influencer\'a gönderebilirsiniz.'
+                                        : 'Bu teklif 7 gün içinde yanıtlanmadığı için artık yanıtlanamaz.'}
+                                </Text>
+                            )}
 
                             {role === 'influencer' && selected.status === 'pending' && (
                                 <View className="mt-6 gap-3">
