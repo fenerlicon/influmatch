@@ -141,15 +141,15 @@ export default function BrandVerificationScreen({ navigation }) {
         doSave();
     };
 
+    // Kovaya doğrudan yükleme kapalı: sunucu günlük sınırı kontrol edip imzalı yükleme adresi verir (web ile aynı).
     const uploadTaxDocument = async (bytes, extension, contentType) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Oturumunuz bulunamadı.');
-        const path = `${user.id}/${Date.now()}.${extension}`;
+        const upload = await apiRequest('brand-verification', { method: 'POST', body: { action: 'upload-url', extension } });
+        if (upload.error || !upload.path || !upload.token) throw new Error(upload.error || 'Belge yüklenemedi. Lütfen tekrar deneyin.');
         const { error: uploadError } = await supabase.storage
             .from('tax-documents')
-            .upload(path, bytes, { contentType, upsert: false });
+            .uploadToSignedUrl(upload.path, upload.token, bytes, { contentType });
         if (uploadError) throw new Error('Belge yüklenemedi. Lütfen tekrar deneyin.');
-        await run('tax', { action: 'tax', filePath: path });
+        await run('tax', { action: 'tax', filePath: upload.path });
     };
 
     const pickPdf = async () => {

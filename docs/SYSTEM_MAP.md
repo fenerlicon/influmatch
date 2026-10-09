@@ -159,7 +159,9 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 
 ### 1.12 Yasal sayfalar
 - **Dosya:** `app/legal/page.tsx` (KVKK, şartlar, çerezler — inline JSX)
-- **Sorunlar:** ✅ ~~**1.12-S1 [ORTA]**~~ (footer linki `/legal?tab=privacy`; KVKK metni içeriği ayrı iş) Footer `/legal/privacy`'e bağlanıyor, böyle bir rota yok. Metin `lib/legal-constants.ts` ile ikiye bölünmüş; KVKK metni ince.
+- **Sorunlar:**
+  - ✅ ~~**1.12-S1 [ORTA]**~~ (footer linki `/legal?tab=privacy`; KVKK metni içeriği ayrı iş) Footer `/legal/privacy`'e bağlanıyor, böyle bir rota yok. Metin `lib/legal-constants.ts` ile ikiye bölünmüş; KVKK metni ince.
+  - ✅ ~~**1.12-S2 [ORTA]**~~ (2026-10-10, kullanıcı kararı "şimdi ekle": kök layout'ta `components/consent/CookieConsent.tsx` — "Yalnızca zorunlu" / "Tümünü kabul et" + `/legal?tab=cookies` bağlantısı; tercih `im_cookie_consent` birinci taraf çerezinde 12 ay. Sitede zorunlu olmayan tek araç Vercel Speed Insights; artık yalnızca "Tümünü kabul et" sonrası yükleniyor. Banner metni ve çerez politikası **avukat onayından geçmeli**; çerez politikasındaki "Google Analytics" / "pazarlama çerezleri" ifadeleri sitede kullanılmayan araçları anıyor, avukat metniyle düzeltilmeli. Tercihi sonradan değiştirme bağlantısı yok (çerez silinince banner yeniden çıkar)) Çerez tercihi alınmıyordu; Speed Insights onaysız yükleniyordu.
 
 ---
 
@@ -356,7 +358,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **İş:** PDF yerelde `unpdf` ile okunur (dış servis yok), profil ile karşılaştırılır (VKN/TCKN, unvan, vergi dairesi, il, yıl, üretici).
   `TAX_AUTO_APPROVE=true` değilse her kayıt admin onayına düşer. Görsel/taramalar her zaman incelemeye gider.
 - **Tablolar:** `tax_verifications`, özel `tax-documents` bucket'ı.
-- **Sorunlar:** **3.10-S1 [DÜŞÜK]** (düşük risk: yalnızca kendi klasörü, 5 MB, PDF/görsel; sahipsiz dosya temizliği 8.9-N1 Drive yapısıyla birlikte) Günlük 5 sınırı `tax_verifications` satırlarını sayıyor; aksiyon çağrılmadan bucket'a doğrudan yükleme sınırsız (yalnızca kendi klasörü, 5 MB).
+- **Sorunlar:** ✅ ~~**3.10-S1 [DÜŞÜK]**~~ (2026-10-10: yükleme yalnızca sunucunun verdiği imzalı adresle — web `requestTaxUploadUrl`, mobil `/api/mobile/brand-verification` `action: 'upload-url'`, ortak `createTaxUploadUrlAs` (`lib/brand-verification.ts`). Adres verilmeden önce ön koşullar ve günlük sınır kontrol edilir; sınır artık son 24 saatte kovaya yüklenen dosyaları da sayar. Depolama INSERT politikası `WITH CHECK (false)` ile kapatılıyor: `20261010000003_tax_upload_signed_only.sql` = `supabase/manual/2026-10-10_vergi_yukleme.sql`, PR #53 yayına (READY) girdikten sonra 2026-10-10'da canlıya uygulandı ve `pg_policies` ile doğrulandı. Belge dış servise gitmez. Sahipsiz dosya temizliği 8.9-N1 ile) Günlük 5 sınırı `tax_verifications` satırlarını sayıyor; aksiyon çağrılmadan bucket'a doğrudan yükleme sınırsız (yalnızca kendi klasörü, 5 MB).
 
 ### 3.11 Kurumsal e-posta ve Resmi İşletme (sarı tik)
 - **Dosyalar:** `lib/corporate-email.ts`, `lib/corporate-email-verification.ts`, `lib/official-business.ts`,
@@ -528,7 +530,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.3-S1 [YÜKSEK]**~~ (`message_reads` tablosu canlıda yok, rozetler hep 0 çıkıyordu; sayım `last_read_<roomId>` metadata ile, `lib/unread-messages.ts`) Teklif ve başvuru ekranlarındaki okunmamış rozetleri hiç temizlenmiyor.
   - ✅ ~~**5.3-S2 [ORTA]**~~ (2026-10-10: `room_reads` tablosu + RLS + tetikleyici, migration `20261010000000_room_reads.sql` canlıya uygulandı; mevcut 11 metadata anahtarının 10'u (biri silinmiş odaya ait) tabloya taşındı, RLS canlıda denendi. Birleşik sohbet açılınca aynı kişiyle olan tüm odalar okundu oluyor. Eski anahtarların silinmesi 5.3-S3) Sistem B her mesaj sayısı değişiminde metadata yazıyor; her oda için bir anahtar ekleyerek JWT/çerezi şişiriyor;
     aynı kişiyle birleşik odalardan yalnızca seçili oda okundu oluyor.
-  - **5.3-S3 [DÜŞÜK]** (2026-10-10, sonraya bırakıldı) Kullanıcıların auth metadata'sında eski `last_read_<roomId>` anahtarları duruyor
+  - ✅ ~~**5.3-S3 [DÜŞÜK]**~~ (2026-10-10: kullanıcı onayıyla eski anahtarlar canlıda silindi; `last_read_` içeren kullanıcı sayısı 0 olarak doğrulandı) Kullanıcıların auth metadata'sında eski `last_read_<roomId>` anahtarları duruyor
     (canlıda 5 kullanıcıda 11 anahtar). Hiçbir kod okumuyor; zararsız ama JWT'de yer kaplıyor. Silmek için (veri değişikliği, kullanıcı çalıştırır):
     `UPDATE auth.users SET raw_user_meta_data = raw_user_meta_data - ARRAY(SELECT k FROM jsonb_object_keys(raw_user_meta_data) k WHERE k LIKE 'last_read_%') WHERE raw_user_meta_data::text LIKE '%last_read_%';`
 
@@ -613,8 +615,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Dosyalar:** `app/admin/api-keys/{page,data,actions}.ts(x)`, `components/admin/ApiKeysPanel.tsx`
 - **İş:** Apify anahtarlarını ekle, sırala, kapat, sağlık kontrolü, test e-postası. Gizli anahtarlar maskeli.
 - **Sorunlar:**
-  - ✅ ~~**6.7-S1 [DÜŞÜK]**~~ (2026-10-10, kullanıcı kararı: Gemini tamamen kaldırıldı — `lib/gemini.ts` silindi; havuz, sağlık kontrolü, saatlik görev, admin ekranı ve ortam belgeleri yalnızca Apify. Tablodaki `provider` CHECK kısıtı ve canlıdaki 1 gemini satırı bırakıldı; kod bu satırları listelemiyor/kontrol etmiyor. İstenirse elle silinebilir: `DELETE FROM public.api_keys WHERE provider = 'gemini';`. `moveApiKey` kısmı 6.7-S2'ye ayrıldı) Gemini sağlayıcısı listede ama artık hiçbir modül kullanmıyor (bkz. 8.3-S2); `moveApiKey` transaction'sız.
-  - **6.7-S2 [DÜŞÜK]** (6.7-S1'den ayrıldı) `moveApiKey` transaction'sız; yarıda kalırsa sonraki sıralamada numaralar yeniden düzeliyor.
+  - ✅ ~~**6.7-S1 [DÜŞÜK]**~~ (2026-10-10, kullanıcı kararı: Gemini tamamen kaldırıldı — `lib/gemini.ts` silindi; havuz, sağlık kontrolü, saatlik görev, admin ekranı ve ortam belgeleri yalnızca Apify. Tablodaki `provider` CHECK kısıtı ve canlıdaki 1 gemini satırı bırakıldı; kod bu satırları listelemiyor/kontrol etmiyor. 2026-10-10 itibarıyla satır canlıda hâlâ duruyor (1 adet); kullanıcı isterse SQL Editor'de siler: `DELETE FROM public.api_keys WHERE provider = 'gemini';`. `moveApiKey` kısmı 6.7-S2'ye ayrıldı) Gemini sağlayıcısı listede ama artık hiçbir modül kullanmıyor (bkz. 8.3-S2); `moveApiKey` transaction'sız.
+  - ✅ ~~**6.7-S2 [DÜŞÜK]**~~ (2026-10-10: `public.move_api_key(p_id, p_direction)` SECURITY DEFINER SQL fonksiyonu tek ifadede sağlayıcının anahtarlarını kilitler, komşuyla yer değiştirir ve sırayı 10/20/30 diye yeniden yazar; yalnızca service role çalıştırabilir. Migration `20261010000002_move_api_key.sql` canlıya uygulandı, yetkiler ve geri alınan denemeyle davranış doğrulandı) (6.7-S1'den ayrıldı) `moveApiKey` transaction'sız; yarıda kalırsa sonraki sıralamada numaralar yeniden düzeliyor.
 
 ### 6.8 Manuel Instagram bağlama `/admin/manual-connect`
 - **Dosya:** `app/admin/manual-connect/page.tsx`
@@ -855,8 +857,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 10.2 Kimlik ve veri erişimi
 - Supabase e-posta/şifre; okumalar anon key + kullanıcı JWT'si ile PostgREST'ten. Kritik yazımlar web'in sunucu uçlarından
   (`/api/mobile/*`: offers, messages, adverts, applications, brand-verification, push-token, forgot-password, verify-*,
-  2026-10-10'dan beri profile, showcase, support, feedback, notifications). Doğrudan tabloya yazmaya devam edenler: favoriler (RLS'li),
-  onboarding (10.3-S23). `API_BASE` varsayılanı influmatch.net, geliştirmede `EXPO_PUBLIC_API_BASE`.
+  2026-10-10'dan beri profile, showcase, support, feedback, notifications). Doğrudan tabloya yazmaya devam eden: favoriler (RLS'li).
+  Onboarding 2026-10-10'dan beri `/api/mobile/onboarding` (10.3-S23). `API_BASE` varsayılanı influmatch.net, geliştirmede `EXPO_PUBLIC_API_BASE`.
 - `app.json` varsayılan slug/ad ("mobile-app").
 
 ### 10.3 Web kurallarıyla uyumsuzluklar
@@ -884,7 +886,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S20 [ORTA]**~~ (2026-10-10, yeni bulgu) Ayarlar'daki bildirim anahtarı canlıda olmayan `push_notifications_enabled` kolonuna yazıyordu (hiçbir şeyi değiştirmiyordu). Kaldırıldı; satır telefonun bildirim ayarlarını açıyor.
 - ✅ ~~**10.3-S21 [ORTA]**~~ (2026-10-10, yeni bulgu) Mobil onboarding influencer kategorisini web anahtarı yerine etiket olarak ("Moda, Güzellik", çoklu) yazıyordu; keşif filtresi bu profilleri bulamıyordu. Mobil artık web listesinden tek anahtar yazıyor (`mobile-app/constants/categories.js`). Canlıda eski değerli 4 profil var ("Moda" 3, "Güzellik" 1); `lib/category-map.ts` bunları anahtara çevirerek eşliyor. İstenirse veri düzeltmesi: `UPDATE public.users SET category = 'fashion' WHERE category = 'Moda'; UPDATE public.users SET category = 'beauty' WHERE category = 'Güzellik';`
 - ✅ ~~**10.3-S22 [ORTA]**~~ (2026-10-10, kullanıcı kararı) Profil düzenleme, vitrin modu, destek talebi, geri bildirim ve bildirim okundu işaretleme doğrudan tabloya yazıyordu (web doğrulamaları atlanıyordu, ör. vitrinde bağlı hesap kontrolü, avatar adresi, sosyal link kuralları). Hepsi web ile ortak sunucu koduna taşındı: `/api/mobile/{profile,showcase,support,feedback,notifications}` → `lib/{profile-update,showcase,support,feedback,notification-reads}.ts`. Marka profil alanları web'le aynı (Marka Adı = `full_name`, Şirket Ünvanı, Şehir, İnternet Sitesi; olmayan "Telefon" kaldırıldı). Vitrinden çıkmak artık onaysız hesapta da serbest (web'de de).
-- **10.3-S23 [ORTA]** (2026-10-10, yeni bulgu) Mobil onboarding `users`'a doğrudan yazıyor: sosyal linkler web kurallarıyla doğrulanmıyor, marka `tax_id` gönderiyor (beyaz liste düşürüyor) ve `is_onboarded` auth metadata'ya yazılıyor. Web onboarding'in sunucu koduna taşınmalı.
+- ✅ ~~**10.3-S23 [ORTA]**~~ (2026-10-10: web ve mobil aynı sunucu kodu `lib/onboarding.ts` `saveOnboarding`; web `saveOnboardingProfile` ve mobil `POST /api/mobile/onboarding` çağırır. Kullanıcı adı, profil fotoğrafı, sosyal linkler (web kuralları + normalize), influencer en az bir hesap, marka web sitesi + kurumsal e-posta + vergi no/daire/il sunucuda doğrulanır; rol istemciden değil kayıttan alınır. Mobil formda ad soyad / marka adı, web sitesi, kurumsal e-posta, vergi dairesi ve ili eklendi; `company_legal_name` ve sahte rozet notu kaldırıldı (resmi unvan marka doğrulama ekranında); `is_onboarded` metadata yazımı kalktı) Mobil onboarding `users`'a doğrudan yazıyor: sosyal linkler web kurallarıyla doğrulanmıyor, marka `tax_id` gönderiyor (beyaz liste düşürüyor) ve `is_onboarded` auth metadata'ya yazılıyor. Web onboarding'in sunucu koduna taşınmalı.
 
 ---
 
