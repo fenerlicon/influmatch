@@ -12,7 +12,7 @@ interface InflistItem {
     name: string
 }
 
-// Listeler şimdilik tüm doğrulanmış markalara ücretsiz (ileride Spotlight'a dahil edilebilir, bkz. SYSTEM_MAP 3.4).
+// Listeler doğrulanmış markalara açık; ücretsiz marka sınırları açılınca yalnızca Spotlight markalara (lib/favorites.ts, SYSTEM_MAP 3.17).
 interface InflistManagerProps {
     initialLists: InflistItem[]
 }

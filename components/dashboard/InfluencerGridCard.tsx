@@ -7,6 +7,7 @@ import { BadgeCheck, Lock, Sparkles } from 'lucide-react'
 import BadgeDisplay from '@/components/badges/BadgeDisplay'
 import { getCategoryLabel } from '@/utils/categories'
 import { toggleFavorite } from '@/app/actions/favorites'
+import { FAVORITES_LOCKED_ERROR } from '@/lib/favorites-shared'
 import { type DiscoverInfluencer } from '@/types/influencer'
 import { toast } from 'sonner'
 
@@ -25,9 +26,11 @@ interface InfluencerGridCardProps {
     /** Fiyat kartındaki en düşük başlangıç fiyatı (yalnızca doğrulanmış markaya gelir). */
     startingPrice?: number | null
     completedCollaborations?: number
+    /** Ücretsiz markada (sınırlar açıkken) favori / liste kilitli: kalp kilitli görünür ve Spotlight sayfasına götürür. */
+    favoritesLocked?: boolean
 }
 
-export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole, matchScore, matchReasons, isSpotlightMember = false, startingPrice = null, completedCollaborations = 0 }: InfluencerGridCardProps) {
+export default function InfluencerGridCard({ influencer, initialIsFavorited, userRole, matchScore, matchReasons, isSpotlightMember = false, startingPrice = null, completedCollaborations = 0, favoritesLocked = false }: InfluencerGridCardProps) {
     const [isFavorited, setIsFavorited] = useState(initialIsFavorited)
     const [isPending, setIsPending] = useState(false)
     const [showListModal, setShowListModal] = useState(false)
@@ -43,6 +46,11 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
             return
         }
 
+        if (favoritesLocked) {
+            window.location.href = '/dashboard/spotlight/brand'
+            return
+        }
+
         if (isPending) return
 
         // Optimistic Update
@@ -55,7 +63,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
             if (result.error) {
                 setIsFavorited(previousState)
                 console.error(result.error)
-                toast.error('İşlem başarısız oldu')
+                toast.error(result.error === FAVORITES_LOCKED_ERROR ? result.error : 'İşlem başarısız oldu')
             } else {
                 if (result.isFavorited !== undefined) {
                     setIsFavorited(result.isFavorited)
@@ -164,7 +172,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
 
                                 {/* Favorite/Save Buttons */}
                                 <div className="absolute top-3 right-3 z-10 flex gap-2">
-                                    {userRole === 'brand' && (
+                                    {userRole === 'brand' && !favoritesLocked && (
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault()
@@ -181,7 +189,16 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                                             </svg>
                                         </button>
                                     )}
-                                    {userRole === 'brand' && (
+                                    {userRole === 'brand' && favoritesLocked && (
+                                        <button
+                                            onClick={handleToggleFavorite}
+                                            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 border border-white/10 text-gray-300"
+                                            title="Favoriler ve listeler Spotlight markalara özel"
+                                        >
+                                            <Lock className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                    {userRole === 'brand' && !favoritesLocked && (
                                         <button
                                             onClick={handleToggleFavorite}
                                             className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-transform hover:scale-110 active:scale-95 group/btn"
@@ -472,7 +489,7 @@ export default function InfluencerGridCard({ influencer, initialIsFavorited, use
                 </div>
             </div>
 
-            {showListModal && (
+            {showListModal && !favoritesLocked && (
                 <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                     <AddToListModal
                         isOpen={showListModal}
