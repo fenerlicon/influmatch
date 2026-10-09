@@ -52,6 +52,60 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     const [completedCount, setCompletedCount] = useState(0);
     const [rateCard, setRateCard] = useState(null);
     const [form, setForm] = useState({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
+    // Teklif şablonları ve son teklif (web ile aynı uç: /api/mobile/offer-templates, lib/offer-templates.ts)
+    const [templates, setTemplates] = useState(null);
+    const [lastOffer, setLastOffer] = useState(null);
+    const [templateName, setTemplateName] = useState('');
+    const [savingTemplate, setSavingTemplate] = useState(false);
+
+    const draftToForm = (draft) => ({
+        campaignName: draft.campaign_name || '',
+        campaignType: draft.campaign_type || '',
+        paymentType: draft.payment_type === 'barter' ? 'barter' : 'cash',
+        budget: draft.budget === null || draft.budget === undefined ? '' : String(Math.round(Number(draft.budget))),
+        message: draft.message || '',
+    });
+
+    const openOfferForm = async () => {
+        setOfferVisible(true);
+        if (templates !== null) return;
+        const result = await apiRequest('offer-templates');
+        setTemplates(result.templates || []);
+        setLastOffer(result.lastOffer || null);
+    };
+
+    const saveTemplate = async () => {
+        if (!templateName.trim() || !form.campaignName.trim()) {
+            Alert.alert('Eksik bilgi', 'Şablon adı ve kampanya adı gerekli.');
+            return;
+        }
+        setSavingTemplate(true);
+        const result = await apiRequest('offer-templates', { method: 'POST', body: { name: templateName, ...form } });
+        setSavingTemplate(false);
+        if (result.error) {
+            Alert.alert('Şablon kaydedilemedi', result.error);
+            return;
+        }
+        setTemplates((prev) => [result.template, ...(prev || []).filter((t) => t.id !== result.template.id)]);
+        setTemplateName('');
+        Alert.alert('Şablon kaydedildi');
+    };
+
+    const deleteTemplate = (template) => {
+        Alert.alert('Şablonu sil', `"${template.name}" silinsin mi?`, [
+            { text: 'Vazgeç', style: 'cancel' },
+            {
+                text: 'Sil', style: 'destructive', onPress: async () => {
+                    const result = await apiRequest(`offer-templates?id=${encodeURIComponent(template.id)}`, { method: 'DELETE' });
+                    if (result.error) {
+                        Alert.alert('Şablon silinemedi', result.error);
+                        return;
+                    }
+                    setTemplates((prev) => (prev || []).filter((t) => t.id !== template.id));
+                },
+            },
+        ]);
+    };
 
     useEffect(() => {
         const checkRole = async () => {
@@ -100,6 +154,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
             return;
         }
         setOfferVisible(false);
+        setLastOffer({ campaign_name: form.campaignName, campaign_type: form.campaignType, payment_type: form.paymentType, budget: form.budget || null, message: form.message });
         setForm({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
         Alert.alert('Teklif gönderildi', 'Influencer yanıt verdiğinde bildirim alacaksınız.', [
             { text: 'Tamam' },
@@ -259,7 +314,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                             <Text className="text-white font-black text-lg mb-1">İş Birliği Yap</Text>
                             <Text className="text-white/40 text-[10px] mb-6 text-center">Bu influencer ile çalışmak için teklif gönderin. Sohbet, teklif yanıtlanınca açılır.</Text>
                             <TouchableOpacity
-                                onPress={() => setOfferVisible(true)}
+                                onPress={openOfferForm}
                                 activeOpacity={0.8}
                                 className="w-full h-14 bg-amber-400 rounded-2xl items-center justify-center flex-row"
                             >
@@ -286,13 +341,37 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                             </TouchableOpacity>
                         </View>
 
+                        {templates === null ? (
+                            <ActivityIndicator color="#fbbf24" className="mb-4" />
+                        ) : (
+                            <View className="mb-4">
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                                    {lastOffer && (
+                                        <TouchableOpacity onPress={() => setForm(draftToForm(lastOffer))}
+                                            className="h-9 px-3 rounded-full border border-amber-400/50 bg-amber-400/10 items-center justify-center">
+                                            <Text className="text-amber-300 text-xs font-bold">Son teklifimi kopyala</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    {templates.map((template) => (
+                                        <TouchableOpacity key={template.id} onPress={() => setForm(draftToForm(template))} onLongPress={() => deleteTemplate(template)}
+                                            className="h-9 px-3 rounded-full border border-white/15 bg-white/5 items-center justify-center">
+                                            <Text className="text-gray-200 text-xs font-semibold">{template.name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                                {templates.length > 0 && (
+                                    <Text className="text-gray-500 text-[10px] mt-2">Şablona dokun: formu doldurur. Basılı tut: şablonu siler.</Text>
+                                )}
+                            </View>
+                        )}
+
                         <Text className="text-gray-400 text-xs mb-2">Kampanya adı *</Text>
                         <TextInput value={form.campaignName} onChangeText={(v) => setForm((f) => ({ ...f, campaignName: v }))} maxLength={120}
                             placeholder="Örn. Sonbahar koleksiyonu" placeholderTextColor="#6b7280"
                             className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-4" />
 
                         <Text className="text-gray-400 text-xs mb-2">Kampanya türü</Text>
-                        <TextInput value={form.campaignType} onChangeText={(v) => setForm((f) => ({ ...f, campaignType: v }))} maxLength={60}
+                        <TextInput value={form.campaignType} onChangeText={(v) => setForm((f) => ({ ...f, campaignType: v }))} maxLength={40}
                             placeholder="Örn. Reels, story, UGC video" placeholderTextColor="#6b7280"
                             className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-4" />
 
@@ -314,6 +393,18 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                         <TextInput value={form.message} onChangeText={(v) => setForm((f) => ({ ...f, message: v }))} maxLength={2000} multiline
                             placeholder="Beklentilerinizi kısaca yazın" placeholderTextColor="#6b7280"
                             className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white mb-6" style={{ minHeight: 90, textAlignVertical: 'top' }} />
+
+                        {templates !== null && templates.length < 20 && (
+                            <View className="flex-row gap-2 mb-4">
+                                <TextInput value={templateName} onChangeText={setTemplateName} maxLength={60}
+                                    placeholder="Şablon adı" placeholderTextColor="#6b7280"
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 h-11 text-white" />
+                                <TouchableOpacity onPress={saveTemplate} disabled={savingTemplate}
+                                    className="h-11 px-4 rounded-2xl border border-amber-400/50 bg-amber-400/10 items-center justify-center">
+                                    {savingTemplate ? <ActivityIndicator color="#fbbf24" /> : <Text className="text-amber-300 text-xs font-bold">Şablon olarak kaydet</Text>}
+                                </TouchableOpacity>
+                            </View>
+                        )}
 
                         <TouchableOpacity onPress={sendOffer} disabled={sending} className="h-14 rounded-2xl bg-amber-400 items-center justify-center">
                             {sending ? <ActivityIndicator color="black" /> : <Text className="text-black font-black text-base">Gönder</Text>}

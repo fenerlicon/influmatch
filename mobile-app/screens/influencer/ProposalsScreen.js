@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Alert, ActivityIndicator, Dimensions, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Clock, CheckCircle2, ChevronRight, Briefcase, Building2, Calendar, DollarSign, X, CheckCircle, BarChart3, TrendingUp, Info } from 'lucide-react-native';
+import { Clock, CheckCircle2, ChevronRight, Briefcase, Building2, Calendar, DollarSign, X, CheckCircle, BarChart3, TrendingUp, Info, Bookmark, BellRing, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { useFocusEffect } from '@react-navigation/native';
+import { ADVERT_ALERT_LIMIT, ADVERT_ALERT_PLATFORMS, describeAlert } from '../../constants/advertAlerts';
 
 const { width } = Dimensions.get('window');
 
@@ -29,7 +30,7 @@ const GlassCard = ({ children, className, style, onPress, activeOpacity = 0.9 })
 );
 
 export default function ProposalsScreen({ route, navigation }) {
-    const [activeTab, setActiveTab] = useState('projects'); // projects, applications
+    const [activeTab, setActiveTab] = useState('projects'); // projects, saved, applications, alerts
     const [selectedProject, setSelectedProject] = useState(null);
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [projectModalVisible, setProjectModalVisible] = useState(false);
@@ -49,6 +50,11 @@ export default function ProposalsScreen({ route, navigation }) {
     const [projects, setProjects] = useState([]);
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
+    // Kaydedilen ilanlar ve ilan alarmları (web ile aynı uçlar: /api/mobile/saved-adverts, /api/mobile/advert-alerts)
+    const [savedIds, setSavedIds] = useState(new Set());
+    const [alerts, setAlerts] = useState([]);
+    const [alertForm, setAlertForm] = useState({ category: '', platform: '', minBudget: '' });
+    const [alertBusy, setAlertBusy] = useState(false);
 
     // Filter params
     const incomingProject = route.params?.project;
@@ -84,6 +90,10 @@ export default function ProposalsScreen({ route, navigation }) {
             if (projectsError) throw projectsError;
             setProjects(projectsData || []);
 
+            const [savedResult, alertsResult] = await Promise.all([apiRequest('saved-adverts'), apiRequest('advert-alerts')]);
+            if (!savedResult.error) setSavedIds(new Set(savedResult.advertIds || []));
+            if (!alertsResult.error) setAlerts(alertsResult.alerts || []);
+
             // 2. Fetch My Applications
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -102,6 +112,42 @@ export default function ProposalsScreen({ route, navigation }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const toggleSave = async (advertId) => {
+        const nextSaved = !savedIds.has(advertId);
+        const apply = (saved) => setSavedIds((prev) => {
+            const next = new Set(prev);
+            if (saved) next.add(advertId); else next.delete(advertId);
+            return next;
+        });
+        apply(nextSaved);
+        const result = await apiRequest('saved-adverts', { method: 'POST', body: { advertId, saved: nextSaved } });
+        if (result.error) {
+            apply(!nextSaved);
+            Alert.alert('İşlem yapılamadı', result.error);
+        }
+    };
+
+    const createAlert = async () => {
+        setAlertBusy(true);
+        const result = await apiRequest('advert-alerts', { method: 'POST', body: alertForm });
+        setAlertBusy(false);
+        if (result.error) {
+            Alert.alert('Alarm kurulamadı', result.error);
+            return;
+        }
+        setAlerts((prev) => [...prev, result.alert]);
+        setAlertForm({ category: '', platform: '', minBudget: '' });
+    };
+
+    const deleteAlert = async (alertId) => {
+        const result = await apiRequest(`advert-alerts?id=${encodeURIComponent(alertId)}`, { method: 'DELETE' });
+        if (result.error) {
+            Alert.alert('Alarm silinemedi', result.error);
+            return;
+        }
+        setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     };
 
     const openProject = (project) => {
@@ -204,27 +250,24 @@ export default function ProposalsScreen({ route, navigation }) {
                     {/* Tabs */}
                     <View className="flex-row bg-white/5 border border-white/10 rounded-2xl p-1 h-14 relative">
                         {/* Selected Tab Indicator - Animated would be better but static for now */}
-                        <TouchableOpacity
-                            onPress={() => setActiveTab('projects')}
-                            className={`flex-1 items-center justify-center rounded-xl ${activeTab === 'projects' ? 'bg-soft-gold shadow-lg shadow-soft-gold/20' : ''}`}
-                        >
-                            <Text className={`text-xs font-bold tracking-wide ${activeTab === 'projects' ? 'text-black' : 'text-gray-400'}`}>MARKA PROJELERİ</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => setActiveTab('applications')}
-                            className={`flex-1 items-center justify-center rounded-xl ${activeTab === 'applications' ? 'bg-soft-gold shadow-lg shadow-soft-gold/20' : ''}`}
-                        >
-                            <Text className={`text-xs font-bold tracking-wide ${activeTab === 'applications' ? 'text-black' : 'text-gray-400'}`}>BAŞVURULARIM</Text>
-                        </TouchableOpacity>
+                        {[['projects', 'PROJELER'], ['saved', 'KAYITLI'], ['applications', 'BAŞVURULAR'], ['alerts', 'ALARMLAR']].map(([key, label]) => (
+                            <TouchableOpacity
+                                key={key}
+                                onPress={() => setActiveTab(key)}
+                                className={`flex-1 items-center justify-center rounded-xl ${activeTab === key ? 'bg-soft-gold shadow-lg shadow-soft-gold/20' : ''}`}
+                            >
+                                <Text className={`text-[10px] font-bold tracking-wide ${activeTab === key ? 'text-black' : 'text-gray-400'}`}>{label}</Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </View>
 
                 <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
 
                     {/* Marka Projeleri (Open Projects) */}
-                    {activeTab === 'projects' && (
+                    {(activeTab === 'projects' || activeTab === 'saved') && (
                         <View className="space-y-4">
-                            {projects.map((item) => (
+                            {(activeTab === 'saved' ? projects.filter((p) => savedIds.has(p.id)) : projects).map((item) => (
                                 <GlassCard
                                     key={item.id}
                                     onPress={() => openProject(item)}
@@ -265,18 +308,80 @@ export default function ProposalsScreen({ route, navigation }) {
                                             </View>
                                         </View>
 
-                                        <View className="w-8 h-8 rounded-full bg-white/10 items-center justify-center border border-white/10">
-                                            <ChevronRight color="#fff" size={14} />
+                                        <View className="flex-row items-center gap-2">
+                                            <TouchableOpacity
+                                                onPress={() => toggleSave(item.id)}
+                                                className={`w-8 h-8 rounded-full items-center justify-center border ${savedIds.has(item.id) ? 'bg-soft-gold border-soft-gold' : 'bg-white/10 border-white/10'}`}
+                                            >
+                                                <Bookmark color={savedIds.has(item.id) ? '#000' : '#fff'} fill={savedIds.has(item.id) ? '#000' : 'transparent'} size={14} />
+                                            </TouchableOpacity>
+                                            <View className="w-8 h-8 rounded-full bg-white/10 items-center justify-center border border-white/10">
+                                                <ChevronRight color="#fff" size={14} />
+                                            </View>
                                         </View>
                                     </View>
                                 </GlassCard>
                             ))}
-                            {projects.length === 0 && !loading && (
+                            {activeTab === 'projects' && projects.length === 0 && !loading && (
                                 <View className="items-center justify-center py-20 opacity-50">
                                     <Briefcase size={48} color="gray" className="mb-4 text-gray-600" />
                                     <Text className="text-gray-500 font-medium">Şu an açık proje bulunmamaktadır.</Text>
                                 </View>
                             )}
+                            {activeTab === 'saved' && !loading && !projects.some((p) => savedIds.has(p.id)) && (
+                                <View className="items-center justify-center py-20 opacity-60">
+                                    <Bookmark size={44} color="gray" />
+                                    <Text className="text-gray-500 font-medium mt-4 text-center">Henüz kaydettiğin bir ilan yok. İlan kartındaki kaydet düğmesiyle ekleyebilirsin.</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
+                    {/* İlan alarmları */}
+                    {activeTab === 'alerts' && (
+                        <View>
+                            <GlassCard className="p-5 mb-4">
+                                <View className="flex-row items-center gap-2 mb-2">
+                                    <BellRing color="#D4AF37" size={18} />
+                                    <Text className="text-white font-bold">İlan alarmları ({alerts.length}/{ADVERT_ALERT_LIMIT})</Text>
+                                </View>
+                                <Text className="text-gray-400 text-xs leading-5">
+                                    Koşullara uyan yeni ilan yayınlanınca bildirim alırsın; e-posta, ayarlardaki ilan başvuruları tercihine göre gider. Boş alan "fark etmez" demektir.
+                                </Text>
+                            </GlassCard>
+
+                            {alerts.length < ADVERT_ALERT_LIMIT && (
+                                <View className="mb-4">
+                                    <TextInput value={alertForm.category} onChangeText={(v) => setAlertForm((f) => ({ ...f, category: v }))} maxLength={60}
+                                        placeholder="Kategori / kelime (ör. kozmetik)" placeholderTextColor="#6b7280"
+                                        className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-3" />
+                                    <View className="flex-row gap-2 mb-3">
+                                        {[{ key: '', label: 'Hepsi' }, ...ADVERT_ALERT_PLATFORMS].map((p) => (
+                                            <TouchableOpacity key={p.key || 'all'} onPress={() => setAlertForm((f) => ({ ...f, platform: p.key }))}
+                                                className={`flex-1 h-10 rounded-xl items-center justify-center border ${alertForm.platform === p.key ? 'bg-soft-gold border-soft-gold' : 'bg-white/5 border-white/10'}`}>
+                                                <Text className={`text-[11px] font-bold ${alertForm.platform === p.key ? 'text-black' : 'text-gray-300'}`}>{p.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                    <TextInput value={alertForm.minBudget} onChangeText={(v) => setAlertForm((f) => ({ ...f, minBudget: v.replace(/[^0-9]/g, '') }))}
+                                        keyboardType="number-pad" placeholder="En az bütçe (₺)" placeholderTextColor="#6b7280"
+                                        className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-3" />
+                                    <TouchableOpacity onPress={createAlert} disabled={alertBusy} className="h-12 rounded-2xl bg-soft-gold items-center justify-center">
+                                        {alertBusy ? <ActivityIndicator color="#000" /> : <Text className="text-black font-bold">Alarm kur</Text>}
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {alerts.length === 0 ? (
+                                <Text className="text-gray-500 text-center py-8">Henüz alarm kurmadın.</Text>
+                            ) : alerts.map((alert) => (
+                                <View key={alert.id} className="flex-row items-center justify-between p-4 mb-2 rounded-2xl bg-white/5 border border-white/10">
+                                    <Text className="text-white text-sm flex-1 mr-3">{describeAlert(alert)}</Text>
+                                    <TouchableOpacity onPress={() => deleteAlert(alert.id)} className="w-9 h-9 rounded-full items-center justify-center border border-white/10">
+                                        <Trash2 color="#f87171" size={16} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
                         </View>
                     )}
 

@@ -1,7 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-10. `claude/map-cleanup-cookies` dalı itildi (10.3-S23, 6.7-S2, 3.10-S1, çerez banner'ı; PR açılmadı).
-> `claude/collab-phase1` (yol haritası özellik 1) ayrıca itildi; öncesi `main`'de ve canlı.
+> Son güncelleme: 2026-10-10. `main` canlı (PR #48–#53 dahil). `claude/offers-templates-alerts` (yol haritası adım 2) PR'da.
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -27,13 +26,18 @@
   düğmeden), `/api/mobile/collaborations`. Fiyat kartı `rate_cards` (yalnızca sahibi + doğrulanmış marka + admin, RLS), web profil düzenleme ve
   mobil MyProfile'dan; marka profil/detayda görür, keşifte "Bütçem" filtresi (web + mobil). Tamamlanan iş birliği sayısı profilde, keşif kartında,
   mobil detayda. Tablolar canlıda (`20261010000001`), RLS rollback'li denemeyle doğrulandı. **Çok hesaplı toplu test bu aşamadan sonra.**
+- **Yol haritası adım 2 (`claude/offers-templates-alerts`, SYSTEM_MAP 3.15):** 7 gün yanıtlanmayan teklif saatlik görevde `expired` olur,
+  markaya bildirim; web/mobil "Süresi doldu", yanıt sunucuda ve DB tetikleyicisinde engelli. Teklif şablonu (`offer_templates`, en fazla 20) ve
+  "Son teklifimi kopyala" web teklif penceresinde ve mobil teklif formunda (`/api/mobile/offer-templates`). Influencer ilan kaydetme
+  (`saved_adverts`) ve ilan alarmı (`advert_alerts`, en fazla 5) web ilanlar sayfasında "Kaydedilenler"/"Alarmlar", mobil İlanlar ekranında;
+  eşleştirme saatlik görevde (`advert_alert_runs`). Tablolar canlıda (`20261010000010`), RLS rollback'li denemeyle doğrulandı.
 - **`claude/map-cleanup-cookies`:** mobil onboarding web sunucu koduna taşındı (`lib/onboarding.ts`, `/api/mobile/onboarding`, 10.3-S23);
   `moveApiKey` tek SQL fonksiyonu `move_api_key` (6.7-S2, canlıda); vergi levhası yalnızca imzalı yükleme adresiyle (3.10-S1);
   web kök layout'ta çerez banner'ı, Speed Insights yalnızca "Tümünü kabul et" sonrası (1.12-S2). **Banner metni avukat onayından geçmeli.**
-- **Canlı SQL:** `20261010000002_move_api_key.sql` canlıda. **Bekleyen:** `supabase/manual/2026-10-10_vergi_yukleme.sql` (3.10-S1,
-  depolama INSERT politikasını kapatır) — `claude/map-cleanup-cookies` birleşip yayın READY olduktan **sonra** çalıştırılmalı.
-  5.3-S3 eski metadata anahtarları kullanıcı onayıyla silindi (0 doğrulandı). İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
-  (`DELETE FROM public.api_keys WHERE provider = 'gemini';`), 10.3-S21 eski kategori etiketleri. 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
+- **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı) canlıda ve doğrulandı.
+  5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
+  (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
 
 ## 2. Sıradaki işler
@@ -159,7 +163,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 |---|---|---|
 | 8.7-S1 | KRİTİK | Dosya silindi; rocketapi.io anahtarının iptali kullanıcıda. |
 | 2.3-S2, 2.3-S3, 2.3-S4 | YÜKSEK/ORTA/DÜŞÜK | OAuth kapalı; mağaza yayınından sonra açılacak. |
-| 10.3-S23, 5.3-S3, 6.7-S2, 3.10-S1, 1.12-S2 | — | 2026-10-10'da yapıldı (3.10-S1 politika SQL'i yayından sonra kullanıcıda). |
+| 10.3-S23, 5.3-S3, 6.7-S2, 3.10-S1, 1.12-S2 | — | 2026-10-10'da yapıldı (3.10-S1 politikası canlıda). |
 | 2.9-S1, 3.5-S2, 5.3-S2, 6.7-S1, 3.13-N6, 9.1-S2, 9.1-S3 | — | 2026-10-10'da yapıldı. |
 
 ## 7. Teknik notlar (tekrar keşfetmemek için)
@@ -180,7 +184,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
-  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`, `lib/onboarding.ts`.
+  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/offer-templates.ts`, `lib/advert-alerts.ts`, `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`, `lib/onboarding.ts`.
 - **Vergi levhası yükleme:** istemci kovaya doğrudan yüklemez; `createTaxUploadUrlAs` imzalı adres verir (`uploadToSignedUrl`).
   Mobil kategori listesi `mobile-app/constants/categories.js` web `utils/categories.ts` ile aynı tutulmalı.
 - **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
@@ -189,6 +193,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   `CREATE TABLE` ile `ENABLE ROW LEVEL SECURITY` + `REVOKE` aynı `execute_sql` çağrısında olmalı (2026-10-10'da çağrı zaman aşımına
   uğrayınca `collaborations` birkaç dakika RLS'siz kaldı; içinde veri yokken kapatıldı). `REVOKE ALL` izin sisteminde reddedilebiliyor;
   `REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER` + `REVOKE SELECT ... FROM anon` çalışıyor.
+- **MCP'de DROP POLICY:** `execute_sql` içinde `DROP POLICY IF EXISTS` olan çağrı onay bekleyip 60 sn'de zaman aşımına uğruyor ve hiçbir şey
+  uygulanmıyor (2026-10-10, iki kez). Canlıda yeni tabloya politika eklerken DROP yazma; migration dosyasında `IF NOT EXISTS (pg_policies)` kontrollü DO bloğu kullan.
 - **Canlıya DDL:** 2026-10-10'da `apply_migration` zaman aşımına uğradı, `execute_sql` ile parça parça uygulandı. Daha önce `apply_migration` izin sisteminde engelliydi; SQL `supabase/manual/` altına yazılır, kullanıcı SQL Editor'de
   çalıştırır. SQL Editor uyumu: fonksiyonlarda DECLARE yok, yorumlarda kesme işareti ve soru işareti yok.
 - **git push:** düz push sessizce asılı kalabiliyor; `GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git -c credential.helper=

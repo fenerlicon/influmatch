@@ -1,6 +1,7 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { createOfferAs } from '@/lib/offers'
 import { fetchAccountRole } from '@/lib/viewer-role'
+import { effectiveOfferStatus } from '@/lib/offer-shared'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,8 @@ export async function GET(request: Request) {
     role,
     offers: list
       .filter((offer) => !dismissed.has(offer.id))
-      .map((offer) => ({ ...offer, room_id: roomByOffer.get(offer.id) ?? null })),
+      // Süresi dolan teklif (saatlik görev henüz işaretlemese de) 'expired' olarak döner.
+      .map((offer) => ({ ...offer, status: effectiveOfferStatus(offer), room_id: roomByOffer.get(offer.id) ?? null })),
   })
 }
 

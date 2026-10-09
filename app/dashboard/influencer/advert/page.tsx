@@ -4,6 +4,7 @@ import { type AdvertApplication } from '@/components/dashboard/AdvertApplication
 import InfluencerAdvertTabs from '@/components/dashboard/InfluencerAdvertTabs'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { listAdvertAlertsAs, listSavedAdvertIdsAs } from '@/lib/advert-alerts'
 
 export const revalidate = 0
 
@@ -17,7 +18,7 @@ export default async function InfluencerAdvertPage() {
     redirect('/login')
   }
 
-  const [{ data: projectRows, error: projectsError }, { data: applicationRows, error: applicationsError }] = await Promise.all([
+  const [{ data: projectRows, error: projectsError }, { data: applicationRows, error: applicationsError }, savedAdvertIds, alertsResult] = await Promise.all([
     supabase
       .from('advert_projects')
       .select(
@@ -30,6 +31,8 @@ export default async function InfluencerAdvertPage() {
       .select(`id, advert_id, influencer_id, cover_letter, deliverable_idea, budget_expectation, status, created_at`)
       .eq('influencer_id', user.id)
       .order('created_at', { ascending: false }),
+    listSavedAdvertIdsAs(supabase, user.id),
+    listAdvertAlertsAs(supabase, user.id),
   ])
 
 
@@ -237,6 +240,8 @@ export default async function InfluencerAdvertPage() {
           myApplications={myApplications}
           initialAppliedIds={appliedAdvertIds}
           currentUserId={user.id}
+          initialSavedIds={savedAdvertIds}
+          initialAlerts={alertsResult.success ? alertsResult.alerts : []}
         />
       )}
     </div>

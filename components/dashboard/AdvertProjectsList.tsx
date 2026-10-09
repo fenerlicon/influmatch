@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { CalendarDays, CheckCircle2, Loader2, MapPin, Megaphone, Search, SendHorizontal, X, BadgeCheck, Zap } from 'lucide-react'
+import { Bookmark, CalendarDays, CheckCircle2, Loader2, MapPin, Megaphone, Search, SendHorizontal, X, BadgeCheck, Zap } from 'lucide-react'
 import { applyToAdvert } from '@/app/dashboard/influencer/advert/actions'
 import { trackEvent } from '@/app/actions/analytics'
 import BadgeDisplay from '@/components/badges/BadgeDisplay'
@@ -43,6 +43,10 @@ interface AdvertProjectsListProps {
   mode?: 'influencer' | 'brand'
   currentUserId?: string
   myProjectIds?: string[] // IDs of projects owned by current user (for brand mode)
+  /** Influencer: kaydedilen ilanlar ve kaydetme düğmesi (verilmezse düğme görünmez). */
+  savedIds?: Set<string>
+  onToggleSave?: (advertId: string, nextSaved: boolean) => void
+  emptyMessage?: string
 }
 
 const emptyFormState = {
@@ -91,7 +95,10 @@ export default function AdvertProjectsList({
   initialAppliedIds = [],
   mode = 'influencer',
   currentUserId,
-  myProjectIds = []
+  myProjectIds = [],
+  savedIds,
+  onToggleSave,
+  emptyMessage,
 }: AdvertProjectsListProps) {
   const isBrandMode = mode === 'brand'
   const [query, setQuery] = useState('')
@@ -185,7 +192,7 @@ export default function AdvertProjectsList({
   if (projects.length === 0) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
-        Henüz yayınlanmış bir proje yok. Markalar yeni briefleri eklediğinde burada listelenecek.
+        {emptyMessage ?? 'Henüz yayınlanmış bir proje yok. Markalar yeni briefleri eklediğinde burada listelenecek.'}
       </div>
     )
   }
@@ -274,6 +281,23 @@ export default function AdvertProjectsList({
                       <Zap className="h-3 w-3 fill-black" />
                       ÖNE ÇIKAN
                     </span>
+                  )}
+                  {!isBrandMode && onToggleSave && (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onToggleSave(project.id, !savedIds?.has(project.id))
+                      }}
+                      aria-label={savedIds?.has(project.id) ? 'Kaydedilenlerden çıkar' : 'İlanı kaydet'}
+                      title={savedIds?.has(project.id) ? 'Kaydedilenlerden çıkar' : 'İlanı kaydet'}
+                      className={`absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition ${savedIds?.has(project.id)
+                        ? 'border-soft-gold bg-soft-gold/90 text-background'
+                        : 'border-white/30 bg-black/60 text-white hover:border-soft-gold hover:text-soft-gold'
+                        }`}
+                    >
+                      <Bookmark className={`h-4 w-4 ${savedIds?.has(project.id) ? 'fill-current' : ''}`} />
+                    </button>
                   )}
                   {!isBrandMode && isApplied && (
                     <span className="absolute right-4 top-4 rounded-full border-2 border-emerald-400 bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">

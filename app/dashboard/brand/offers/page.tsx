@@ -12,7 +12,7 @@ export interface BrandOfferItem {
   budget: number | null
   payment_type?: 'cash' | 'barter' | null
   message: string | null
-  status: 'pending' | 'accepted' | 'rejected'
+  status: 'pending' | 'accepted' | 'rejected' | 'expired'
   created_at: string
   room_id?: string | null
   receiver: {
