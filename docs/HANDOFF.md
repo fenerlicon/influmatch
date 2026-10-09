@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-10. `claude/collab-phase1` dalı itildi (yol haritası özellik 1; PR açılmadı); öncesi `main`'de ve canlı.
+> Son güncelleme: 2026-10-10. `claude/offers-templates-alerts` dalı itildi (yol haritası adım 2; PR açılmadı); öncesi `main`'de ve canlı.
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -26,6 +26,11 @@
   düğmeden), `/api/mobile/collaborations`. Fiyat kartı `rate_cards` (yalnızca sahibi + doğrulanmış marka + admin, RLS), web profil düzenleme ve
   mobil MyProfile'dan; marka profil/detayda görür, keşifte "Bütçem" filtresi (web + mobil). Tamamlanan iş birliği sayısı profilde, keşif kartında,
   mobil detayda. Tablolar canlıda (`20261010000001`), RLS rollback'li denemeyle doğrulandı. **Çok hesaplı toplu test bu aşamadan sonra.**
+- **Yol haritası adım 2 (`claude/offers-templates-alerts`, SYSTEM_MAP 3.15):** 7 gün yanıtlanmayan teklif saatlik görevde `expired` olur,
+  markaya bildirim; web/mobil "Süresi doldu", yanıt sunucuda ve DB tetikleyicisinde engelli. Teklif şablonu (`offer_templates`, en fazla 20) ve
+  "Son teklifimi kopyala" web teklif penceresinde ve mobil teklif formunda (`/api/mobile/offer-templates`). Influencer ilan kaydetme
+  (`saved_adverts`) ve ilan alarmı (`advert_alerts`, en fazla 5) web ilanlar sayfasında "Kaydedilenler"/"Alarmlar", mobil İlanlar ekranında;
+  eşleştirme saatlik görevde (`advert_alert_runs`). Tablolar canlıda (`20261010000010`), RLS rollback'li denemeyle doğrulandı.
 - **Canlı SQL:** bekleyen yok (`20261010000000_room_reads.sql` canlıya uygulandı ve doğrulandı). İsteğe bağlı temizlikler
   haritada: 5.3-S3 (eski metadata anahtarları), 6.7-S1 (gemini satırı), 10.3-S21 (eski kategori etiketleri). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı ve doğrulandı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -174,7 +179,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
-  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`.
+  Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/offer-templates.ts`, `lib/advert-alerts.ts`, `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`.
   Mobil kategori listesi `mobile-app/constants/categories.js` web `utils/categories.ts` ile aynı tutulmalı.
 - **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
   kolonları geçirir (rol, onay, spotlight vb. sessizce düşer); onaylı markanın yasal bilgisi değişirse onay düşer.
@@ -182,6 +187,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   `CREATE TABLE` ile `ENABLE ROW LEVEL SECURITY` + `REVOKE` aynı `execute_sql` çağrısında olmalı (2026-10-10'da çağrı zaman aşımına
   uğrayınca `collaborations` birkaç dakika RLS'siz kaldı; içinde veri yokken kapatıldı). `REVOKE ALL` izin sisteminde reddedilebiliyor;
   `REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER` + `REVOKE SELECT ... FROM anon` çalışıyor.
+- **MCP'de DROP POLICY:** `execute_sql` içinde `DROP POLICY IF EXISTS` olan çağrı onay bekleyip 60 sn'de zaman aşımına uğruyor ve hiçbir şey
+  uygulanmıyor (2026-10-10, iki kez). Canlıda yeni tabloya politika eklerken DROP yazma; migration dosyasında `IF NOT EXISTS (pg_policies)` kontrollü DO bloğu kullan.
 - **Canlıya DDL:** 2026-10-10'da `apply_migration` zaman aşımına uğradı, `execute_sql` ile parça parça uygulandı. Daha önce `apply_migration` izin sisteminde engelliydi; SQL `supabase/manual/` altına yazılır, kullanıcı SQL Editor'de
   çalıştırır. SQL Editor uyumu: fonksiyonlarda DECLARE yok, yorumlarda kesme işareti ve soru işareti yok.
 - **git push:** düz push sessizce asılı kalabiliyor; `GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never git -c credential.helper=

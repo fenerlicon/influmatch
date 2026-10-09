@@ -421,6 +421,35 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.14-N1** Fiyat kartı bugün tüm doğrulanmış markalara açık; ücretsiz/ücretli marka ayrımı (3.13-N3/N4) gelince burada da ele alınmalı.
   - **3.14-N2** Revize hakkı, teslimat listesi, taslak onayı ve anlaşma özeti yol haritasının 2. aşamasında (ROADMAP "Buluşturmayı kolaylaştıran özellikler" 2).
 
+### 3.15 Teklif süresi, teklif şablonu, kaydedilen ilanlar ve ilan alarmı (yol haritası adım 2, 2026-10-10)
+- **Dosyalar:** `lib/offer-shared.ts`, `lib/offers.ts` (`expireStaleOffers`, `validateOfferFields`), `lib/offer-templates.ts`,
+  `lib/advert-alerts.ts`, `lib/advert-alerts-shared.ts`, `components/profile/OfferModal.tsx`, `components/dashboard/{InfluencerAdvertTabs,AdvertAlertsManager,AdvertProjectsList}.tsx`,
+  `/api/mobile/{offer-templates,saved-adverts,advert-alerts}`, mobil `OffersScreen`, `InfluencerDetailScreen` (teklif formu), `ProposalsScreen`,
+  `constants/advertAlerts.js`; migration `20261010000010_offer_expiry_templates_advert_alerts.sql` (canlıda).
+- **Maddeler:**
+  - ✅ ~~**3.15-N1**~~ (2026-10-10, cevapsız teklif: `offers.status` CHECK'ine `expired` eklendi; saatlik görev 7 günü geçen `pending` teklifleri
+    `expired` yapıyor (turda en fazla 50, süre bütçesiyle) ve markaya site içi + e-posta ("Teklif bildirimleri" tercihi) + push bildirim gönderiyor
+    (14 günden eski olanlar bildirimsiz kapanır). `respondToOfferAs` 7 günü geçmiş teklifi görev çalışmadan da reddediyor, güncelleme yalnızca
+    hâlâ `pending` olan satıra yazıyor. DB tetikleyicisi `secure_offers_final` istemcinin süresi dolan ya da 7 günü geçen teklifi değiştirmesini ve
+    durumu `expired` yapmasını engelliyor. Web ve mobil listelerde "Süresi doldu"; influencer listesinde "Tümü" süresi dolanları göstermez
+    ("Süresi dolan" filtresi / mobilde "göster" düğmesi)) Yanıtlanmayan teklif sonsuza kadar bekliyordu.
+  - ✅ ~~**3.15-N2**~~ (2026-10-10, teklif şablonu: `offer_templates` (marka başına en fazla 20, ad markada tekil). Teklif penceresinde
+    "Şablondan doldur", "Son teklifimi kopyala", "Bu formu şablon olarak kaydet", şablon silme; mobil teklif formunda aynı (dokun = doldur,
+    basılı tut = sil). Tablo istemcilere yalnızca sahibine SELECT; yazımlar `lib/offer-templates.ts` ile rol kontrolünden sonra service role)
+    Marka her teklifi baştan yazıyordu.
+  - ✅ ~~**3.15-N3**~~ (2026-10-10, kaydedilen ilanlar + ilan alarmı: `saved_adverts` (en fazla 200) ve `advert_alerts` (en fazla 5; kategori/anahtar
+    kelime, platform, en az bütçe; boş alan = fark etmez). Web ilanlar sayfasında "Kaydedilenler" ve "Alarmlar" sekmeleri, kartta kaydet düğmesi;
+    mobil İlanlar ekranında aynı sekmeler. Eşleştirme saatlik görevde: son 48 saatte açılan ve işlenmemiş ilanlar (`advert_alert_runs` ile tek sefer),
+    ilan başına en fazla 300 alıcı, kullanıcı başına tek bildirim (site içi + e-posta "İlan Başvuruları" tercihi + push). İki tablo yalnızca sahibine
+    SELECT, `advert_alert_runs` istemcilere tamamen kapalı) Influencer ilanı kaydedemiyor, yeni uygun ilandan haberdar olamıyordu.
+- **Sorunlar / notlar:**
+  - **3.15-S1 [DÜŞÜK]** (yeni bulgu) İlan alarmı saatlik çalışıyor (anlık değil). ROADMAP "anlık ilan alarmı"nı Spotlight Basic'e koyuyor;
+    bugün alarmlar herkese açık ve saatlik. Spotlight ayrımı (anlık = yayın anında eşleştirme) satış başlayınca kararla eklenir.
+  - **3.15-S2 [DÜŞÜK]** (yeni bulgu) Web ilan formunda kategori serbest metin ("Çanta -Cüzdan", "Bakım"); alarm bu yüzden anahtar kelimeyle
+    eşleşiyor (kategori + başlık, büyük/küçük harf ve aksan farkı yok). İlan formuna kategori listesi eklenirse alarm da listeden seçilebilir.
+  - **3.15-S3 [DÜŞÜK]** (yeni bulgu) Bir ilanın alıcıları saatlik görevin süre bütçesine sığmazsa kalanlar o ilan için atlanır (ilan önce
+    "işlendi" işaretlenir; çift bildirim yerine eksik bildirim tercih edildi). Bugünkü kullanıcı sayısında sorun değil.
+
 ---
 
 ## 4. Ortak: rozetler, Spotlight, profil
@@ -629,6 +658,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `corporate_email_verifications` | bekleyen e-posta kodları (hash) | yalnızca service role |
 | `collaborations` | teklif/başvuru kabulünden doğan iş birliği (3.14) | taraflar ve admin okur; yazma yalnızca sunucu |
 | `rate_cards` | influencer fiyat kartı (3.14) | sahibi, doğrulanmış marka ve admin okur; yazma yalnızca sunucu |
+| `offer_templates` | marka teklif şablonları (3.15) | sahibi okur; yazma yalnızca sunucu |
+| `saved_adverts` / `advert_alerts` | kaydedilen ilanlar, ilan alarmları (3.15) | sahibi okur; yazma yalnızca sunucu |
+| `advert_alert_runs` | alarm eşleştirmesi yapılan ilanlar (3.15) | yalnızca service role |
 
 ### 7.3 `users` koruma katmanı
 - RLS: authenticated herkes okur; anon için SELECT politikası **yok**. Kolon bazlı gizlilik: email, phone, tax_id, tax_office, tax_office_city,
@@ -712,7 +744,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `GET /api/auth/{instagram,tiktok}/login` · `callback` | oturum + state çerezi | OAuth bağlama (2.3) |
 | `POST /api/mobile/verify-{instagram,tiktok}` | Bearer JWT | mobil bio doğrulama (2.1-S1: sınırsız) |
 | `GET /api/cron/refresh-stats` | `Bearer CRON_SECRET` | günlük istatistik yenileme (2.2) |
-| `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14) |
+| `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14), teklif süresi ve ilan alarmları (3.15) |
+| `GET/POST/DELETE /api/mobile/offer-templates` · `GET/POST /api/mobile/saved-adverts` · `GET/POST/DELETE /api/mobile/advert-alerts` | Bearer JWT | teklif şablonları (marka), kaydedilen ilanlar ve alarmlar (influencer) (3.15) |
 | `GET/POST /api/mobile/collaborations` · `GET/PUT /api/mobile/rate-card` | Bearer JWT | iş birliği listesi ve işlemleri, fiyat kartı (3.14) |
 | `POST /api/award-badges` | admin | rozet verme (2.6-S1) |
 | `GET /api/check-username` | yok | kullanıcı adı müsaitliği (7.3-S2) |
