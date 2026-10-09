@@ -1,7 +1,7 @@
 // Kullanıcı bildirimleri (kullanıcı kararı, 2026-10-09):
 // - Her olay site içi bildirim (notifications tablosu, zil) olarak yazılır.
 // - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı,
-//   iş birliği yayın linki / tamamlanma / iptal, süresi dolan teklif (markaya), ilan alarmı (influencer'a).
+//   iş birliği yayın linki / tamamlanma / iptal, anlaşma özeti / taslak / revize / ödeme alınamadı (3.18), süresi dolan teklif (markaya), ilan alarmı (influencer'a).
 //   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez.
 // - Kullanıcının ayarlardaki e-posta tercihleri (users.email_notifications) uygulanır.
 // - Mobil uygulaması olan kullanıcıya push da gider (lib/push.ts); push metni e-postadaki sade metindir
@@ -33,6 +33,15 @@ export type NotificationEvent =
   | 'collab_published'
   | 'collab_completed'
   | 'collab_cancelled'
+  | 'collab_agreement'
+  | 'collab_agreement_changed'
+  | 'collab_agreement_confirmed'
+  | 'collab_draft'
+  | 'collab_revision'
+  | 'collab_deliverable_approved'
+  | 'collab_update'
+  | 'collab_payment'
+  | 'collab_nonpayment'
   | 'offer_expired'
   | 'advert_alert'
 
@@ -52,6 +61,17 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   collab_published: { preference: 'offers', email: true },
   collab_completed: { preference: 'offers', email: true },
   collab_cancelled: { preference: 'offers', email: true },
+  // Takip alanı (3.18): anlaşma özeti hazırlanınca / değişince, taslak, revize ve ödeme alınamadı bildiriminde e-posta;
+  // onay, taslak onayı, tek teslimat yayını ve ödeme işareti yalnızca site içi + push (e-posta kotası korunur).
+  collab_agreement: { preference: 'offers', email: true },
+  collab_agreement_changed: { preference: 'offers', email: true },
+  collab_agreement_confirmed: { preference: 'offers', email: false },
+  collab_draft: { preference: 'offers', email: true },
+  collab_revision: { preference: 'offers', email: true },
+  collab_deliverable_approved: { preference: 'offers', email: false },
+  collab_update: { preference: 'offers', email: false },
+  collab_payment: { preference: 'offers', email: false },
+  collab_nonpayment: { preference: 'offers', email: true },
   // Yanıtlanmadan süresi dolan teklif markaya bildirilir.
   offer_expired: { preference: 'offers', email: true },
   // İlan alarmı: influencer'ın kurduğu alarma uyan yeni ilan ("İlan Başvuruları" e-posta tercihi).

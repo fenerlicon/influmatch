@@ -70,6 +70,10 @@ export interface CollaborationListItem extends CollaborationRow {
   actions: CollaborationAction[]
   /** Yayındaysa otomatik tamamlanacağı an (ISO). */
   auto_complete_at: string | null
+  /** Takip alanı özeti (3.18): teslimat sayısı, yayınlanan teslimat, anlaşma özeti durumu. */
+  deliverable_total: number
+  deliverable_published: number
+  agreement_state: 'none' | 'pending' | 'confirmed'
 }
 
 const COLUMNS =
@@ -97,13 +101,18 @@ export function validatePublishUrl(raw: unknown): { url: string } | { error: str
 }
 
 /** Görüntüleyenin rolüne ve duruma göre yapılabilecek işlemler. */
-export function availableActions(row: Pick<CollaborationRow, 'status' | 'brand_id' | 'influencer_id' | 'room_id'>, userId: string): CollaborationAction[] {
+export function availableActions(
+  row: Pick<CollaborationRow, 'status' | 'brand_id' | 'influencer_id' | 'room_id'>,
+  userId: string,
+  hasDeliverables = false,
+): CollaborationAction[] {
   const isBrand = row.brand_id === userId
   const isInfluencer = row.influencer_id === userId
   if (!isBrand && !isInfluencer) return []
   const actions: CollaborationAction[] = []
   if (row.status === 'agreed') actions.push('start')
-  if (isInfluencer && (row.status === 'agreed' || row.status === 'in_progress')) actions.push('publish')
+  // Teslimat listesi olan iş birliğinde yayın linki teslimat başına girilir (takip alanı, 3.18).
+  if (isInfluencer && !hasDeliverables && (row.status === 'agreed' || row.status === 'in_progress')) actions.push('publish')
   if (isBrand && row.status === 'published') actions.push('approve')
   if (ACTIVE_STATUSES.includes(row.status)) actions.push('cancel')
   if (!row.room_id) actions.push('open_room')
@@ -191,8 +200,8 @@ export async function createCollaborationFor(input: CreateInput, admin: Supabase
           userId: input.influencerId,
           event: 'collab_new',
           title: 'Yeni iş birliği',
-          message: `${brandName} ile "${title}" iş birliği başladı. Yayınladığınızda linki İş Birlikleri sayfasından girin.`,
-          link: LINK,
+          message: `${brandName} ile "${title}" iş birliği başladı. Anlaşma özetini ve teslimatları iş birliği sayfasından takip edin.`,
+          link: `${LINK}/${collaborationId}`,
           type: 'success',
         },
         admin,
@@ -202,8 +211,8 @@ export async function createCollaborationFor(input: CreateInput, admin: Supabase
           userId: input.brandId,
           event: 'collab_new',
           title: 'Yeni iş birliği',
-          message: `${influencerName} ile "${title}" iş birliği başladı. Süreci İş Birlikleri sayfasından takip edebilirsiniz.`,
-          link: LINK,
+          message: `${influencerName} ile "${title}" iş birliği başladı. Anlaşma özetini hazırlayıp süreci iş birliği sayfasından takip edebilirsiniz.`,
+          link: `${LINK}/${collaborationId}`,
           type: 'success',
         },
         admin,
@@ -230,7 +239,7 @@ export async function hasActiveCollaboration(source: CollaborationSource, source
 export async function listCollaborationsFor(
   supabase: SupabaseClient,
   userId: string,
-  options: { status?: string | null } = {},
+  options: { status?: string | null; id?: string | null } = {},
 ): Promise<Result<{ collaborations: CollaborationListItem[] }>> {
   let query = supabase
     .from('collaborations')
@@ -238,6 +247,7 @@ export async function listCollaborationsFor(
     .or(`brand_id.eq.${userId},influencer_id.eq.${userId}`)
     .order('created_at', { ascending: false })
     .limit(200)
+  if (options.id) query = query.eq('id', options.id)
   if (options.status && COLLABORATION_STATUSES.includes(options.status as CollaborationStatus)) {
     query = query.eq('status', options.status)
   }
@@ -253,25 +263,45 @@ export async function listCollaborationsFor(
   const missingOffers = rows.filter((r) => !r.room_id && r.offer_id).map((r) => r.offer_id as string)
   const missingApps = rows.filter((r) => !r.room_id && r.application_id).map((r) => r.application_id as string)
   const roomBySource = new Map<string, string>()
-  const [offerRooms, appRooms] = await Promise.all([
+  const ids = rows.map((r) => r.id)
+  const [offerRooms, appRooms, deliverableRes, agreementRes] = await Promise.all([
     missingOffers.length ? supabase.from('rooms').select('id, offer_id').in('offer_id', missingOffers) : Promise.resolve({ data: [] }),
     missingApps.length ? supabase.from('rooms').select('id, advert_application_id').in('advert_application_id', missingApps) : Promise.resolve({ data: [] }),
+    ids.length ? supabase.from('collaboration_deliverables').select('collaboration_id, status').in('collaboration_id', ids) : Promise.resolve({ data: [] }),
+    ids.length
+      ? supabase.from('collaboration_agreements').select('collaboration_id, brand_confirmed_at, influencer_confirmed_at').in('collaboration_id', ids)
+      : Promise.resolve({ data: [] }),
   ])
+  const progress = new Map<string, { total: number; published: number }>()
+  ;((deliverableRes.data ?? []) as Array<{ collaboration_id: string; status: string }>).forEach((d) => {
+    const p = progress.get(d.collaboration_id) ?? { total: 0, published: 0 }
+    p.total++
+    if (d.status === 'published') p.published++
+    progress.set(d.collaboration_id, p)
+  })
+  const agreementState = new Map<string, 'pending' | 'confirmed'>()
+  ;((agreementRes.data ?? []) as Array<{ collaboration_id: string; brand_confirmed_at: string | null; influencer_confirmed_at: string | null }>).forEach(
+    (a) => agreementState.set(a.collaboration_id, a.brand_confirmed_at && a.influencer_confirmed_at ? 'confirmed' : 'pending'),
+  )
   ;((offerRooms.data ?? []) as Array<{ id: string; offer_id: string | null }>).forEach((r) => r.offer_id && roomBySource.set(r.offer_id, r.id))
   ;((appRooms.data ?? []) as Array<{ id: string; advert_application_id: string | null }>).forEach(
     (r) => r.advert_application_id && roomBySource.set(r.advert_application_id, r.id),
   )
 
-  const collaborations = rows.map(({ brand, influencer, ...row }) => {
+  const collaborations = rows.map(({ brand, influencer, ...row }): CollaborationListItem => {
     const roomId = row.room_id ?? roomBySource.get((row.offer_id ?? row.application_id) as string) ?? null
     const full = { ...row, room_id: roomId }
     const viewerRole: 'brand' | 'influencer' = row.brand_id === userId ? 'brand' : 'influencer'
+    const p = progress.get(row.id) ?? { total: 0, published: 0 }
     return {
       ...full,
       viewer_role: viewerRole,
       other: viewerRole === 'brand' ? influencer : brand,
-      actions: availableActions(full, userId),
+      actions: availableActions(full, userId, p.total > 0),
       auto_complete_at: autoCompleteAt(full),
+      deliverable_total: p.total,
+      deliverable_published: p.published,
+      agreement_state: agreementState.get(row.id) ?? 'none',
     }
   })
   return { success: true, collaborations }
@@ -326,7 +356,11 @@ export async function runCollaborationAction(
   if (row.brand_id !== userId && row.influencer_id !== userId) return { error: 'İş birliği bulunamadı.' }
 
   const action = input?.action
-  if (!availableActions(row, userId).includes(action)) {
+  const { count: deliverableCount } = await admin
+    .from('collaboration_deliverables')
+    .select('id', { count: 'exact', head: true })
+    .eq('collaboration_id', row.id)
+  if (!availableActions(row, userId, (deliverableCount ?? 0) > 0).includes(action)) {
     return { error: 'Bu işlem şu an yapılamaz. Sayfayı yenileyip tekrar deneyin.' }
   }
 
@@ -372,7 +406,7 @@ export async function runCollaborationAction(
           event: 'collab_published',
           title: 'Yayın linki girildi',
           message: `${influencerName}, "${row.title}" iş birliğinin yayın linkini girdi. İçeriği kontrol edip onaylayın; ${AUTO_COMPLETE_DAYS} gün içinde yanıt verilmezse iş birliği otomatik tamamlanır.`,
-          link: LINK,
+          link: `${LINK}/${row.id}`,
         },
         admin,
       )
@@ -389,7 +423,7 @@ export async function runCollaborationAction(
             event: 'collab_completed',
             title: 'İş birliği tamamlandı',
             message: `${brandName}, "${row.title}" iş birliğini onayladı. İş birliği tamamlandı.`,
-            link: LINK,
+            link: `${LINK}/${row.id}`,
             type: 'success',
           },
           admin,
@@ -400,7 +434,7 @@ export async function runCollaborationAction(
             event: 'collab_completed',
             title: 'İş birliği tamamlandı',
             message: `"${row.title}" iş birliğini onayladınız. İş birliği tamamlandı.`,
-            link: LINK,
+            link: `${LINK}/${row.id}`,
             type: 'success',
           },
           admin,
@@ -421,7 +455,7 @@ export async function runCollaborationAction(
           event: 'collab_cancelled',
           title: 'İş birliği iptal edildi',
           message: `${name}, "${row.title}" iş birliğini iptal etti.${reason ? ` Gerekçe: ${reason}` : ''}`,
-          link: LINK,
+          link: `${LINK}/${row.id}`,
           type: 'warning',
         },
         admin,
@@ -463,8 +497,8 @@ export async function autoCompleteCollaborations(admin: SupabaseClient, options:
     completed++
     const message = `"${row.title}" iş birliğinin yayın linkine ${AUTO_COMPLETE_DAYS} gün içinde yanıt verilmediği için iş birliği otomatik tamamlandı.`
     await Promise.all([
-      notifyUser({ userId: row.influencer_id as string, event: 'collab_completed', title: 'İş birliği tamamlandı', message, link: LINK, type: 'success' }, admin),
-      notifyUser({ userId: row.brand_id as string, event: 'collab_completed', title: 'İş birliği tamamlandı', message, link: LINK, type: 'info' }, admin),
+      notifyUser({ userId: row.influencer_id as string, event: 'collab_completed', title: 'İş birliği tamamlandı', message, link: `${LINK}/${row.id}`, type: 'success' }, admin),
+      notifyUser({ userId: row.brand_id as string, event: 'collab_completed', title: 'İş birliği tamamlandı', message, link: `${LINK}/${row.id}`, type: 'info' }, admin),
     ])
   }
   return { due: data?.length ?? 0, completed }

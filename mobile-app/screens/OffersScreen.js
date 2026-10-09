@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, X, MessageCircle, CheckCircle2, XCircle, Clock, Handshake, TimerOff } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiRequest } from '../lib/api';
+import { reliabilityText } from '../constants/collaborationWorkspace';
 
 // Teklifler: influencer gelen teklifleri yanıtlar (Kabul / Reddet / Markayla görüş), marka gönderdiklerini izler.
 // Tüm işlemler web'in sunucu kodundan geçer (lib/offers.ts): yetki, doğrulama, sohbet odası, bildirim.
@@ -217,6 +218,11 @@ export default function OffersScreen({ navigation }) {
                                     {counterpart(selected)?.full_name || `@${counterpart(selected)?.username || ''}`}
                                 </Text>
                             </View>
+                            {selected.sender_reliability ? (
+                                <Text className="text-gray-400 text-xs mt-2">
+                                    Marka geçmişi: {reliabilityText(selected.sender_reliability.completed, selected.sender_reliability.confirmed)}
+                                </Text>
+                            ) : null}
 
                             <View className="flex-row justify-between mt-4 p-4 rounded-2xl bg-white/5 border border-white/10">
                                 <Text className="text-gray-400 text-sm">{selected.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'}</Text>

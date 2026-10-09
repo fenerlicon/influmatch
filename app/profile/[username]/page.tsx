@@ -11,6 +11,8 @@ import { getCategoryLabel } from '@/utils/categories'
 import InfluencerStats from '@/components/profile/InfluencerStats'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { completedCollaborationCounts } from '@/lib/collaborations'
+import { brandReliability } from '@/lib/collaboration-workspace'
+import { reliabilityText } from '@/lib/collaboration-workspace-shared'
 import { getVisibleRateCard } from '@/lib/rate-card'
 import RateCardView from '@/components/profile/RateCardView'
 import DiscoveryWheelCard from '@/components/dashboard/DiscoveryWheelCard'
@@ -198,6 +200,8 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
     ? await Promise.all([completedCollaborationCounts(supabase, [profile.id]), getVisibleRateCard(supabase, profile.id)])
     : [new Map<string, number>(), null]
   const completedCollaborations = completedCounts.get(profile.id) ?? 0
+  // Marka güvenilirliği (3.18): tamamlanan iş birliği ve influencer'ın ödemeyi teyit ettiği sayı (sunucuda, yalnızca sayılar).
+  const reliability = isBrand ? (await brandReliability(supabase, [profile.id])).get(profile.id) ?? { completed: 0, confirmed: 0 } : null
   const isOwnProfile = viewer?.id === profile.id
 
   // Get all badge IDs for this user (only pass IDs, not badge objects)
@@ -286,6 +290,11 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                   <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
                     <span className="font-semibold text-white">{completedCollaborations}</span>
                     <span>tamamlanan iş birliği</span>
+                  </div>
+                )}
+                {reliability && (
+                  <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
+                    <span>{reliabilityText(reliability.completed, reliability.confirmed)}</span>
                   </div>
                 )}
                 {profile.city && (

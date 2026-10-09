@@ -88,6 +88,8 @@ export function routeForLink(link, role) {
     const root = role === 'brand' ? 'BrandDashboard' : 'Dashboard';
     const roomMatch = link.match(/[?&]roomId=([0-9a-f-]+)/i);
     if (roomMatch) return { name: root, params: { screen: 'Mesajlar', params: { openRoomId: roomMatch[1] } } };
+    const collabMatch = link.match(/\/collaborations\/([0-9a-f-]{36})/i);
+    if (collabMatch) return { name: 'CollaborationDetail', params: { id: collabMatch[1] } };
     if (link.includes('/collaborations')) return { name: 'Collaborations' };
     if (link.includes('/offers')) return { name: root, params: { screen: 'Teklifler' } };
     if (link.includes('/advert')) return { name: root, params: { screen: role === 'brand' ? 'BrandAdverts' : 'İlanlar' } };
