@@ -42,7 +42,12 @@
   marka keşifte (web + mobil) yalnızca çarktaki profilleri görür, profil sayfası çark/ilişki dışında kapalı; teklif ve ilan sınırları `lib/offers.ts`,
   `lib/adverts.ts` ve DB tetikleyicileriyle. **Bayrak KAPALI; satış (POS) başlayınca admin açar.** Açmadan önce 3.17-S2 (users tablosu tüm oturumlara
   okunur) ve 3.17-S3 (favoriler) kararı verilmeli. Tablolar canlıda (`20261010000020`), rollback'li denemeyle doğrulandı.
-- **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
+- **3.17-S2 (`claude/profile-reads-server`, PR açılmadı):** başka kullanıcıların profil verisi yalnızca sunucudan (`lib/profile-reads.ts`, service role +
+  onay/çark kuralı); mobilde `/api/mobile/discover`, `/api/mobile/profiles/[id]`, `GET /api/mobile/adverts`, `/api/mobile/check-username`.
+  İlişkili taraflar için `public.my_related_user_ids()` canlıda (`20261010000050`). **Yayın sonrası adım (bekliyor):** bu dal birleşip Vercel
+  üretimi READY olduktan sonra `supabase/migrations/20261010000051_narrow_profile_reads.sql` (iki ALTER POLICY) canlıya uygulanır, ardından
+  `pg_policies` ile doğrulanır; o zaman SYSTEM_MAP 3.17-S2 ✅. Önce uygulanırsa eski kodda keşif/profil listeleri boş gelir.
+- **Canlı SQL:** 3.17-S2 daraltması yayın sonrası bekliyor (yukarıda); başka bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
   `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
@@ -192,6 +197,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları
   `(supabase, userId, ...)` alır. Web server action'ları çerez istemcisiyle, mobil `/api/mobile/*` uçları `getBearerContext(request)`
   (RLS'li, mobil JWT) ile aynı fonksiyonu çağırır. Mobil tarafta `mobile-app/lib/api.js` `apiRequest(path, {method, body})`.
+  Başka kullanıcıların profil satırları istemci oturumuyla okunmaz (3.17-S2): `lib/profile-reads.ts` (`profileReader`, `listDiscoverProfiles`,
+  `getProfileForViewer`, `getAdvertOwnerCards`, `isUsernameTaken`). İstemcide yalnızca kendi satırı + ilişkili taraflar (`my_related_user_ids`) okunur.
   Aynı desende: `lib/collaborations.ts` (yazımlar service role, taraf kontrolü kodda), `lib/offer-templates.ts`, `lib/advert-alerts.ts`, `lib/rate-card.ts`, `lib/profile-update.ts`, `lib/showcase.ts`, `lib/support.ts`, `lib/feedback.ts`, `lib/notification-reads.ts`, `lib/room-reads.ts`, `lib/onboarding.ts`.
 - **Platform ayarları / bayraklar:** `platform_settings` (anahtar/değer) yalnızca service role; okuma `lib/platform-settings.ts` (hata olursa
   varsayılan = bayrak kapalı). Sınır kuralı iki yerde: `lib/brand-limits.ts` ve DB `brand_limit_for()` + tetikleyiciler; ikisi birlikte değişir.
