@@ -558,13 +558,15 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar / notlar:**
   - **3.18-N4** Teslim kilidi (taslak dosyası yükleme; marka ödeme teyidine kadar orijinal dosyayı indiremez) Cloudflare R2 ile Kasım'da. Veri modeli hazır:
     `collaboration_submissions.file_key`, `file_locked` (kontrol kısıtı url veya file_key ister).
-  - **3.18-S1 [DÜŞÜK]** (yeni bulgu, karar) UGC video teslimatı da yayın linki istiyor (Instagram/TikTok/YouTube); marka içeriği kendi hesabında yayınlıyorsa influencer
+  - ✅ ~~**3.18-S1 [DÜŞÜK]**~~ (2026-10-11 kullanıcı kararı: olduğu gibi kalır; UGC'de de teslimat yayın linkiyle tamamlanır, marka onayı tek başına teslim sayılmaz) UGC video teslimatı da yayın linki istiyor (Instagram/TikTok/YouTube); marka içeriği kendi hesabında yayınlıyorsa influencer
     markanın gönderi linkini girmeli. UGC için "onaylandı = teslim edildi" ayrımı istenirse kararla eklenir.
   - **3.18-S2 [DÜŞÜK]** (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
     kalır. Bugün yeniden açma yalnızca başvuruda ve nadir; gerekirse yeniden açılışta sıfırlanır.
   - **3.18-S3 [DÜŞÜK]** (yeni bulgu) Anlaşma kaydı ile teslimat değişiklikleri tek veritabanı işleminde değil (sürüm kilidi var; teslimat yazımı arada hata verirse liste
     kısmen güncellenebilir, aynı form tekrar kaydedilince düzelir). Gerekirse service role RPC'sine taşınır.
   - **3.18-S4 [DÜŞÜK]** (yeni bulgu) Web teklif listesinde (influencer) marka güvenilirliği satırı yok; marka profili ve iş birliği detayında var, mobilde teklif detayında var.
+  - **3.18-S5 [ORTA]** (yeni bulgu, 3.18-S1 kararından) Marka teslimatı onaylayıp içeriği yayınlamazsa yayın linki girilemez, iş birliği "devam ediyor"da kalır ve
+    tamamlanmadığı için "Ödeme alamadım" düğmesi (tamamlanma + 14 gün) hiç çıkmaz. Çözüm önerisi: tüm teslimatlar onaylandıktan 14 gün sonra da düğme açılsın.
 
 ---
 

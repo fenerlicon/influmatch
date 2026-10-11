@@ -54,7 +54,7 @@
   revize sayacı "X / Y", teslimat başına yayın linki; hepsi yayınlanınca iş birliği `published` → mevcut 7 gün kuralı), ödeme teyidi (marka "Ödeme yapıldı",
   influencer "Ödeme alındı"), tamamlanmadan 14 gün sonra "Ödeme alamadım" → `support_tickets` (Ödeme Sorunu / Acil, admin `/admin/support`) + markaya bildirim.
   Marka güvenilirliği "X iş birliği, Y ödeme teyitli" marka profilinde, iş birliği detayında ve mobil teklif detayında. Tablolar canlıda (`20261010000040`),
-  rollback'li RLS denemesiyle doğrulandı. **Teslim kilidi R2 ile Kasım'da** (`collaboration_submissions.file_key/file_locked` hazır). Karar bekleyen: 3.18-S1 (UGC teslimatında yayın linki).
+  rollback'li RLS denemesiyle doğrulandı. **Teslim kilidi R2 ile Kasım'da** (`collaboration_submissions.file_key/file_locked` hazır). 3.18-S1 kararı (2026-10-11): yayın linki kuralı UGC'de de olduğu gibi kalır; doğan boşluk 3.18-S5.
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
   `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
