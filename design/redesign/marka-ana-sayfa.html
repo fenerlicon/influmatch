@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marka Ana Sayfa — Influmatch</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .todo .ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--surface-3); color: var(--text-2); }
+  .todo .ic svg { width: 16px; }
+  .todo .ic.g { background: var(--gold-soft); color: var(--gold); }
+  .recs { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; padding: 16px 20px 20px; }
+  .rec { padding: 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); display: grid; gap: 8px; }
+  .rec .n { font-weight: 500; font-size: 13.5px; }
+  .rec .s { font-size: 12px; color: var(--text-3); }
+  .rec .m { font-size: 12px; color: var(--text-2); }
+  .rec .m b { color: var(--gold); font-weight: 600; }
+  .vrow { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-size: 13px; border-top: 1px solid var(--line); }
+  .vrow:first-of-type { border-top: 0; }
+  .vrow svg { width: 15px; }
+  @media (max-width: 900px) { .recs { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+</style>
+</head>
+<body data-role="brand" data-page="ana" data-title="Ana Sayfa" data-search="Influencer, ilan veya iş ara">
+<main class="main">
+  <div class="content">
+    <div class="page-head">
+      <div><h1 class="h1">Merhaba, Nara Kahve</h1><p class="muted">3 iş senden yanıt bekliyor, ilanına 4 yeni başvuru var.</p></div>
+      <div class="hstack">
+        <a class="btn btn-secondary" href="marka-ilanlar.html"><i data-lucide="plus"></i>İlan aç</a>
+        <a class="btn btn-primary" href="marka-kesfet.html"><i data-lucide="compass"></i>Keşfet</a>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:16px">
+      <div class="card stat"><div class="eyebrow">Yanıt bekleyen teklif</div><div class="v">4</div><div class="d">Influencer yanıtı bekleniyor</div></div>
+      <div class="card stat"><div class="eyebrow">Süren iş</div><div class="v">6</div><div class="d">2'si onayını bekliyor</div></div>
+      <div class="card stat"><div class="eyebrow">Yeni başvuru</div><div class="v">4</div><div class="d">Kış içecekleri ilanı</div></div>
+      <div class="card stat"><div class="eyebrow">Tamamlanan iş</div><div class="v">12</div><div class="d">11'inde ödeme teyitli</div></div>
+    </div>
+
+    <div class="split">
+      <div class="stack">
+        <section class="card todo">
+          <div class="card-head"><h2 class="h2">Senden bekleyenler</h2><a class="btn btn-ghost btn-sm" href="isler.html">İşler<i data-lucide="arrow-right"></i></a></div>
+          <div class="row"><span class="ic g"><i data-lucide="file-check-2"></i></span><div class="grow"><div class="title">Anlaşma özetini onayla</div><div class="faint small">Elif Yıldız · Sonbahar menüsü lansmanı</div></div><div class="actions"><a class="btn btn-secondary btn-sm" href="isler.html">Özeti aç</a></div></div>
+          <div class="row"><span class="ic g"><i data-lucide="link"></i></span><div class="grow"><div class="title">Yayın linkini onayla</div><div class="faint small">Berk Aslan · Mağaza açılışı · 5 gün içinde otomatik tamamlanır</div></div><div class="actions"><a class="btn btn-secondary btn-sm" href="isler.html">Yayını gör</a></div></div>
+          <div class="row"><span class="ic"><i data-lucide="wallet"></i></span><div class="grow"><div class="title">Ödemeyi teyit et</div><div class="faint small">Selin Demir · Soğuk kahve serisi tamamlandı</div></div><div class="actions"><a class="btn btn-secondary btn-sm" href="isler.html">Ödeme yapıldı</a></div></div>
+          <div class="row"><span class="ic"><i data-lucide="inbox"></i></span><div class="grow"><div class="title">4 yeni başvuru</div><div class="faint small">Kış içecekleri tanıtımı</div></div><div class="actions"><a class="btn btn-secondary btn-sm" href="marka-ilanlar.html">Değerlendir</a></div></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><div><h2 class="h2">Sana önerilenler</h2><div class="faint small">Sektörün, bütçen ve geçmiş işlerine göre</div></div><a class="btn btn-ghost btn-sm" href="marka-kesfet.html">Tümü<i data-lucide="arrow-right"></i></a></div>
+          <div class="recs">
+            <a class="rec" href="profil.html"><div class="av a5">BA</div><div><div class="n">Berk Aslan</div><div class="s">Yaşam Tarzı · 22,1B</div></div><div class="m">Uyum <b>%86</b> · ₺4.000'den</div></a>
+            <a class="rec" href="profil.html"><div class="av a6">ZT</div><div><div class="n">Zeynep Tan</div><div class="s">Yeme & İçme · 31,7B</div></div><div class="m">Uyum <b>%81</b> · Fiyat kartı yok</div></a>
+            <a class="rec" href="profil.html"><div class="av a2">SD</div><div><div class="n">Selin Demir</div><div class="s">Yeme & İçme · UGC</div></div><div class="m">Uyum <b>%79</b> · ₺2.500'den</div></a>
+            <a class="rec" href="profil.html"><div class="av a4">CK</div><div><div class="n">Can Kaya</div><div class="s">Yeme & İçme · 96,4B</div></div><div class="m">Uyum <b>%74</b> · ₺9.500'den</div></a>
+          </div>
+        </section>
+      </div>
+
+      <aside class="stack">
+        <!-- Marka hesap durumu: doğrulama + profil; tamamsa küçük kalır -->
+        <section class="card card-pad">
+          <div class="between"><div><div class="eyebrow">Hesap durumu</div><h2 class="h2" style="margin-top:6px">Onaylı marka</h2></div><span class="chip chip-success"><i data-lucide="shield-check"></i>Onaylı</span></div>
+          <div style="margin-top:12px">
+            <div class="vrow"><i data-lucide="check" style="color:var(--success)"></i>Vergi levhası ve kurumsal kimlik</div>
+            <div class="vrow"><i data-lucide="check" style="color:var(--success)"></i>Kurumsal e-posta (naracoffee.com)</div>
+            <div class="vrow"><i data-lucide="check" style="color:var(--success)"></i>Logo, sektör ve açıklama</div>
+            <div class="vrow muted"><i data-lucide="circle" style="color:var(--text-3)"></i>Web sitesi ve sosyal bağlantılar <a href="#" style="margin-left:auto;color:var(--gold);font-size:12.5px">Ekle</a></div>
+          </div>
+        </section>
+        <section class="card card-pad">
+          <h2 class="h2">Güvenilirliğin</h2>
+          <p class="small muted" style="margin:6px 0 12px">Influencer'lar teklifinde bunu görür.</p>
+          <div class="hstack" style="gap:20px">
+            <div><div class="num" style="font-size:22px;font-weight:600">12</div><div class="faint small">iş birliği</div></div>
+            <div><div class="num" style="font-size:22px;font-weight:600">11</div><div class="faint small">ödeme teyitli</div></div>
+          </div>
+        </section>
+        <section class="card card-pad card-accent">
+          <div class="hstack" style="color:var(--gold);font-weight:600"><i data-lucide="file-stack" style="width:16px"></i>Teklif şablonları</div>
+          <p class="small muted" style="margin:8px 0 12px">Sık gönderdiğin teklifi kaydet, tek tıkla başka profile gönder.</p>
+          <a class="btn btn-secondary btn-sm" href="#">Şablonlarım (3)</a>
+        </section>
+      </aside>
+    </div>
+  </div>
+</main>
+<script src="shell.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

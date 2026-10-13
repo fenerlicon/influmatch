@@ -44,7 +44,8 @@
   --font-display: 'Instrument Serif', Georgia, serif;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+:root { color-scheme: dark; }
 html, body { margin: 0; }
 body {
   background: var(--bg);
@@ -125,7 +126,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- Sekmeler ---------- */
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
-.tab { padding: 10px 12px; font-size: 13.5px; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; gap: 6px; align-items: center; }
+.tabs { overflow-x: auto; scrollbar-width: none; }
+.tab { white-space: nowrap; padding: 10px 12px; font-size: 13.5px; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; gap: 6px; align-items: center; }
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--text); border-bottom-color: var(--gold); }
 .tab .count { font-size: 11px; color: var(--text-3); }
@@ -244,6 +246,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .top .crumb::before { content: 'INFLUMATCH'; font-weight: 700; color: var(--gold); letter-spacing: .02em; margin-right: 10px; font-size: 13px; }
   .bell { margin-left: auto; }
   .row .actions { width: 100%; justify-content: flex-end; }
+  .split { grid-template-columns: 1fr !important; }
+  .card-head { flex-wrap: wrap; }
+  .hstack { flex-wrap: wrap; }
+  .pipeline { display: flex !important; overflow-x: auto; scrollbar-width: none; }
+  .pipeline .pipe { flex: 0 0 132px; }
+  .jobbar { flex-wrap: wrap; }
+  .jobbar .faint { display: none; }
   .mobile-tabbar {
     display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
     background: rgba(12,13,16,.95); border-top: 1px solid var(--line); padding: 6px 4px 10px; backdrop-filter: blur(8px);

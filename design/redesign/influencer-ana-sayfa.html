@@ -27,40 +27,8 @@
   .more-notice { font-size: 12.5px; color: var(--text-3); }
 </style>
 </head>
-<body>
-<div class="shell">
-  <!-- KENAR ÇUBUĞU: gruplu menü, Rozetler profile taşındı, Teklifler + İş Birlikleri = İşler -->
-  <aside class="side">
-    <div class="logo">INFLU<b>MATCH</b></div>
-    <nav class="nav">
-      <a class="active" href="#"><i data-lucide="home"></i>Ana Sayfa</a>
-      <a href="isler.html"><i data-lucide="briefcase"></i>İşler<span class="badge">3</span></a>
-      <a href="#"><i data-lucide="message-square"></i>Mesajlar<span class="badge">2</span></a>
-      <div class="nav-group"><div class="eyebrow">Fırsatlar</div>
-        <a href="#"><i data-lucide="megaphone"></i>İlanlar</a>
-        <a href="#"><i data-lucide="compass"></i>Keşfet</a>
-      </div>
-      <div class="nav-group"><div class="eyebrow">Ben</div>
-        <a href="#"><i data-lucide="user-round"></i>Profilim</a>
-        <a href="#"><i data-lucide="line-chart"></i>İstatistikler</a>
-      </div>
-    </nav>
-    <div class="side-foot">
-      <div class="spot-mini">
-        <div class="hstack" style="color:var(--gold);font-weight:600;font-size:13px"><i data-lucide="sparkles" style="width:14px;height:14px"></i>Spotlight</div>
-        <div class="small muted" style="margin-top:4px">Vitrinde öne çık, profil görüntülenmelerini gör.</div>
-      </div>
-      <nav class="nav"><a href="#"><i data-lucide="settings"></i>Ayarlar</a></nav>
-      <div class="me"><div class="av a1">EY</div><div style="min-width:0"><div style="font-weight:500;font-size:13px">Elif Yıldız</div><div class="faint small">@elifyildiz</div></div><i data-lucide="log-out" style="width:15px;margin-left:auto;color:var(--text-3)"></i></div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <header class="top">
-      <div class="crumb"><b>Ana Sayfa</b></div>
-      <div class="search"><i data-lucide="search"></i>İlan, marka veya iş ara<span class="kbd">/</span></div>
-      <button class="btn btn-ghost btn-icon bell" aria-label="Bildirimler"><i data-lucide="bell"></i></button>
-    </header>
+<body data-role="influencer" data-page="ana" data-title="Ana Sayfa" data-search="İlan, marka veya iş ara">
+<main class="main">
 
     <div class="content">
       <!-- TEK BİLDİRİM ALANI: en önemli uyarı görünür, diğerleri sayı olarak -->
@@ -216,16 +184,8 @@
       </div>
     </div>
   </main>
-</div>
 
-<nav class="mobile-tabbar">
-  <a class="active" href="#"><i data-lucide="home"></i>Ana Sayfa</a>
-  <a href="isler.html"><i data-lucide="briefcase"></i>İşler</a>
-  <a href="#"><i data-lucide="megaphone"></i>İlanlar</a>
-  <a href="#"><i data-lucide="message-square"></i>Mesajlar</a>
-  <a href="#"><i data-lucide="menu"></i>Menü</a>
-</nav>
-
+<script src="shell.js"></script>
 <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script>lucide.createIcons();</script>
 </body>

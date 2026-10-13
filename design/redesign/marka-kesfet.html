@@ -32,36 +32,8 @@
   .reason { font-size: 12px; color: var(--text-3); border-top: 1px dashed var(--line-strong); padding-top: 10px; }
 </style>
 </head>
-<body>
-<div class="shell">
-  <aside class="side">
-    <div class="logo">INFLU<b>MATCH</b></div>
-    <nav class="nav">
-      <a href="#"><i data-lucide="home"></i>Ana Sayfa</a>
-      <a class="active" href="#"><i data-lucide="compass"></i>Keşfet</a>
-      <a href="#"><i data-lucide="megaphone"></i>İlanlar<span class="badge">4</span></a>
-      <a href="isler.html"><i data-lucide="briefcase"></i>İşler</a>
-      <a href="#"><i data-lucide="message-square"></i>Mesajlar<span class="badge">1</span></a>
-      <div class="nav-group"><div class="eyebrow">Marka</div>
-        <a href="#"><i data-lucide="building-2"></i>Profilim</a>
-      </div>
-    </nav>
-    <div class="side-foot">
-      <div class="spot-mini">
-        <div class="hstack" style="color:var(--gold);font-weight:600;font-size:13px"><i data-lucide="sparkles" style="width:14px;height:14px"></i>Spotlight Pro</div>
-        <div class="small muted" style="margin-top:4px">28 Kasım'a kadar aktif</div>
-      </div>
-      <nav class="nav"><a href="#"><i data-lucide="settings"></i>Ayarlar</a></nav>
-      <div class="me"><div class="av av-sq a3">NK</div><div style="min-width:0"><div style="font-weight:500;font-size:13px">Nara Kahve</div><div class="faint small">Marka hesabı</div></div><i data-lucide="log-out" style="width:15px;margin-left:auto;color:var(--text-3)"></i></div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <header class="top">
-      <div class="crumb"><b>Keşfet</b></div>
-      <div class="search"><i data-lucide="search"></i>İsim, @kullanıcı adı veya kategori<span class="kbd">/</span></div>
-      <button class="btn btn-ghost btn-icon bell" aria-label="Bildirimler"><i data-lucide="bell"></i></button>
-    </header>
+<body data-role="brand" data-page="kesfet" data-title="Keşfet" data-search="İsim, @kullanıcı adı veya kategori">
+<main class="main">
 
     <div class="content" style="max-width:1320px">
       <div class="page-head" style="margin-bottom:14px">
@@ -206,14 +178,7 @@
       </div>
     </div>
   </main>
-</div>
-<nav class="mobile-tabbar">
-  <a href="#"><i data-lucide="home"></i>Ana Sayfa</a>
-  <a class="active" href="#"><i data-lucide="compass"></i>Keşfet</a>
-  <a href="isler.html"><i data-lucide="briefcase"></i>İşler</a>
-  <a href="#"><i data-lucide="message-square"></i>Mesajlar</a>
-  <a href="#"><i data-lucide="menu"></i>Menü</a>
-</nav>
+<script src="shell.js"></script>
 <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script>lucide.createIcons();</script>
 </body>
