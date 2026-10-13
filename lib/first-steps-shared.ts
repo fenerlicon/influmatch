@@ -38,6 +38,3 @@ export function firstStepsLabel(completed: number, total: number) {
   const suffix = ACCUSATIVE_SUFFIX[completed] ?? 'i'
   return `${total} adımdan ${completed}'${suffix} tamam`
 }
-
-/** Web'de "Gizle" tercihi bu çerezde tutulur (değer: kullanıcı kimliği; aynı tarayıcıdaki başka hesabı etkilemez). */
-export const FIRST_STEPS_HIDDEN_COOKIE = 'im_first_steps_hidden'

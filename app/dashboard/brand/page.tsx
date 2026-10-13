@@ -1,319 +1,245 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
-import BrandPipelineCard from '@/components/dashboard/BrandPipelineCard'
-import BrandVerificationCard from '@/components/dashboard/BrandVerificationCard'
-import ProfileCompletionCard from '@/components/dashboard/ProfileCompletionCard'
-import BrandOffersList from '@/components/dashboard/BrandOffersList'
-import type { ProfileRecord } from '@/utils/profileCompletion'
-import type { BrandOfferItem } from '@/lib/works'
-import { getEnrichedInfluencers, getAIRecommendations } from '@/utils/fetchInfluencers'
-import InfluencerGridCard from '@/components/dashboard/InfluencerGridCard'
-import type { DiscoverInfluencer } from '@/types/influencer'
-import { Sparkles, Lock } from 'lucide-react'
-import { hasActiveSpotlight } from '@/lib/spotlight-access'
-import { cookies } from 'next/headers'
-import FirstStepsCard from '@/components/dashboard/FirstStepsCard'
+import { ArrowRight, CheckCircle2, Compass, FileCheck2, Inbox, Link2, Plus, Sparkles } from 'lucide-react'
+import AccountStatusCard from '@/components/dashboard/AccountStatusCard'
+import { Avatar, ButtonLink, Card, CardHeader, EmptyState, ListRow, PageHeader, StatCard } from '@/components/ui'
+import { brandReliability } from '@/lib/collaboration-workspace'
+import { listCollaborationsFor } from '@/lib/collaborations'
 import { getFirstStepsStatus } from '@/lib/first-steps'
-import { FIRST_STEPS_HIDDEN_COOKIE } from '@/lib/first-steps-shared'
-import { areFavoritesLocked } from '@/lib/favorites'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { countWorks, greetingFor, loadSentOffers, worksHref } from '@/lib/works'
+import { getAIRecommendations } from '@/utils/fetchInfluencers'
+import { getCategoryLabel } from '@/utils/categories'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
+export const revalidate = 0
+
+type Todo = { key: string; icon: typeof Inbox; title: string; detail: string; href: string; cta: string; gold?: boolean }
+
+// Marka ana sayfası (docs/REDESIGN.md, 3. aşama): özet sayılar, "Senden bekleyenler", öneriler ve tek
+// "Hesap durumu" kartı. Teklif listesi İşler'de, favoriler kendi sayfasında.
 export default async function BrandDashboardPage() {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  if (!user) {
-    redirect('/login')
-  }
+  const [{ data: profile }, firstSteps, offersResult, collabResult, { data: myAdverts }, reliabilityMap] = await Promise.all([
+    supabase.from('users').select('verification_status, full_name, category, spotlight_active, spotlight_expires_at').eq('id', user.id).maybeSingle(),
+    getFirstStepsStatus(supabase, user.id),
+    loadSentOffers(supabase, user.id, 100),
+    listCollaborationsFor(supabase, user.id),
+    supabase.from('advert_projects').select('id, title').eq('brand_user_id', user.id),
+    brandReliability(supabase, [user.id]),
+  ])
 
-  // Get profile data for completion card
-  const { data: profile } = await supabase
-    .from('users')
-    .select('verification_status, full_name, username, city, bio, category, avatar_url, social_links, spotlight_active, spotlight_expires_at')
-    .eq('id', user.id)
-    .maybeSingle()
+  const verified = profile?.verification_status === 'verified'
+  const isSpotlight = hasActiveSpotlight(profile)
+  const collaborations = collabResult.success ? collabResult.collaborations : []
+  const counts = countWorks(offersResult.offers, collaborations)
+  const inFlight = counts.agreed + counts.in_progress + counts.published
+  const reliability = reliabilityMap.get(user.id) ?? { completed: 0, confirmed: 0 }
 
-  const verificationStatus = profile?.verification_status ?? 'pending'
+  // Yeni (henüz değerlendirilmemiş) başvurular: markanın ilanlarına gelen "pending" başvurular.
+  const advertIds = (myAdverts ?? []).map((a) => a.id)
+  const { count: newApplications } = advertIds.length
+    ? await supabase.from('advert_applications').select('id', { count: 'exact', head: true }).in('advert_id', advertIds).eq('status', 'pending')
+    : { count: 0 }
 
-  const profileData: ProfileRecord = {
-    full_name: profile?.full_name ?? null,
-    username: profile?.username ?? null,
-    city: profile?.city ?? null,
-    bio: profile?.bio ?? null,
-    category: profile?.category ?? null,
-    avatar_url: profile?.avatar_url ?? null,
-    social_links: (profile?.social_links as Record<string, string | null> | null) ?? null,
-  }
+  // Öneriler yalnızca Spotlight markası için hesaplanır (premium veri sunucuda kontrol edilir).
+  const recommendations = verified && isSpotlight ? await getAIRecommendations(user.id, profile?.category ?? null, 4) : []
 
-  // Get initial offer counts
-  const { data: offerStatuses } = await supabase
-    .from('offers')
-    .select('status')
-    .eq('sender_user_id', user.id)
-
-  const pendingOffersCount = offerStatuses?.filter((row) => row.status === 'pending').length ?? 0
-  const acceptedOffersCount = offerStatuses?.filter((row) => row.status === 'accepted').length ?? 0
-
-  // Fetch offers for campaign flow list
-  const { data: offers, error: offersError } = await supabase
-    .from('offers')
-    .select(
-      `id, campaign_name, campaign_type, budget, message, status, created_at,
-      receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status, displayed_badges)`,
-    )
-    .eq('sender_user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(10) // Limit to 10 most recent offers for home page
-
-  if (offersError) {
-    console.error('[BrandDashboardPage] offers load error', offersError.message)
-  }
-
-  let offersWithRoom: BrandOfferItem[] = (offers as unknown as BrandOfferItem[]) ?? []
-
-  // Fetch room IDs for accepted offers
-  if (offersWithRoom.length > 0) {
-    const offerIds = offersWithRoom.map((offer) => offer.id)
-    const { data: rooms, error: roomsError } = await supabase
-      .from('rooms')
-      .select('id, offer_id')
-      .in('offer_id', offerIds)
-
-    if (roomsError) {
-      console.error('[BrandDashboardPage] rooms load error', roomsError.message)
-    } else if (rooms) {
-      const roomMap = new Map<string, string>()
-      rooms.forEach((room) => {
-        if (room.offer_id) {
-          roomMap.set(room.offer_id, room.id)
-        }
+  // Senden bekleyenler: yalnızca markanın kendisinin yapabileceği / bakması gereken işler.
+  const todos: Todo[] = []
+  for (const c of collaborations) {
+    if (c.actions.includes('approve')) {
+      todos.push({
+        key: `approve-${c.id}`,
+        icon: Link2,
+        title: 'Yayın linkini onayla',
+        detail: `${c.other?.full_name ?? 'Influencer'} · ${c.title}`,
+        href: `/dashboard/collaborations/${c.id}`,
+        cta: 'Yayını gör',
+        gold: true,
       })
-      offersWithRoom = offersWithRoom.map((offer) => ({
-        ...offer,
-        room_id: roomMap.get(offer.id) ?? null,
-      }))
+    } else if (c.status === 'agreed' && c.agreement_state === 'pending') {
+      todos.push({
+        key: `agreement-${c.id}`,
+        icon: FileCheck2,
+        title: 'Anlaşma özetini kontrol et',
+        detail: `${c.other?.full_name ?? 'Influencer'} · ${c.title}`,
+        href: `/dashboard/collaborations/${c.id}`,
+        cta: 'Özeti aç',
+        gold: true,
+      })
     }
   }
-
-  // Fetch dismissed influencers
-  const { data: dismissedOffers, error: dismissedError } = await supabase
-    .from('dismissed_offers')
-    .select('receiver_user_id')
-    .eq('user_id', user.id)
-
-  if (dismissedError) {
-    console.error('[BrandDashboardPage] dismissed offers load error', dismissedError.message)
+  if ((newApplications ?? 0) > 0) {
+    todos.push({
+      key: 'applications',
+      icon: Inbox,
+      title: `${newApplications} yeni başvuru`,
+      detail: 'İlanlarına gelen ve henüz değerlendirmediğin başvurular',
+      href: '/dashboard/brand/advert?tab=applications',
+      cta: 'Değerlendir',
+    })
   }
 
-  const dismissedReceiverIds = new Set(dismissedOffers?.map((d) => d.receiver_user_id) ?? [])
+  const summary = !verified
+    ? 'Hesabın inceleniyor. Keşif, ilan ve teklif onaydan sonra açılır.'
+    : todos.length > 0
+      ? `${todos.length} iş senden yanıt bekliyor.`
+      : inFlight > 0
+        ? `${inFlight} iş sürüyor, şu an senden beklenen bir şey yok.`
+        : 'Keşfet\'ten uygun profilleri bul ya da bir ilan aç.'
 
-
-  // Ücretsiz markada (sınırlar açıkken) favoriler kilitli: "son eklenenler" gösterilmez (kayıtlar silinmez).
-  const favoritesLocked = await areFavoritesLocked(user.id)
-
-  // Fetch All Favorite IDs for checking status
-  const { data: allFavorites } = favoritesLocked
-    ? { data: [] as { influencer_id: string }[] }
-    : await supabase
-        .from('favorites')
-        .select('influencer_id')
-        .eq('brand_id', user.id)
-
-  const favoritedSet = new Set(allFavorites?.map((f: any) => f.influencer_id) ?? [])
-
-  // Fetch Recent Favorites (for display)
-  const { data: recentFavs } = favoritesLocked
-    ? { data: [] as { influencer_id: string }[] }
-    : await supabase
-        .from('favorites')
-        .select('influencer_id')
-        .eq('brand_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(4)
-
-  let favoriteInfluencers: DiscoverInfluencer[] = []
-  if (recentFavs && recentFavs.length > 0) {
-    const ids = recentFavs.map((f: any) => f.influencer_id)
-    favoriteInfluencers = await getEnrichedInfluencers({ ids })
-    // Re-sort to match recent order (getEnrichedInfluencers sorts by spotlight/name)
-    favoriteInfluencers.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id))
-  }
-
-  const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
-  const isSpotlight = hasActiveSpotlight(profile)
-
-  // Öneriler yalnızca Spotlight markası için hesaplanır; diğerlerine sadece boş kart iskeleti gider.
-  const recommendations = isSpotlight ? await getAIRecommendations(user.id, profileData.category, 4) : []
-
-  // "İlk adımlar": kullanıcı gizlediyse hiç hesaplanmaz.
-  const firstStepsHidden = cookies().get(FIRST_STEPS_HIDDEN_COOKIE)?.value === user.id
-  const firstSteps = firstStepsHidden ? null : await getFirstStepsStatus(supabase, user.id)
+  const taxNote = firstSteps?.steps.find((s) => s.key === 'tax_certificate')?.note
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#15161F] to-[#0C0D10] p-6 shadow-glow">
+    <div>
+      <PageHeader
+        title={`${greetingFor()}, ${profile?.full_name ?? 'tekrar hoş geldin'}`}
+        description={summary}
+        actions={
+          verified ? (
+            <>
+              <ButtonLink href="/dashboard/brand/advert?tab=mine" leftIcon={<Plus />}>
+                İlan aç
+              </ButtonLink>
+              <ButtonLink href="/dashboard/brand/discover" variant="primary" leftIcon={<Compass />}>
+                Keşfet
+              </ButtonLink>
+            </>
+          ) : undefined
+        }
+      />
 
-        <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Marka Paneli</p>
-        <h1 className="mt-3 text-2xl font-semibold text-white">Yeni kampanyanı başlat</h1>
-        <p className="mt-2 max-w-2xl text-gray-300">
-          Briefini tamamla, filtreli keşif ile doğru influencer’ları listele ve tek tıkla teklif gönder.
-        </p>
-        {verificationStatus === 'verified' ? (
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/dashboard/brand/discover"
-              className="rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold shadow-[0_0_25px_rgba(212,175,55,0.35)] transition hover:border-soft-gold hover:bg-soft-gold/20"
-            >
-              Keşfet
-            </Link>
-            <Link
-              href="/dashboard/brand/advert?tab=mine"
-              className="rounded-2xl border border-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30"
-            >
-              Brief Hazırla
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-6">
-            <span className="inline-flex items-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-2.5 text-sm font-semibold text-yellow-200">
-              <Lock className="h-4 w-4 text-yellow-400" />
-              <span>Hesabınız Onay Bekliyor — Keşif ve Brief oluşturma özellikleri onay sonrasında açılacaktır.</span>
-            </span>
-          </div>
-        )}
-      </section>
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label="Yanıt bekleyen teklif" value={counts.offers} detail="Influencer yanıtı bekleniyor" />
+        <StatCard label="Süren iş" value={inFlight} detail={counts.published > 0 ? `${counts.published} tanesi onayını bekliyor` : 'Anlaşma ve içerik'} />
+        <StatCard label="Yeni başvuru" value={newApplications ?? 0} detail="İlanlarına gelen" />
+        <StatCard label="Tamamlanan iş" value={reliability.completed} detail={`${reliability.confirmed} tanesinde ödeme teyitli`} />
+      </div>
 
-      {firstSteps && !firstSteps.allDone && <FirstStepsCard userId={user.id} status={firstSteps} />}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-4">
+          <Card as="section">
+            <CardHeader
+              title="Senden bekleyenler"
+              action={
+                <ButtonLink href={worksHref()} variant="ghost" size="sm" rightIcon={<ArrowRight />}>
+                  İşler
+                </ButtonLink>
+              }
+            />
+            {todos.length === 0 ? (
+              <EmptyState
+                icon={CheckCircle2}
+                title="Şu an senden beklenen bir şey yok"
+                description={verified ? 'Yeni bir iş başlatmak için Keşfet\'ten teklif gönderebilirsin.' : 'Hesabın onaylanınca işlerin burada görünür.'}
+              />
+            ) : (
+              todos.slice(0, 6).map((t) => (
+                <ListRow key={t.key}>
+                  <span className={t.gold ? 'grid h-8 w-8 flex-none place-items-center rounded-lg bg-gold/10 text-gold' : 'grid h-8 w-8 flex-none place-items-center rounded-lg bg-surface-3 text-ink-muted'}>
+                    <t.icon className="h-4 w-4" aria-hidden />
+                  </span>
+                  <div className="min-w-0 flex-[1_1_200px]">
+                    <div className="truncate text-[13.5px] font-medium text-ink">{t.title}</div>
+                    <div className="truncate text-xs text-ink-faint">{t.detail}</div>
+                  </div>
+                  <ButtonLink href={t.href} size="sm" className="ml-auto">
+                    {t.cta}
+                  </ButtonLink>
+                </ListRow>
+              ))
+            )}
+          </Card>
 
-      <section className="grid gap-6 lg:grid-cols-3">
-        <BrandPipelineCard
-          userId={user.id}
-          initialPendingCount={pendingOffersCount}
-          initialAcceptedCount={acceptedOffersCount}
-          isSpotlightActive={isSpotlight}
-        />
-
-        <ProfileCompletionCard userId={user.id} initialProfile={profileData} role="brand" />
-      </section>
-
-      {/* Recent Favorites Section */}
-      {verificationStatus === 'verified' && favoriteInfluencers.length > 0 && (
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Favoriler</p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Son Eklenenler</h2>
-            </div>
-            <Link
-              href="/dashboard/brand/favorites"
-              className="rounded-full border border-white/10 px-4 py-1.5 text-xs font-medium text-gray-300 transition hover:border-white/30 hover:text-white"
-            >
-              Tümünü (Detaylı) Gör
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {favoriteInfluencers.map(influencer => (
-              <div key={influencer.id} className="h-full">
-                <InfluencerGridCard influencer={influencer} initialIsFavorited={true} userRole={userRole} isSpotlightMember={isSpotlight} />
-              </div>
+          {verified &&
+            (isSpotlight ? (
+              <Card as="section">
+                <CardHeader
+                  title="Sana önerilenler"
+                  description="Sektörün ve marka profiline göre akıllı eşleştirme"
+                  action={
+                    <ButtonLink href="/dashboard/brand/ai" variant="ghost" size="sm" rightIcon={<ArrowRight />}>
+                      Tümü
+                    </ButtonLink>
+                  }
+                />
+                {recommendations.length === 0 ? (
+                  <EmptyState icon={Sparkles} title="Şu an öneri yok" description="Marka profilinde sektörünü seçtiğinde öneriler burada görünür." />
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
+                    {recommendations.map((r) => (
+                      <Link
+                        key={r.id}
+                        href={r.username ? `/profile/${r.username}` : '#'}
+                        className="grid gap-2 rounded-xl border border-line bg-surface-2 p-3.5 transition-colors hover:border-line-strong"
+                      >
+                        <Avatar name={r.full_name} src={r.avatar_url} />
+                        <div className="min-w-0">
+                          <div className="truncate text-[13.5px] font-medium text-ink">{r.full_name ?? r.username}</div>
+                          <div className="truncate text-xs text-ink-faint">
+                            {r.category ? getCategoryLabel(r.category) : 'Kategori yok'}
+                            {r.stats?.followers ? ` · ${r.stats.followers}` : ''}
+                          </div>
+                        </div>
+                        {typeof r.matchScore === 'number' && (
+                          <div className="text-xs text-ink-muted">
+                            Uyum <b className="font-semibold text-gold">%{Math.round(r.matchScore)}</b>
+                          </div>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            ) : (
+              <Card accent padded as="section" className="flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-[15px] font-semibold text-gold">
+                    <Sparkles className="h-4 w-4" aria-hidden /> Sana önerilenler
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-ink-muted">Akıllı eşleştirme önerileri ve uyum skoru Spotlight ile açılır.</p>
+                </div>
+                <ButtonLink href="/dashboard/spotlight/brand" size="sm">
+                  Paketleri gör
+                </ButtonLink>
+              </Card>
             ))}
-          </div>
-        </section>
-      )}
+        </div>
 
-      {/* AI Recommendations Section */}
-      {verificationStatus === 'verified' && (recommendations.length > 0 || !isSpotlight) && (
-        <section className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6 shadow-glow relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none">
-            <Sparkles className="h-32 w-32 text-blue-500" />
-          </div>
-          <div className="mb-6 flex items-center justify-between relative z-10">
-            <div>
-              <div className="inline-flex items-center gap-2 mb-2 rounded-full border border-blue-500/30 bg-blue-500/20 px-3 py-1">
-                <Sparkles className="h-3 w-3 text-blue-400" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300">Akıllı Eşleştirme</span>
-              </div>
-              <h2 className="text-xl font-semibold text-white">Sizin İçin Önerilenler</h2>
-              <p className="text-sm text-gray-400 mt-1">Marka profilinize ve hedeflerinize en uygun influencer'lar.</p>
-            </div>
-            {isSpotlight && (
-              <Link
-                href="/dashboard/brand/ai"
-                className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20 hover:text-white"
-              >
-                Tümünü Gör
-              </Link>
-            )}
-          </div>
-
-          <div className="relative z-10">
-            <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4 relative ${!isSpotlight ? 'blur-md pointer-events-none select-none opacity-50' : ''}`}>
-              {!isSpotlight &&
-                Array.from({ length: 4 }, (_, i) => (
-                  <div key={i} className="h-72 rounded-3xl border border-white/10 bg-white/5" aria-hidden="true" />
-                ))}
-              {recommendations.map(influencer => (
-                <div key={influencer.id} className="h-full">
-                  <InfluencerGridCard
-                    influencer={influencer}
-                    initialIsFavorited={favoritedSet.has(influencer.id)}
-                    userRole={userRole}
-                    matchScore={influencer.matchScore}
-                    matchReasons={influencer.matchReasons}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {!isSpotlight && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/20 text-blue-400 mb-4 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-                  <Lock className="h-8 w-8" />
-                </div>
-                <h3 className="text-xl font-bold text-white">Spotlight İle Kilidi Aç</h3>
-                <p className="text-sm text-gray-400 mt-2 mb-6 max-w-sm">Akıllı eşleştirme önerilerini görmek ve en doğru profilleri yakalamak için Spotlight'a geçin.</p>
-                <Link href="/dashboard/spotlight/brand" className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-500 transition shadow-lg shadow-blue-900/20">
-                  Spotlight Satın Al
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ... */}
-
-      {/* Campaign Flow List */}
-      {verificationStatus === 'verified' && offersWithRoom.length > 0 && (
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Kampanya Akışı</p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Son Teklifler</h2>
-            </div>
-            <Link
-              href="/dashboard/brand/offers"
-              className="rounded-full border border-white/10 px-4 py-1.5 text-xs font-medium text-gray-300 transition hover:border-white/30 hover:text-white"
-            >
-              Tümünü Gör
-            </Link>
-          </div>
-          <BrandOffersList
-            initialOffers={offersWithRoom}
-            currentUserId={user.id}
-            dismissedReceiverIds={Array.from(dismissedReceiverIds)}
-            hideHeader={true}
+        <aside className="grid gap-4">
+          <AccountStatusCard
+            steps={firstSteps?.steps ?? []}
+            doneTitle="Onaylı marka"
+            badge={
+              verified
+                ? { tone: 'success', label: 'Onaylı' }
+                : { tone: taxNote === 'Reddedildi' ? 'warning' : 'info', label: taxNote === 'Reddedildi' ? 'Vergi levhası reddedildi' : 'İnceleniyor' }
+            }
           />
-        </section>
-      )}
-
-      {/* Verification Guide Card */}
-      <BrandVerificationCard userId={user.id} initialVerificationStatus={verificationStatus} />
-
-
+          {verified && (
+            <Card padded as="section">
+              <h2 className="text-[17px] font-semibold tracking-tight text-ink">Güvenilirliğin</h2>
+              <p className="mt-1 text-[12.5px] text-ink-muted">Marka profilinde ve iş ayrıntısında görünür.</p>
+              <div className="mt-3 flex gap-6">
+                <div>
+                  <div className="text-[22px] font-semibold tabular-nums text-ink">{reliability.completed}</div>
+                  <div className="text-xs text-ink-faint">iş birliği</div>
+                </div>
+                <div>
+                  <div className="text-[22px] font-semibold tabular-nums text-ink">{reliability.confirmed}</div>
+                  <div className="text-xs text-ink-faint">ödeme teyitli</div>
+                </div>
+              </div>
+            </Card>
+          )}
+        </aside>
+      </div>
     </div>
   )
 }

@@ -334,6 +334,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.7-S2 [YÜKSEK]**~~ (payment_type/custom_questions okunuyor, açıklama ezilmiyor) Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
   - ✅ ~~**3.7-S3 [ORTA]**~~ (`getAnalyticsStats` Spotlight kontrolü yapıyor) Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
   - ✅ ~~**3.7-S4 [DÜŞÜK]**~~ (brandIsSpotlight süre kontrollü dolduruluyor; kapak silme yolu adresten çıkarılıyor) Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
+  - **3.7-S5 [DÜŞÜK]** İlan kategorisi serbest metin (`BrandAdvertManager` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
+    (`utils/categories.ts`) yapısal eşleşme yok. Bu yüzden influencer ana sayfasında "kategorine uygun ilanlar" yapılamadı ("Yeni ilanlar"
+    gösteriliyor); ilan alarmı anahtar kelimeyle çalışıyor. Öneri: ilan formunda kategori seçici (`INFLUENCER_CATEGORIES`), eski değerler için eşleme. (2026-10-14, yeni görünüm çalışması)
 
 ### 3.8 Başvuru değerlendirme (marka)
 - **Dosyalar:** `AdvertApplicationsList.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)

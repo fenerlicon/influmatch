@@ -99,6 +99,14 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      yönlenir (gönderilmiş e-posta/bildirim bağlantıları bozulmaz); yeni bildirimler `/dashboard/works?stage=offers`'a gider.
      İş detayı `/dashboard/collaborations/[id]` yerinde (görünümü sonraki adımda). Marka kilidi İşler'de ayrıca uygulanır.
      Menüde Teklifler + İş Birlikleri yerine tek "İşler". Sahte veriyle yerel önizlemede masaüstü/375 px denendi.
+   - ✅ **Ana sayfalar** (2026-10-14): influencer ve marka ana sayfası yeniden yazıldı. Ortak `components/dashboard/AccountStatusCard.tsx`
+     ("Hesap durumu": ilk adımlar + sıradaki adım + güven skoru + mavi tik koşulları penceresi + vitrin anahtarı; isteğe bağlı adım yüzdeye
+     katılmaz). Influencer: bekleyen teklifler (satırdan yanıt), süren işler, yeni ilanlar (kategori eşleşmesi yok, 3.7-S5), Spotlight yoksa
+     görüntülenme kartı Spotlight'a yönlendirir. Marka: "Senden bekleyenler" (yayın onayı, anlaşma özeti, yeni başvurular), öneriler (Spotlight),
+     güvenilirlik. İstatistik grafikleri ana sayfadan çıktı (İstatistikler sayfasında). Instagram/TikTok bağlama kartları profil düzenleme
+     sayfasında "Bağlı hesaplar" (`#hesaplar`) bölümüne taşındı. Kullanılmayan 10 eski kart silindi (OfferActivityCard, ProfileCompletionCard,
+     TrustScoreCard, BlueTickProgressCard, FirstStepsCard, ProfileViewsCard, SpotlightToggleCard, VerificationWarningCard, BrandPipelineCard,
+     BrandVerificationCard); "İlk adımları gizle" çerezi kalktı (kart tamamlanınca kendiliğinden kısalır).
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding.
 5. **Admin paneli.**
 
