@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tasarım Sistemi — Influmatch Mobil</title>
+<link rel="stylesheet" href="mobil.css">
+<style>
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px; }
+  .panel { background: var(--surface-1); border: 1px solid var(--line); border-radius: 18px; padding: 22px; display: grid; gap: 16px; align-content: start; }
+  .panel h3 { margin: 0; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); font-weight: 500; }
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .sw { display: grid; gap: 6px; font-size: 12px; color: var(--text-2); }
+  .sw i { height: 56px; border-radius: 12px; border: 1px solid var(--line-strong); }
+  .sw code { font-size: 11px; color: var(--text-3); }
+  .type-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .type-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .type-row code { font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+  .demo-phone-strip { width: 390px; border-radius: 22px; overflow: hidden; border: 1px solid var(--line-strong); position: relative; background: var(--bg); }
+  .demo-phone-strip .tabbar { position: relative; }
+  .rules { margin: 0; padding-left: 18px; display: grid; gap: 8px; color: var(--text-2); font-size: 14px; }
+  .rules b { color: var(--text); font-weight: 500; }
+  .files { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .files a { padding: 16px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--line); display: grid; gap: 4px; }
+  .files a b { font-weight: 600; }
+  .files a span { font-size: 13px; color: var(--text-2); }
+  .files a.on { border-color: var(--gold-line); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <div>
+      <h1>Influmatch <em>mobil</em></h1>
+      <p>Web'in "Sakin Premium" tasarım sistemi, telefona uyarlanmış hali. Aynı renkler ve yazı tipleri; mobil boyutlar, alt sekme çubuğu ve alttan açılan sayfalar. React Native + NativeWind ile kodlanacak.</p>
+    </div>
+    <nav class="board-nav">
+      <a class="active" href="index.html">Tasarım sistemi</a><a href="giris.html">Giriş · Kayıt</a><a href="influencer.html">Influencer</a><a href="marka.html">Marka</a><a href="ortak.html">Ortak</a>
+    </nav>
+  </div>
+
+  <div class="section-title"><h2>Ekranlar</h2></div>
+  <div class="files">
+    <a href="giris.html"><b>Giriş · Kayıt</b><span>8 ekran · giriş, rol, kayıt, e-posta, onboarding, hesap ve marka doğrulama</span></a>
+    <a href="influencer.html"><b>Influencer</b><span>9 ekran · ana sayfa, işler, ilanlar, profil sekmeleri, Spotlight</span></a>
+    <a href="marka.html"><b>Marka</b><span>9 ekran · ana sayfa, keşfet, influencer detayı, teklif, ilanlar, işler</span></a>
+    <a href="ortak.html"><b>Ortak</b><span>8 ekran · mesajlar, sohbet, iş birliği, bildirimler, ayarlar, destek</span></a>
+  </div>
+
+  <div class="section-title"><h2>Temel</h2></div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Renk</h3>
+      <div class="swatches">
+        <div class="sw"><i style="background:var(--bg)"></i>Zemin<code>#0C0D10</code></div>
+        <div class="sw"><i style="background:var(--surface-1)"></i>Yüzey 1<code>#121318</code></div>
+        <div class="sw"><i style="background:var(--surface-2)"></i>Yüzey 2<code>#17191F</code></div>
+        <div class="sw"><i style="background:var(--surface-3)"></i>Yüzey 3<code>#1F2129</code></div>
+        <div class="sw"><i style="background:var(--gold)"></i>Altın<code>#D4AF37</code></div>
+        <div class="sw"><i style="background:var(--champagne)"></i>Champagne<code>#F7E7CE</code></div>
+        <div class="sw"><i style="background:var(--text)"></i>Metin<code>#F3F1EC</code></div>
+        <div class="sw"><i style="background:var(--text-2)"></i>Metin 2<code>#A3A29E</code></div>
+        <div class="sw"><i style="background:var(--success)"></i>Başarı<code>#5BBF8A</code></div>
+        <div class="sw"><i style="background:var(--warning)"></i>Uyarı<code>#E3A94B</code></div>
+        <div class="sw"><i style="background:var(--danger)"></i>Hata<code>#E26464</code></div>
+        <div class="sw"><i style="background:var(--info)"></i>Bilgi / tik<code>#7FA6DB</code></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Yazı</h3>
+      <div class="type-row"><span class="serif" style="font-size:34px; line-height:1">Büyük başlık</span><code>Instrument Serif 34</code></div>
+      <div class="type-row"><span class="serif" style="font-size:28px; line-height:1">Ekran başlığı <em style="color:var(--champagne)">vurgu</em></span><code>Instrument Serif 28–32</code></div>
+      <div class="type-row"><span style="font-size:17px; font-weight:600">Üst çubuk / kart başlığı</span><code>Geist 17 · 600</code></div>
+      <div class="type-row"><span style="font-size:15px">Gövde metni, liste satırı</span><code>Geist 15</code></div>
+      <div class="type-row"><span style="font-size:13px; color:var(--text-2)">Yardımcı metin</span><code>Geist 13</code></div>
+      <div class="type-row"><span class="eyebrow">Etiket</span><code>Geist 11 · büyük harf</code></div>
+    </div>
+    <div class="panel">
+      <h3>Kurallar</h3>
+      <ul class="rules">
+        <li><b>Altın yalnızca ana eylem:</b> ekranda en fazla bir altın buton; listelerde satırın kendi ana eylemi.</li>
+        <li><b>Düz yüzey:</b> glow, blur, cam efekti, renkli gradyan yok. Kart = yüzey 1 + ince kenarlık.</li>
+        <li><b>Dokunma hedefi ≥ 44px.</b> Ana buton 48px, ikincil 40px, küçük 34px.</li>
+        <li><b>Kenar boşluğu 16px,</b> kartlar arası 14px, köşe 12 (buton/input) · 16 (kart) · 24 (sheet).</li>
+        <li><b>Modal yerine bottom sheet.</b> Onay/uyarı için sistem alert'i kalabilir.</li>
+        <li><b>İkon yalnızca Lucide</b> (lucide-react-native), çizgi 1.75. Emoji yok.</li>
+        <li><b>Uyarılar tek bildirim kartında,</b> öncelik sırasıyla; diğerleri "+N".</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Bileşenler</h2></div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Butonlar</h3>
+      <a class="mbtn primary block">Ana eylem</a>
+      <div class="row"><a class="mbtn secondary" style="flex:1">İkincil</a><a class="mbtn ghost" style="flex:1">Sade</a></div>
+      <div class="row"><a class="mbtn sm secondary">Küçük</a><a class="mbtn xs secondary"><i data-lucide="copy"></i>Çok küçük</a><a class="mbtn sm danger">Reddet</a></div>
+      <a class="mbtn primary block disabled">Pasif</a>
+    </div>
+    <div class="panel">
+      <h3>Form</h3>
+      <div class="field"><span class="label">Etiket</span><div class="minput"><i data-lucide="mail"></i><span class="ph">Yer tutucu</span></div></div>
+      <div class="field"><span class="label">Odakta</span><div class="minput focus"><span class="val">deniz@ornek.com</span></div><span class="hint">Yardım metni</span></div>
+      <div class="search-bar"><i data-lucide="search"></i>Ara</div>
+      <div class="between"><span>Anahtar</span><span class="toggle on"></span></div>
+    </div>
+    <div class="panel">
+      <h3>Seçim</h3>
+      <div class="mseg"><a class="on">Teklifler <span class="c">2</span></a><a>Aktif</a><a>Tamamlanan</a></div>
+      <div class="chips"><span class="fchip on">Seçili</span><span class="fchip"><i data-lucide="sliders-horizontal"></i>Filtre</span><span class="fchip">Güzellik</span></div>
+      <div class="row" style="gap:6px; flex-wrap:wrap"><span class="chip">Nötr</span><span class="chip chip-gold">Yeni</span><span class="chip chip-success">Doğrulandı</span><span class="chip chip-warning">Bekliyor</span><span class="chip chip-danger">Reddedildi</span><span class="chip chip-info">Görüşülüyor</span></div>
+    </div>
+    <div class="panel">
+      <h3>Bildirim kartı ve durum</h3>
+      <div class="notice warning"><div class="ic"><i data-lucide="alert-triangle"></i></div><div class="grow"><b>Fiyat kartın boş</b><span>Markalar fiyatlarını görmek ister.</span></div><span class="more">+1</span></div>
+      <div class="notice gold"><div class="ic"><i data-lucide="inbox"></i></div><div class="grow"><b>4 yeni başvuru</b><span>Yaz serisi cilt bakımı</span></div></div>
+      <div class="timeline"><div class="st done"><i></i>Teklif</div><div class="st done"><i></i>Anlaşıldı</div><div class="st now"><i></i>İçerik</div><div class="st"><i></i>Yayın</div><div class="st"><i></i>Bitti</div></div>
+    </div>
+    <div class="panel">
+      <h3>Liste ve kişi</h3>
+      <div class="list">
+        <div class="li"><div class="av a1">DA</div><div class="grow"><div class="t name">Deniz Aksoy <i data-lucide="badge-check" class="tick"></i></div><div class="s">48,2B · Güzellik</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+        <div class="li"><div class="li-ic gold"><i data-lucide="sparkles"></i></div><div class="grow"><div class="t">Simgeli satır</div><div class="s">Açıklama</div></div><span class="unread-dot"></span></div>
+      </div>
+      <div class="stats"><div class="stat"><div class="k">Takipçi</div><div class="v">48,2B</div></div><div class="stat"><div class="k">Etkileşim</div><div class="v">%4,1</div></div><div class="stat"><div class="k">İş</div><div class="v">12</div></div></div>
+    </div>
+    <div class="panel">
+      <h3>Boş durum</h3>
+      <div class="m-card"><div class="empty"><div class="ic"><i data-lucide="inbox"></i></div><b>Henüz teklif yok</b><p>Profilin ve fiyat kartın tamamsa markalar seni daha kolay bulur.</p><a class="mbtn sm secondary">Profili tamamla</a></div></div>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Alt sekme çubuğu</h2><span>İki rol</span></div>
+  <div class="screens">
+    <div class="screen"><div class="screen-label"><b>Influencer</b><span>5 sekme</span></div><div class="demo-phone-strip"><nav class="tabbar" id="tb-inf"></nav></div></div>
+    <div class="screen"><div class="screen-label"><b>Marka</b><span>5 sekme · profil üst sağda</span></div><div class="demo-phone-strip"><nav class="tabbar" id="tb-brand"></nav></div></div>
+  </div>
+</div>
+<script>
+  // Sekme çubuğu örnekleri (mobil.js ile aynı tanım)
+  const T = {
+    'tb-inf': [['house','Ana Sayfa',1],['briefcase','İşler',0,2],['megaphone','İlanlar'],['message-circle','Mesajlar',0,3],['user-round','Profil']],
+    'tb-brand': [['house','Ana Sayfa',1],['search','Keşfet'],['megaphone','İlanlar'],['briefcase','İşler',0,1],['message-circle','Mesajlar',0,2]],
+  };
+  for (const [id, items] of Object.entries(T)) {
+    document.getElementById(id).innerHTML = items.map(([ic, l, on, n]) => `<a class="${on ? 'active' : ''}"><i data-lucide="${ic}"></i>${l}${n ? `<span class="badge">${n}</span>` : ''}</a>`).join('');
+  }
+</script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="mobil.js"></script>
+</body>
+</html>

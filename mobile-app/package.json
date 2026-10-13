@@ -44,5 +44,9 @@
     "react-native-worklets": "0.5.1",
     "tailwindcss": "^3.4.17"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  }
 }

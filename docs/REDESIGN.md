@@ -6,7 +6,7 @@
 
 | Konu | Karar |
 |---|---|
-| Kapsam | Tanıtım sayfaları + kullanıcı paneli + admin paneli. Mobil uygulama bu turda yok. |
+| Kapsam | Tanıtım sayfaları + kullanıcı paneli + admin paneli. Mobil uygulama ayrı yürür (aşağıda "Mobil uygulama"). |
 | Hava | **Sakin premium**: aynı renkler (koyu zemin + soft gold + champagne). Düz yüzeyler; altın yalnızca ana eylem ve vurguda. Glow, blur ve radial gradient neredeyse yok. |
 | İş akışı | **Teklifler + İş Birlikleri tek sayfa** (teklif → anlaşıldı → içerik → yayın → tamamlandı/iptal). Mesajlar ayrı sayfa olarak kalır. |
 | Influencer "Vitrin" | **"Keşfet"** adıyla kalır. "Vitrin" sözcüğü yalnızca Spotlight/görünürlük için kullanılır. |
@@ -68,3 +68,19 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
 5. **Admin paneli.**
 
 Her aşama mevcut akışla: dal → PR → Vercel önizlemesi READY → birleştir.
+
+## Mobil uygulama (2026-10-13, kullanıcıyla belirlendi)
+
+| Konu | Karar |
+|---|---|
+| Görünüm | Web ile **aynı** tasarım sistemi (yukarıdaki tokenlar, Instrument Serif + Geist, Lucide); mobil kalıplara uyarlanır (dokunma hedefi ≥44px, bottom sheet). |
+| Gezinme | Web menüsüne göre. Influencer alt sekmeleri: Ana Sayfa · İşler · İlanlar · Mesajlar · Profil. Marka: Ana Sayfa · Keşfet · İlanlar · İşler · Mesajlar (profil/ayarlar üst sağdaki avatardan). İstatistikler, Spotlight, Ayarlar, Rozetler profilin içinde. |
+| İlk tur | Giriş/kayıt/onboarding, influencer ana ekranları, marka ana ekranları, ortak ekranlar (mesajlar, iş birliği detayı, bildirimler, ayarlar) — hepsi. |
+| Simülatör | `cd mobile-app; npm.cmd run simulator` → tarayıcıda telefon görünümü (`docs/SETUP.md`). |
+
+- OpenDesign projesi: **Influmatch Mobil** (`influmatch-mobil`). Web tokenları `referans/web-tokens.css` olarak içinde.
+  Dosyalar: `index.html` (mobil bileşen vitrini), `giris.html`, `influencer.html`, `marka.html`, `ortak.html`,
+  `mobil.css` (mobil kalıplar), `mobil.js` (durum ve sekme çubukları). Kopyası repoda `design/mobile/` (tarayıcıda `index.html`).
+- Kullanıcı onayı bekleyen metin/iş kararları tasarımda not olarak işaretli: giriş başlığı ("aracısız"), Spotlight fiyat ve içeriği.
+- Açık soru: influencer'ın web'deki "Keşfet" (vitrin) sayfası mobilde 5 sekmeye sığmıyor; şimdilik sekme değil.
+
