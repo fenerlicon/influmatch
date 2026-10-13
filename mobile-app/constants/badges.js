@@ -182,3 +182,24 @@ export const phaseConfig = {
         shadowColor: 'rgba(168,85,247,0.2)',
     },
 };
+
+// Kazanma koşulları: web components/badges/BadgeProgressInfo.tsx ile aynı. Mavi tik eşikleri web lib/blue-tick-rules.ts.
+export const BLUE_TICK_RULES = { minTrustScore: 80, minFollowers: 10000 };
+
+const AUTOMATIC = 'Koşulu sağladığınızda saatlik kontrolde otomatik verilir; koşul bozulursa geri alınır.';
+
+export const BADGE_REQUIREMENTS = {
+    'verified-account': `Aktif Spotlight üyeliği, doğrulanmış hesapta en az ${BLUE_TICK_RULES.minFollowers.toLocaleString('tr-TR')} takipçi ve ${BLUE_TICK_RULES.minTrustScore}+ güven skoru ile otomatik verilir.`,
+    'founder-member': 'Platforma katılan ilk 1000 influencer/UGC arasında olun.',
+    'profile-expert': 'Profilinizi %100 doldurun.',
+    'showcase-brand': 'Marka profilinizi %100 doldurun.',
+    'pioneer-brand': 'Marka hesabınız onaylandığında verilir.',
+    'official-business': 'Vergi levhanız onaylandıktan sonra şirket alan adınızdaki kurumsal e-postayı doğrulayın.',
+    'million-club': AUTOMATIC,
+    'lightning-fast': AUTOMATIC,
+    'brand-ambassador': AUTOMATIC,
+    'jet-approval': AUTOMATIC,
+    'elite-budget': AUTOMATIC,
+};
+
+export const badgeRequirement = (id) => BADGE_REQUIREMENTS[id] || 'Bu rozet yakında kazanılabilir olacak.';

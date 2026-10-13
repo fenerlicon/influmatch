@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Alert, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Bell, Sparkles, ScanSearch, Eye, EyeOff, ShieldAlert, Hourglass, Megaphone } from 'lucide-react-native';
+import { Bell, Sparkles, Eye, EyeOff, ShieldAlert, Hourglass, Megaphone } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { OWN_PROFILE_COLUMNS } from '../lib/userColumns';
@@ -14,10 +14,10 @@ import {
 
 // "İlk adımlar" adımı → mobil ekran (web'deki href'in karşılığı; durum /api/mobile/first-steps → lib/first-steps.ts)
 const STEP_ROUTES = {
-    verify_social: 'Verification',
-    complete_profile: 'MyProfile',
-    rate_card: 'MyProfile',
-    first_application: 'İlanlar',
+    verify_social: ['Verification'],
+    complete_profile: ['MyProfile'],
+    rate_card: ['MyProfile', { section: 'rate-card' }],
+    first_application: ['İlanlar'],
 };
 // "Gizle" tercihi yalnızca bu cihazda, kullanıcıya özel (eski FirstStepsCard ile aynı anahtar)
 const HIDDEN_KEY_PREFIX = 'first_steps_hidden:';
@@ -165,7 +165,7 @@ export default function DashboardScreen({ navigation }) {
             {notices.length ? <Notice {...notices[0]} more={notices.length > 1 ? notices.length - 1 : undefined} /> : null}
 
             {showSteps ? (
-                <AccountStatusCard status={steps} onHide={hideSteps} onGo={(key) => navigation.navigate(STEP_ROUTES[key])} />
+                <AccountStatusCard status={steps} onHide={hideSteps} onGo={(key) => navigation.navigate(...STEP_ROUTES[key])} />
             ) : null}
 
             <Section title="Yeni ilanlar" action="Tümü" onAction={() => navigation.navigate('İlanlar')}>
@@ -200,13 +200,6 @@ export default function DashboardScreen({ navigation }) {
                         title="Spotlight"
                         subtitle={isSpotlightActive ? 'Öne çıkarılıyorsun' : 'Keşfette öne çık'}
                         right={<Chip label={isSpotlightActive ? 'Aktif' : 'Pasif'} tone={isSpotlightActive ? 'gold' : 'neutral'} />}
-                        chevron
-                    />
-                    <ListRow
-                        onPress={() => navigation.navigate('Analysis')}
-                        left={<IconBox icon={ScanSearch} />}
-                        title="Profil analizi"
-                        subtitle="Etkileşim ve hesap sağlığı"
                         chevron
                     />
                     <ListRow

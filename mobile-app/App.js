@@ -32,7 +32,6 @@ import ProposalsScreen from './screens/influencer/ProposalsScreen';
 import ProfileScreen from './screens/influencer/ProfileScreen';
 import SpotlightScreen from './screens/influencer/SpotlightScreen';
 import BadgesScreen from './screens/influencer/BadgesScreen';
-import AnalysisScreen from './screens/influencer/AnalysisScreen';
 import StatisticsScreen from './screens/influencer/StatisticsScreen';
 import VerificationScreen from './screens/influencer/VerificationScreen';
 import MyProfileScreen from './screens/influencer/MyProfileScreen';
@@ -255,7 +254,6 @@ export default function App() {
           {/* ── Influencer Sub-screens ── */}
           <Stack.Screen name="Spotlight" component={SpotlightScreen} />
           <Stack.Screen name="Badges" component={BadgesScreen} />
-          <Stack.Screen name="Analysis" component={AnalysisScreen} />
           <Stack.Screen name="Verification" component={VerificationScreen} />
           <Stack.Screen name="Statistics" component={StatisticsScreen} />
           <Stack.Screen name="MyProfile" component={MyProfileScreen} />

@@ -1,46 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, BarChart2, TrendingUp, Users, Eye, Zap, Heart, MessageCircle, Play, Instagram, AlertCircle } from 'lucide-react-native';
+import { View, ActivityIndicator } from 'react-native';
+import { Eye, Heart, MessageCircle, Bookmark, Instagram } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
-
-// ─── Design System ──────────────────────────────────────────────────────────
-const GlassCard = ({ children, className, style, onPress }) => (
-    <TouchableOpacity
-        activeOpacity={onPress ? 0.85 : 1}
-        onPress={onPress}
-        style={style}
-        className={`rounded-[28px] overflow-hidden border border-white/10 relative ${className}`}
-    >
-        <LinearGradient
-            colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            className="absolute inset-0"
-        />
-        {children}
-    </TouchableOpacity>
-);
-
-const AccentCard = ({ children, color = '#D4AF37', className }) => (
-    <View className={`rounded-[28px] overflow-hidden relative border ${className}`}
-        style={{ borderColor: `${color}30` }}>
-        <LinearGradient
-            colors={[`${color}12`, `${color}05`]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            className="absolute inset-0"
-        />
-        {children}
-    </View>
-);
-
-const formatNumber = (num) => {
-    if (!num && num !== 0) return '—';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return String(num);
-};
+import { formatCount, formatPercent } from '../../lib/format';
+import {
+    Screen, StackHeader, Section, Text, Button, Card, ListGroup, ListRow, IconBox, StatCard, KeyValue, Chip, EmptyState, colors, ICON_STROKE,
+} from '../../components/ui';
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function StatisticsScreen({ navigation }) {
@@ -85,137 +50,71 @@ export default function StatisticsScreen({ navigation }) {
         : null;
 
     const engLabel = engagementRate > 5 ? 'Çok Yüksek' : engagementRate > 3 ? 'Yüksek' : engagementRate > 1 ? 'Normal' : 'Düşük';
-    const engColor = engagementRate > 3 ? '#4ade80' : engagementRate > 1 ? '#fbbf24' : '#f87171';
 
     if (loading) {
-        return (
-            <View className="flex-1 bg-[#020617] items-center justify-center">
-                <StatusBar style="light" />
-                <ActivityIndicator color="#D4AF37" size="large" />
-            </View>
-        );
+        return <View className="flex-1 bg-bg items-center justify-center"><ActivityIndicator color={colors.gold} size="large" /></View>;
     }
 
+    const engTone = engagementRate > 3 ? 'success' : engagementRate > 1 ? 'warning' : 'danger';
+    const averages = [
+        ['Beğeni', avgLikes, Heart],
+        ['İzlenme', avgViews, Eye],
+        ['Yorum', avgComments, MessageCircle],
+        ['Kaydetme', avgSaves, Bookmark],
+    ].filter(([, v]) => v);
+
     return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
+        <Screen
+            scroll
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchStats(); }}
+            header={<StackHeader title="İstatistikler" onBack={() => navigation.goBack()} />}
+        >
+            {!socialData ? (
+                <Card padded={false}>
+                    <EmptyState
+                        icon={Instagram}
+                        title="Instagram bağlı değil"
+                        text="İstatistiklerin doğrulanmış Instagram hesabından gelir."
+                        action={<Button title="Hesabı bağla" size="md" variant="secondary" onPress={() => navigation.navigate('MyProfile')} />}
+                    />
+                </Card>
+            ) : (
+                <>
+                    <View className="flex-row items-center justify-between px-1">
+                        <View className="flex-row items-center" style={{ gap: 6 }}>
+                            <Instagram size={16} color={colors.fg2} strokeWidth={ICON_STROKE} />
+                            <Text variant="small" weight="medium">@{socialData.username || 'instagram'}</Text>
+                        </View>
+                        {lastUpdated ? <Text variant="caption" tone="fg3">Güncelleme: {lastUpdated}</Text> : null}
+                    </View>
 
-            {/* Master background */}
-            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
-            <View className="absolute top-0 right-0 w-80 h-80 bg-soft-gold/5 rounded-full blur-[100px]" />
-            <View className="absolute bottom-0 -left-20 w-80 h-80 bg-purple-600/10 rounded-full blur-[80px]" />
+                    <View className="flex-row" style={{ gap: 10 }}>
+                        <StatCard label="Takipçi" value={formatCount(followerCount)} />
+                        <StatCard label="Etkileşim" value={engagementRate ? formatPercent(engagementRate) : '—'} hint={engagementRate ? engLabel : undefined} />
+                        <StatCard label="Gönderi" value={postCount ? String(postCount) : '—'} />
+                    </View>
+                    {engagementRate ? <Chip label={`Etkileşim: ${engLabel}`} tone={engTone} /> : null}
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                {/* Header */}
-                <View className="px-6 py-4 flex-row items-center justify-between">
-                    <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        className="w-11 h-11 bg-white/5 rounded-2xl items-center justify-center border border-white/10"
-                    >
-                        <ChevronLeft color="white" size={22} />
-                    </TouchableOpacity>
-                    <Text className="text-white text-xl font-bold tracking-tight">İstatistikler</Text>
-                    <View className="w-11" />
-                </View>
-
-                <ScrollView
-                    className="flex-1 px-6"
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 48 }}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchStats(); }} tintColor="#D4AF37" />}
-                >
-                    {!socialData ? (
-                        /* ── No Instagram ── */
-                        <GlassCard className="p-8 items-center mt-4">
-                            <View className="w-20 h-20 rounded-full bg-white/5 border border-white/10 items-center justify-center mb-5">
-                                <Instagram color="#6b7280" size={36} />
-                            </View>
-                            <Text className="text-white text-xl font-bold text-center mb-3">Instagram Bağlı Değil</Text>
-                            <Text className="text-gray-400 text-sm text-center leading-6 px-4">
-                                İstatistiklerini görmek için Profil → Profilim ekranından Instagram hesabını bağla.
-                            </Text>
-                        </GlassCard>
-                    ) : (
-                        <>
-                            {/* ── Platform badge & date ── */}
-                            <View className="flex-row items-center justify-between mt-2 mb-6">
-                                <View className="flex-row items-center gap-2 bg-purple-500/10 border border-purple-500/25 rounded-full px-4 py-2">
-                                    <Instagram color="#a855f7" size={15} />
-                                    <Text className="text-purple-300 text-xs font-bold">@{socialData.username || 'instagram'}</Text>
-                                </View>
-                                {lastUpdated && (
-                                    <Text className="text-gray-600 text-xs">Güncelleme: {lastUpdated}</Text>
-                                )}
-                            </View>
-
-                            {/* ── Hero row: Followers + Engagement ── */}
-                            <View className="flex-row gap-3 mb-3">
-                                {/* Followers card */}
-                                <GlassCard className="flex-1 p-5">
-                                    <LinearGradient
-                                        colors={['rgba(168,85,247,0.12)', 'transparent']}
-                                        className="absolute top-0 left-0 w-full h-1/2"
-                                    />
-                                    <View className="w-10 h-10 bg-purple-500/15 rounded-2xl items-center justify-center mb-3 border border-purple-500/20">
-                                        <Users color="#d8b4fe" size={18} />
-                                    </View>
-                                    <Text className="text-gray-400 text-[10px] font-bold tracking-widest uppercase mb-1">TAKİPÇİ</Text>
-                                    <Text className="text-white text-3xl font-black tracking-tight">{formatNumber(followerCount)}</Text>
-                                    <Text className="text-gray-600 text-[10px] mt-1">Toplam</Text>
-                                </GlassCard>
-
-                                {/* Engagement card */}
-                                <AccentCard color={engColor} className="flex-1 p-5">
-                                    <View className="w-10 h-10 bg-white/5 rounded-2xl items-center justify-center mb-3 border border-white/10">
-                                        <Zap color={engColor} size={18} />
-                                    </View>
-                                    <Text className="text-gray-400 text-[10px] font-bold tracking-widest uppercase mb-1">ETKİLEŞİM</Text>
-                                    <Text className="text-white text-3xl font-black tracking-tight">%{engagementRate.toFixed(1)}</Text>
-                                    <View className="mt-2 self-start px-2 py-0.5 rounded-lg" style={{ backgroundColor: `${engColor}20` }}>
-                                        <Text className="text-[10px] font-bold" style={{ color: engColor }}>{engLabel}</Text>
-                                    </View>
-                                </AccentCard>
-                            </View>
-
-                            {/* ── Content Performance ── */}
-                            <AccentCard color="#D4AF37" className="p-5 mb-3">
-                                <Text className="text-soft-gold text-[10px] font-bold tracking-widest uppercase mb-5">İÇERİK PERFORMANSI • ORTALAMA</Text>
-                                {[
-                                    { icon: Heart, color: '#f87171', label: 'Beğeni / Post', value: formatNumber(avgLikes) },
-                                    { icon: Play, color: '#60a5fa', label: 'Görüntülenme / Post', value: formatNumber(avgViews) },
-                                    { icon: MessageCircle, color: '#4ade80', label: 'Yorum / Post', value: formatNumber(avgComments) },
-                                    ...(avgSaves ? [{ icon: Eye, color: '#a78bfa', label: 'Kayıt / Post', value: formatNumber(avgSaves) }] : []),
-                                ].map((item, i, arr) => (
-                                    <View key={i} className={`flex-row items-center justify-between ${i < arr.length - 1 ? 'mb-4 pb-4 border-b border-white/5' : ''}`}>
-                                        <View className="flex-row items-center gap-3">
-                                            <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
-                                                <item.icon color={item.color} size={17} />
-                                            </View>
-                                            <Text className="text-gray-300 text-sm font-medium">{item.label}</Text>
-                                        </View>
-                                        <Text className="text-white text-xl font-bold">{item.value}</Text>
-                                    </View>
+                    {averages.length ? (
+                        <Section title="İçerik başına ortalama">
+                            <ListGroup>
+                                {averages.map(([label, value, Icon]) => (
+                                    <ListRow key={label} left={<IconBox icon={Icon} />} title={label} right={<Text weight="semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatCount(value)}</Text>} />
                                 ))}
-                            </AccentCard>
+                            </ListGroup>
+                        </Section>
+                    ) : null}
 
-                            {/* ── Account details ── */}
-                            <GlassCard className="p-5">
-                                <Text className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-5">HESAP BİLGİLERİ</Text>
-                                {[
-                                    { label: 'Toplam Gönderi', value: postCount ? `${postCount}` : '—' },
-                                    { label: 'Haftalık Paylaşım Sıklığı', value: postingFreq != null ? `~${postingFreq.toFixed(1)} / hafta` : '—' },
-                                    { label: 'Platform', value: 'Instagram' },
-                                ].map((item, i, arr) => (
-                                    <View key={i} className={`flex-row justify-between items-center ${i < arr.length - 1 ? 'mb-4 pb-4 border-b border-white/5' : ''}`}>
-                                        <Text className="text-gray-400 text-sm">{item.label}</Text>
-                                        <Text className="text-white text-sm font-semibold">{item.value}</Text>
-                                    </View>
-                                ))}
-                            </GlassCard>
-                        </>
-                    )}
-                </ScrollView>
-            </SafeAreaView>
-        </View>
+                    {postingFreq ? (
+                        <Section title="Hesap">
+                            <Card padded={false} className="px-4">
+                                <KeyValue label="Haftalık paylaşım" value={`${Number(postingFreq).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} gönderi`} last />
+                            </Card>
+                        </Section>
+                    ) : null}
+                </>
+            )}
+        </Screen>
     );
 }

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-    Settings, Sparkles, Award, ShieldCheck, UserPen, BarChart3, Store, LogOut, Tags, ScanSearch,
+    Settings, Sparkles, Award, ShieldCheck, UserPen, BarChart3, Store, LogOut, Tags,
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { signOutAndClearPush } from '../../utils/notifications';
@@ -99,7 +99,7 @@ export default function ProfileScreen({ navigation }) {
                         onPress={() => navigation.navigate('Verification')}
                         left={<IconBox icon={ShieldCheck} tone={isVerified ? 'success' : 'warning'} />}
                         title="Hesap doğrulama"
-                        subtitle={hasBlueTick ? 'Mavi tik aktif' : isVerified ? 'Hesabın onaylı' : 'Mavi tik için doğrula'}
+                        subtitle={isVerified ? 'Hesabın onaylı' : 'Onay bekleniyor'}
                         right={isVerified ? <Chip label="Onaylı" tone="success" /> : null}
                         chevron
                     />
@@ -110,7 +110,6 @@ export default function ProfileScreen({ navigation }) {
                 <ListGroup>
                     <ListRow onPress={() => navigation.navigate('Spotlight')} left={<IconBox icon={Sparkles} tone="gold" />} title="Spotlight" subtitle={isSpotlight ? 'Aktif planı görüntüle' : 'Keşfette öne çık'} right={isSpotlight ? <Chip label="Aktif" tone="gold" /> : null} chevron />
                     <ListRow onPress={() => navigation.navigate('Statistics')} left={<IconBox icon={BarChart3} />} title="İstatistikler" subtitle="Görüntülenme, teklif ve kazanç" chevron />
-                    <ListRow onPress={() => navigation.navigate('Analysis')} left={<IconBox icon={ScanSearch} />} title="Profil analizi" subtitle="Etkileşim ve hesap sağlığı" chevron />
                     <ListRow onPress={() => navigation.navigate('Badges')} left={<IconBox icon={Award} />} title="Rozetler" subtitle={`${badges.length} rozet kazanıldı`} chevron />
                     {/* Vitrin alt sekmeden kalktı (5 sekme); buradan açılır */}
                     <ListRow onPress={() => navigation.navigate('Vitrin')} left={<IconBox icon={Store} />} title="Vitrin" subtitle="Diğer influencer'ların vitrini" chevron />
