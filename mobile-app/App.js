@@ -1,3 +1,5 @@
+import './global.css';
+import './lib/nativewind-interop';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';

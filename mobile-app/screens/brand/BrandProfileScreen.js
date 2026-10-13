@@ -141,8 +141,8 @@ export default function BrandProfileScreen({ navigation }) {
             const url = `${urlD.publicUrl}?t=${Date.now()}`;
 
             // Logo web'in profil koduyla aynı sunucu ucundan kaydedilir (adres doğrulaması dahil).
-            const result = await apiRequest('profile', { method: 'PATCH', body: { avatarUrl: url } });
-            if (!result.success) throw new Error(result.error);
+            const saved = await apiRequest('profile', { method: 'PATCH', body: { avatarUrl: url } });
+            if (!saved.success) throw new Error(saved.error);
 
             setProfile(p => ({ ...p, avatar_url: url }));
             Alert.alert('Başarılı', 'Profil fotoğrafı güncellendi.');
