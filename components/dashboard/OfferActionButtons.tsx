@@ -1,29 +1,33 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { updateOfferStatus } from '@/app/dashboard/influencer/offers/actions'
+import { Button, ConfirmDialog, type ButtonSize } from '@/components/ui'
 
 interface OfferActionButtonsProps {
   offerId: string
   onStatusChange?: (offerId: string, status: 'accepted' | 'rejected' | 'hold', meta?: { roomId?: string | null; senderUserId?: string | null }) => void
+  size?: ButtonSize
 }
 
-export default function OfferActionButtons({ offerId, onStatusChange }: OfferActionButtonsProps) {
+export default function OfferActionButtons({ offerId, onStatusChange, size = 'sm' }: OfferActionButtonsProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [confirmReject, setConfirmReject] = useState(false)
 
   // "Markayla görüş" (hold): teklif beklemede kalır, pazarlık için sohbet açılır (kullanıcı kararı, 2026-10-09).
   const handleAction = (status: 'accepted' | 'rejected' | 'hold') => {
     startTransition(async () => {
       const result = await updateOfferStatus(offerId, status)
+      setConfirmReject(false)
       if ('error' in result) {
         toast.error(result.error)
         return
       }
       onStatusChange?.(offerId, status, { roomId: result.roomId, senderUserId: result.senderUserId })
-      if (status === 'accepted') toast.success('Teklif kabul edildi.')
+      if (status === 'accepted') toast.success('Teklif kabul edildi. İş, İşler sayfasında.')
       if (status === 'rejected') toast.success('Teklif reddedildi.')
       if ((status === 'accepted' || status === 'hold') && result.roomId) {
         router.push(`/dashboard/messages?roomId=${result.roomId}`)
@@ -32,32 +36,26 @@ export default function OfferActionButtons({ offerId, onStatusChange }: OfferAct
   }
 
   return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={() => handleAction('accepted')}
-        className="flex items-center gap-2 rounded-2xl border border-emerald-400/60 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:border-emerald-300 hover:text-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        ✅ Kabul Et
-      </button>
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={() => handleAction('rejected')}
-        className="flex items-center gap-2 rounded-2xl border border-red-400/60 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-200 transition hover:border-red-300 hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        ✕ Reddet
-      </button>
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={() => handleAction('hold')}
-        className="flex items-center gap-2 rounded-2xl border border-yellow-400/60 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-200 transition hover:border-yellow-300 hover:text-yellow-100 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        💬 Markayla görüş
-      </button>
+    <div className="flex flex-wrap gap-1.5">
+      <Button variant="ghost" size={size} disabled={isPending} onClick={() => setConfirmReject(true)}>
+        Reddet
+      </Button>
+      <Button size={size} disabled={isPending} onClick={() => handleAction('hold')}>
+        Markayla görüş
+      </Button>
+      <Button variant="primary" size={size} loading={isPending} onClick={() => handleAction('accepted')}>
+        Kabul et
+      </Button>
+      <ConfirmDialog
+        open={confirmReject}
+        onClose={() => setConfirmReject(false)}
+        onConfirm={() => handleAction('rejected')}
+        title="Teklifi reddet"
+        description="Marka bildirim alır. Bu işlem geri alınamaz."
+        confirmLabel="Reddet"
+        tone="danger"
+        loading={isPending}
+      />
     </div>
   )
 }
-

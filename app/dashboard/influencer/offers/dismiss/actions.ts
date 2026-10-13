@@ -40,7 +40,6 @@ export async function dismissOffer(offerId: string) {
     return { error: `Teklif gizlenemedi: ${error.message}` }
   }
 
-  revalidatePath('/dashboard/offers')
-  revalidatePath('/dashboard/influencer/offers')
+  revalidatePath('/dashboard/works')
   return { success: true }
 }

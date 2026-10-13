@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-export default function InfluencerOffersPage() {
-  redirect('/dashboard/offers')
-}
+import { worksHref } from '@/lib/works'
 
+export default function InfluencerOffersPage() {
+  redirect(worksHref('offers'))
+}

@@ -1,15 +1,16 @@
 'use client'
 
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
-import { MessageCircle, CalendarDays, X, BadgeCheck } from 'lucide-react'
+import { toast } from 'sonner'
+import { MessageSquare, Send, X } from 'lucide-react'
 import { dismissInfluencer } from '@/app/dashboard/brand/offers/dismiss/actions'
-import type { BrandOfferItem } from '@/app/dashboard/brand/offers/page'
+import type { BrandOfferItem } from '@/lib/works'
 import { countUnreadInRoom } from '@/lib/unread-messages'
-import { effectiveOfferStatus } from '@/lib/offer-shared'
+import { OFFER_EXPIRY_DAYS, effectiveOfferStatus } from '@/lib/offer-shared'
+import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, ListRow, Modal, VerifiedTick, type ChipTone } from '@/components/ui'
 
 interface BrandOffersListProps {
   initialOffers: BrandOfferItem[]
@@ -19,18 +20,20 @@ interface BrandOffersListProps {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Yanıt Bekleniyor',
-  accepted: 'Kabul Edildi',
+  pending: 'Yanıt bekleniyor',
+  accepted: 'Kabul edildi',
   rejected: 'Reddedildi',
-  expired: 'Süresi Doldu',
+  expired: 'Süresi doldu',
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'text-yellow-200 border-yellow-400/60 bg-yellow-400/10',
-  accepted: 'text-emerald-200 border-emerald-400/60 bg-emerald-400/10',
-  rejected: 'text-red-200 border-red-400/60 bg-red-400/10',
-  expired: 'text-gray-300 border-white/20 bg-white/5',
+const STATUS_TONES: Record<string, ChipTone> = {
+  pending: 'warning',
+  accepted: 'success',
+  rejected: 'danger',
+  expired: 'neutral',
 }
+
+const daysLeft = (createdAt: string) => Math.max(0, OFFER_EXPIRY_DAYS - Math.floor((Date.now() - Date.parse(createdAt)) / 86_400_000))
 
 const formatBudget = (value: number | null) => {
   if (value === null || value === undefined) return 'Belirlenmedi'
@@ -66,7 +69,6 @@ export default function BrandOffersList({
   initialOffers,
   currentUserId,
   dismissedReceiverIds = [],
-  hideHeader = false,
 }: BrandOffersListProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
@@ -83,17 +85,15 @@ export default function BrandOffersList({
   } | null>(null)
 
   const [isDismissing, startDismissTransition] = useTransition()
+  const [dismissTarget, setDismissTarget] = useState<string | null>(null)
 
   const handleDismiss = useCallback(
     (receiverId: string) => {
-      if (!confirm('Bu influencer\'ı listeden kaldırmak istediğinizden emin misiniz?')) {
-        return
-      }
-
       startDismissTransition(async () => {
         const result = await dismissInfluencer(receiverId)
+        setDismissTarget(null)
         if (result?.error) {
-          alert(result.error)
+          toast.error(result.error)
         } else {
           setDismissedIds((prev) => new Set(prev).add(receiverId))
         }
@@ -361,337 +361,152 @@ export default function BrandOffersList({
     [router],
   )
 
-  if (offers.length === 0) {
+  if (groupedOffers.length === 0) {
     return (
-      <div className="space-y-6">
-        {!hideHeader && (
-          <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
-            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Gönderilen Teklifler</p>
-            <h1 className="mt-2 text-2xl font-semibold">İşbirliği Teklifleriniz</h1>
-            <p className="mt-2 max-w-2xl text-sm text-gray-300">
-              Influencerlara gönderdiğiniz tekliflerin durumunu buradan takip edebilirsiniz.
-            </p>
-          </header>
-        )}
-
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-gray-300">
-          <p className="text-lg font-semibold text-white">Henüz bir teklif göndermediniz.</p>
-          <p className="mt-2 text-sm text-gray-400">
-            Keşfet sayfasına gidip ilk işbirliğinizi başlatın!
-          </p>
-          <Link
-            href="/dashboard/brand/discover"
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25"
-          >
-            Keşfet Sayfasına Git
-          </Link>
-        </div>
-      </div>
+      <Card>
+        <EmptyState
+          icon={Send}
+          title="Henüz teklif göndermedin"
+          description="Keşfet'ten uygun profilleri bulup ilk teklifini gönder."
+          action={
+            <ButtonLink href="/dashboard/brand/discover" variant="primary" size="sm">
+              Keşfete git
+            </ButtonLink>
+          }
+        />
+      </Card>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {!hideHeader && (
-        <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
-          <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Gönderilen Teklifler</p>
-          <h1 className="mt-2 text-2xl font-semibold">İşbirliği Teklifleriniz</h1>
-          <p className="mt-2 max-w-2xl text-sm text-gray-300">
-            Influencerlara gönderdiğiniz tekliflerin durumunu buradan takip edebilirsiniz.
-          </p>
-        </header>
-      )}
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <>
+      <Card className="overflow-hidden">
         {groupedOffers.map((group) => {
           const receiver = group.receiver
           const latestOffer = group.latestOffer
-          const offerCount = group.offers.length
-
+          const status = effectiveOfferStatus(latestOffer)
           return (
-            <article
-              key={receiver?.id ?? 'unknown'}
-              className="group relative rounded-3xl border border-white/10 bg-[#0B0C10] p-5 text-white transition duration-300 ease-out hover:-translate-y-1 hover:border-soft-gold/70 hover:shadow-glow"
-            >
-              {/* Dismiss Button */}
-              <button
-                type="button"
-                onClick={() => receiver?.id && handleDismiss(receiver.id)}
-                disabled={isDismissing}
-                className="absolute right-3 top-3 z-10 rounded-full border border-white/20 bg-black/60 backdrop-blur-sm p-1.5 text-white transition hover:border-red-400/60 hover:bg-red-500/20 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Listeden Kaldır"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              {/* Header: Influencer Avatar + Name */}
-              <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-                <div className="relative h-12 w-12 overflow-hidden rounded-2xl border border-white/10 bg-white/5 flex-shrink-0">
-                  {receiver?.avatar_url ? (
-                    <Image
-                      src={receiver.avatar_url}
-                      alt={receiver.full_name ?? 'Influencer'}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
+            <ListRow key={receiver?.id ?? latestOffer.id}>
+              <Avatar name={receiver?.full_name} src={receiver?.avatar_url} />
+              <div className="min-w-0 flex-[1_1_200px]">
+                <div className="flex items-center gap-1 truncate text-[13.5px] font-medium text-ink">
+                  <span className="truncate">{latestOffer.campaign_name ?? 'İsimsiz kampanya'}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-1 text-xs text-ink-faint">
+                  {receiver?.username ? (
+                    <Link href={`/profile/${receiver.username}`} className="hover:text-ink">
+                      {receiver.full_name ?? `@${receiver.username}`}
+                    </Link>
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-soft-gold">
-                      {receiver?.full_name?.[0] ?? 'I'}
-                    </div>
+                    <span>{receiver?.full_name ?? 'Influencer'}</span>
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white truncate">
-                      {receiver?.full_name ?? 'Influencer'}
-                    </p>
-                    {receiver?.displayed_badges?.includes('verified-account') && (
-                      <div className="group relative flex-shrink-0">
-                        <BadgeCheck className="h-4 w-4 text-blue-400" />
-                        <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                          Mavi Tik
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {receiver?.username && (
-                    <p className="text-xs text-gray-400 truncate">@{receiver.username}</p>
-                  )}
-                  {offerCount > 1 && (
-                    <p className="text-xs text-gray-500 mt-0.5">{offerCount} teklif</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Body: Latest Campaign Info */}
-              <div className="mt-4 space-y-3">
-                <div>
-                  <h3 className="text-base font-semibold text-white line-clamp-2">
-                    {latestOffer.campaign_name ?? 'İsimsiz Kampanya'}
-                  </h3>
-                  {latestOffer.campaign_type && (
-                    <span className="mt-1 inline-block rounded-full border border-white/10 px-2 py-0.5 text-xs text-gray-300">
-                      {latestOffer.campaign_type}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
-                      {latestOffer.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-soft-gold">
-                      {formatBudget(latestOffer.budget)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer: Date + Status + Action */}
-              <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    <span>{formatRelativeTime(latestOffer.created_at)}</span>
-                  </div>
-                  <span
-                    className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[effectiveOfferStatus(latestOffer)] ?? 'border-white/15 text-gray-400'
-                      }`}
-                  >
-                    {STATUS_LABELS[effectiveOfferStatus(latestOffer)] ?? latestOffer.status}
+                  {receiver?.displayed_badges?.includes('verified-account') && <VerifiedTick />}
+                  <span>
+                    · {latestOffer.payment_type === 'barter' ? 'Barter' : formatBudget(latestOffer.budget)} · {formatRelativeTime(latestOffer.created_at)}
                   </span>
+                  {group.offers.length > 1 && <span>· {group.offers.length} teklif</span>}
                 </div>
-
-                {group.offers.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedGroup(group)}
-                    className="w-full rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2.5 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-                  >
-                    Detayları Gör
-                  </button>
-                )}
-                {group.hasAccepted && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenChat(latestOffer)}
-                    disabled={chatLoadingId === latestOffer.id}
-                    className="relative w-full rounded-2xl border border-emerald-400/60 bg-emerald-400/10 px-4 py-2.5 text-xs font-semibold text-emerald-200 transition hover:border-emerald-400 hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-70 flex items-center justify-center gap-2"
-                  >
-                    {chatLoadingId === latestOffer.id ? (
-                      <>
-                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-200 border-t-transparent" />
-                        Açılıyor...
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        Sohbete Git
-                        {group.totalUnread > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
-                            {group.totalUnread > 9 ? '9+' : group.totalUnread}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </button>
-                )}
               </div>
-            </article>
+              <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
+                {status === 'pending' ? `${daysLeft(latestOffer.created_at)} gün içinde düşer` : STATUS_LABELS[status] ?? latestOffer.status}
+              </Chip>
+              <div className="ml-auto flex items-center gap-1.5">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedGroup(group)}>
+                  Ayrıntı
+                </Button>
+                {group.hasAccepted && (
+                  <Button size="sm" leftIcon={<MessageSquare />} loading={chatLoadingId === latestOffer.id} onClick={() => handleOpenChat(latestOffer)}>
+                    Sohbet
+                    {group.totalUnread > 0 && (
+                      <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gold px-1 text-[11px] font-semibold text-gold-ink">
+                        {group.totalUnread > 9 ? '9+' : group.totalUnread}
+                      </span>
+                    )}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  aria-label="Listeden kaldır"
+                  disabled={isDismissing}
+                  onClick={() => receiver?.id && setDismissTarget(receiver.id)}
+                >
+                  <X />
+                </Button>
+              </div>
+            </ListRow>
           )
         })}
-      </div>
+      </Card>
 
-      {/* Details Modal */}
-      {selectedGroup && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-          onClick={() => setSelectedGroup(null)}
-        >
-          <div
-            className="relative w-full max-w-3xl max-h-[90vh] rounded-3xl border border-white/10 bg-[#0B0C10] shadow-2xl overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-white/10 bg-white/5 flex-shrink-0">
-                  {selectedGroup.receiver?.avatar_url ? (
-                    <Image
-                      src={selectedGroup.receiver.avatar_url}
-                      alt={selectedGroup.receiver.full_name ?? 'Influencer'}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-soft-gold">
-                      {selectedGroup.receiver?.full_name?.[0] ?? 'I'}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-white">
-                    {selectedGroup.receiver?.full_name ?? 'Influencer'}
-                  </h2>
-                  {selectedGroup.receiver?.username && (
-                    <p className="text-sm text-gray-400">@{selectedGroup.receiver.username}</p>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">{selectedGroup.offers.length} teklif</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedGroup(null)}
-                className="rounded-full border border-white/20 bg-white/5 p-2 text-white transition hover:border-white/40 hover:bg-white/10"
-                aria-label="Kapat"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Content - Offers List */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {selectedGroup.offers
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .map((offer) => (
-                  <div
-                    key={offer.id}
-                    className="rounded-2xl border border-white/10 bg-[#0F1014] p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold text-white">
-                            {offer.campaign_name ?? 'İsimsiz Kampanya'}
-                          </h3>
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${STATUS_STYLES[effectiveOfferStatus(offer)] ?? 'border-white/15 text-gray-400'
-                              }`}
-                          >
-                            {STATUS_LABELS[effectiveOfferStatus(offer)] ?? offer.status}
-                          </span>
-                        </div>
-
-                        {offer.campaign_type && (
-                          <span className="inline-block rounded-full border border-white/10 px-2 py-0.5 text-xs text-gray-300 mb-3">
-                            {offer.campaign_type}
-                          </span>
-                        )}
-
-                        <div className="grid gap-4 md:grid-cols-2 mt-4">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-gray-400">
-                              {offer.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'}
-                            </p>
-                            <p className="mt-1 text-base font-semibold text-soft-gold">
-                              {formatBudget(offer.budget)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-gray-400">Tarih</p>
-                            <p className="mt-1 text-sm text-gray-300">
-                              {new Date(offer.created_at).toLocaleDateString('tr-TR', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {formatRelativeTime(offer.created_at)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {offer.message && (
-                          <div className="mt-4">
-                            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">Mesaj</p>
-                            <p className="text-sm text-gray-300 whitespace-pre-wrap">{offer.message}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+      <Modal
+        open={selectedGroup !== null}
+        onClose={() => setSelectedGroup(null)}
+        size="lg"
+        title={selectedGroup?.receiver?.full_name ?? 'Influencer'}
+        description={selectedGroup ? `${selectedGroup.receiver?.username ? `@${selectedGroup.receiver.username} · ` : ''}${selectedGroup.offers.length} teklif` : undefined}
+        footer={
+          selectedGroup?.hasAccepted ? (
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<MessageSquare />}
+              onClick={() => {
+                if (!selectedGroup) return
+                handleOpenChat(selectedGroup.latestOffer)
+                setSelectedGroup(null)
+              }}
+            >
+              Sohbete git
+            </Button>
+          ) : undefined
+        }
+      >
+        <div className="grid gap-3">
+          {[...(selectedGroup?.offers ?? [])]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .map((offer) => {
+              const status = effectiveOfferStatus(offer)
+              return (
+                <div key={offer.id} className="rounded-xl border border-line bg-surface-2 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-medium text-ink">{offer.campaign_name ?? 'İsimsiz kampanya'}</div>
+                    <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
+                      {STATUS_LABELS[status] ?? offer.status}
+                    </Chip>
                   </div>
-                ))}
-            </div>
-
-            {/* Footer - Chat Button */}
-            {selectedGroup.hasAccepted && (
-              <div className="p-6 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleOpenChat(selectedGroup.latestOffer)
-                    setSelectedGroup(null)
-                  }}
-                  disabled={chatLoadingId === selectedGroup.latestOffer.id}
-                  className="relative w-full rounded-2xl border border-emerald-400/60 bg-emerald-400/10 px-6 py-3 text-sm font-semibold text-emerald-200 transition hover:border-emerald-400 hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-70 flex items-center justify-center gap-2"
-                >
-                  {chatLoadingId === selectedGroup.latestOffer.id ? (
-                    <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-200 border-t-transparent" />
-                      Açılıyor...
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="h-4 w-4" />
-                      Sohbete Git
-                      {selectedGroup.totalUnread > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-lg">
-                          {selectedGroup.totalUnread > 9 ? '9+' : selectedGroup.totalUnread}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+                  <dl className="mt-2 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1 text-[13px]">
+                    {offer.campaign_type && (
+                      <>
+                        <dt className="text-ink-faint">Tür</dt>
+                        <dd className="text-ink">{offer.campaign_type}</dd>
+                      </>
+                    )}
+                    <dt className="text-ink-faint">{offer.payment_type === 'barter' ? 'Barter (ürün)' : 'Bütçe (nakit)'}</dt>
+                    <dd className="tabular-nums text-ink">{formatBudget(offer.budget)}</dd>
+                    <dt className="text-ink-faint">Tarih</dt>
+                    <dd className="text-ink">
+                      {new Date(offer.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </dd>
+                  </dl>
+                  {offer.message && <p className="mt-2 whitespace-pre-wrap text-[13px] text-ink-muted">{offer.message}</p>}
+                </div>
+              )
+            })}
         </div>
-      )}
-    </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={dismissTarget !== null}
+        onClose={() => setDismissTarget(null)}
+        onConfirm={() => dismissTarget && handleDismiss(dismissTarget)}
+        title="Listeden kaldır"
+        description="Bu influencer'a gönderdiğin teklifler yalnızca senin listenden gizlenir."
+        confirmLabel="Kaldır"
+        tone="danger"
+        loading={isDismissing}
+      />
+    </>
   )
 }
-

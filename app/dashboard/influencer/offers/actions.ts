@@ -14,8 +14,7 @@ export async function updateOfferStatus(offerId: string, nextStatus: OfferRespon
 
   const result = await respondToOfferAs(supabase, user.id, offerId, nextStatus)
   if ('success' in result) {
-    revalidatePath('/dashboard/influencer/offers')
-    revalidatePath('/dashboard/offers')
+    revalidatePath('/dashboard/works')
   }
   return result
 }

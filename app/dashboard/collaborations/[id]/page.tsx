@@ -1,4 +1,6 @@
-import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+import { ButtonLink } from '@/components/ui'
+import { worksHref } from '@/lib/works'
 import { redirect } from 'next/navigation'
 import CollaborationWorkspaceView from '@/components/dashboard/CollaborationWorkspace'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
@@ -22,13 +24,13 @@ export default async function CollaborationDetailPage({ params }: { params: { id
 
   return (
     <div className="space-y-6">
-      <Link href="/dashboard/collaborations" className="inline-flex text-sm text-gray-400 transition hover:text-soft-gold">
-        ← İş Birlikleri
-      </Link>
+      <ButtonLink href={worksHref('active')} variant="ghost" size="sm" leftIcon={<ArrowLeft />} className="-ml-2">
+        İşler'e dön
+      </ButtonLink>
       {result.success ? (
         <CollaborationWorkspaceView workspace={result.workspace} currentUserId={user.id} />
       ) : (
-        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-sm text-red-200">{result.error}</div>
+        <div className="rounded-2xl border border-danger/30 bg-danger/10 p-5 text-sm text-danger">{result.error}</div>
       )}
     </div>
   )

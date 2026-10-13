@@ -1,5 +1,5 @@
 import {
-  Award, Briefcase, Building2, Compass, Heart, Home, Inbox, LayoutDashboard, LifeBuoy, LineChart, Megaphone, MessageSquare,
+  Award, Briefcase, Building2, Compass, Heart, Home, LayoutDashboard, LifeBuoy, LineChart, Megaphone, MessageSquare,
   MessagesSquare, UserRound, type LucideIcon,
 } from 'lucide-react'
 
@@ -23,15 +23,15 @@ export interface NavGroup {
   items: NavItem[]
 }
 
-// Menü (docs/REDESIGN.md). Teklifler + İş Birlikleri birleşip "İşler" olunca (3. aşama) ve rozetler profile
-// taşınınca buradaki maddeler de değişir; o zamana kadar mevcut sayfalara gider.
+// Menü (docs/REDESIGN.md). Teklifler + iş birlikleri "İşler"de (3. aşama); rozetler profile taşınınca o madde de kalkar.
+// Eski teklif/iş birliği adresleri (yönlendirme ve iş detayı) İşler'i etkin gösterir.
+const WORKS_ALIASES = ['/dashboard/collaborations', '/dashboard/offers', '/dashboard/brand/offers', '/dashboard/influencer/offers']
 const INFLUENCER: NavGroup[] = [
   { items: [{ id: 'home', label: 'Ana Sayfa', href: '/dashboard/influencer', icon: Home, exact: true }] },
   {
     label: 'Çalış',
     items: [
-      { id: 'offers', label: 'Teklifler', href: '/dashboard/offers', icon: Inbox },
-      { id: 'collabs', label: 'İş Birlikleri', href: '/dashboard/collaborations', icon: Briefcase },
+      { id: 'works', label: 'İşler', href: '/dashboard/works', icon: Briefcase, alsoActive: WORKS_ALIASES },
       { id: 'messages', label: 'Mesajlar', href: '/dashboard/messages', icon: MessageSquare, unread: true },
     ],
   },
@@ -65,8 +65,7 @@ const BRAND: NavGroup[] = [
   {
     label: 'Çalış',
     items: [
-      { id: 'offers', label: 'Teklifler', href: '/dashboard/brand/offers', icon: Inbox },
-      { id: 'collabs', label: 'İş Birlikleri', href: '/dashboard/collaborations', icon: Briefcase },
+      { id: 'works', label: 'İşler', href: '/dashboard/works', icon: Briefcase, alsoActive: WORKS_ALIASES },
       { id: 'messages', label: 'Mesajlar', href: '/dashboard/messages', icon: MessageSquare, unread: true },
     ],
   },
@@ -95,8 +94,8 @@ export const NAV: Record<ShellRole, NavGroup[]> = { influencer: INFLUENCER, bran
 
 /** Mobil alt sekme çubuğundaki maddeler (sonuncusu her zaman "Menü"). */
 export const MOBILE_TABS: Record<ShellRole, string[]> = {
-  influencer: ['home', 'offers', 'adverts', 'messages'],
-  brand: ['home', 'discover', 'offers', 'messages'],
+  influencer: ['home', 'works', 'adverts', 'messages'],
+  brand: ['home', 'discover', 'works', 'messages'],
   admin: ['admin', 'support', 'messages'],
 }
 
