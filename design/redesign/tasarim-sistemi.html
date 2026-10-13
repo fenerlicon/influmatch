@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tasarım Sistemi — Influmatch</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px 96px; }
+  .ds-sec { padding: 36px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 220px 1fr; gap: 32px; }
+  .ds-sec > div:first-child p { color: var(--text-3); font-size: 13px; margin: 6px 0 0; }
+  .sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .sw div { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface-1); }
+  .sw i { display: block; height: 64px; }
+  .sw span { display: block; padding: 8px 10px; font-size: 12px; }
+  .sw small { display: block; color: var(--text-3); font-family: ui-monospace, monospace; font-size: 11px; }
+  .demo { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .screens { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .screens a { padding: 18px; display: block; }
+  .screens a:hover { border-color: var(--gold-line); }
+  .rule { display: flex; gap: 10px; font-size: 13.5px; color: var(--text-2); padding: 6px 0; }
+  .rule svg { width: 16px; flex: none; margin-top: 2px; }
+  .modal-demo { max-width: 420px; padding: 0; overflow: hidden; }
+  .modal-demo .mh { padding: 18px 20px 0; }
+  .modal-demo .mb { padding: 14px 20px 18px; display: grid; gap: 12px; }
+  .modal-demo .mf { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; background: var(--surface-2); }
+  .empty { text-align: center; padding: 36px 20px; }
+  .empty .ic { width: 44px; height: 44px; border-radius: 12px; margin: 0 auto 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-2); }
+  @media (max-width: 900px) { .ds-sec { grid-template-columns: 1fr; gap: 16px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo" style="padding:0 0 28px">INFLU<b>MATCH</b></div>
+  <div class="eyebrow">Tasarım sistemi · v0.1</div>
+  <h1 class="display" style="font-size:60px;margin:12px 0 14px">Sakin <em>premium</em></h1>
+  <p class="muted" style="max-width:620px;font-size:16px;margin:0 0 32px">Aynı renkler, daha az gürültü. Koyu ve düz yüzeyler; altın yalnızca ana eylemde ve gerçekten önemli olan yerde. Parıltı, bulanıklık ve renkli gradyan yok.</p>
+
+  <div class="screens" style="margin-bottom:40px">
+    <a class="card" href="ana-sayfa.html"><div class="eyebrow">Tanıtım</div><div class="h2" style="margin-top:6px">Ana sayfa</div><div class="faint small" style="margin-top:4px">"Ücretsiz başla", ürün önizlemesi</div></a>
+    <a class="card" href="influencer-ana-sayfa.html"><div class="eyebrow">Influencer</div><div class="h2" style="margin-top:6px">Ana sayfa</div><div class="faint small" style="margin-top:4px">Hesap durumu kartı, tek bildirim alanı</div></a>
+    <a class="card" href="isler.html"><div class="eyebrow">Marka</div><div class="h2" style="margin-top:6px">İşler</div><div class="faint small" style="margin-top:4px">Teklif + iş birliği tek akış</div></a>
+    <a class="card" href="marka-kesfet.html"><div class="eyebrow">Marka</div><div class="h2" style="margin-top:6px">Keşfet</div><div class="faint small" style="margin-top:4px">Tümü / Önerilenler / Favoriler</div></a>
+  </div>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">İlkeler</h2><p>Her ekranda aynı kurallar.</p></div>
+    <div>
+      <div class="rule"><i data-lucide="circle-dot" style="color:var(--gold)"></i>Altın buton = ana eylem. Sayfa başlığında en fazla bir tane; listelerde yalnızca satırın kendi ana eylemi (ör. Kabul et).</div>
+      <div class="rule"><i data-lucide="circle-dot" style="color:var(--gold)"></i>Renk yalnızca anlam taşır: başarı, uyarı, hata, bilgi. Dekor için renk yok.</div>
+      <div class="rule"><i data-lucide="circle-dot" style="color:var(--gold)"></i>Uyarılar tek bildirim alanında, öncelik sırasıyla; aynı anda en fazla bir tane.</div>
+      <div class="rule"><i data-lucide="circle-dot" style="color:var(--gold)"></i>Her kartın tek görevi var; aynı bilgiyi iki kart göstermez.</div>
+      <div class="rule"><i data-lucide="circle-dot" style="color:var(--gold)"></i>Aynı kavrama tek ad: İlan, İş, Keşfet, Spotlight.</div>
+      <div class="rule"><i data-lucide="circle-dot" style="color:var(--gold)"></i>İkonlar yalnızca lucide; emoji yok.</div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Renk</h2><p>Kodda 20'den fazla koyu ton vardı; artık 4 yüzey tonu var. Altın ve şampanya aynı kaldı.</p></div>
+    <div class="stack">
+      <div class="sw">
+        <div><i style="background:#0C0D10"></i><span>Zemin<small>#0C0D10</small></span></div>
+        <div><i style="background:#121318"></i><span>Yüzey 1<small>#121318</small></span></div>
+        <div><i style="background:#17191F"></i><span>Yüzey 2<small>#17191F</small></span></div>
+        <div><i style="background:#1F2129"></i><span>Yüzey 3<small>#1F2129</small></span></div>
+      </div>
+      <div class="sw">
+        <div><i style="background:#D4AF37"></i><span>Soft gold<small>#D4AF37</small></span></div>
+        <div><i style="background:#E2C25A"></i><span>Gold hover<small>#E2C25A</small></span></div>
+        <div><i style="background:#F7E7CE"></i><span>Champagne<small>#F7E7CE</small></span></div>
+        <div><i style="background:#F3F1EC"></i><span>Metin<small>#F3F1EC</small></span></div>
+      </div>
+      <div class="sw">
+        <div><i style="background:#5BBF8A"></i><span>Başarı<small>#5BBF8A</small></span></div>
+        <div><i style="background:#E3A94B"></i><span>Uyarı<small>#E3A94B</small></span></div>
+        <div><i style="background:#E26464"></i><span>Hata<small>#E26464</small></span></div>
+        <div><i style="background:#7FA6DB"></i><span>Bilgi / mavi tik<small>#7FA6DB</small></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Yazı</h2><p>Başlıklar Instrument Serif, arayüz Geist. Serif yalnızca sayfa başlıklarında ve tanıtımda.</p></div>
+    <div class="stack" style="gap:10px">
+      <div class="display" style="font-size:52px">Doğru influencer'ı bul. <em>Aracısız</em> çalış.</div>
+      <div class="h1">Sayfa başlığı — İşler</div>
+      <div class="h2">Kart başlığı — Yanıt bekleyen teklifler</div>
+      <div>Gövde metni 14 px. Teklif, anlaşma, teslimat ve ödeme teyidi tek yerde.</div>
+      <div class="muted">İkincil metin — açıklamalar ve alt bilgiler.</div>
+      <div class="eyebrow">Etiket · Bekleyen teklif</div>
+      <div class="num" style="font-size:26px;font-weight:600">₺12.000 · 48,2B · %4,8</div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Butonlar</h2><p>32 farklı altın buton yerine 4 tür, 2 boy.</p></div>
+    <div class="stack">
+      <div class="demo">
+        <button class="btn btn-primary"><i data-lucide="send"></i>Teklif gönder</button>
+        <button class="btn btn-secondary">Markayla görüş</button>
+        <button class="btn btn-ghost">Vazgeç</button>
+        <button class="btn btn-danger">Hesabı sil</button>
+        <button class="btn btn-secondary btn-icon" aria-label="Favori"><i data-lucide="heart"></i></button>
+      </div>
+      <div class="demo">
+        <button class="btn btn-primary btn-sm">Kabul et</button>
+        <button class="btn btn-secondary btn-sm">Ayrıntı</button>
+        <button class="btn btn-ghost btn-sm">Reddet</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Durum çipleri</h2><p>İş aşamaları ve hesap durumları.</p></div>
+    <div class="demo">
+      <span class="chip">Teklif gönderildi</span>
+      <span class="chip chip-gold">Anlaşıldı</span>
+      <span class="chip chip-info">İçerik hazırlanıyor</span>
+      <span class="chip chip-warning">Yayında, onay bekliyor</span>
+      <span class="chip chip-success">Tamamlandı</span>
+      <span class="chip chip-danger">Süresi doldu</span>
+      <span class="chip chip-gold"><i data-lucide="sparkles"></i>Spotlight</span>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Form</h2><p>Tek giriş stili; odakta altın çerçeve.</p></div>
+    <div class="grid g2">
+      <label class="field"><span class="label">Kampanya adı</span><input class="input" placeholder="Örn. Sonbahar menüsü lansmanı"></label>
+      <label class="field"><span class="label">Kategori</span><select class="select"><option>Yeme & İçme</option><option>Güzellik & Bakım</option></select></label>
+      <label class="field" style="grid-column:1/-1"><span class="label">Mesaj</span><textarea class="textarea" placeholder="Teslimatları ve beklentini kısaca yaz"></textarea><span class="hint">Influencer bu metni teklifle birlikte görür.</span></label>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Sekme ve bildirim</h2><p>Panelin üstündeki 4 bant yerine tek alan.</p></div>
+    <div class="stack">
+      <div class="tabs"><a class="tab active">Tümü <span class="count">1.240</span></a><a class="tab">Önerilenler</a><a class="tab">Favoriler ve Listeler</a></div>
+      <div class="seg" style="width:fit-content"><a class="active">Süren</a><a>Tümü</a><a>İptal / düşen</a></div>
+      <div class="notice notice-warning"><div class="ic"><i data-lucide="mail"></i></div><div class="grow"><b style="font-weight:500">E-posta adresini doğrula.</b> <span class="muted">Bildirimler bu adrese gelecek.</span></div><span class="faint small">+1 bildirim</span><button class="btn btn-secondary btn-sm">Tekrar gönder</button></div>
+      <div class="notice notice-info"><div class="ic"><i data-lucide="hourglass"></i></div><div class="grow">Hesabın inceleniyor. Onaydan sonra keşif ve ilan açılır.</div></div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Pencere ve boş durum</h2><p>12 ayrı modal yerine tek Modal bileşeni.</p></div>
+    <div class="grid g2" style="align-items:start">
+      <div class="card modal-demo">
+        <div class="mh"><h3 class="h2">Teklifi reddet</h3><p class="muted small" style="margin:6px 0 0">Marka bildirim alır. Bu işlem geri alınamaz.</p></div>
+        <div class="mb"><label class="field"><span class="label">Neden (isteğe bağlı)</span><textarea class="textarea" style="height:70px"></textarea></label></div>
+        <div class="mf"><button class="btn btn-ghost btn-sm">Vazgeç</button><button class="btn btn-danger btn-sm">Reddet</button></div>
+      </div>
+      <div class="card empty">
+        <div class="ic"><i data-lucide="briefcase"></i></div>
+        <div class="h3">Henüz iş yok</div>
+        <p class="muted small" style="margin:6px 0 16px">Keşfet'ten bir profile teklif gönder ya da ilan aç.</p>
+        <button class="btn btn-primary btn-sm">Keşfete git</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-sec">
+    <div><h2 class="h2">Biçim</h2><p>Köşe ve aralık ölçüleri.</p></div>
+    <div class="demo">
+      <div style="width:80px;height:56px;border-radius:8px;background:var(--surface-3)"></div><span class="faint small">8 · buton, giriş</span>
+      <div style="width:80px;height:56px;border-radius:12px;background:var(--surface-3);margin-left:14px"></div><span class="faint small">12 · bildirim, iç kutu</span>
+      <div style="width:80px;height:56px;border-radius:16px;background:var(--surface-3);margin-left:14px"></div><span class="faint small">16 · kart</span>
+    </div>
+  </section>
+</div>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Influmatch — Ana Sayfa</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { font-size: 15px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+  .mnav { height: 68px; display: flex; align-items: center; gap: 28px; border-bottom: 1px solid var(--line); }
+  .mnav .links { display: flex; gap: 22px; font-size: 14px; color: var(--text-2); }
+  .mnav .links a:hover { color: var(--text); }
+  .mnav .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .hero { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; padding: 88px 0 72px; }
+  .hero h1 { font-size: 72px; margin: 18px 0 20px; }
+  .hero p.lead { font-size: 18px; color: var(--text-2); max-width: 520px; margin: 0 0 30px; line-height: 1.6; }
+  .btn-lg { height: 46px; padding: 0 22px; font-size: 15px; border-radius: 10px; }
+  .proof { display: flex; gap: 18px; margin-top: 26px; font-size: 13px; color: var(--text-3); }
+  .proof span { display: inline-flex; gap: 6px; align-items: center; }
+  .proof svg { width: 15px; height: 15px; color: var(--gold); }
+
+  /* Ürün önizlemesi: gerçek ekranlardan parçalar, sahte rakam yok */
+  .preview { position: relative; height: 440px; }
+  .preview .card { position: absolute; box-shadow: 0 30px 60px -30px rgba(0,0,0,.8); }
+  .pv1 { top: 0; left: 0; right: 60px; padding: 18px; }
+  .pv2 { top: 190px; left: 70px; right: 0; padding: 18px; }
+  .pv3 { bottom: 0; left: 20px; width: 260px; padding: 14px; }
+  .mini-steps { display: flex; gap: 4px; margin: 12px 0 8px; }
+  .mini-steps i { height: 4px; flex: 1; border-radius: 9px; background: var(--surface-3); }
+  .mini-steps i.on { background: var(--gold); }
+
+  section.block { padding: 88px 0; border-top: 1px solid var(--line); }
+  .sec-head { max-width: 640px; margin-bottom: 40px; }
+  .sec-head h2 { font-size: 46px; margin: 12px 0 12px; }
+  .sec-head p { color: var(--text-2); margin: 0; font-size: 16px; }
+  .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .st { padding: 24px; }
+  .st .no { font-family: var(--font-display); font-size: 40px; color: var(--gold); line-height: 1; }
+  .st h3 { font-size: 16px; margin: 16px 0 6px; font-weight: 600; }
+  .st p { margin: 0; color: var(--text-2); font-size: 14px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ver { padding: 28px; }
+  .ver ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; }
+  .ver li { display: flex; gap: 10px; color: var(--text-2); font-size: 14px; }
+  .ver li svg { width: 17px; height: 17px; color: var(--success); flex: none; margin-top: 2px; }
+  .spot { padding: 40px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; align-items: center; }
+  .faq { max-width: 760px; }
+  .q { padding: 18px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; font-size: 15px; }
+  .q svg { color: var(--text-3); width: 18px; flex: none; }
+  .final { text-align: center; padding: 96px 0; border-top: 1px solid var(--line); }
+  .final h2 { font-size: 56px; margin: 0 0 16px; }
+  footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--text-3); font-size: 13px; }
+  @media (max-width: 900px) {
+    .mnav .links { display: none; }
+    .hero { grid-template-columns: 1fr; padding: 48px 0; gap: 40px; }
+    .hero h1 { font-size: 46px; }
+    .preview { height: 420px; }
+    .steps3, .two, .spot { grid-template-columns: 1fr; }
+    .sec-head h2, .final h2 { font-size: 36px; }
+    .spot { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+<header class="wrap mnav">
+  <div class="logo" style="padding:0">INFLU<b>MATCH</b></div>
+  <nav class="links">
+    <a href="#nasil">Nasıl çalışır</a>
+    <a href="#dogrulama">Doğrulama</a>
+    <a href="#spotlight">Spotlight</a>
+    <a href="#sss">S.S.S.</a>
+  </nav>
+  <div class="right">
+    <a class="btn btn-ghost" href="#">Giriş yap</a>
+    <a class="btn btn-primary" href="#">Ücretsiz başla</a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <span class="chip"><i data-lucide="instagram"></i>Instagram ve <i data-lucide="music-2"></i>TikTok için</span>
+      <h1 class="display">Doğru influencer'ı bul.<br><em>Aracısız</em> çalış.</h1>
+      <p class="lead">Influmatch markaları doğrulanmış influencer ve UGC üreticileriyle buluşturur. Teklif, anlaşma, teslimat ve ödeme teyidi tek yerde.</p>
+      <div class="hstack" style="gap:10px">
+        <a class="btn btn-primary btn-lg" href="#">Ücretsiz başla<i data-lucide="arrow-right"></i></a>
+        <a class="btn btn-secondary btn-lg" href="#nasil">Nasıl çalışır</a>
+      </div>
+      <div class="proof">
+        <span><i data-lucide="badge-check"></i>Doğrulanmış hesaplar</span>
+        <span><i data-lucide="building-2"></i>Onaylı markalar</span>
+        <span><i data-lucide="hand-coins"></i>Komisyonsuz anlaşma</span>
+      </div>
+    </div>
+
+    <div class="preview" aria-hidden="true">
+      <div class="card pv1">
+        <div class="hstack" style="gap:12px">
+          <div class="av av-lg a1">EY</div>
+          <div><div style="font-weight:600">Elif Yıldız <svg class="tick" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 2.1 3.1-.4.9 3 2.7 1.6-1 3 1 3-2.7 1.6-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3-2.7-1.6 1-3-1-3 2.7-1.6.9-3 3.1.4z"/></svg></div><div class="faint small">Yeme & İçme · İstanbul</div></div>
+          <span class="chip chip-success" style="margin-left:auto"><i data-lucide="shield-check"></i>Doğrulandı</span>
+        </div>
+        <div class="hstack" style="margin-top:14px;gap:6px"><span class="chip">Reels</span><span class="chip">Story</span><span class="chip">UGC video</span><span class="chip">Pazarlığa açık</span></div>
+      </div>
+      <div class="card pv2">
+        <div class="between"><div class="eyebrow">İş</div><span class="chip chip-info">İçerik hazırlanıyor</span></div>
+        <div style="font-weight:600;margin-top:8px">Sonbahar menüsü lansmanı</div>
+        <div class="mini-steps"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div>
+        <div class="faint small">Teklif → Anlaşma → İçerik → Yayın → Ödeme teyidi</div>
+      </div>
+      <div class="card pv3 card-accent">
+        <div class="hstack small"><i data-lucide="bell" style="width:15px;color:var(--gold)"></i><span><b style="font-weight:500">Yeni teklif</b> <span class="muted">Nara Kahve'den</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="block" id="nasil">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Nasıl çalışır</div>
+        <h2 class="display">Üç adımda <em>iş birliği</em></h2>
+        <p>Markalar keşfeder ve teklif gönderir, üreticiler ilanlara başvurur. Kabul edilen her şey aynı akıştan geçer.</p>
+      </div>
+      <div style="margin-bottom:18px"><div class="seg"><a class="active" href="#">Markalar için</a><a href="#">İçerik üreticileri için</a></div></div>
+      <div class="steps3">
+        <div class="card st"><div class="no">1</div><h3>Hesabını doğrula</h3><p>Vergi levhası ve kurumsal e-postanla markanı onaylat.</p></div>
+        <div class="card st"><div class="no">2</div><h3>Keşfet veya ilan aç</h3><p>Kategori, şehir, etkileşim ve bütçeye göre filtrele ya da ilan yayınla.</p></div>
+        <div class="card st"><div class="no">3</div><h3>Anlaş ve takip et</h3><p>Anlaşma özeti, teslimatlar, revizeler ve ödeme teyidi tek sayfada.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="dogrulama">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Doğrulama</div>
+        <h2 class="display">Karşındakinin <em>gerçek</em> olduğunu bil</h2>
+        <p>Platformda yalnızca doğrulanmış hesaplar listelenir.</p>
+      </div>
+      <div class="two">
+        <div class="card ver">
+          <div class="hstack"><i data-lucide="user-round-check" style="color:var(--gold)"></i><h3 class="h2">Influencer ve UGC</h3></div>
+          <ul>
+            <li><i data-lucide="check"></i>Instagram veya TikTok hesabı biyografi koduyla doğrulanır.</li>
+            <li><i data-lucide="check"></i>Takipçi ve etkileşim verisi hesabın kendisinden gelir.</li>
+            <li><i data-lucide="check"></i>Tamamlanan iş birlikleri profilde görünür.</li>
+          </ul>
+        </div>
+        <div class="card ver">
+          <div class="hstack"><i data-lucide="building-2" style="color:var(--gold)"></i><h3 class="h2">Markalar</h3></div>
+          <ul>
+            <li><i data-lucide="check"></i>Vergi levhası ve kurumsal kimlik incelenir.</li>
+            <li><i data-lucide="check"></i>Şirket alan adıyla kurumsal e-posta doğrulanır.</li>
+            <li><i data-lucide="check"></i>Ödeme teyitleri marka profilinde görünür.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="spotlight">
+    <div class="wrap">
+      <div class="card card-accent spot">
+        <div>
+          <div class="eyebrow" style="color:var(--gold)">Spotlight</div>
+          <h2 class="display" style="font-size:44px;margin:12px 0">Öne çıkmak isteyenler için</h2>
+          <p class="muted" style="margin:0 0 22px">Influencer'lar vitrinde öncelikli listelenir, markalar akıllı eşleştirme önerilerini görür.</p>
+          <a class="btn btn-secondary" href="#">Paketleri incele</a>
+        </div>
+        <div class="stack" style="gap:10px">
+          <div class="notice notice-gold"><div class="ic"><i data-lucide="eye"></i></div><div class="grow">Profil görüntülenmelerini gör</div></div>
+          <div class="notice notice-gold"><div class="ic"><i data-lucide="wand-sparkles"></i></div><div class="grow">Akıllı eşleştirme ve uyum skoru</div></div>
+          <div class="notice notice-gold"><div class="ic"><i data-lucide="bell-ring"></i></div><div class="grow">Anlık ilan alarmları</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="sss">
+    <div class="wrap faq">
+      <div class="sec-head"><div class="eyebrow">S.S.S.</div><h2 class="display">Merak edilenler</h2></div>
+      <div class="q">Influmatch komisyon alıyor mu?<i data-lucide="plus"></i></div>
+      <div class="q">Hesabım nasıl doğrulanıyor?<i data-lucide="plus"></i></div>
+      <div class="q">UGC üreticisi olarak katılabilir miyim?<i data-lucide="plus"></i></div>
+      <div class="q">Ödemeyi platform üzerinden mi yapıyoruz?<i data-lucide="plus"></i></div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="wrap">
+      <h2 class="display">İlk iş birliğin <em>bir teklif</em> uzağında.</h2>
+      <p class="muted" style="margin:0 0 28px">Ücretsiz başla, hesabını doğrula, keşfetmeye başla.</p>
+      <div class="hstack" style="justify-content:center;gap:10px">
+        <a class="btn btn-primary btn-lg" href="#">Marka olarak başla</a>
+        <a class="btn btn-secondary btn-lg" href="#">Üretici olarak başla</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap between">
+    <div class="logo" style="padding:0;font-size:13px">INFLU<b>MATCH</b></div>
+    <div class="hstack" style="gap:18px"><a href="#">Yasal</a><a href="#">Geri bildirim</a><a href="#">İletişim</a></div>
+  </div>
+</footer>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
