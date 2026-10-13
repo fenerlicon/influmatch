@@ -90,4 +90,23 @@ komutları dosyanın başında.
 
 ## 6. Mobil uygulama
 
-`mobile-app/` (Expo). Şu an donduruldu; web tamamlanınca web kurallarına göre güncellenecek (CLAUDE.md kural 3).
+`mobile-app/` (Expo 54, NativeWind v4). Test aşamasında; hedef web ile tam uyum (CLAUDE.md kural 3).
+
+### Bilgisayarda simülatör
+
+Uygulama tarayıcıda telefon boyutunda çalıştırılabilir (react-native-web). Stiller NativeWind v4 ile telefonla aynı uygulanır.
+
+```bash
+cd mobile-app
+npm install
+npm run simulator
+```
+
+Sonra http://localhost:8081 adresini açıp tarayıcının cihaz görünümünde (F12 → telefon simgesi) bir telefon seç.
+Claude masaüstü uygulamasında `.claude/launch.json`'daki `mobil-simulator` aynı sunucuyu tarayıcı panelinde açar.
+
+- Simülatör `/api/mobile/*` isteklerini kendi adresine atar; `metro.config.js` bunları web sunucusuna iletir
+  (canlı sitede CORS açmaya gerek yok). Varsayılan hedef influmatch.net; yerel web için
+  `SIM_API_TARGET=http://localhost:3000 npm run simulator`.
+- Veriler canlı Supabase'den gelir; simülatörde yapılan işlemler gerçektir. Test hesaplarıyla kullan.
+- Push bildirimi, kamera, galeri gibi cihaz özellikleri tarayıcıda çalışmaz ya da farklı davranır; bunları telefonda (Expo Go) dene.

@@ -1,8 +1,12 @@
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 // Web sunucusunun adresi. Geliştirmede yerel sunucuya bağlanmak için mobile-app/.env dosyasına
 // EXPO_PUBLIC_API_BASE=http://<bilgisayar-ip>:3000 yazın (.env commit edilmez).
-export const API_BASE = (process.env.EXPO_PUBLIC_API_BASE || 'https://influmatch.net').replace(/\/+$/, '');
+// Tarayıcı simülatöründe istekler aynı adrese gider; metro.config.js bunları web sunucusuna iletir (CORS yok).
+export const API_BASE = Platform.OS === 'web'
+    ? ''
+    : (process.env.EXPO_PUBLIC_API_BASE || 'https://influmatch.net').replace(/\/+$/, '');
 
 /**
  * Web'in /api/mobile uçlarına oturum token'ıyla istek atar. Kurallar (yetki, doğrulama, bildirim)
