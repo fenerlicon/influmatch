@@ -91,6 +91,14 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
    - Panel sayfaları giriş gerektirdiği ve yerel sunucu canlı veritabanına bağlı olduğu için kabuk, sahte kullanıcılı geçici bir
      yerel sayfada (commit edilmedi) masaüstü ve 375 px'te denendi.
 3. **Panel sayfaları** (rol rol), İşler birleşmesi, terim temizliği, ölü arayüz temizliği.
+   - ✅ **İşler** (2026-10-14): `/dashboard/works` (`app/dashboard/works/page.tsx` veri, `components/dashboard/WorksView.tsx` görünüm,
+     `lib/works.ts` teklif yükleme + sayılar). Aşama kartları Teklif → Anlaşıldı → İçerik → Yayında → Tamamlandı (`?stage=`).
+     Teklif aşamasında influencer `OffersManager`, marka `BrandOffersList`; diğer aşamalarda `CollaborationsManager` (`stage` prop).
+     Üçü yeni bileşenlere geçti; `confirm`/`alert` yerine onay penceresi ve toast; teklif reddi artık onay istiyor; iş iptali pencerede.
+     Eski adresler (`/dashboard/offers`, `/dashboard/brand/offers`, `/dashboard/influencer/offers`, `/dashboard/collaborations`) İşler'e
+     yönlenir (gönderilmiş e-posta/bildirim bağlantıları bozulmaz); yeni bildirimler `/dashboard/works?stage=offers`'a gider.
+     İş detayı `/dashboard/collaborations/[id]` yerinde (görünümü sonraki adımda). Marka kilidi İşler'de ayrıca uygulanır.
+     Menüde Teklifler + İş Birlikleri yerine tek "İşler". Sahte veriyle yerel önizlemede masaüstü/375 px denendi.
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding.
 5. **Admin paneli.**
 

@@ -20,6 +20,6 @@ export async function collaborationAction(
     url: typeof input?.url === 'string' ? input.url : null,
     reason: typeof input?.reason === 'string' ? input.reason : null,
   })
-  if (result.success) revalidatePath('/dashboard/collaborations')
+  if (result.success) revalidatePath('/dashboard/works')
   return result
 }

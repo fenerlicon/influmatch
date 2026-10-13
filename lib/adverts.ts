@@ -310,7 +310,7 @@ export async function updateApplicationStatusAs(
 
   // Kabulle açılan iş birliği sürerken başvuru geri alınamaz; önce iş birliği iptal edilir (tek iptal yolu).
   if (application.status === 'accepted' && status !== 'accepted' && (await hasActiveCollaboration('application', applicationId))) {
-    return { error: 'Bu başvuru için iş birliği sürüyor. Vazgeçmek için İş Birlikleri sayfasından iş birliğini iptal edin.' }
+    return { error: 'Bu başvuru için iş birliği sürüyor. Vazgeçmek için İşler sayfasından işi iptal edin.' }
   }
 
   const { data: updated, error } = await supabase.from('advert_applications').update({ status }).eq('id', applicationId).select('id')

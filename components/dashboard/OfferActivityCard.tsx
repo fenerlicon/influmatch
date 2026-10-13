@@ -227,7 +227,7 @@ export default function OfferActivityCard({ userId, initialOffers, dismissedOffe
       )}
 
       <Link
-        href="/dashboard/offers"
+        href="/dashboard/works?stage=offers"
         className="mt-4 block w-full rounded-2xl border border-white/10 px-4 py-3 text-center text-sm font-semibold text-white transition hover:border-soft-gold/50 hover:text-soft-gold"
       >
         Tüm teklifleri gör

@@ -120,7 +120,7 @@ export async function createOfferAs(
       event: 'offer_new',
       title: 'Yeni teklif aldınız',
       message: `${brandName} size "${campaignName}" kampanyası için teklif gönderdi.`,
-      link: '/dashboard/offers',
+      link: '/dashboard/works?stage=offers',
     },
     admin,
   )
@@ -224,7 +224,7 @@ export async function respondToOfferAs(
           event: 'offer_talk',
           title: 'Influencer görüşmek istiyor',
           message: `${influencerName}, ${campaign} için sizinle görüşmek istiyor. Sohbet açıldı.`,
-          link: roomId ? `/dashboard/messages?roomId=${roomId}` : '/dashboard/brand/offers',
+          link: roomId ? `/dashboard/messages?roomId=${roomId}` : '/dashboard/works?stage=offers',
         }
       : {
           userId: offer.sender_user_id,
@@ -232,9 +232,9 @@ export async function respondToOfferAs(
           title: response === 'accepted' ? 'Teklifiniz kabul edildi' : 'Teklifiniz reddedildi',
           message:
             response === 'accepted'
-              ? `${influencerName}, ${campaign} teklifini kabul etti. Sohbetten ve İş Birlikleri sayfasından devam edebilirsiniz.`
+              ? `${influencerName}, ${campaign} teklifini kabul etti. Sohbetten ve İşler sayfasından devam edebilirsiniz.`
               : `${influencerName}, ${campaign} teklifini reddetti.`,
-          link: response === 'accepted' && roomId ? `/dashboard/messages?roomId=${roomId}` : '/dashboard/brand/offers',
+          link: response === 'accepted' && roomId ? `/dashboard/messages?roomId=${roomId}` : '/dashboard/works?stage=offers',
           type: response === 'accepted' ? 'success' : 'info',
         },
     admin,
@@ -281,7 +281,7 @@ export async function expireStaleOffers(admin: SupabaseClient, options: { limit?
         event: 'offer_expired',
         title: 'Teklifin süresi doldu',
         message: `${influencerName}, ${campaign} teklifini ${OFFER_EXPIRY_DAYS} gün içinde yanıtlamadı; teklifin süresi doldu. Başka bir influencer'a gönderebilirsiniz.`,
-        link: '/dashboard/brand/offers',
+        link: '/dashboard/works?stage=offers',
       },
       admin,
     )

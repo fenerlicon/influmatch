@@ -30,6 +30,6 @@ export async function dismissInfluencer(receiverUserId: string) {
     return { error: `Influencer gizlenemedi: ${error.message}` }
   }
 
-  revalidatePath('/dashboard/brand/offers')
+  revalidatePath('/dashboard/works')
   return { success: true }
 }

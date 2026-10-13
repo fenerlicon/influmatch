@@ -1,11 +1,14 @@
 'use client'
 
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { toast } from 'sonner'
+import { Inbox, MessageSquare, X } from 'lucide-react'
 import OfferActionButtons from '@/components/dashboard/OfferActionButtons'
 import { dismissOffer } from '@/app/dashboard/influencer/offers/dismiss/actions'
-import { X, BadgeCheck } from 'lucide-react'
+import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, Eyebrow, Segmented, VerifiedTick, type ChipTone } from '@/components/ui'
+import { cn } from '@/utils/cn'
 import { countUnreadInRoom } from '@/lib/unread-messages'
 import { OFFER_EXPIRY_DAYS, effectiveOfferStatus } from '@/lib/offer-shared'
 
@@ -45,12 +48,14 @@ const STATUS_LABELS: Record<string, string> = {
   expired: 'Süresi doldu',
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'text-yellow-200 border-yellow-400/60 bg-yellow-400/10',
-  accepted: 'text-emerald-200 border-emerald-400/60 bg-emerald-400/10',
-  rejected: 'text-red-200 border-red-400/60 bg-red-400/10',
-  expired: 'text-gray-300 border-white/20 bg-white/5',
+const STATUS_TONES: Record<string, ChipTone> = {
+  pending: 'warning',
+  accepted: 'success',
+  rejected: 'danger',
+  expired: 'neutral',
 }
+
+const daysLeft = (createdAt: string) => Math.max(0, OFFER_EXPIRY_DAYS - Math.floor((Date.now() - Date.parse(createdAt)) / 86_400_000))
 
 type StatusFilter = 'all' | 'pending' | 'accepted' | 'rejected' | 'expired'
 
@@ -73,6 +78,8 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   // Marka e-postası sadece kabul edilmiş tekliflerde, DB fonksiyonu üzerinden alınır.
   const [contactEmails, setContactEmails] = useState<Record<string, string | null>>({})
   const [isPending, startTransition] = useTransition()
+  const [dismissTarget, setDismissTarget] = useState<string | null>(null)
+  const detailRef = useRef<HTMLDivElement>(null)
 
   // Update offers when initialOffers changes (e.g., after page refresh)
   useEffect(() => {
@@ -90,9 +97,9 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   const filterOptions: Array<{ value: StatusFilter; label: string }> = [
     { value: 'all', label: 'Tümü' },
     { value: 'pending', label: 'Bekleyen' },
-    { value: 'accepted', label: 'Kabul edilen' },
-    { value: 'rejected', label: 'Reddedilen' },
-    { value: 'expired', label: 'Süresi dolan' },
+    { value: 'accepted', label: 'Kabul' },
+    { value: 'rejected', label: 'Red' },
+    { value: 'expired', label: 'Düşen' },
   ]
 
   const fetchOfferById = useCallback(
@@ -405,9 +412,8 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   )
 
   const handleDismissOffer = useCallback(
-    (offerId: string, event: React.MouseEvent) => {
-      event.stopPropagation()
-      if (!confirm('Bu teklifi listeden kaldırmak istediğinizden emin misiniz?')) return
+    (offerId: string) => {
+      setDismissTarget(null)
 
       // Optimistically update UI
       setDismissedIds((prev) => {
@@ -421,7 +427,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
       startTransition(async () => {
         const result = await dismissOffer(offerId)
         if (result?.error) {
-          alert(result.error)
+          toast.error(result.error)
           // Revert optimistic update on error
           setDismissedIds((prev) => {
             const next = new Set(prev)
@@ -444,62 +450,50 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     [fetchOfferById],
   )
 
+  const selectOffer = (offerId: string) => {
+    setSelectedOfferId(offerId)
+    // Dar ekranda detay listenin altında; seçince oraya kaydır.
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    }
+  }
+
   const renderListItem = (offer: OfferListItem) => {
     const sender = offer.sender
     const isActive = offer.id === selectedOfferId
+    const status = effectiveOfferStatus(offer)
     return (
-      <div key={offer.id} className="relative">
+      <div key={offer.id} className="relative border-b border-line last:border-b-0">
         <button
           type="button"
-          onClick={() => setSelectedOfferId(offer.id)}
-          className={`w-full rounded-2xl border px-4 py-4 text-left transition ${isActive
-            ? 'border-soft-gold/60 bg-white/5 text-white shadow-[0_0_18px_rgba(212,175,55,0.25)]'
-            : 'border-white/10 bg-[#10111A] text-gray-300 hover:border-soft-gold/40 hover:text-white'
-            }`}
+          onClick={() => selectOffer(offer.id)}
+          aria-current={isActive ? 'true' : undefined}
+          className={cn(
+            'flex w-full items-center gap-3 px-4 py-3 pr-11 text-left transition-colors',
+            isActive ? 'bg-surface-2 shadow-[inset_2px_0_0_theme(colors.gold.DEFAULT)]' : 'hover:bg-white/[0.015]',
+          )}
         >
-          <div className="flex items-center gap-3">
-            <div className="relative h-12 w-12 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-              {sender?.avatar_url ? (
-                <Image src={sender.avatar_url} alt={sender.full_name ?? 'Marka'} fill sizes="48px" className="object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-soft-gold">
-                  {sender?.full_name?.[0] ?? 'M'}
-                </div>
-              )}
+          <Avatar name={sender?.full_name} src={sender?.avatar_url} square />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13.5px] font-medium text-ink">{offer.campaign_name ?? 'İsimsiz kampanya'}</div>
+            <div className="flex items-center gap-1 truncate text-xs text-ink-faint">
+              {sender?.full_name ?? 'Marka'}
+              {sender?.displayed_badges?.includes('official-business') && <VerifiedTick tone="gold" label="Resmi işletme" />}
+              <span>· {new Date(offer.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-white">{offer.campaign_name ?? 'İsimsiz kampanya'}</p>
-              <div className="mt-2 flex items-center gap-2">
-                <p className="text-xs uppercase tracking-[0.18em] text-gray-400">{sender?.full_name ?? 'Marka'}</p>
-                {sender?.displayed_badges?.includes('official-business') && (
-                  <div className="group relative">
-                    <BadgeCheck className="h-3.5 w-3.5 text-soft-gold" />
-                    <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                      Resmi İşletme
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <span
-              className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[effectiveOfferStatus(offer)] ?? 'border-white/15 text-gray-400'
-                }`}
-            >
-              {STATUS_LABELS[effectiveOfferStatus(offer)] ?? offer.status}
-            </span>
           </div>
-          <p className="mt-3 text-xs text-gray-400">
-            {new Date(offer.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}
-          </p>
+          <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
+            {status === 'pending' ? `${daysLeft(offer.created_at)} gün kaldı` : STATUS_LABELS[status] ?? offer.status}
+          </Chip>
         </button>
         <button
           type="button"
-          onClick={(e) => handleDismissOffer(offer.id, e)}
+          onClick={() => setDismissTarget(offer.id)}
           disabled={isPending}
-          className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur-sm text-gray-400 transition hover:border-white/50 hover:bg-black/80 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-ink-faint opacity-60 transition hover:bg-surface-3 hover:text-ink hover:opacity-100 disabled:opacity-30"
           aria-label="Teklifi listeden kaldır"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
     )
@@ -507,7 +501,11 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
 
   const renderDetail = () => {
     if (!selectedOffer) {
-      return <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center text-gray-400">Teklif seçin.</div>
+      return (
+        <Card>
+          <EmptyState icon={Inbox} title="Teklif seçin" description="Listeden bir teklif seçtiğinde ayrıntıları burada görünür." />
+        </Card>
+      )
     }
 
     const sender = selectedOffer.sender
@@ -515,173 +513,136 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     const website = socialLinks?.website ?? socialLinks?.site ?? null
     const showContact = selectedOffer.status === 'accepted'
     const contactEmail = contactEmails[selectedOffer.id] ?? null
+    const status = effectiveOfferStatus(selectedOffer)
+    const unread = selectedOffer.room_id ? unreadCounts.get(selectedOffer.room_id) ?? 0 : 0
+    const canChat = selectedOffer.status === 'accepted' || (status === 'pending' && !!selectedOffer.room_id)
 
     return (
-      <div className="flex h-full flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative h-16 w-16 overflow-hidden rounded-3xl border border-white/10 bg-[#0F1014]">
-              {sender?.avatar_url ? (
-                <Image src={sender.avatar_url} alt={sender?.full_name ?? 'Marka'} fill sizes="64px" className="object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-soft-gold">
-                  {sender?.full_name?.[0] ?? 'M'}
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-soft-gold">Marka</p>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-white">{sender?.full_name ?? 'Marka'}</h2>
-                {sender?.displayed_badges?.includes('official-business') && (
-                  <div className="group relative">
-                    <BadgeCheck className="h-5 w-5 text-soft-gold" />
-                    <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-black/90 px-2 py-1 text-xs text-white group-hover:block">
-                      Resmi İşletme
-                    </div>
-                  </div>
-                )}
+      <Card as="section">
+        <div className="flex flex-wrap items-start justify-between gap-3 p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar name={sender?.full_name} src={sender?.avatar_url} size="lg" square />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 font-semibold text-ink">
+                <span className="truncate">{sender?.full_name ?? 'Marka'}</span>
+                {sender?.displayed_badges?.includes('official-business') && <VerifiedTick tone="gold" label="Resmi işletme" />}
               </div>
-              {sender?.username ? <p className="text-sm text-gray-400">@{sender.username}</p> : null}
-            </div>
-          </div>
-
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <span
-              className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${STATUS_STYLES[effectiveOfferStatus(selectedOffer)] ?? 'border-white/20 text-gray-300'
-                }`}
-            >
-              {STATUS_LABELS[effectiveOfferStatus(selectedOffer)] ?? selectedOffer.status}
-            </span>
-
-            {effectiveOfferStatus(selectedOffer) === 'expired' ? (
-              <span className="text-xs text-gray-400">{OFFER_EXPIRY_DAYS} gün içinde yanıtlanmadığı için artık yanıtlanamaz.</span>
-            ) : null}
-
-            {effectiveOfferStatus(selectedOffer) === 'pending' ? (
-              <OfferActionButtons offerId={selectedOffer.id} onStatusChange={handleStatusChange} />
-            ) : null}
-
-            {(selectedOffer.status === 'accepted' || (effectiveOfferStatus(selectedOffer) === 'pending' && selectedOffer.room_id)) ? (
-              <button
-                type="button"
-                onClick={(e) => handleOpenChat(selectedOffer, e)}
-                className="relative rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/25"
-              >
-                Mesaj Gönder
-                {selectedOffer.room_id && unreadCounts.get(selectedOffer.room_id) && unreadCounts.get(selectedOffer.room_id)! > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
-                    {unreadCounts.get(selectedOffer.room_id)! > 9 ? '9+' : unreadCounts.get(selectedOffer.room_id)}
-                  </span>
-                )}
-              </button>
-            ) : null}
-          </div>
-        </header>
-
-        <section className="rounded-2xl border border-white/10 bg-[#0F1014] p-5 text-sm text-gray-200">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Kampanya</p>
-              <p className="mt-2 text-lg font-semibold text-white">{selectedOffer.campaign_name ?? 'İsimsiz kampanya'}</p>
-              {selectedOffer.campaign_type ? (
-                <p className="text-xs uppercase tracking-[0.18em] text-gray-400">{selectedOffer.campaign_type}</p>
+              {sender?.username ? (
+                <Link href={`/profile/${sender.username}`} className="text-[12.5px] text-ink-faint hover:text-ink">
+                  @{sender.username}
+                </Link>
               ) : null}
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">
-                {selectedOffer.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'}
-              </p>
-              <p className="mt-2 text-lg font-semibold text-white">{formatBudget(selectedOffer.budget)}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Gönderildi</p>
-              <p className="mt-2 text-lg font-semibold text-white">
-                {new Date(selectedOffer.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long' })}
-              </p>
-            </div>
           </div>
-        </section>
+          <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
+            {STATUS_LABELS[status] ?? selectedOffer.status}
+          </Chip>
+        </div>
 
-        <section className="rounded-2xl border border-white/10 bg-[#0F1014] p-5 text-sm text-gray-200">
-          <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">Marka briefi</p>
-          <p className="mt-3 whitespace-pre-line text-base text-gray-100">
-            {selectedOffer.message || 'Marka bu teklif için detay paylaşmadı.'}
-          </p>
-        </section>
+        <div className="border-t border-line p-5">
+          <h2 className="text-[19px] font-semibold tracking-tight text-ink">{selectedOffer.campaign_name ?? 'İsimsiz kampanya'}</h2>
+          <dl className="mt-3 grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+            {selectedOffer.campaign_type && (
+              <>
+                <dt className="text-ink-faint">Tür</dt>
+                <dd className="text-ink">{selectedOffer.campaign_type}</dd>
+              </>
+            )}
+            <dt className="text-ink-faint">{selectedOffer.payment_type === 'barter' ? 'Barter (ürün)' : 'Bütçe (nakit)'}</dt>
+            <dd className="tabular-nums text-ink">{formatBudget(selectedOffer.budget)}</dd>
+            <dt className="text-ink-faint">Gönderildi</dt>
+            <dd className="text-ink">{new Date(selectedOffer.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</dd>
+          </dl>
+        </div>
 
-        <section className="rounded-2xl border border-white/10 bg-[#0F1014] p-5 text-sm text-gray-200">
-          <p className="text-xs uppercase tracking-[0.2em] text-soft-gold">İletişim</p>
+        <div className="border-t border-line p-5">
+          <Eyebrow>Marka briefi</Eyebrow>
+          <p className="mt-2 whitespace-pre-line text-[13.5px] text-ink-muted">{selectedOffer.message || 'Marka bu teklif için ayrıntı paylaşmadı.'}</p>
+        </div>
+
+        <div className="border-t border-line p-5">
+          <Eyebrow>İletişim</Eyebrow>
           {showContact ? (
-            <div className="mt-3 space-y-2 text-gray-100">
+            <div className="mt-2 grid gap-1 text-[13.5px]">
               {contactEmail ? (
-                <a href={`mailto:${contactEmail}`} className="block text-soft-gold underline-offset-4 hover:underline">
+                <a href={`mailto:${contactEmail}`} className="text-gold underline-offset-4 hover:underline">
                   {contactEmail}
                 </a>
               ) : (
-                <p className="text-gray-400">E-posta belirtilmemiş.</p>
+                <p className="text-ink-faint">E-posta belirtilmemiş.</p>
               )}
               {website ? (
-                <a
-                  href={website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-soft-gold underline-offset-4 hover:underline"
-                >
-                  Website
+                <a href={website} target="_blank" rel="noreferrer" className="text-gold underline-offset-4 hover:underline">
+                  Web sitesi
                 </a>
               ) : (
-                <p className="text-gray-400">Website paylaşılmadı.</p>
+                <p className="text-ink-faint">Web sitesi paylaşılmadı.</p>
               )}
             </div>
           ) : (
-            <p className="mt-3 text-gray-400">
-              Marka iletişim bilgileri teklifi kabul ettiğinde otomatik açılır. Karar vermek için önce durum seç.
-            </p>
+            <p className="mt-2 text-[13px] text-ink-faint">Markanın iletişim bilgileri teklifi kabul ettiğinde açılır.</p>
           )}
-        </section>
-      </div>
+        </div>
+
+        {(status === 'pending' || status === 'expired' || canChat) && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
+            {status === 'expired' && <span className="text-xs text-ink-faint">{OFFER_EXPIRY_DAYS} gün içinde yanıtlanmadığı için artık yanıtlanamaz.</span>}
+            {canChat && (
+              <Button size="sm" leftIcon={<MessageSquare />} onClick={(e) => handleOpenChat(selectedOffer, e)}>
+                Sohbete git
+                {unread > 0 && (
+                  <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gold px-1 text-[11px] font-semibold text-gold-ink">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </Button>
+            )}
+            {status === 'pending' && (
+              <div className="ml-auto">
+                <OfferActionButtons offerId={selectedOffer.id} onStatusChange={handleStatusChange} />
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
     )
   }
 
-  const listContent =
-    filteredOffers.length === 0 ? (
-      <div className="rounded-2xl border border-white/10 bg-[#0F1014] p-6 text-center text-sm text-gray-400">
-        Bu filtre için teklif bulunamadı.
-      </div>
-    ) : (
-      <div className="space-y-3">{filteredOffers.map(renderListItem)}</div>
-    )
-
   return (
-    <div className="grid gap-6 lg:grid-cols-[420px,1fr]">
-      <div className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-soft-gold">Teklifler</p>
-          <h2 className="mt-2 text-lg font-semibold text-white">Gelen işbirlikleri</h2>
-          <p className="text-sm text-gray-400">Sol listeden marka seç, sağda detaylarını yönet.</p>
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto border-b border-line p-3 [scrollbar-width:none]">
+          <Segmented label="Teklif durumu" value={statusFilter} onSelect={(v) => setStatusFilter(v as StatusFilter)} items={filterOptions} />
         </div>
-
-        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-soft-gold">
-          Durum
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0F1014] px-4 py-2 text-sm text-white outline-none transition hover:border-soft-gold/60"
-          >
-            {filterOptions.map((option) => (
-              <option key={option.value} value={option.value} className="bg-[#0F1014] text-white">
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="mt-4">{listContent}</div>
+        {filteredOffers.length === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            title={offers.length === 0 ? 'Henüz teklif yok' : 'Bu filtrede teklif yok'}
+            description={offers.length === 0 ? 'Markalar sana teklif gönderdiğinde burada görünür. Bu arada ilanlara başvurabilirsin.' : undefined}
+            action={
+              offers.length === 0 ? (
+                <ButtonLink href="/dashboard/influencer/advert" size="sm">
+                  İlanlara göz at
+                </ButtonLink>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div>{filteredOffers.map(renderListItem)}</div>
+        )}
+      </Card>
+      <div ref={detailRef} className="scroll-mt-20">
+        {renderDetail()}
       </div>
-      {renderDetail()}
+      <ConfirmDialog
+        open={dismissTarget !== null}
+        onClose={() => setDismissTarget(null)}
+        onConfirm={() => dismissTarget && handleDismissOffer(dismissTarget)}
+        title="Teklifi listeden kaldır"
+        description="Teklif yalnızca senin listenden gizlenir."
+        confirmLabel="Kaldır"
+        tone="danger"
+      />
     </div>
   )
 }
-
-
