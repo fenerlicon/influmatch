@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesajlar — Influmatch</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .content.chat { padding: 0; max-width: none; }
+  .inbox { display: grid; grid-template-columns: 320px minmax(0,1fr); height: calc(100vh - 56px); }
+  .list { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .list .lh { padding: 16px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+  .list .items { overflow: auto; }
+  .conv { display: flex; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .conv:hover { background: var(--surface-1); }
+  .conv.sel { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--gold); }
+  .conv .grow { flex: 1; min-width: 0; }
+  .conv .n { display: flex; justify-content: space-between; gap: 8px; font-weight: 500; font-size: 13.5px; }
+  .conv .n time { font-size: 11.5px; color: var(--text-3); font-weight: 400; }
+  .conv .job { font-size: 11.5px; color: var(--gold); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conv .p { font-size: 12.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .conv.unread .p { color: var(--text); font-weight: 500; }
+  .unr { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex: none; margin-top: 6px; }
+  .thread { display: flex; flex-direction: column; min-height: 0; }
+  .th { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .jobbar { display: flex; align-items: center; gap: 10px; padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--surface-1); font-size: 13px; }
+  .msgs { flex: 1; overflow: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .day { align-self: center; font-size: 11.5px; color: var(--text-3); margin: 6px 0; }
+  .m { max-width: 64%; padding: 10px 13px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; }
+  .m time { display: block; font-size: 11px; color: var(--text-3); margin-top: 4px; }
+  .m.in { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .m.out { align-self: flex-end; background: #2A2512; border: 1px solid var(--gold-line); border-bottom-right-radius: 4px; }
+  .m.out time { color: rgba(247,231,206,.5); text-align: right; }
+  .sys { align-self: center; display: inline-flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--text-2); padding: 7px 12px; border-radius: 99px; background: var(--surface-1); border: 1px solid var(--line); }
+  .sys svg { width: 14px; color: var(--success); }
+  .file { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; background: rgba(0,0,0,.2); margin-top: 6px; }
+  .composer { padding: 12px 20px 16px; border-top: 1px solid var(--line); }
+  .cbox { display: flex; align-items: flex-end; gap: 8px; padding: 8px; border-radius: var(--r-md); background: var(--surface-1); border: 1px solid var(--line-strong); }
+  .cbox textarea { flex: 1; background: transparent; border: 0; outline: none; color: var(--text); font: inherit; font-size: 13.5px; resize: none; height: 40px; padding: 8px 6px; }
+  .safe { font-size: 11.5px; color: var(--text-3); margin-top: 8px; display: flex; gap: 6px; align-items: center; }
+  @media (max-width: 900px) {
+    .inbox { grid-template-columns: 1fr; height: auto; }
+    .list { display: none; }
+    .thread { height: calc(100vh - 56px - 64px); }
+    .m { max-width: 84%; }
+  }
+</style>
+</head>
+<body data-role="influencer" data-page="mesajlar" data-title="Mesajlar" data-search="Sohbetlerde ara">
+<main class="main">
+  <div class="content chat">
+    <div class="inbox">
+      <section class="list">
+        <div class="lh">
+          <input class="input" placeholder="Marka veya iş ara" style="height:34px">
+          <div class="seg"><a class="active" href="#">Tümü</a><a href="#">Okunmamış</a><a href="#">Süren işler</a></div>
+        </div>
+        <div class="items">
+          <a class="conv sel" href="#"><div class="av av-sq a3">NK</div><div class="grow"><div class="n">Nara Kahve<time>14:32</time></div><div class="job">Teklif · Sonbahar menüsü lansmanı</div><div class="p">Reels için çekimi cumartesi yapabilir misin?</div></div></a>
+          <a class="conv unread" href="#"><div class="av av-sq a5">MD</div><div class="grow"><div class="n">Moda Dükkân<time>11:05</time></div><div class="job">İş · Kış koleksiyonu</div><div class="p">Taslağı aldık, bir revize notumuz var</div></div><span class="unr"></span></a>
+          <a class="conv unread" href="#"><div class="av av-sq a4">LV</div><div class="grow"><div class="n">Lova Cilt Bakım<time>Dün</time></div><div class="job">Teklif · UGC ürün videosu</div><div class="p">Ürünleri bu hafta kargoya veriyoruz</div></div><span class="unr"></span></a>
+          <a class="conv" href="#"><div class="av av-sq a6">YB</div><div class="grow"><div class="n">Yeşil Bahçe<time>Pzt</time></div><div class="job">İş · Ev bitkileri serisi</div><div class="p">Sen: Yayın linkini ekledim 🙌</div></div></a>
+          <a class="conv" href="#"><div class="av av-sq a1">GL</div><div class="grow"><div class="n">Glow Lab<time>8 Eki</time></div><div class="job">İlan başvurusu · Nemlendirici deneyim</div><div class="p">Başvurun için teşekkürler, değerlendiriyoruz</div></div></a>
+        </div>
+      </section>
+
+      <section class="thread">
+        <div class="th">
+          <div class="av av-sq a3">NK</div>
+          <div style="min-width:0"><div style="font-weight:600">Nara Kahve <svg class="tick tick-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 2.1 3.1-.4.9 3 2.7 1.6-1 3 1 3-2.7 1.6-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3-2.7-1.6 1-3-1-3 2.7-1.6.9-3 3.1.4z"/></svg></div><div class="faint small">Yeme & İçme · Onaylı marka</div></div>
+          <div class="hstack" style="margin-left:auto"><button class="btn btn-ghost btn-icon btn-sm" aria-label="Diğer"><i data-lucide="more-horizontal"></i></button></div>
+        </div>
+        <!-- Sohbetin bağlı olduğu iş: teklif/başvuru olmadan sohbet yok -->
+        <div class="jobbar">
+          <i data-lucide="briefcase" style="width:15px;color:var(--text-3)"></i>
+          <span style="font-weight:500">Sonbahar menüsü lansmanı</span>
+          <span class="faint">· 1 Reels + 3 Story · <span class="num">₺12.000</span></span>
+          <span class="chip chip-gold" style="margin-left:auto">Anlaşıldı</span>
+          <a class="btn btn-secondary btn-sm" href="isler.html">İşe git</a>
+        </div>
+
+        <div class="msgs">
+          <div class="day">11 Ekim</div>
+          <div class="sys"><i data-lucide="circle-check"></i>Teklif kabul edildi, iş birliği başladı</div>
+          <div class="m in">Merhaba Elif! Kabul ettiğin için çok sevindik. Yeni menüden 4 ürünü göndermek istiyoruz.<time>10:12</time></div>
+          <div class="m out">Merhaba! Harika, mekânda çekim de yapabilirim; ışık açısından öğleden sonra daha iyi olur.<time>10:20</time></div>
+          <div class="day">Bugün</div>
+          <div class="m in">Anlaşma özetini yazdın mı? Onaylayıp tarihleri netleştirelim.
+            <div class="file"><i data-lucide="file-text" style="width:16px;color:var(--text-2)"></i><span class="small">menu-gorselleri.pdf</span><span class="faint small" style="margin-left:auto">1,2 MB</span></div>
+            <time>14:28</time></div>
+          <div class="m in">Reels için çekimi cumartesi yapabilir misin?<time>14:32</time></div>
+        </div>
+
+        <div class="composer">
+          <div class="cbox">
+            <button class="btn btn-ghost btn-icon btn-sm" aria-label="Dosya ekle"><i data-lucide="paperclip"></i></button>
+            <textarea placeholder="Mesaj yaz"></textarea>
+            <button class="btn btn-primary btn-sm"><i data-lucide="send"></i>Gönder</button>
+          </div>
+          <div class="safe"><i data-lucide="lock" style="width:12px"></i>Güvenliğin için konuşmalar kayıt altında tutulur.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<script src="shell.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -35,39 +35,11 @@
   .kv dd { margin: 0; }
   .deliv { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; }
   .deliv + .deliv { margin-top: 6px; }
-  @media (max-width: 900px) { .pipeline { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 900px) { .job .right { text-align: left; min-width: 0; width: 100%; padding-left: 48px; display: flex; gap: 8px; align-items: center; } .job .right .faint { margin-top: 0 !important; } }
 </style>
 </head>
-<body>
-<div class="shell">
-  <aside class="side">
-    <div class="logo">INFLU<b>MATCH</b></div>
-    <nav class="nav">
-      <a href="#"><i data-lucide="home"></i>Ana Sayfa</a>
-      <a href="marka-kesfet.html"><i data-lucide="compass"></i>Keşfet</a>
-      <a href="#"><i data-lucide="megaphone"></i>İlanlar<span class="badge">4</span></a>
-      <a class="active" href="#"><i data-lucide="briefcase"></i>İşler</a>
-      <a href="#"><i data-lucide="message-square"></i>Mesajlar<span class="badge">1</span></a>
-      <div class="nav-group"><div class="eyebrow">Marka</div>
-        <a href="#"><i data-lucide="building-2"></i>Profilim</a>
-      </div>
-    </nav>
-    <div class="side-foot">
-      <div class="spot-mini">
-        <div class="hstack" style="color:var(--gold);font-weight:600;font-size:13px"><i data-lucide="sparkles" style="width:14px;height:14px"></i>Spotlight Pro</div>
-        <div class="small muted" style="margin-top:4px">28 Kasım'a kadar aktif</div>
-      </div>
-      <nav class="nav"><a href="#"><i data-lucide="settings"></i>Ayarlar</a></nav>
-      <div class="me"><div class="av av-sq a3">NK</div><div style="min-width:0"><div style="font-weight:500;font-size:13px">Nara Kahve</div><div class="faint small">Marka hesabı</div></div><i data-lucide="log-out" style="width:15px;margin-left:auto;color:var(--text-3)"></i></div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <header class="top">
-      <div class="crumb"><b>İşler</b></div>
-      <div class="search"><i data-lucide="search"></i>Influencer, ilan veya iş ara<span class="kbd">/</span></div>
-      <button class="btn btn-ghost btn-icon bell" aria-label="Bildirimler"><i data-lucide="bell"></i></button>
-    </header>
+<body data-role="brand" data-page="isler" data-title="İşler" data-search="Influencer, ilan veya iş ara">
+<main class="main">
 
     <div class="content" style="max-width:1320px">
       <div class="page-head">
@@ -93,7 +65,7 @@
       <div class="split" style="grid-template-columns:minmax(0,1fr) 400px">
         <section class="card">
           <div class="toolbar">
-            <div class="seg"><a class="active" href="#">Süren</a><a href="#">Tümü</a><a href="#">İptal / düşen</a></div>
+            <div class="seg"><a class="active" href="#">Süren</a><a href="isler.html">Tümü</a><a href="#">İptal / düşen</a></div>
             <input class="input" placeholder="İş veya influencer ara" style="margin-left:auto">
           </div>
 
@@ -182,15 +154,8 @@
       </div>
     </div>
   </main>
-</div>
 
-<nav class="mobile-tabbar">
-  <a href="#"><i data-lucide="home"></i>Ana Sayfa</a>
-  <a href="marka-kesfet.html"><i data-lucide="compass"></i>Keşfet</a>
-  <a class="active" href="#"><i data-lucide="briefcase"></i>İşler</a>
-  <a href="#"><i data-lucide="message-square"></i>Mesajlar</a>
-  <a href="#"><i data-lucide="menu"></i>Menü</a>
-</nav>
+<script src="shell.js"></script>
 <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script>lucide.createIcons();</script>
 </body>

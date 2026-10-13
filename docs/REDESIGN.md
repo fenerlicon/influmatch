@@ -51,8 +51,13 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
 ## OpenDesign projesi
 
 - Proje: **Influmatch Yeni Görünüm** (`influmatch-yeni-gorunum`, OpenDesign yerel çalışma alanı). Kopyası repoda `design/redesign/` (tarayıcıda `tasarim-sistemi.html` ile aç).
-- Dosyalar: `styles.css` (tokenlar + bileşenler, koda taşınacak kaynak), `tasarim-sistemi.html` (giriş + bileşen vitrini),
-  `ana-sayfa.html`, `influencer-ana-sayfa.html`, `isler.html` (marka), `marka-kesfet.html`. Mobil görünüm (alt sekme çubuğu) dahil.
+- Dosyalar: `styles.css` (tokenlar + bileşenler, koda taşınacak kaynak), `shell.js` (rol bazlı menü/kabuk), `tasarim-sistemi.html`
+  (giriş + bileşen vitrini + tüm ekranlara bağlantı). Ekranlar: tanıtım ana sayfa, giriş/kayıt; influencer ana sayfa, ilanlar, mesajlar,
+  ayarlar; marka ana sayfa, keşfet, profil (panel içinde), ilanlar (başvuru değerlendirme), işler; admin marka onayları.
+  Hepsi masaüstü ve telefon (375 px) boyutunda tarayıcıda kontrol edildi (2026-10-13).
+- Ekranlarda yalnızca var olan özellikler gösterilir: geçiş anahtarıyla giriş (kodda yok) çıkarıldı; admin kontrol satırları
+  `lib/tax-certificate-match.ts` etiketleriyle aynı.
+- Kayıt: rol seçimi formun içinde (ayrı `/signup-role` sayfası kalkar).
 - Yazı tipi (2026-10-13, kullanıcı serbest bıraktı): başlıklar **Instrument Serif**, arayüz **Geist** (ikisi de `next/font/google`'da var).
 - Altın buton kuralı: ana eylem; sayfa başlığında en fazla bir, listelerde satırın kendi ana eylemi.
 - Ana sayfa önerisi: "Doğru influencer'ı bul. Aracısız çalış." + "Ücretsiz başla". "Komisyonsuz anlaşma" satırı mevcut sitedeki
@@ -60,7 +65,7 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
 
 ## Aşamalar
 
-0. **OpenDesign:** tasarım sistemi + ana ekranlar (ana sayfa, giriş/kayıt, iki rol ana sayfası, İşler, keşif, profil, mesajlar, ayarlar, bir admin ekranı). Kullanıcı onayı.
+0. ✅ **OpenDesign** (2026-10-13, kullanıcı yönü onayladı): tasarım sistemi + ana ekranlar (ana sayfa, giriş/kayıt, iki rol ana sayfası, İşler, keşif, profil, mesajlar, ayarlar, bir admin ekranı). Kullanıcı onayı.
 1. **Temel:** Tailwind tokenları + `components/ui/*` ortak bileşenler.
 2. **Kabuk:** kenar çubuğu, üst çubuk, mobil gezinme, tek bildirim alanı; profil panel içinde.
 3. **Panel sayfaları** (rol rol), İşler birleşmesi, terim temizliği, ölü arayüz temizliği.

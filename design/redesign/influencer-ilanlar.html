@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İlanlar — Influmatch</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+  .fbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; border-radius: var(--r-sm); background: var(--surface-1); border: 1px solid var(--line-strong); font-size: 12.5px; color: var(--text-2); }
+  .fbtn svg { width: 14px; height: 14px; }
+  .fbtn.on { color: var(--text); border-color: var(--gold-line); background: var(--gold-soft); }
+  .ad { padding: 16px 20px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; }
+  .ad:last-child { border-bottom: 0; }
+  .ad.sel { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--gold); }
+  .ad .t { font-weight: 600; }
+  .ad .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .ad .budget { text-align: right; }
+  .ad .budget b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .detail .sec { padding: 16px 20px; border-top: 1px solid var(--line); }
+  .detail ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 13.5px; display: grid; gap: 4px; }
+  .kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; font-size: 13px; }
+  .kv dt { color: var(--text-3); } .kv dd { margin: 0; }
+  @media (max-width: 900px) { .ad { grid-template-columns: auto 1fr; } .ad .budget { grid-column: 2; text-align: left; } }
+</style>
+</head>
+<body data-role="influencer" data-page="ilanlar" data-title="İlanlar" data-search="İlan veya marka ara">
+<main class="main">
+  <div class="content" style="max-width:1320px">
+    <div class="page-head" style="margin-bottom:14px">
+      <div><h1 class="h1">İlanlar</h1><p class="muted">Doğrulanmış markaların açık ilanları. Başvurun kabul edilirse iş olarak İşler'e düşer.</p></div>
+      <button class="btn btn-secondary"><i data-lucide="bell-plus"></i>Alarm kur</button>
+    </div>
+
+    <div class="tabs">
+      <a class="tab active" href="#">Açık ilanlar <span class="count">86</span></a>
+      <a class="tab" href="#">Kaydedilenler <span class="count">5</span></a>
+      <a class="tab" href="#">Başvurularım <span class="count">3</span></a>
+      <a class="tab" href="#">Alarmlar <span class="count">2</span></a>
+    </div>
+
+    <div class="filters">
+      <button class="fbtn on"><i data-lucide="tag"></i>Yeme & İçme<i data-lucide="x"></i></button>
+      <button class="fbtn"><i data-lucide="instagram"></i>Platform</button>
+      <button class="fbtn"><i data-lucide="wallet"></i>Bütçe</button>
+      <button class="fbtn"><i data-lucide="video"></i>Influencer / UGC</button>
+      <button class="fbtn"><i data-lucide="map-pin"></i>Şehir</button>
+    </div>
+
+    <div class="split" style="grid-template-columns:minmax(0,1fr) 400px">
+      <section class="card">
+        <article class="ad sel">
+          <div class="av av-sq a1">GL</div>
+          <div>
+            <div class="t">Nemlendirici deneyim videosu</div>
+            <div class="faint small">Glow Lab · Güzellik & Bakım · 2 gün önce</div>
+            <div class="tags"><span class="chip">UGC video</span><span class="chip">Instagram</span><span class="chip">Ürün gönderilir</span></div>
+          </div>
+          <div class="budget"><b>₺5.000–8.000</b><span class="faint small">18 başvuru</span></div>
+        </article>
+        <article class="ad">
+          <div class="av av-sq a3">NK</div>
+          <div>
+            <div class="t">Kış içecekleri tanıtımı</div>
+            <div class="faint small">Nara Kahve · Yeme & İçme · Bugün</div>
+            <div class="tags"><span class="chip">Reels</span><span class="chip">Story</span><span class="chip">İstanbul</span></div>
+          </div>
+          <div class="budget"><b>₺10.000</b><span class="faint small">4 başvuru</span></div>
+        </article>
+        <article class="ad">
+          <div class="av av-sq a2">PT</div>
+          <div>
+            <div class="t">Yeni mama serisi lansmanı</div>
+            <div class="faint small">Pati Mama · Evcil Hayvan · 5 gün önce</div>
+            <div class="tags"><span class="chip">Gönderi</span><span class="chip">TikTok</span><span class="chip chip-success"><i data-lucide="check"></i>Başvurdun</span></div>
+          </div>
+          <div class="budget"><b>Barter</b><span class="faint small">31 başvuru</span></div>
+        </article>
+        <article class="ad">
+          <div class="av av-sq a4">TR</div>
+          <div>
+            <div class="t">Hafta sonu kombin serisi</div>
+            <div class="faint small">Trendo · Moda & Stil · 1 hafta önce</div>
+            <div class="tags"><span class="chip">TikTok</span><span class="chip">3 video</span></div>
+          </div>
+          <div class="budget"><b>₺3.500</b><span class="faint small">9 başvuru</span></div>
+        </article>
+      </section>
+
+      <section class="card detail">
+        <div class="card-pad">
+          <div class="between">
+            <div class="hstack"><div class="av av-sq a1">GL</div><div><div style="font-weight:600">Glow Lab <svg class="tick tick-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 2.1 3.1-.4.9 3 2.7 1.6-1 3 1 3-2.7 1.6-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3-2.7-1.6 1-3-1-3 2.7-1.6.9-3 3.1.4z"/></svg></div><div class="faint small">12 iş birliği · 11 ödeme teyitli</div></div></div>
+            <button class="btn btn-ghost btn-icon btn-sm" aria-label="Kaydet"><i data-lucide="bookmark"></i></button>
+          </div>
+          <h2 class="h2" style="margin-top:14px;font-size:19px">Nemlendirici deneyim videosu</h2>
+          <p class="muted" style="margin:8px 0 0;font-size:13.5px">Yeni hafif nemlendiricimiz için doğal ışıkta, sabah rutini içinde bir deneyim videosu arıyoruz.</p>
+        </div>
+        <div class="sec">
+          <dl class="kv">
+            <dt>Bütçe</dt><dd class="num">₺5.000–8.000 · nakit</dd>
+            <dt>Teslimat</dt><dd>1 UGC video (30–45 sn)</dd>
+            <dt>Platform</dt><dd>Instagram</dd>
+            <dt>Son başvuru</dt><dd>20 Ekim</dd>
+          </dl>
+        </div>
+        <div class="sec">
+          <div class="eyebrow">Beklentiler</div>
+          <ul><li>Dikey, altyazısız ham video</li><li>Ürün yakın planı ve uygulama anı</li><li>Kullanım hakkı: 6 ay reklam</li></ul>
+        </div>
+        <div class="sec">
+          <label class="field"><span class="label">Niyet mesajın</span><textarea class="textarea" placeholder="Neden bu iş için uygunsun? Kısaca yaz."></textarea></label>
+          <div class="hstack" style="margin-top:12px"><button class="btn btn-primary"><i data-lucide="send"></i>Başvur</button><span class="faint small">Marka profilini ve doğrulanmış hesaplarını görür.</span></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<script src="shell.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

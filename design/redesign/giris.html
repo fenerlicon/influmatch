@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giriş — Influmatch</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .auth { display: grid; grid-template-columns: 0.8fr 1.2fr; min-height: 100vh; }
+  .aside { padding: 40px 48px; border-right: 1px solid var(--line); display: flex; flex-direction: column; background: linear-gradient(160deg, rgba(212,175,55,.06), transparent 50%), var(--bg); }
+  .aside .quote { margin-top: auto; max-width: 440px; }
+  .aside .quote h2 { font-size: 46px; margin: 0 0 16px; }
+  .aside ul { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 10px; color: var(--text-2); font-size: 14px; }
+  .aside li { display: flex; gap: 10px; align-items: center; }
+  .aside li svg { width: 16px; color: var(--gold); }
+  .formside { display: grid; place-items: center; padding: 40px 24px; }
+  .form { width: 100%; max-width: 380px; display: grid; gap: 16px; }
+  .form h1 { font-family: var(--font-display); font-weight: 400; font-size: 38px; margin: 0; }
+  .btn-block { width: 100%; height: 42px; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--text-3); font-size: 12px; }
+  .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line-strong); }
+  .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .role { padding: 12px; border-radius: var(--r-md); border: 1px solid var(--line-strong); background: var(--surface-1); display: grid; gap: 6px; text-align: left; }
+  .role svg { width: 18px; color: var(--text-2); }
+  .role b { font-weight: 500; font-size: 13.5px; }
+  .role span { font-size: 11.5px; color: var(--text-3); line-height: 1.35; }
+  .role.on { border-color: var(--gold); background: var(--gold-soft); }
+  .role.on svg { color: var(--gold); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+  .panel { padding: 0; }
+  .m-logo { display: none; }
+  @media (max-width: 900px) { .m-logo { display: block; margin-bottom: 24px; } .formside { place-items: start; } }
+  @media (max-width: 900px) { .auth { grid-template-columns: 1fr; } .aside { display: none; } .pair { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="auth">
+  <aside class="aside">
+    <div class="logo" style="padding:0">INFLU<b>MATCH</b></div>
+    <div class="quote">
+      <h2 class="display">Doğrulanmış profiller, <em>net</em> anlaşmalar.</h2>
+      <p class="muted" style="margin:0">Teklif, anlaşma özeti, teslimat ve ödeme teyidi tek yerde.</p>
+      <ul>
+        <li><i data-lucide="badge-check"></i>Her influencer hesabı biyografi koduyla doğrulanır</li>
+        <li><i data-lucide="building-2"></i>Markalar vergi levhası ve kurumsal e-postayla onaylanır</li>
+        <li><i data-lucide="briefcase"></i>Her iş birliği adım adım takip edilir</li>
+      </ul>
+    </div>
+  </aside>
+
+  <div class="formside">
+    <div class="logo m-logo" style="padding:0;align-self:start;justify-self:start">INFLU<b>MATCH</b></div>
+    <div class="pair" style="width:100%;max-width:840px">
+      <!-- GİRİŞ -->
+      <form class="form" onsubmit="return false">
+        <div class="eyebrow">Giriş</div>
+        <h1>Tekrar hoş geldin</h1>
+        <label class="field"><span class="label">E-posta</span><input class="input" type="email" placeholder="ornek@markan.com"></label>
+        <label class="field"><span class="between"><span class="label">Şifre</span><a href="#" class="small" style="color:var(--text-2)">Şifremi unuttum</a></span><input class="input" type="password" placeholder="••••••••"></label>
+        <button class="btn btn-primary btn-block">Giriş yap</button>
+        <p class="small muted" style="margin:0;text-align:center">Hesabın yok mu? <a href="#" style="color:var(--gold)">Ücretsiz başla</a></p>
+      </form>
+
+      <!-- KAYIT: rol seçimi formun içinde (eski /signup-role ayrı sayfası kalkar) -->
+      <form class="form" onsubmit="return false">
+        <div class="eyebrow">Kayıt</div>
+        <h1>Ücretsiz başla</h1>
+        <div class="field"><span class="label">Hesap türü</span>
+          <div class="roles">
+            <button type="button" class="role on"><i data-lucide="building-2"></i><b>Marka</b><span>İş birliği arıyorum</span></button>
+            <button type="button" class="role"><i data-lucide="user-round"></i><b>Influencer</b><span>Hesabımla tanıtım</span></button>
+            <button type="button" class="role"><i data-lucide="video"></i><b>UGC</b><span>Markaya içerik üretimi</span></button>
+          </div>
+        </div>
+        <label class="field"><span class="label">Marka adı</span><input class="input" placeholder="Nara Kahve"></label>
+        <label class="field"><span class="label">E-posta</span><input class="input" type="email" placeholder="ornek@markan.com"><span class="hint">Kurumsal e-postayı daha sonra ayrıca doğrularsın.</span></label>
+        <label class="field"><span class="label">Şifre</span><input class="input" type="password" placeholder="En az 8 karakter"></label>
+        <button class="btn btn-primary btn-block">Hesap oluştur</button>
+        <p class="small faint" style="margin:0;text-align:center">Devam ederek <a href="#" style="text-decoration:underline;text-underline-offset:3px">kullanım koşullarını</a> kabul edersin.</p>
+      </form>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>
+  lucide.createIcons();
+  document.querySelectorAll('.role').forEach((r) => r.addEventListener('click', () => { document.querySelectorAll('.role').forEach((x) => x.classList.remove('on')); r.classList.add('on'); }));
+</script>
+</body>
+</html>
