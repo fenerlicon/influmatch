@@ -1,216 +1,120 @@
-import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, TextInput, ActivityIndicator, Modal, Dimensions, Alert, RefreshControl, ScrollView, Animated, Easing } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { View, FlatList, Alert, ActivityIndicator, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { Search, Sliders, BadgeCheck, Heart, Lock, MapPin, ChevronRight, ArrowLeft, X, Instagram, Music, Zap, BarChart3, Users, TrendingUp, ShieldCheck } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Svg, Path } from 'react-native-svg';
+import { Heart, Lock, Users, ShieldAlert } from 'lucide-react-native';
 import { RATE_CARD_ITEMS, RATE_CARD_SELECT } from '../../constants/rateCard';
 import { supabase } from '../../lib/supabase';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { getThumbnailUrl } from '../../utils/image';
 import { apiRequest } from '../../lib/api';
+import { formatCount, formatTRY } from '../../lib/format';
 import DiscoveryWheelCard from '../../components/DiscoveryWheelCard';
-import { StackHeader } from '../../components/ui';
+import {
+    LargeHeader, StackHeader, Text, Card, Avatar, NameWithTick, Chip, Segment, SearchBar, FilterChip, ChipRow, TextField,
+    EmptyState, Notice, colors, ICON_STROKE,
+} from '../../components/ui';
 
-const { width } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - 48 - 12) / 2;
-
-// Etiketler web listesinden (constants/categories.js).
-const getCategoryLabel = (cat) => (cat ? influencerCategoryLabel(cat) : 'Genel');
-
-const WavyBackground = () => (
-    <View className="absolute top-[-50px] left-0 right-0 h-[200px] opacity-20">
-        <Svg height="100%" width="100%" viewBox="0 0 1440 320">
-            <Path
-                fill="#ec4899"
-                d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,133.3C672,117,768,139,864,165.3C960,192,1056,224,1152,218.7C1248,213,1344,171,1392,149.3L1440,128L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
-            />
-        </Svg>
-    </View>
-);
+// Keşfet (marka sekmesi) / Vitrin (influencer, profilden açılır). Liste web sunucusundan gelir (lib/profile-reads.ts):
+// onaysız marka profil görmez; ücretsiz markada (sınırlar açıkken) yalnızca güncel keşif çarkındaki profiller listelenir.
+// Favoriler /api/mobile/favorites (lib/favorites.ts). Fiyat kartlarını RLS yalnızca doğrulanmış markaya döndürür.
 
 const FAVORITES_LOCKED_TEXT = 'Favoriler ve listeler Spotlight markalara özel bir özellik. Daha önce kaydettiğin favoriler silinmedi; Spotlight ile geri gelir.';
 
-const InfluencerCard = memo(({ item, onPress, horizontal = false, canFavorite = false, favoritesLocked = false }) => {
-    const isVerified = item.isVerified;
-    const [isFav, setIsFav] = useState(item.isFavorited);
-    
-    const currentWidth = horizontal ? width * 0.45 : COLUMN_WIDTH;
-    const cardHeight = horizontal ? 300 : (item.id.charCodeAt(0) % 2 === 0 ? 320 : 360);
-    const firstName = (item.full_name || item.username || 'Influencer').split(' ')[0];
-
-    // Favori yazımı web sunucusunda (/api/mobile/favorites, lib/favorites.ts): ücretsiz markada (sınırlar açıkken) kilitli.
-    const toggleFavorite = async (e) => {
-        e.stopPropagation();
-        if (favoritesLocked) {
-            Alert.alert('Spotlight özelliği', FAVORITES_LOCKED_TEXT);
-            return;
-        }
-        const result = await apiRequest('favorites', { method: 'POST', body: { influencerId: item.id } });
-        if (result.error) {
-            Alert.alert('Favoriler güncellenemedi', result.error);
-            return;
-        }
-        setIsFav(!!result.isFavorited);
-    };
-
+const InfluencerCard = memo(({ item, onPress, canFavorite, favoritesLocked, onToggleFavorite, minPrice }) => {
+    const social = item.social_accounts?.[0];
+    const category = item.category ? influencerCategoryLabel(item.category) : null;
     return (
-        <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => onPress(item)}
-            style={{ width: currentWidth, marginBottom: 16 }}
-            className={horizontal ? "mr-4" : ""}
-        >
-            <View style={{ height: cardHeight, width: currentWidth }} className="rounded-[32px] overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
-                {item.avatar_url ? (
-                    <Image source={{ uri: getThumbnailUrl(item.avatar_url) }} className="absolute inset-0 w-full h-full" resizeMode="cover" fadeDuration={0} />
-                ) : (
-                    <View className="absolute inset-0 items-center justify-center bg-slate-800">
-                        <Text className="text-white/20 font-bold text-4xl">{item.username?.charAt(0).toUpperCase()}</Text>
-                    </View>
-                )}
-                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.9)']} className="absolute inset-0" />
-                
-                {/* Favorite */}
-                {canFavorite && <TouchableOpacity onPress={toggleFavorite} className="z-50 absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 items-center justify-center border border-white/10 backdrop-blur-md">
-                    {favoritesLocked
-                        ? <Lock color="#9ca3af" size={15} />
-                        : <Heart color={isFav ? "#ef4444" : "white"} fill={isFav ? "#ef4444" : "transparent"} size={16} />}
-                </TouchableOpacity>}
-
-                <View className="absolute bottom-5 left-5 right-5">
-                    <View className="flex-row items-center gap-1.5 mb-1.5">
-                        <Text className="text-white font-black text-xl tracking-tight" numberOfLines={1}>{firstName}</Text>
-                        {isVerified && <BadgeCheck color="white" size={20} fill="#3b82f6" />}
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                        <Text className="text-pink-500 text-[8px] font-black uppercase tracking-[3px]">
-                            {getCategoryLabel(item.category).toUpperCase()}
-                        </Text>
-                    </View>
+        <Card onPress={() => onPress(item)} style={{ gap: 12 }} className="mb-3">
+            <View className="flex-row items-center" style={{ gap: 12 }}>
+                <Avatar name={item.full_name || item.username} uri={item.avatar_url ? getThumbnailUrl(item.avatar_url) : null} size="lg" />
+                <View className="flex-1 min-w-0" style={{ gap: 2 }}>
+                    <NameWithTick name={item.full_name || item.username || 'Influencer'} verified={item.isVerified} />
+                    <Text variant="small" tone="fg2" numberOfLines={1}>{[category, item.city].filter(Boolean).join(' · ') || 'Influencer'}</Text>
+                    {item.spotlight_active ? <View className="mt-1"><Chip label="Spotlight" tone="gold" /></View> : null}
                 </View>
+                {canFavorite ? (
+                    <Pressable
+                        onPress={() => onToggleFavorite(item)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={item.isFavorited ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                        className={`w-10 h-10 rounded-xl items-center justify-center border ${item.isFavorited ? 'border-gold-line bg-gold-soft' : 'border-line'}`}
+                    >
+                        {favoritesLocked
+                            ? <Lock size={17} color={colors.fg3} strokeWidth={ICON_STROKE} />
+                            : <Heart size={18} color={item.isFavorited ? colors.gold : colors.fg3} fill={item.isFavorited ? colors.gold : 'transparent'} strokeWidth={ICON_STROKE} />}
+                    </Pressable>
+                ) : null}
             </View>
-        </TouchableOpacity>
+            <View className="flex-row" style={{ gap: 6 }}>
+                {[
+                    ['Takipçi', social?.follower_count ? formatCount(social.follower_count) : '—'],
+                    ['Etkileşim', social?.engagement_rate ? `%${Number(social.engagement_rate).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}` : '—'],
+                    ['Başlangıç', minPrice ? formatTRY(minPrice) : '—'],
+                ].map(([label, value]) => (
+                    <View key={label} className="flex-1 px-2.5 py-2 rounded-[10px] bg-s2">
+                        <Text weight="semibold" style={{ fontSize: 15, fontVariant: ['tabular-nums'] }}>{value}</Text>
+                        <Text variant="caption" tone="fg3">{label}</Text>
+                    </View>
+                ))}
+            </View>
+        </Card>
     );
 });
 
-const CategorySection = memo(({ title, data, onProfilePress, canFavorite, favoritesLocked }) => (
-    <View className="mb-10">
-        <View className="flex-row items-center justify-between px-6 mb-5">
-            <Text className="text-white font-black text-xl tracking-tight uppercase" style={{ letterSpacing: 1 }}>
-                {getCategoryLabel(title)}
-            </Text>
-        </View>
-        <FlatList
-            horizontal
-            data={data}
-            renderItem={({ item }) => <InfluencerCard item={item} onPress={() => onProfilePress(item)} horizontal={true} canFavorite={canFavorite} favoritesLocked={favoritesLocked} />}
-            keyExtractor={item => item.id}
-            contentContainerStyle={{ paddingHorizontal: 24 }}
-            showsHorizontalScrollIndicator={false}
-        />
-    </View>
-));
-
 export default function DiscoverScreen({ navigation, route }) {
-    const [sections, setSections] = useState([]);
+    const [profiles, setProfiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [category, setCategory] = useState('');
+    const [segment, setSegment] = useState('all');
     const [isBrand, setIsBrand] = useState(false);
     const [favoritesLocked, setFavoritesLocked] = useState(false);
-    // Keşif çarkı (ücretsiz marka sınırları açıkken; web ile aynı kural, /api/mobile/discovery-wheel).
-    // null: sınır yok, liste bugünkü gibi.
+    // Keşif çarkı (ücretsiz marka sınırları açıkken; web ile aynı kural, /api/mobile/discovery-wheel). null: sınır yok.
     const [wheel, setWheel] = useState(null);
     // Onaysız marka: web ile aynı kural, profil listelenmez.
     const [locked, setLocked] = useState(false);
     const [spinning, setSpinning] = useState(false);
-    // Bütçe filtresi (yalnızca marka): girilince fiyat kartında en az bir başlangıç fiyatı bütçeye sığanlar kalır.
-    // Fiyat kartlarını RLS yalnızca doğrulanmış markaya döndürür (web keşfiyle aynı kural).
+    // Bütçe filtresi (yalnızca marka): fiyat kartında en az bir başlangıç fiyatı bütçeye sığanlar kalır.
     const [budgetInput, setBudgetInput] = useState('');
+    const [minPrices, setMinPrices] = useState(new Map());
     const budget = Number(budgetInput) || 0;
+    const isShowcase = route?.name === 'Vitrin';
 
     const fetchInfluencers = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             const myId = user?.id;
-
             // Favoriler yalnızca markalar içindir (tablo brand_id ile tutulur).
-            const { data: me } = myId
-                ? await supabase.from('users').select('role').eq('id', myId).maybeSingle()
-                : { data: null };
+            const { data: me } = myId ? await supabase.from('users').select('role').eq('id', myId).maybeSingle() : { data: null };
             const viewerIsBrand = me?.role === 'brand';
             setIsBrand(viewerIsBrand);
 
-            // Liste web sunucusundan gelir (lib/profile-reads.ts; başka hesapların satırları istemciden okunamaz).
-            // Onaysız marka profil görmez; ücretsiz markada (sınırlar açıkken) yalnızca güncel çarktaki profiller listelenir.
             const result = await apiRequest('discover');
             if (result.error) throw new Error(result.error);
             setLocked(!!result.locked);
-            const limited = !!result.limited;
-            setWheel(limited ? result : null);
-            const users = result.profiles || [];
+            setWheel(result.limited ? result : null);
 
-            // Favoriler sunucudan (web ile aynı kural; kilitliyse locked: true ve boş liste).
             const favState = viewerIsBrand ? await apiRequest('favorites') : null;
             setFavoritesLocked(!!favState?.locked);
             const favIds = new Set(Array.isArray(favState?.ids) ? favState.ids : []);
 
-            const minPrices = new Map();
-            if (viewerIsBrand && budget > 0) {
+            if (viewerIsBrand) {
                 const { data: cards } = await supabase.from('rate_cards').select(RATE_CARD_SELECT).limit(1000);
+                const prices = new Map();
                 (cards || []).forEach((card) => {
                     const values = RATE_CARD_ITEMS.map((item) => card[item.column]).filter((v) => typeof v === 'number' && v > 0);
-                    if (values.length) minPrices.set(card.user_id, Math.min(...values));
+                    if (values.length) prices.set(card.user_id, Math.min(...values));
                 });
+                setMinPrices(prices);
             }
 
-            const usersWithStats = users.map(u => {
-                const isVerified = Array.isArray(u.displayed_badges) && u.displayed_badges.includes('verified-account');
-                
-                return {
-                    ...u,
-                    isVerified,
-                    isFavorited: favIds.has(u.id)
-                }
-            });
-
-            // Client-side search filter
-            const searched = searchQuery 
-                ? usersWithStats.filter(u => 
-                    (u.full_name || u.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (u.category || '').toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                : usersWithStats;
-            const filtered = viewerIsBrand && budget > 0
-                ? searched.filter((u) => minPrices.has(u.id) && minPrices.get(u.id) <= budget)
-                : searched;
-
-            // Group by Categories
-            const spotlight = filtered.filter(u => u.spotlight_active);
-            const others = filtered.filter(u => !u.spotlight_active);
-            
-            const categoryGroups = others.reduce((acc, user) => {
-                const cat = user.category || 'Lifestyle';
-                if (!acc[cat]) acc[cat] = [];
-                acc[cat].push(user);
-                return acc;
-            }, {});
-
-            const results = [];
-            if (limited) {
-                if (filtered.length > 0) results.push({ title: 'Çarktaki profiller', data: filtered });
-                setSections(results);
-                return;
-            }
-            if (spotlight.length > 0) results.push({ title: 'Featured', data: spotlight });
-            
-            Object.keys(categoryGroups).forEach(cat => {
-                results.push({ title: cat, data: categoryGroups[cat] });
-            });
-
-            setSections(results);
+            setProfiles((result.profiles || []).map((u) => ({
+                ...u,
+                isVerified: Array.isArray(u.displayed_badges) && u.displayed_badges.includes('verified-account'),
+                isFavorited: favIds.has(u.id),
+            })));
         } catch (e) {
             console.error(e);
         } finally {
@@ -218,7 +122,7 @@ export default function DiscoverScreen({ navigation, route }) {
         }
     };
 
-    useEffect(() => { fetchInfluencers(); }, [searchQuery, budget]);
+    useEffect(() => { fetchInfluencers(); }, []);
 
     const spinWheel = async () => {
         setSpinning(true);
@@ -237,86 +141,105 @@ export default function DiscoverScreen({ navigation, route }) {
         setRefreshing(false);
     }, []);
 
-    return (
-        <View className="flex-1 bg-black">
-            <StatusBar style="light" />
-            <WavyBackground />
+    const toggleFavorite = async (item) => {
+        if (favoritesLocked) {
+            Alert.alert('Spotlight özelliği', FAVORITES_LOCKED_TEXT);
+            return;
+        }
+        const result = await apiRequest('favorites', { method: 'POST', body: { influencerId: item.id } });
+        if (result.error) {
+            Alert.alert('Favoriler güncellenemedi', result.error);
+            return;
+        }
+        setProfiles((prev) => prev.map((p) => (p.id === item.id ? { ...p, isFavorited: !!result.isFavorited } : p)));
+    };
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                {/* Influencer vitrini profilden ayrı ekran olarak açılır; markada Keşfet sekmesi */}
-                {route?.name === 'Vitrin' ? <StackHeader title="Vitrin" onBack={() => navigation.goBack()} /> : null}
-                <View className="px-6 pt-6 pb-2">
-                    <Text className="text-orange-200 text-3xl font-black leading-[42px] mb-8 w-[90%] tracking-tighter">
-                        Best Influencers for your marketing campaigns
-                    </Text>
+    const categories = useMemo(() => [...new Set(profiles.map((p) => p.category).filter(Boolean))], [profiles]);
 
-                    {/* Search Section */}
-                    <View className="flex-row items-center gap-2 mb-8">
-                        <View className="flex-1 bg-white/10 rounded-[24px] h-14 flex-row items-center px-4 border border-white/5 backdrop-blur-xl">
-                            <Search color="#64748b" size={20} />
-                            <TextInput
-                                placeholder="Influencer Ara"
-                                placeholderTextColor="#475569"
-                                className="flex-1 ml-3 text-white font-bold text-sm"
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                        </View>
-                        <TouchableOpacity className="w-14 h-14 rounded-[24px] bg-white/10 items-center justify-center border border-white/5 backdrop-blur-xl">
-                            <Sliders color="white" size={20} />
-                        </TouchableOpacity>
-                    </View>
-                    {isBrand && (
-                        <View className="bg-white/10 rounded-[20px] h-12 flex-row items-center px-4 border border-white/5 -mt-4 mb-6">
-                            <Text className="text-gray-400 text-xs font-bold mr-2">Bütçem ₺</Text>
-                            <TextInput
-                                placeholder="Örn. 5000"
-                                placeholderTextColor="#475569"
-                                keyboardType="number-pad"
-                                maxLength={8}
-                                className="flex-1 text-white font-bold text-sm"
-                                value={budgetInput}
-                                onChangeText={(v) => setBudgetInput(v.replace(/[^0-9]/g, ''))}
-                            />
-                        </View>
-                    )}
-                </View>
+    const visible = useMemo(() => {
+        const q = searchQuery.trim().toLocaleLowerCase('tr-TR');
+        return profiles.filter((u) => {
+            if (segment === 'featured' && !u.spotlight_active) return false;
+            if (segment === 'favorites' && !u.isFavorited) return false;
+            if (category && u.category !== category) return false;
+            if (isBrand && budget > 0 && !(minPrices.has(u.id) && minPrices.get(u.id) <= budget)) return false;
+            if (!q) return true;
+            return [u.full_name, u.username, influencerCategoryLabel(u.category), u.city].some((v) => (v || '').toLocaleLowerCase('tr-TR').includes(q));
+        }).sort((a, b) => Number(!!b.spotlight_active) - Number(!!a.spotlight_active));
+    }, [profiles, searchQuery, category, segment, budget, minPrices, isBrand]);
 
-                {!loading && wheel && (
-                    <View className="px-6 mb-4">
-                        <DiscoveryWheelCard
-                            profilesPerSpin={wheel.profilesPerSpin}
-                            windowHours={wheel.windowHours}
-                            expiresAt={wheel.spin?.expires_at || null}
-                            spinning={spinning}
-                            onSpin={spinWheel}
-                        />
-                    </View>
-                )}
+    const openProfile = (item) => navigation.navigate('InfluencerDetail', { influencer: item });
 
-                {loading ? (
-                    <ActivityIndicator color="#ec4899" className="mt-10" />
-                ) : (
-                    <FlatList
-                        data={sections}
-                        keyExtractor={item => item.title}
-                        renderItem={({ item }) => (
-                            <CategorySection 
-                                title={item.title} 
-                                data={item.data} 
-                                canFavorite={isBrand}
-                                favoritesLocked={favoritesLocked}
-                                onProfilePress={(inf) => navigation.navigate('InfluencerDetail', { influencer: inf })} 
-                            />
-                        )}
-                        contentContainerStyle={{ paddingBottom: 100 }}
-                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ec4899" />}
-                        ListEmptyComponent={locked
-                            ? <Text className="text-gray-400 text-center mt-10 px-8">Profilleri görebilmek için hesabınızın onaylanması gerekmektedir.</Text>
-                            : wheel && !wheel.spin ? null : <Text className="text-gray-600 text-center mt-10">Hiçbir influencer bulunamadı.</Text>}
-                    />
-                )}
-            </SafeAreaView>
+    const header = (
+        <View style={{ gap: 14 }} className="pb-3">
+            {isBrand && !isShowcase ? (
+                <Segment
+                    options={[{ key: 'all', label: 'Tümü' }, { key: 'featured', label: 'Öne çıkanlar' }, { key: 'favorites', label: 'Favoriler' }]}
+                    value={segment}
+                    onChange={setSegment}
+                />
+            ) : null}
+            <SearchBar value={searchQuery} onChangeText={setSearchQuery} placeholder="İsim, kategori veya şehir" />
+            {categories.length ? (
+                <ChipRow>
+                    <FilterChip label="Tümü" selected={!category} onPress={() => setCategory('')} />
+                    {categories.map((c) => (
+                        <FilterChip key={c} label={influencerCategoryLabel(c)} selected={category === c} onPress={() => setCategory(category === c ? '' : c)} />
+                    ))}
+                </ChipRow>
+            ) : null}
+            {isBrand ? (
+                <TextField prefix="₺" placeholder="Bütçen (teslimat başına)" keyboardType="number-pad" height={44} value={budgetInput} onChangeText={(v) => setBudgetInput(v.replace(/[^0-9]/g, ''))} />
+            ) : null}
+            {wheel ? (
+                <DiscoveryWheelCard
+                    profilesPerSpin={wheel.profilesPerSpin}
+                    windowHours={wheel.windowHours}
+                    expiresAt={wheel.spin?.expires_at || null}
+                    spinning={spinning}
+                    onSpin={spinWheel}
+                />
+            ) : null}
+            {segment === 'favorites' && favoritesLocked ? <Notice tone="gold" icon={Lock} text={FAVORITES_LOCKED_TEXT} /> : null}
         </View>
+    );
+
+    return (
+        <SafeAreaView edges={['top']} className="flex-1 bg-bg">
+            {isShowcase
+                ? <StackHeader title="Vitrin" onBack={() => navigation.goBack()} />
+                : <LargeHeader title="Keşfet" />}
+            {loading ? (
+                <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.gold} /></View>
+            ) : locked ? (
+                <View className="px-4"><Notice tone="warning" icon={ShieldAlert} title="Hesabın henüz onaylanmadı" text="Profilleri görebilmek için hesabınızın onaylanması gerekiyor." onPress={() => navigation.navigate('BrandVerification')} /></View>
+            ) : (
+                <FlatList
+                    data={visible}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <InfluencerCard
+                            item={item}
+                            onPress={openProfile}
+                            canFavorite={isBrand}
+                            favoritesLocked={favoritesLocked}
+                            onToggleFavorite={toggleFavorite}
+                            minPrice={minPrices.get(item.id)}
+                        />
+                    )}
+                    ListHeaderComponent={header}
+                    ListEmptyComponent={
+                        <Card padded={false}>
+                            <EmptyState icon={Users} title="Profil bulunamadı" text={searchQuery || category || budget ? 'Aramayı veya filtreleri değiştir.' : 'Şu an listelenecek profil yok.'} />
+                        </Card>
+                    }
+                    contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}
+                    initialNumToRender={8}
+                />
+            )}
+        </SafeAreaView>
     );
 }

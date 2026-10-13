@@ -1,96 +1,36 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Alert, ActivityIndicator, TextInput, FlatList, Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Image, Alert, ActivityIndicator, Pressable } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import {
-    Plus, Briefcase, ChevronRight, Clock, CheckCircle2, XCircle,
-    ArrowLeft, Users, Calendar, FileText, X, Sparkles,
-    Search, Filter, Bell, Camera, ImageIcon, MoreVertical, Pause, Play, Trash2, Edit2
-} from 'lucide-react-native';
+import { Plus, ChevronRight, Pause, Play, Trash2, Pencil, Ellipsis, ImagePlus, Inbox, Megaphone, Bookmark } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { useFocusEffect } from '@react-navigation/native';
+import { formatBudget, formatCount, formatPercent, formatTRY, daysLeft } from '../../lib/format';
+import {
+    Screen, LargeHeader, StackHeader, Text, Button, IconButton, Card, ListGroup, ListRow, IconBox, Avatar, NameWithTick, Chip,
+    Segment, SearchBar, TextField, Sheet, EmptyState, colors, ICON_STROKE,
+} from '../../components/ui';
 
-// ─── Design ───────────────────────────────────────────────────────────────────
-const GlassCard = ({ children, className, style, onPress }) => (
-    <TouchableOpacity activeOpacity={onPress ? 0.85 : 1} onPress={onPress}
-        className={`rounded-[24px] overflow-hidden border border-white/10 relative ${className}`} style={style}>
-        <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="absolute inset-0" />
-        {children}
-    </TouchableOpacity>
-);
-
+// Başvuru ve ilan durumları (lib/adverts.ts)
 const STATUS_CFG = {
-    pending: { label: 'Bekliyor', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
-    shortlisted: { label: 'Kısa Liste', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
-    accepted: { label: 'Kabul', color: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
-    rejected: { label: 'Reddedildi', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+    pending: { label: 'Bekliyor', tone: 'warning' },
+    shortlisted: { label: 'Kısa liste', tone: 'info' },
+    accepted: { label: 'Kabul edildi', tone: 'success' },
+    rejected: { label: 'Reddedildi', tone: 'danger' },
 };
 
 const ADV_STATUS_CFG = {
-    open: { label: 'Aktif', color: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
-    closed: { label: 'Kapalı', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
-    draft: { label: 'Taslak', color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' },
+    open: { label: 'Yayında', tone: 'success' },
+    paused: { label: 'Durduruldu', tone: 'warning' },
+    closed: { label: 'Kapalı', tone: 'neutral' },
+    draft: { label: 'Taslak', tone: 'neutral' },
 };
 
-const TABS = ['Tüm İlanlar', 'İlanlarım', 'Başvurular'];
-
-// ─── Tab Bar ─────────────────────────────────────────────────────────────────
-function TabBar({ activeTab, setActiveTab, pendingCount }) {
-    return (
-        <View className="flex-row px-5 pb-3 pt-1 gap-2">
-            {TABS.map((tab) => {
-                const isActive = activeTab === tab;
-                const hasBadge = tab === 'Başvurular' && pendingCount > 0;
-                return (
-                    <TouchableOpacity
-                        key={tab}
-                        onPress={() => setActiveTab(tab)}
-                        className={`flex-1 py-2.5 rounded-2xl items-center justify-center border relative ${isActive
-                            ? 'bg-soft-gold/15 border-soft-gold/40'
-                            : 'bg-white/[0.04] border-white/10'
-                            }`}
-                    >
-                        <Text className={`text-[11px] font-bold ${isActive ? 'text-soft-gold' : 'text-gray-500'}`} numberOfLines={1}>
-                            {tab}
-                        </Text>
-                        {hasBadge && (
-                            <View className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full items-center justify-center border border-[#020617]">
-                                <Text className="text-white text-[8px] font-black">{pendingCount > 9 ? '9+' : pendingCount}</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                );
-            })}
-        </View>
-    );
-}
-
-// ─── InputField ───────────────────────────────────────────────────────────────
-const InputField = ({ label, value, onChange, placeholder, multiline = false, keyboardType = 'default' }) => (
-    <View className="mb-4">
-        <Text className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-2">{label}</Text>
-        <View className={`bg-black/30 border border-white/10 rounded-xl px-4 ${multiline ? 'py-3 min-h-[80px]' : 'h-12 justify-center'}`}>
-            <TextInput
-                className="text-white text-sm"
-                value={value}
-                onChangeText={onChange}
-                placeholder={placeholder}
-                placeholderTextColor="#4b5563"
-                multiline={multiline}
-                keyboardType={keyboardType}
-                textAlignVertical={multiline ? 'top' : 'center'}
-            />
-        </View>
-    </View>
-);
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
-export default function BrandAdvertsScreen({ navigation }) {
-    const [activeTab, setActiveTab] = useState('Tüm İlanlar');
+export default function BrandAdvertsScreen({ navigation, route }) {
+    const [activeTab, setActiveTab] = useState('İlanlarım');
+    const [appFilter, setAppFilter] = useState('pending');
+    const [refreshing, setRefreshing] = useState(false);
     const [currentUserId, setCurrentUserId] = useState(null);
 
     // İlanlarım state
@@ -136,6 +76,14 @@ export default function BrandAdvertsScreen({ navigation }) {
     }, []);
 
     useFocusEffect(useCallback(() => { fetchAll(); }, [fetchAll]));
+
+    // Ana sayfadaki "Yeni ilan" doğrudan formu açar
+    useEffect(() => {
+        if (route?.params?.create) {
+            setCreateVisible(true);
+            navigation.setParams({ create: undefined });
+        }
+    }, [route?.params?.create]);
 
     const fetchMyProjects = async (uid) => {
         setLoadingMy(true);
@@ -395,488 +343,205 @@ export default function BrandAdvertsScreen({ navigation }) {
         }
     };
 
-    // ── Project detail view (shared by İlanlarım tab) ─────────────────────────
-    if (selectedProject) {
+
+    // ── Başvuru kartı (ilan ayrıntısı ve Başvurular bölümü ortak) ──
+    const renderApplication = (app, showAdvert = false) => {
+        const inf = app.influencer;
+        const social = inf?.social_accounts?.find((s) => s.platform === 'instagram') || inf?.social_accounts?.[0];
+        const s = STATUS_CFG[app.status] || STATUS_CFG.pending;
         return (
-            <View className="flex-1 bg-[#020617]">
-                <StatusBar style="light" />
-                <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
-                <SafeAreaView className="flex-1">
-                    <View className="px-6 py-4 flex-row items-center gap-3 border-b border-white/5">
-                        <TouchableOpacity onPress={() => setSelectedProject(null)} className="w-10 h-10 bg-white/5 rounded-2xl items-center justify-center border border-white/10">
-                            <ArrowLeft color="white" size={20} />
-                        </TouchableOpacity>
-                        <View className="flex-1">
-                            <Text className="text-white font-bold text-base" numberOfLines={1}>{selectedProject.title}</Text>
-                            <Text className="text-gray-500 text-xs">{projectApps.length} başvuru</Text>
-                        </View>
+            <Card key={app.id} style={{ gap: 10 }}>
+                <View className="flex-row items-center" style={{ gap: 12 }}>
+                    <Pressable onPress={() => inf && navigation.navigate('InfluencerDetail', { influencer: inf })} accessibilityRole="button">
+                        <Avatar name={inf?.full_name || inf?.username} uri={inf?.avatar_url} />
+                    </Pressable>
+                    <View className="flex-1 min-w-0">
+                        <NameWithTick name={inf?.full_name || inf?.username || 'Influencer'} verified={inf?.verification_status === 'verified'} />
+                        <Text variant="caption" tone="fg3" numberOfLines={1}>
+                            {[social?.follower_count ? `${formatCount(social.follower_count)} takipçi` : null,
+                                social?.engagement_rate ? `${formatPercent(social.engagement_rate)} etkileşim` : null,
+                                showAdvert ? app.advert?.title : null].filter(Boolean).join(' · ')}
+                        </Text>
                     </View>
+                    {app.budget_expectation ? <Text weight="semibold">{formatTRY(app.budget_expectation)}</Text> : <Chip label={s.label} tone={s.tone} />}
+                </View>
+                {app.cover_letter ? <Text variant="small" tone="fg2" numberOfLines={4} style={{ fontSize: 13.5 }}>{app.cover_letter}</Text> : null}
+                {app.budget_expectation ? <Chip label={s.label} tone={s.tone} /> : null}
+                {app.status === 'pending' || app.status === 'shortlisted' ? (
+                    <View className="flex-row" style={{ gap: 8 }}>
+                        {app.status === 'pending' ? (
+                            <View className="flex-1"><Button title="Kısa liste" icon={Bookmark} variant="secondary" size="md" onPress={() => updateAppStatus(app.id, 'shortlisted')} block /></View>
+                        ) : (
+                            <View className="flex-1"><Button title="Reddet" variant="danger" size="md" onPress={() => updateAppStatus(app.id, 'rejected')} block /></View>
+                        )}
+                        <View className="flex-1"><Button title="Kabul et" size="md" onPress={() => updateAppStatus(app.id, 'accepted')} block /></View>
+                    </View>
+                ) : null}
+                {app.status === 'pending' ? (
+                    <Text variant="caption" tone="fg3" onPress={() => updateAppStatus(app.id, 'rejected')} suppressHighlighting>Başvuruyu reddet</Text>
+                ) : null}
+            </Card>
+        );
+    };
 
-                    {loadingApps ? (
-                        <View className="flex-1 items-center justify-center">
-                            <ActivityIndicator color="#D4AF37" />
-                        </View>
-                    ) : projectApps.length === 0 ? (
-                        <View className="flex-1 items-center justify-center px-8">
-                            <View className="w-14 h-14 bg-white/5 rounded-full items-center justify-center mb-4">
-                                <Users color="#4b5563" size={24} />
-                            </View>
-                            <Text className="text-white font-bold text-base mb-1">Henüz başvuru yok</Text>
-                            <Text className="text-gray-500 text-sm text-center">İlanınız yayında — başvurular burada görünecek.</Text>
-                        </View>
-                    ) : (
-                        <FlatList
-                            data={projectApps}
-                            keyExtractor={a => a.id}
-                            contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-                            renderItem={({ item: app }) => {
-                                const inf = app.influencer;
-                                const ig = inf?.social_accounts?.find(s => s.platform === 'instagram');
-                                const st = STATUS_CFG[app.status] || STATUS_CFG.pending;
-                                return (
-                                    <GlassCard className="p-4 mb-4">
-                                        <View className="flex-row items-center gap-3 mb-3">
-                                            <View className="w-12 h-12 rounded-2xl bg-[#15171e] border border-white/10 overflow-hidden items-center justify-center">
-                                                {inf?.avatar_url
-                                                    ? <Image source={{ uri: inf.avatar_url }} className="w-full h-full" resizeMode="cover" />
-                                                    : <Text className="text-white font-bold text-lg">{(inf?.full_name || '?').charAt(0)}</Text>}
-                                            </View>
-                                            <View className="flex-1">
-                                                <Text className="text-white font-bold text-sm">{inf?.full_name || inf?.username}</Text>
-                                                <Text className="text-gray-500 text-xs">@{inf?.username}</Text>
-                                            </View>
-                                            <View className="px-3 py-1.5 rounded-xl" style={{ backgroundColor: st.bg }}>
-                                                <Text className="text-xs font-bold" style={{ color: st.color }}>{st.label}</Text>
-                                            </View>
-                                        </View>
-
-                                        {ig && (
-                                            <View className="flex-row gap-3 mb-3">
-                                                <View className="flex-1 bg-black/20 rounded-xl p-3 border border-white/5">
-                                                    <Text className="text-gray-500 text-[10px] uppercase font-bold">Takipçi</Text>
-                                                    <Text className="text-white font-bold text-base">
-                                                        {ig.follower_count > 1000 ? (ig.follower_count / 1000).toFixed(1) + 'K' : ig.follower_count}
-                                                    </Text>
-                                                </View>
-                                                <View className="flex-1 bg-black/20 rounded-xl p-3 border border-white/5">
-                                                    <Text className="text-soft-gold text-[10px] uppercase font-bold">Etkileşim</Text>
-                                                    <Text className="text-white font-bold text-base">%{ig.engagement_rate}</Text>
-                                                </View>
-                                            </View>
-                                        )}
-
-                                        {app.cover_letter && (
-                                            <View className="bg-black/20 rounded-xl p-3 mb-3 border border-white/5">
-                                                <Text className="text-gray-400 text-xs leading-4" numberOfLines={3}>{app.cover_letter}</Text>
-                                            </View>
-                                        )}
-
-                                        {app.budget_expectation && (
-                                            <View className="flex-row items-center gap-2 mb-3">
-                                                <Text className="text-soft-gold text-xs font-medium">
-                                                    {app.payment_type === 'barter' ? 'Barter' : app.budget_expectation + ' ₺'}
-                                                </Text>
-                                            </View>
-                                        )}
-
-                                        {app.status === 'pending' && (
-                                            <View className="flex-row gap-2">
-                                                <TouchableOpacity onPress={() => updateAppStatus(app.id, 'accepted')}
-                                                    className="flex-1 h-10 bg-green-500/10 border border-green-500/25 rounded-xl items-center justify-center">
-                                                    <Text className="text-green-400 font-bold text-sm">Kabul Et</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity onPress={() => updateAppStatus(app.id, 'shortlisted')}
-                                                    className="flex-1 h-10 bg-purple-500/10 border border-purple-500/25 rounded-xl items-center justify-center">
-                                                    <Text className="text-purple-300 font-bold text-sm">Kısa Liste</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity onPress={() => updateAppStatus(app.id, 'rejected')}
-                                                    className="w-10 h-10 bg-red-500/10 border border-red-500/25 rounded-xl items-center justify-center">
-                                                    <X color="#f87171" size={16} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        )}
-                                    </GlassCard>
-                                );
-                            }}
-                        />
-                    )}
-                </SafeAreaView>
-            </View>
+    // ── İlan ayrıntısı: başvurular ──
+    if (selectedProject) {
+        const groups = {
+            pending: projectApps.filter((a) => a.status === 'pending'),
+            shortlisted: projectApps.filter((a) => a.status === 'shortlisted'),
+            accepted: projectApps.filter((a) => a.status === 'accepted'),
+        };
+        const shown = groups[appFilter] || [];
+        return (
+            <Screen
+                scroll
+                header={<StackHeader title={selectedProject.title} onBack={() => setSelectedProject(null)} right={<IconButton icon={Ellipsis} onPress={() => setActionSheetProject(selectedProject)} accessibilityLabel="İlan işlemleri" />} />}
+            >
+                <Segment
+                    options={[
+                        { key: 'pending', label: 'Yeni', count: groups.pending.length || undefined },
+                        { key: 'shortlisted', label: 'Kısa liste', count: groups.shortlisted.length || undefined },
+                        { key: 'accepted', label: 'Kabul', count: groups.accepted.length || undefined },
+                    ]}
+                    value={appFilter}
+                    onChange={setAppFilter}
+                />
+                {loadingApps ? <View className="py-12"><ActivityIndicator color={colors.gold} /></View>
+                    : shown.length ? shown.map((app) => renderApplication(app))
+                        : (
+                            <Card padded={false}>
+                                <EmptyState icon={Inbox} title="Başvuru yok" text={projectApps.length ? 'Bu bölümde başvuru yok.' : 'İlanınız yayında; başvurular burada görünecek.'} />
+                            </Card>
+                        )}
+                {renderSheets()}
+            </Screen>
         );
     }
 
-    // ── Main tabs view ────────────────────────────────────────────────────────
-    return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
-            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
-            <View className="absolute top-0 right-0 w-80 h-80 bg-soft-gold/5 rounded-full blur-[100px]" />
-
-            <SafeAreaView className="flex-1">
-                {/* Header */}
-                <View className="px-6 pt-4 pb-2 flex-row items-start justify-between">
-                    <View>
-                        <Text className="text-soft-gold text-xs font-bold uppercase tracking-widest mb-1">MARKA PANELİ</Text>
-                        <Text className="text-white text-3xl font-bold tracking-tight">İlanlar</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => setCreateVisible(true)}
-                        className="flex-row items-center gap-1 bg-soft-gold/10 border border-soft-gold/30 px-2.5 py-1 rounded-lg">
-                        <Plus color="#D4AF37" size={14} />
-                        <Text className="text-soft-gold font-bold text-base">Yeni İlan</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Tab Bar */}
-                <TabBar activeTab={activeTab} setActiveTab={setActiveTab} pendingCount={pendingCount} />
-
-                {/* ── Tab: Başvurular ────────────────────────────────────────── */}
-                {activeTab === 'Başvurular' && (
-                    loadingAppsAll ? (
-                        <View className="flex-1 items-center justify-center">
-                            <ActivityIndicator color="#D4AF37" />
-                        </View>
-                    ) : allApps.length === 0 ? (
-                        <View className="flex-1 items-center justify-center px-8">
-                            <View className="w-16 h-16 bg-white/5 rounded-full items-center justify-center mb-4">
-                                <Bell color="#4b5563" size={28} />
-                            </View>
-                            <Text className="text-white font-bold text-lg mb-2">Başvuru Yok</Text>
-                            <Text className="text-gray-500 text-sm text-center leading-5">İlanlarınıza gelen başvurular burada görünecek.</Text>
-                        </View>
-                    ) : (
-                        <FlatList
-                            data={allApps}
-                            keyExtractor={a => a.id}
-                            contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
-                            showsVerticalScrollIndicator={false}
-                            renderItem={({ item: app }) => {
-                                const inf = app.influencer;
-                                const ig = inf?.social_accounts?.find(s => s.platform === 'instagram');
-                                const st = STATUS_CFG[app.status] || STATUS_CFG.pending;
-                                return (
-                                    <GlassCard className="p-4 mb-3">
-                                        {/* İlan başlığı */}
-                                        {app.advert?.title && (
-                                            <View className="bg-soft-gold/8 border border-soft-gold/20 rounded-xl px-3 py-1.5 mb-3 self-start">
-                                                <Text className="text-soft-gold text-[10px] font-bold" numberOfLines={1}>{app.advert.title}</Text>
-                                            </View>
-                                        )}
-                                        <View className="flex-row items-center gap-3 mb-3">
-                                            <View className="w-11 h-11 rounded-2xl bg-[#15171e] border border-white/10 overflow-hidden items-center justify-center">
-                                                {inf?.avatar_url
-                                                    ? <Image source={{ uri: inf.avatar_url }} className="w-full h-full" resizeMode="cover" />
-                                                    : <Text className="text-white font-bold">{(inf?.full_name || '?').charAt(0)}</Text>}
-                                            </View>
-                                            <View className="flex-1">
-                                                <Text className="text-white font-bold text-sm">{inf?.full_name || inf?.username}</Text>
-                                                <Text className="text-gray-500 text-xs">@{inf?.username} · {ig ? (ig.follower_count > 1000 ? (ig.follower_count / 1000).toFixed(1) + 'K' : ig.follower_count) + ' takipçi' : 'IG yok'}</Text>
-                                            </View>
-                                            <View className="px-2.5 py-1.5 rounded-xl" style={{ backgroundColor: st.bg }}>
-                                                <Text className="text-[10px] font-bold" style={{ color: st.color }}>{st.label}</Text>
-                                            </View>
-                                        </View>
-                                        {app.cover_letter && (
-                                            <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{app.cover_letter}</Text>
-                                        )}
-                                        {app.status === 'pending' && (
-                                            <View className="flex-row gap-2">
-                                                <TouchableOpacity onPress={() => updateAppStatus(app.id, 'accepted')}
-                                                    className="flex-1 h-9 bg-green-500/10 border border-green-500/25 rounded-xl items-center justify-center">
-                                                    <Text className="text-green-400 font-bold text-xs">Kabul Et</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity onPress={() => updateAppStatus(app.id, 'shortlisted')}
-                                                    className="flex-1 h-9 bg-purple-500/10 border border-purple-500/25 rounded-xl items-center justify-center">
-                                                    <Text className="text-purple-300 font-bold text-xs">Kısa Liste</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity onPress={() => updateAppStatus(app.id, 'rejected')}
-                                                    className="w-9 h-9 bg-red-500/10 border border-red-500/25 rounded-xl items-center justify-center">
-                                                    <X color="#f87171" size={14} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        )}
-                                    </GlassCard>
-                                );
-                            }}
-                        />
-                    )
-                )}
-
-                {/* ── Tab: Tüm İlanlar ───────────────────────────────────────── */}
-                {activeTab === 'Tüm İlanlar' && (
-                    <View className="flex-1">
-                        <View className="px-5 pb-3">
-                            <View className="bg-white/5 border border-white/10 rounded-2xl flex-row items-center px-4 h-11">
-                                <Search color="#6b7280" size={16} />
-                                <TextInput
-                                    className="flex-1 ml-3 text-white text-sm"
-                                    placeholder="İlan ara..."
-                                    placeholderTextColor="#6b7280"
-                                    value={searchAll}
-                                    onChangeText={setSearchAll}
-                                />
-                            </View>
-                        </View>
-                        {loadingAll ? (
-                            <View className="flex-1 items-center justify-center">
-                                <ActivityIndicator color="#D4AF37" />
-                            </View>
+    // ── Oluştur/düzenle formu ve ilan işlemleri (alttan açılan sayfalar) ──
+    function renderSheets() {
+        const proj = actionSheetProject;
+        return (
+            <>
+                <Sheet visible={createVisible} onClose={closeModal} title={editMode ? 'İlanı düzenle' : 'Yeni ilan'} scroll>
+                    <Pressable onPress={pickHeroImage} accessibilityRole="button" accessibilityLabel="Kapak görseli seç"
+                        className="h-[120px] rounded-[14px] border border-dashed border-line-strong bg-s2 items-center justify-center overflow-hidden">
+                        {heroImage ? (
+                            <Image source={{ uri: heroImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                         ) : (
-                            <FlatList
-                                data={allProjects.filter(p =>
-                                    !searchAll || p.title?.toLowerCase().includes(searchAll.toLowerCase()) ||
-                                    p.displayBrandName?.toLowerCase().includes(searchAll.toLowerCase())
-                                )}
-                                keyExtractor={p => p.id}
-                                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
-                                showsVerticalScrollIndicator={false}
-                                ListEmptyComponent={
-                                    <View className="items-center py-16">
-                                        <Briefcase color="#374151" size={40} />
-                                        <Text className="text-gray-500 mt-4 text-sm">İlan bulunamadı.</Text>
-                                    </View>
-                                }
-                                renderItem={({ item: proj }) => {
-                                    const brandName = proj.displayBrandName || 'Marka';
-                                    const desc = proj.summary || proj.description || '';
-                                    return (
-                                        <GlassCard className="p-5 mb-3">
-                                            <View className="flex-row items-start justify-between mb-2">
-                                                <View className="flex-1 mr-3">
-                                                    <Text className="text-white font-bold text-base mb-1" numberOfLines={2}>{proj.title}</Text>
-                                                    <Text className="text-gray-500 text-xs font-medium">{brandName}</Text>
-                                                </View>
-                                                {proj.category && (
-                                                    <View className="bg-white/5 px-2 py-1 rounded-lg border border-white/10">
-                                                        <Text className="text-gray-400 text-[10px] font-bold uppercase">{proj.category}</Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                            {desc ? (
-                                                <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{desc}</Text>
-                                            ) : null}
-                                            <View className="flex-row items-center justify-between pt-3 border-t border-white/5">
-                                                {proj.budget_min != null && (
-                                                    <View className="flex-row items-center gap-1.5">
-                                                        <Text className="text-soft-gold text-xs font-bold">{(proj.budget_min).toLocaleString('tr-TR')} ₺'den başlayan</Text>
-                                                    </View>
-                                                )}
-                                                <Text className="text-gray-600 text-[10px]">
-                                                    {new Date(proj.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                                                </Text>
-                                            </View>
-                                        </GlassCard>
-                                    );
-                                }}
-                            />
-                        )}
-                    </View>
-                )}
-
-                {/* ── Tab: İlanlarım ────────────────────────────────────────── */}
-                {activeTab === 'İlanlarım' && (
-                    loadingMy ? (
-                        <View className="flex-1 items-center justify-center">
-                            <ActivityIndicator color="#D4AF37" />
-                        </View>
-                    ) : myProjects.length === 0 ? (
-                        <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 32 }}>
-                            <GlassCard className="p-8 items-center">
-                                <View className="w-16 h-16 bg-white/5 rounded-full items-center justify-center mb-4">
-                                    <Briefcase color="#4b5563" size={28} />
-                                </View>
-                                <Text className="text-white font-bold text-lg mb-2">İlan Yok</Text>
-                                <Text className="text-gray-500 text-sm text-center mb-5">İlk ilanını oluştur, influencer başvurularını yönet.</Text>
-                                <TouchableOpacity onPress={() => setCreateVisible(true)}
-                                    className="bg-soft-gold px-6 py-3 rounded-2xl flex-row items-center gap-2">
-                                    <Plus color="black" size={16} />
-                                    <Text className="text-midnight font-bold">İlan Oluştur</Text>
-                                </TouchableOpacity>
-                            </GlassCard>
-                        </ScrollView>
-                    ) : (
-                        <FlatList
-                            data={myProjects}
-                            keyExtractor={p => p.id}
-                            contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
-                            showsVerticalScrollIndicator={false}
-                            renderItem={({ item: proj }) => {
-                                const st = ADV_STATUS_CFG[proj.status] || ADV_STATUS_CFG.open;
-                                const appCount = proj.advert_applications?.[0]?.count || 0;
-                                return (
-                                    <GlassCard className="p-5 mb-4" onPress={() => openProject(proj)}>
-                                        <View className="flex-row items-start justify-between mb-3">
-                                            <View className="flex-1 mr-3">
-                                                <Text className="text-white font-bold text-base mb-1" numberOfLines={2}>{proj.title}</Text>
-                                                {proj.category && (
-                                                    <View className="bg-white/5 self-start px-2 py-0.5 rounded-lg border border-white/10">
-                                                        <Text className="text-gray-400 text-[10px] font-bold uppercase">{proj.category}</Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                            <View className="flex-row items-center gap-2">
-                                                <View className="px-2.5 py-1.5 rounded-xl" style={{ backgroundColor: st.bg }}>
-                                                    <Text className="text-xs font-bold" style={{ color: st.color }}>{st.label}</Text>
-                                                </View>
-                                                <TouchableOpacity
-                                                    onPress={(e) => { e.stopPropagation?.(); setActionSheetProject(proj); }}
-                                                    className="w-8 h-8 bg-white/5 rounded-xl items-center justify-center border border-white/10"
-                                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                                >
-                                                    <MoreVertical color="#9ca3af" size={16} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-
-                                        {(proj.summary || proj.description) ? (
-                                            <Text className="text-gray-400 text-xs leading-4 mb-3" numberOfLines={2}>{proj.summary || proj.description}</Text>
-                                        ) : null}
-
-                                        <View className="flex-row items-center justify-between pt-3 border-t border-white/5">
-                                            <View className="flex-row items-center gap-4">
-                                                {proj.budget_min && (
-                                                    <View className="flex-row items-center gap-1.5">
-                                                        <Text className="text-soft-gold text-xs font-bold">{proj.budget_min} ₺</Text>
-                                                    </View>
-                                                )}
-                                                <View className="flex-row items-center gap-1.5">
-                                                    <Users color="#a855f7" size={12} />
-                                                    <Text className="text-purple-300 text-xs font-bold">{appCount} başvuru</Text>
-                                                </View>
-                                            </View>
-                                            <ChevronRight color="#4b5563" size={16} />
-                                        </View>
-                                    </GlassCard>
-                                );
-                            }}
-                        />
-                    )
-                )}
-            </SafeAreaView>
-
-            {/* ── Action Sheet Modal ──────────────────────────────────────── */}
-            <Modal animationType="slide" transparent visible={!!actionSheetProject} onRequestClose={() => setActionSheetProject(null)}>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setActionSheetProject(null)} />
-                    <View style={{ backgroundColor: '#0B0F19', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingBottom: 36 }}>
-                        <View style={{ alignItems: 'center', paddingVertical: 12 }}>
-                            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                        </View>
-                        <View style={{ paddingHorizontal: 16 }}>
-                            <Text style={{ color: '#9ca3af', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', paddingHorizontal: 8, marginBottom: 8 }}>
-                                {actionSheetProject?.title}
-                            </Text>
-
-                            {/* Edit */}
-                            <TouchableOpacity onPress={() => openEditModal(actionSheetProject)}
-                                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, marginBottom: 4 }}>
-                                <View style={{ width: 38, height: 38, backgroundColor: 'rgba(212,175,55,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-                                    <Edit2 color="#D4AF37" size={17} />
-                                </View>
-                                <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>Düzenle</Text>
-                            </TouchableOpacity>
-
-                            {/* Change Status */}
-                            <TouchableOpacity onPress={() => toggleProjectStatus(actionSheetProject)}
-                                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, marginBottom: 4 }}>
-                                <View style={{ width: 38, height: 38, backgroundColor: actionSheetProject?.status === 'open' ? 'rgba(248,113,113,0.12)' : 'rgba(74,222,128,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-                                    {actionSheetProject?.status === 'open'
-                                        ? <Pause color="#f87171" size={17} />
-                                        : <Play color="#4ade80" size={17} />}
-                                </View>
-                                <Text style={{ color: actionSheetProject?.status === 'open' ? '#f87171' : '#4ade80', fontWeight: '600', fontSize: 15 }}>
-                                    {actionSheetProject?.status === 'open' ? 'İlanı Kapat' : 'İlanı Aktifleştir'}
-                                </Text>
-                            </TouchableOpacity>
-
-                            {/* Delete */}
-                            <TouchableOpacity onPress={() => deleteProject(actionSheetProject)}
-                                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, marginBottom: 4 }}>
-                                <View style={{ width: 38, height: 38, backgroundColor: 'rgba(248,113,113,0.12)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-                                    <Trash2 color="#f87171" size={17} />
-                                </View>
-                                <Text style={{ color: '#f87171', fontWeight: '600', fontSize: 15 }}>Sil</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* ── Create / Edit Modal ─────────────────────────────────────── */}
-            <Modal animationType="slide" transparent visible={createVisible} onRequestClose={closeModal}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'flex-end' }}>
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' }}>
-                        <TouchableOpacity style={{ flex: 1 }} onPress={() => { setCreateVisible(false); setHeroImage(null); setHeroImageUrl(null); }} />
-                        <View style={{ backgroundColor: '#0B0F19', borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.1)', maxHeight: '92%' }}>
-                            {/* Drag handle */}
-                            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
-                                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+                            <View className="items-center" style={{ gap: 4 }}>
+                                <ImagePlus size={22} color={colors.fg3} strokeWidth={ICON_STROKE} />
+                                <Text variant="small" tone="fg3">Kapak görseli ekle</Text>
+                                <Text variant="caption" tone="fg3">16:9 önerilir</Text>
                             </View>
-
-                            <ScrollView
-                                showsVerticalScrollIndicator={false}
-                                keyboardShouldPersistTaps="handled"
-                                contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40 }}
-                            >
-                                <View className="flex-row items-center justify-between mb-5">
-                                    <Text className="text-white font-bold text-xl">{editMode ? 'İlanı Düzenle' : 'Yeni İlan Oluştur'}</Text>
-                                    <TouchableOpacity onPress={closeModal} className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center">
-                                        <X color="white" size={18} />
-                                    </TouchableOpacity>
-                                </View>
-
-                                {/* Banner Image Picker */}
-                                <TouchableOpacity
-                                    onPress={pickHeroImage}
-                                    disabled={uploadingHero}
-                                    className="rounded-2xl overflow-hidden border-2 border-dashed border-white/20 mb-5"
-                                    style={{ height: 140 }}
-                                >
-                                    {heroImage ? (
-                                        <View className="flex-1">
-                                            <Image source={{ uri: heroImage }} className="w-full h-full" resizeMode="cover" />
-                                            {uploadingHero && (
-                                                <View className="absolute inset-0 bg-black/60 items-center justify-center">
-                                                    <ActivityIndicator color="#D4AF37" size="small" />
-                                                    <Text className="text-white text-xs mt-2">Yükleniyor...</Text>
-                                                </View>
-                                            )}
-                                            {!uploadingHero && heroImageUrl && (
-                                                <View className="absolute bottom-2 right-2 bg-green-500/90 px-2 py-1 rounded-lg">
-                                                    <Text className="text-white text-[10px] font-bold">✓ Yüklendi</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                    ) : (
-                                        <View className="flex-1 items-center justify-center gap-2">
-                                            <View className="w-10 h-10 bg-white/5 rounded-full items-center justify-center">
-                                                <ImageIcon color="#6b7280" size={20} />
-                                            </View>
-                                            <Text className="text-gray-500 text-xs font-medium">İlan Banneri Ekle</Text>
-                                            <Text className="text-gray-600 text-[10px]">16:9 oranı önerilir</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-
-                                <InputField label="İlan Başlığı *" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="Ör: Instagram Reel için Ortak" />
-                                <InputField label="Açıklama *" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Marka ve kampanya hakkında bilgi ver..." multiline />
-                                <View className="flex-row gap-3">
-                                    <View className="flex-1">
-                                        <InputField label="Bütçe (₺)" value={form.budget} onChange={v => setForm(f => ({ ...f, budget: v }))} placeholder="0" keyboardType="numeric" />
-                                    </View>
-                                    <View className="flex-1">
-                                        <InputField label="Kategori" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} placeholder="Moda, Teknoloji..." />
-                                    </View>
-                                </View>
-
-                                <TouchableOpacity onPress={createProject} disabled={saving || uploadingHero}
-                                    className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mt-2 ${(saving || uploadingHero) ? 'bg-soft-gold/50' : 'bg-soft-gold'}`}>
-                                    {saving ? <ActivityIndicator color="black" /> : <Text className="text-midnight font-bold text-base">{uploadingHero ? 'Banner yükleniyor...' : (editMode ? 'Değişiklikleri Kaydet' : 'İlanı Yayınla')}</Text>}
-                                </TouchableOpacity>
-                            </ScrollView>
-                        </View>
+                        )}
+                        {uploadingHero ? <View className="absolute inset-0 bg-black/50 items-center justify-center"><ActivityIndicator color={colors.gold} /></View> : null}
+                    </Pressable>
+                    <TextField label="İlan başlığı" value={form.title} onChangeText={(v) => setForm((f) => ({ ...f, title: v }))} placeholder="ör. Sonbahar UGC serisi" />
+                    <TextField label="Açıklama" multiline value={form.description} onChangeText={(v) => setForm((f) => ({ ...f, description: v }))} placeholder="Ne istiyorsun, hangi teslimatlar, ne zaman?" />
+                    <View className="flex-row" style={{ gap: 10 }}>
+                        <View className="flex-1"><TextField label="Bütçe" prefix="₺" keyboardType="number-pad" value={form.budget} onChangeText={(v) => setForm((f) => ({ ...f, budget: v.replace(/[^0-9]/g, '') }))} placeholder="0" /></View>
+                        <View className="flex-1"><TextField label="Kategori" value={form.category} onChangeText={(v) => setForm((f) => ({ ...f, category: v }))} placeholder="ör. Güzellik" /></View>
                     </View>
-                </KeyboardAvoidingView>
-            </Modal>
-        </View>
+                    <Button title={editMode ? 'Kaydet' : 'İlanı yayınla'} onPress={createProject} loading={saving} disabled={uploadingHero} block />
+                </Sheet>
+
+                <Sheet visible={!!proj} onClose={() => setActionSheetProject(null)} title={proj?.title}>
+                    {proj ? (
+                        <ListGroup>
+                            <ListRow onPress={() => openEditModal(proj)} left={<IconBox icon={Pencil} />} title="Düzenle" chevron />
+                            <ListRow
+                                onPress={() => { toggleProjectStatus(proj); if (selectedProject?.id === proj.id) setSelectedProject((p) => ({ ...p, status: p.status === 'open' ? 'closed' : 'open' })); }}
+                                left={<IconBox icon={proj.status === 'open' ? Pause : Play} />}
+                                title={proj.status === 'open' ? 'Yayından kaldır' : 'Yeniden yayınla'}
+                            />
+                            <ListRow onPress={() => { deleteProject(proj); setSelectedProject(null); }} left={<IconBox icon={Trash2} tone="danger" />} title="Sil" titleTone="danger" />
+                        </ListGroup>
+                    ) : null}
+                </Sheet>
+            </>
+        );
+    }
+
+    const appCount = (proj) => proj.advert_applications?.[0]?.count ?? 0;
+
+    return (
+        <Screen
+            scroll
+            refreshing={refreshing}
+            onRefresh={async () => { setRefreshing(true); await fetchAll(); setRefreshing(false); }}
+            header={<LargeHeader title="İlanlar" right={<Button title="Yeni ilan" icon={Plus} size="md" onPress={() => setCreateVisible(true)} />} />}
+        >
+            <Segment
+                options={[
+                    { key: 'İlanlarım', label: 'İlanlarım' },
+                    { key: 'Başvurular', label: 'Başvurular', count: pendingCount || undefined },
+                    { key: 'Tüm İlanlar', label: 'Topluluk' },
+                ]}
+                value={activeTab}
+                onChange={setActiveTab}
+            />
+
+            {activeTab === 'İlanlarım' ? (
+                loadingMy ? <View className="py-12"><ActivityIndicator color={colors.gold} /></View>
+                    : myProjects.length ? myProjects.map((proj) => {
+                        const st = ADV_STATUS_CFG[proj.status] || ADV_STATUS_CFG.draft;
+                        const count = appCount(proj);
+                        return (
+                            <Card key={proj.id} onPress={() => { setAppFilter('pending'); openProject(proj); }} style={{ gap: 10 }}>
+                                <View className="flex-row items-start" style={{ gap: 10 }}>
+                                    <Text weight="semibold" style={{ fontSize: 16, flex: 1 }} numberOfLines={2}>{proj.title}</Text>
+                                    <Chip label={st.label} tone={st.tone} dot />
+                                    <IconButton icon={Ellipsis} size={20} onPress={() => setActionSheetProject(proj)} accessibilityLabel="İlan işlemleri" />
+                                </View>
+                                <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+                                    <Text variant="small" tone="fg2">{formatBudget(proj.budget_min, proj.budget_max)}</Text>
+                                    {proj.deadline ? <Text variant="small" tone="fg2">{daysLeft(proj.deadline)}</Text> : null}
+                                    {proj.category ? <Text variant="small" tone="fg2">{proj.category}</Text> : null}
+                                </View>
+                                <View className="flex-row items-center justify-between pt-2.5 border-t border-line">
+                                    <Text variant="small" tone={count ? 'fg' : 'fg3'}>{count ? `${count} başvuru` : 'Henüz başvuru yok'}</Text>
+                                    <ChevronRight size={18} color={colors.fg3} strokeWidth={ICON_STROKE} />
+                                </View>
+                            </Card>
+                        );
+                    }) : (
+                        <Card padded={false}>
+                            <EmptyState icon={Megaphone} title="Henüz ilan yok" text="İlk ilanını oluştur, influencer başvurularını buradan yönet." action={<Button title="Yeni ilan" icon={Plus} size="md" onPress={() => setCreateVisible(true)} />} />
+                        </Card>
+                    )
+            ) : null}
+
+            {activeTab === 'Başvurular' ? (
+                loadingAppsAll ? <View className="py-12"><ActivityIndicator color={colors.gold} /></View>
+                    : allApps.length ? allApps.map((app) => renderApplication(app, true))
+                        : <Card padded={false}><EmptyState icon={Inbox} title="Henüz başvuru yok" text="İlanlarına gelen başvurular burada görünecek." /></Card>
+            ) : null}
+
+            {activeTab === 'Tüm İlanlar' ? (
+                <>
+                    <SearchBar value={searchAll} onChangeText={setSearchAll} placeholder="İlan veya marka ara" />
+                    {loadingAll ? <View className="py-12"><ActivityIndicator color={colors.gold} /></View> : (() => {
+                        const q = searchAll.trim().toLocaleLowerCase('tr-TR');
+                        const rows = q ? allProjects.filter((p) => [p.title, p.displayBrandName].some((v) => (v || '').toLocaleLowerCase('tr-TR').includes(q))) : allProjects;
+                        return rows.length ? (
+                            <ListGroup>
+                                {rows.map((p) => (
+                                    <ListRow
+                                        key={p.id}
+                                        left={<Avatar name={p.displayBrandName} uri={p.brand_logo || p.brand?.avatar_url} square />}
+                                        title={p.title}
+                                        subtitle={`${p.displayBrandName}${p.currentUserOwns || p.brand_user_id === currentUserId ? ' · senin ilanın' : ''}`}
+                                        right={<Text variant="small" weight="semibold">{formatBudget(p.budget_min, p.budget_max)}</Text>}
+                                    />
+                                ))}
+                            </ListGroup>
+                        ) : <Card padded={false}><EmptyState icon={Megaphone} title="İlan bulunamadı" /></Card>;
+                    })()}
+                </>
+            ) : null}
+
+            {renderSheets()}
+        </Screen>
     );
 }
