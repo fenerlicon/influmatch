@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, TextInput, Pressable, Keyboard } from 'react-native';
+import { MailCheck, ClipboardPaste } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
 import { supabase } from '../lib/supabase';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, MailOpen } from 'lucide-react-native';
 import { CustomToast } from '../components/CustomToast';
 import { getTurkishErrorMessage } from '../lib/errorUtils';
+import { Screen, StackHeader, Text, Button, colors, fonts, ICON_STROKE } from '../components/ui';
 
-import * as Clipboard from 'expo-clipboard';
+const CODE_LENGTH = 6;
 
 export default function VerifyEmailScreen({ route, navigation }) {
     const { email } = route.params;
@@ -16,6 +15,7 @@ export default function VerifyEmailScreen({ route, navigation }) {
     const [loading, setLoading] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60); // 60 saniye sayaç
     const [clipboardCode, setClipboardCode] = useState('');
+    const [focused, setFocused] = useState(true);
     const inputRef = useRef(null);
 
     // Toast State
@@ -67,21 +67,13 @@ export default function VerifyEmailScreen({ route, navigation }) {
         }
     };
 
-    // Kod girildiğinde otomatik doğrulama için
-    useEffect(() => {
-        // 6 veya 8 haneli olabilir, 6'yı geçince tetiklemeye çalışalım ama asıl doğrulama butonu var
-        if (code.length === 6 || code.length === 8) {
-            // handleVerify(); // Otomatik tetiklemeyelim, 6 mı 8 mi emin değiliz, kullanıcı butona bassın
-        }
-    }, [code]);
-
     async function handleVerify() {
-        if (code.length < 6) return;
+        if (code.length < CODE_LENGTH) return;
 
         setLoading(true);
         Keyboard.dismiss();
 
-        const { data, error } = await supabase.auth.verifyOtp({
+        const { error } = await supabase.auth.verifyOtp({
             email: email,
             token: code,
             type: 'signup'
@@ -119,147 +111,64 @@ export default function VerifyEmailScreen({ route, navigation }) {
     }
 
     return (
-        <View className="flex-1 bg-midnight">
-            <StatusBar style="light" />
-            <CustomToast
-                visible={toast.visible}
-                message={toast.message}
-                type={toast.type}
-                onHide={hideToast}
-            />
+        <Screen scroll keyboard header={<StackHeader onBack={() => navigation.goBack()} right={<Text variant="caption" tone="fg3">3 / 3</Text>} />} contentClassName="pt-3">
+            <CustomToast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-            >
-                <SafeAreaView className="flex-1">
-                    <ScrollView
-                        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24 }}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {/* Header */}
-                        <TouchableOpacity
-                            onPress={() => navigation.goBack()}
-                            className="w-10 h-10 bg-white/5 rounded-full items-center justify-center border border-white/5 mt-4"
-                        >
-                            <ArrowLeft color="white" size={20} />
-                        </TouchableOpacity>
+            <View className="w-[72px] h-[72px] rounded-[20px] bg-s1 border border-line items-center justify-center">
+                <MailCheck size={32} color={colors.gold} strokeWidth={ICON_STROKE} />
+            </View>
+            <View style={{ gap: 6 }}>
+                <Text variant="title" style={{ fontSize: 32, lineHeight: 36 }}>E-postanı doğrula</Text>
+                <Text tone="fg2">
+                    <Text weight="medium">{email}</Text> adresine gönderdiğimiz 6 haneli kodu gir. Spam klasörüne de bak.
+                </Text>
+            </View>
 
-                        <View className="flex-1 items-center justify-center min-h-[500px]">
-
-                            {/* İkon */}
-                            <View className="w-24 h-24 bg-soft-gold/10 rounded-full items-center justify-center mb-6 border border-soft-gold/20">
-                                <MailOpen color="#D4AF37" size={40} />
+            {/* Görünmez giriş alanı + 6 kutu */}
+            <Pressable onPress={() => inputRef.current?.focus()} accessibilityLabel="Doğrulama kodu">
+                <TextInput
+                    ref={inputRef}
+                    value={code}
+                    onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').slice(0, CODE_LENGTH))}
+                    keyboardType="number-pad"
+                    textContentType="oneTimeCode"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    caretHidden
+                    onFocus={() => setFocused(true)}
+                    onBlur={() => setFocused(false)}
+                    style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, opacity: 0.01, zIndex: 10 }}
+                />
+                <View className="flex-row justify-between" pointerEvents="none">
+                    {Array.from({ length: CODE_LENGTH }).map((_, i) => {
+                        const digit = code[i];
+                        const active = focused && i === Math.min(code.length, CODE_LENGTH - 1);
+                        return (
+                            <View
+                                key={i}
+                                className={`w-12 h-14 rounded-xl border items-center justify-center bg-s2 ${active ? 'border-gold-line' : digit ? 'border-line-strong' : 'border-line'}`}
+                            >
+                                <Text weight="semibold" style={{ fontSize: 22, lineHeight: 28, fontFamily: fonts.semibold }}>{digit || ''}</Text>
                             </View>
+                        );
+                    })}
+                </View>
+            </Pressable>
 
-                            <Text className="text-white text-3xl font-bold mb-3 text-center">E-Postanı Doğrula</Text>
-                            <Text className="text-gray-400 text-center text-sm px-4 mb-2 leading-6">
-                                <Text className="text-white font-bold">{email}</Text> adresine gönderdiğimiz 6 haneli doğrulama kodunu gir.
-                            </Text>
-                            <Text className="text-gray-500 text-[10px] text-center mb-10">
-                                Lütfen spam klasörünü de kontrol etmeyi unutma.
-                            </Text>
+            {clipboardCode && clipboardCode !== code ? (
+                <Button title={`Panodaki kodu yapıştır: ${clipboardCode}`} variant="secondary" size="md" icon={ClipboardPaste} onPress={pasteFromClipboard} block />
+            ) : null}
 
-                            {/* Code Input UI */}
-                            <TouchableOpacity
-                                activeOpacity={1}
-                                onPress={() => inputRef.current?.focus()}
-                                className="relative mb-6 w-full items-center"
-                            >
-                                <TextInput
-                                    ref={inputRef}
-                                    value={code}
-                                    onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').substr(0, 6))}
-                                    keyboardType="number-pad"
-                                    style={{
-                                        position: 'absolute',
-                                        left: 0,
-                                        right: 0,
-                                        top: 0,
-                                        bottom: 0,
-                                        opacity: 0.01,
-                                        zIndex: 10,
-                                    }}
-                                    autoFocus={true}
-                                    caretHidden={true}
-                                />
+            <Button title="Doğrula ve devam et" onPress={handleVerify} loading={loading} disabled={code.length !== CODE_LENGTH} block />
 
-                                {/* Görsel Kutular */}
-                                {/* Fixed to 6 digits to match Supabase default and validation logic */}
-                                <View className="flex-row justify-center w-full flex-wrap gap-2" pointerEvents="none">
-                                    {[0, 1, 2, 3, 4, 5].map((i) => {
-                                        const digit = code[i];
-                                        const isActive = i === code.length;
-                                        return (
-                                            <View
-                                                key={i}
-                                                className={`w-11 h-14 rounded-xl border items-center justify-center bg-surface transition-all ${isActive ? 'border-soft-gold bg-soft-gold/5' :
-                                                    digit ? 'border-white/30' : 'border-white/10'
-                                                    }`}
-                                            >
-                                                <Text className="text-white text-2xl font-bold">
-                                                    {digit || ''}
-                                                </Text>
-                                            </View>
-                                        );
-                                    })}
-                                </View>
-                            </TouchableOpacity>
-
-                            {/* Clipboard Helper */}
-                            {clipboardCode ? (
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={pasteFromClipboard}
-                                    className="mb-8 px-4 py-2.5 rounded-2xl bg-soft-gold/15 border border-soft-gold/30 flex-row items-center gap-2"
-                                >
-                                    <Text className="text-soft-gold text-sm font-semibold">
-                                        📋 Panodan Kodu Yapıştır: {clipboardCode}
-                                    </Text>
-                                </TouchableOpacity>
-                            ) : null}
-
-                            {/* Buton */}
-                            <TouchableOpacity
-                                activeOpacity={0.9}
-                                onPress={handleVerify}
-                                disabled={loading || code.length !== 6}
-                                className={`w-full overflow-hidden rounded-2xl shadow-lg shadow-soft-gold/20 ${code.length !== 6 ? 'opacity-50' : ''}`}
-                            >
-                                <LinearGradient
-                                    colors={['#D4AF37', '#b89428']}
-                                    className="h-14 items-center justify-center"
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator color="black" />
-                                    ) : (
-                                        <Text className="text-[#0B0F19] font-bold text-lg">Doğrula ve Devam Et</Text>
-                                    )}
-                                </LinearGradient>
-                            </TouchableOpacity>
-
-                            {/* Sayaç ve Yeniden Gönder */}
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={handleResend}
-                                disabled={timeLeft > 0}
-                                className={`mt-6 w-full py-4 rounded-xl border items-center justify-center ${timeLeft > 0
-                                    ? 'border-white/10 bg-white/5'
-                                    : 'border-soft-gold/50 bg-soft-gold/10'
-                                    }`}
-                            >
-                                <Text className={`font-medium ${timeLeft > 0 ? 'text-gray-500' : 'text-soft-gold'}`}>
-                                    {timeLeft > 0
-                                        ? `Yeni kod için bekle: ${timeLeft}sn`
-                                        : 'Kodu Tekrar Gönder'
-                                    }
-                                </Text>
-                            </TouchableOpacity>
-
-                        </View>
-                    </ScrollView>
-                </SafeAreaView>
-            </KeyboardAvoidingView>
-        </View>
+            <Text variant="small" tone="fg3" style={{ textAlign: 'center' }}>
+                Kod gelmedi mi?{' '}
+                {timeLeft > 0 ? (
+                    <Text variant="small" tone="fg2">Tekrar gönder ({`0:${String(timeLeft).padStart(2, '0')}`})</Text>
+                ) : (
+                    <Text variant="small" weight="medium" tone="gold" onPress={handleResend} suppressHighlighting>Tekrar gönder</Text>
+                )}
+            </Text>
+        </Screen>
     );
 }
