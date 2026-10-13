@@ -1,15 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import {
-    View, Text, ScrollView, TouchableOpacity, TextInput,
-    Image, ActivityIndicator, Alert, Modal
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import {
-    ChevronLeft, Camera, Save, User,
-    Edit2, Instagram, CheckCircle2, X, Copy, AtSign, Info, Music
-} from 'lucide-react-native';
+import { View, ActivityIndicator, Alert, Pressable } from 'react-native';
+import { Camera, User, Instagram, Music2, CircleCheck, Copy, AtSign, Tags } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,44 +9,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { API_BASE, apiRequest } from '../../lib/api';
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '../../constants/categories';
 import { RATE_CARD_ITEMS } from '../../constants/rateCard';
+import {
+    Screen, StackHeader, BottomBar, Section, Text, Button, ListGroup, ListRow, IconBox, Avatar, FilterChip, TextField, ToggleRow, Sheet,
+    colors, ICON_STROKE,
+} from '../../components/ui';
 
 const EMPTY_PRICES = Object.fromEntries(RATE_CARD_ITEMS.map((item) => [item.key, '']));
 
-// ─── Production API URL ───────────────────────────────────────────────────────
-
-// ─── Input Field Component ────────────────────────────────────────────────────
-const Field = ({ label, icon: Icon, value, onChange, placeholder, multiline = false }) => (
-    <View className="mb-5">
-        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">{label}</Text>
-        <View className={`flex-row items-${multiline ? 'start' : 'center'} bg-black/30 border border-white/10 rounded-xl px-4 ${multiline ? 'pt-3 min-h-[80px]' : 'h-12'}`}>
-            {Icon && <Icon size={17} color="#4b5563" style={{ marginRight: 10, marginTop: multiline ? 2 : 0 }} />}
-            <TextInput
-                className="flex-1 text-white text-sm font-medium"
-                value={value}
-                onChangeText={onChange}
-                placeholder={placeholder}
-                placeholderTextColor="#374151"
-                multiline={multiline}
-                textAlignVertical={multiline ? 'top' : 'center'}
-                autoCapitalize="none"
-            />
-        </View>
-    </View>
-);
-
-// ─── Step indicator ────────────────────────────────────────────────────────────
-const Step = ({ n, active, done }) => (
-    <View className="items-center">
-        <View className={`w-8 h-8 rounded-full items-center justify-center border-2 ${done ? 'bg-green-500/20 border-green-500' : active ? 'bg-soft-gold/20 border-soft-gold' : 'bg-white/5 border-white/20'}`}>
-            {done
-                ? <CheckCircle2 size={14} color="#4ade80" />
-                : <Text className={`text-xs font-bold ${active ? 'text-soft-gold' : 'text-gray-600'}`}>{n}</Text>}
-        </View>
-    </View>
-);
-
 // ─── Main Screen ─────────────────────────────────────────────────────────────
-export default function MyProfileScreen({ navigation }) {
+export default function MyProfileScreen({ navigation, route }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState({
@@ -132,7 +94,7 @@ export default function MyProfileScreen({ navigation }) {
         });
         setSaving(false);
         if (!result.success) return Alert.alert('Hata', result.error || 'Kaydedilemedi.');
-        Alert.alert('Başarılı ✓', 'Profil bilgilerin güncellendi.');
+        Alert.alert('Kaydedildi', 'Profil bilgilerin güncellendi.');
         navigation.goBack();
     };
 
@@ -242,7 +204,7 @@ export default function MyProfileScreen({ navigation }) {
 
     const copyCode = async () => {
         await Clipboard.setStringAsync(verificationCode);
-        Alert.alert('Kopyalandı ✓', 'Kodu biyografine yapıştır.');
+        Alert.alert('Kopyalandı', 'Kodu biyografine yapıştır.');
     };
 
     const closeModal = () => {
@@ -254,292 +216,145 @@ export default function MyProfileScreen({ navigation }) {
     };
 
     if (loading) {
+        return <View className="flex-1 bg-bg items-center justify-center"><ActivityIndicator color={colors.gold} size="large" /></View>;
+    }
+
+    const rateOnly = route?.params?.section === 'rate-card';
+    const platformLabel = platformToVerify === 'tiktok' ? 'TikTok' : 'Instagram';
+    const connected = platformToVerify === 'tiktok' ? tiktokAccount : igAccount;
+
+    const openVerify = (platform, account) => {
+        setPlatformToVerify(platform);
+        setIgUsername(account?.username || '');
+        setStep(1);
+        setModalVisible(true);
+    };
+
+    // ── Fiyat kartı (ayrı görünüm: Profil → Fiyat kartı, Hesap durumu adımı) ──
+    if (rateOnly) {
         return (
-            <View className="flex-1 bg-[#020617] items-center justify-center">
-                <StatusBar style="light" />
-                <ActivityIndicator color="#D4AF37" size="large" />
-            </View>
+            <Screen
+                scroll
+                keyboard
+                header={<StackHeader title="Fiyat kartı" onBack={() => navigation.goBack()} />}
+                footer={<BottomBar><View className="flex-1"><Button title="Kaydet" onPress={handleSaveRateCard} loading={savingRate} block /></View></BottomBar>}
+            >
+                <Text variant="small" tone="fg2">Her teslimat türü için başlangıç fiyatını gir; vermediğin türleri boş bırak. Yalnızca doğrulanmış markalar görür.</Text>
+                <ListGroup>
+                    {RATE_CARD_ITEMS.map((item) => (
+                        <View key={item.key} className="flex-row items-center px-3.5 py-2.5" style={{ gap: 12 }}>
+                            <Text weight="medium" style={{ flex: 1 }}>{item.label}</Text>
+                            <View style={{ width: 140 }}>
+                                <TextField
+                                    prefix="₺"
+                                    height={44}
+                                    value={ratePrices[item.key]}
+                                    onChangeText={(v) => setRatePrices((p) => ({ ...p, [item.key]: v.replace(/[^0-9]/g, '') }))}
+                                    keyboardType="number-pad"
+                                    maxLength={8}
+                                    placeholder="—"
+                                />
+                            </View>
+                        </View>
+                    ))}
+                </ListGroup>
+                <ListGroup>
+                    <ToggleRow title="Pazarlığa açığım" subtitle="Profilinde çip olarak görünür" value={rateNegotiable} onValueChange={setRateNegotiable} />
+                </ListGroup>
+            </Screen>
         );
     }
 
-    const initials = (profile.full_name || profile.username || '?').substring(0, 2).toUpperCase();
-
     return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
-            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
+        <Screen
+            scroll
+            keyboard
+            header={<StackHeader title="Profili düzenle" onBack={() => navigation.goBack()} />}
+            footer={<BottomBar><View className="flex-1"><Button title="Kaydet" onPress={handleSave} loading={saving} block /></View></BottomBar>}
+        >
+            {/* Fotoğraf */}
+            <View className="items-center py-1" style={{ gap: 8 }}>
+                <Pressable onPress={pickAvatar} accessibilityRole="button" accessibilityLabel="Fotoğrafı değiştir">
+                    <Avatar name={profile.full_name || profile.username} uri={profile.avatar_url} size="xl" />
+                    <View className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-gold border-2 border-bg items-center justify-center">
+                        <Camera size={15} color={colors.goldInk} strokeWidth={2} />
+                    </View>
+                </Pressable>
+                <Text variant="caption" tone="fg3">Değiştirmek için dokun</Text>
+            </View>
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                {/* Header */}
-                <View className="px-6 py-4 flex-row items-center justify-between border-b border-white/5">
-                    <TouchableOpacity onPress={() => navigation.goBack()}
-                        className="w-10 h-10 bg-white/5 rounded-2xl items-center justify-center border border-white/10">
-                        <ChevronLeft color="white" size={20} />
-                    </TouchableOpacity>
-                    <Text className="text-white text-base font-bold">Profili Düzenle</Text>
-                    <View className="w-10" />
+            <TextField label="Ad soyad" icon={User} value={profile.full_name} onChangeText={(v) => setProfile((p) => ({ ...p, full_name: v }))} placeholder="Adın ve soyadın" />
+            <TextField label="Kullanıcı adı" icon={AtSign} value={profile.username} editable={false} hint="Kullanıcı adı değiştirilemez." />
+
+            <View style={{ gap: 7 }}>
+                <Text variant="small" weight="medium" tone="fg2">Kategori</Text>
+                <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                    {INFLUENCER_CATEGORY_KEYS.map((key) => (
+                        <FilterChip key={key} label={INFLUENCER_CATEGORIES[key]} selected={profile.category === key} onPress={() => setProfile((p) => ({ ...p, category: key }))} />
+                    ))}
                 </View>
+            </View>
 
-                <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+            <TextField label="Biyografi" multiline value={profile.bio} onChangeText={(v) => setProfile((p) => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." />
 
-                    {/* ── Avatar ── */}
-                    <View className="items-center mb-8">
-                        <TouchableOpacity onPress={pickAvatar} className="relative">
-                            <View className="w-24 h-24 rounded-full bg-[#1A1D24] border-2 border-soft-gold/40 items-center justify-center overflow-hidden">
-                                {profile.avatar_url
-                                    ? <Image source={{ uri: profile.avatar_url }} className="w-full h-full" resizeMode="cover" />
-                                    : <Text className="text-white text-2xl font-black">{initials}</Text>}
-                            </View>
-                            <View className="absolute bottom-0 right-0 w-8 h-8 bg-soft-gold rounded-full items-center justify-center border-2 border-[#020617]">
-                                <Camera size={14} color="black" />
-                            </View>
-                        </TouchableOpacity>
-                        <Text className="text-gray-600 text-xs mt-2">Değiştirmek için dokun</Text>
-                    </View>
+            <Section title="Sosyal hesaplar">
+                <ListGroup>
+                    {[
+                        ['instagram', 'Instagram', Instagram, igAccount],
+                        ['tiktok', 'TikTok', Music2, tiktokAccount],
+                    ].map(([key, label, Icon, account]) => (
+                        <ListRow
+                            key={key}
+                            left={<IconBox icon={Icon} tone={account ? 'success' : 'neutral'} />}
+                            title={label}
+                            subtitle={account ? `@${account.username}${account.is_verified ? ' · doğrulandı' : ''}` : 'Bağlı değil'}
+                            right={<Button title={account ? 'Yeniden bağla' : 'Bağla'} size="sm" variant={account ? 'secondary' : 'primary'} onPress={() => openVerify(key, account)} />}
+                        />
+                    ))}
+                </ListGroup>
+            </Section>
 
-                    {/* ── Profile Fields ── */}
-                    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3 ml-1">PROFİL BİLGİLERİ</Text>
-                    <Field label="Ad Soyad" icon={User} value={profile.full_name} onChange={v => setProfile(p => ({ ...p, full_name: v }))} placeholder="Adın ve soyadın" />
+            <ListGroup>
+                <ListRow onPress={() => navigation.push('MyProfile', { section: 'rate-card' })} left={<IconBox icon={Tags} />} title="Fiyat kartı" subtitle="Teslimat başına başlangıç fiyatların" chevron />
+            </ListGroup>
 
-                    <View className="mb-5">
-                        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">KULLANICI ADI</Text>
-                        <View className="flex-row items-center bg-white/[0.03] border border-white/5 rounded-xl px-4 h-12 opacity-60">
-                            <AtSign size={17} color="#4b5563" style={{ marginRight: 8 }} />
-                            <TextInput
-                                className="flex-1 text-white text-sm font-medium"
-                                value={profile.username}
-                                editable={false}
-                            />
-                        </View>
-                        <Text className="text-gray-600 text-[10px] mt-1 ml-1 font-medium italic">Kullanıcı adı değiştirilemez.</Text>
-                    </View>
-
-                    <View className="mb-5">
-                        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">KATEGORİ</Text>
-                        <View className="flex-row flex-wrap">
-                            {INFLUENCER_CATEGORY_KEYS.map((key) => {
-                                const selected = profile.category === key;
-                                return (
-                                    <TouchableOpacity key={key} onPress={() => setProfile(p => ({ ...p, category: key }))}
-                                        className={`mr-2 mb-2 px-3 py-2 rounded-full border ${selected ? 'bg-soft-gold border-soft-gold' : 'bg-white/5 border-white/10'}`}>
-                                        <Text className={`text-xs ${selected ? 'text-[#0B0F19] font-bold' : 'text-gray-400'}`}>{INFLUENCER_CATEGORIES[key]}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                    </View>
-                    <Field label="Biyografi" icon={Edit2} value={profile.bio} onChange={v => setProfile(p => ({ ...p, bio: v }))} placeholder="Kendini tanıt..." multiline />
-
-                    {/* ── Social Connections ── */}
-                    <View className="mb-8 mt-4">
-                        <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest uppercase mb-3 ml-1">SOSYAL MEDYA HESAPLARI</Text>
-                        
-                        {/* Instagram Card */}
-                        <View className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 mb-3 flex-row items-center justify-between">
-                            <View className="flex-row items-center">
-                                <View className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 items-center justify-center mr-3">
-                                    <Instagram color="#a855f7" size={20} />
-                                </View>
-                                <View>
-                                    <Text className="text-white font-bold text-sm">Instagram</Text>
-                                    <Text className="text-gray-500 text-xs mt-0.5">
-                                        {igAccount ? `@${igAccount.username}` : 'Bağlı değil'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity 
-                                onPress={() => {
-                                    setPlatformToVerify('instagram');
-                                    setIgUsername(igAccount?.username || '');
-                                    setModalVisible(true);
-                                    setStep(igAccount ? 3 : 1);
-                                }}
-                                className={`px-4 py-2 rounded-xl ${igAccount ? 'bg-white/5 border border-white/10' : 'bg-purple-600'}`}
-                            >
-                                <Text className={`text-xs font-bold ${igAccount ? 'text-gray-400' : 'text-white'}`}>
-                                    {igAccount ? 'Yeniden Bağla' : 'Bağla'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* TikTok Card */}
-                        <View className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 mb-3 flex-row items-center justify-between">
-                            <View className="flex-row items-center">
-                                <View className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 items-center justify-center mr-3">
-                                    <Music color="#22d3ee" size={20} />
-                                </View>
-                                <View>
-                                    <Text className="text-white font-bold text-sm">TikTok</Text>
-                                    <Text className="text-gray-500 text-xs mt-0.5">
-                                        {tiktokAccount ? `@${tiktokAccount.username}` : 'Bağlı değil'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity 
-                                onPress={() => {
-                                    setPlatformToVerify('tiktok');
-                                    setIgUsername(tiktokAccount?.username || '');
-                                    setModalVisible(true);
-                                    setStep(tiktokAccount ? 3 : 1);
-                                }}
-                                className={`px-4 py-2 rounded-xl ${tiktokAccount ? 'bg-white/5 border border-white/10' : 'bg-cyan-600'}`}
-                            >
-                                <Text className={`text-xs font-bold ${tiktokAccount ? 'text-gray-400' : 'text-white'}`}>
-                                    {tiktokAccount ? 'Yeniden Bağla' : 'Bağla'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Fiyat kartı */}
-                    <View className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 mb-6">
-                        <Text className="text-white font-bold text-base">Fiyat Kartı</Text>
-                        <Text className="text-gray-500 text-xs mt-1 mb-4 leading-4">
-                            Her teslimat türü için başlangıç fiyatınızı (₺) girin; vermediğiniz türleri boş bırakın. Yalnızca doğrulanmış markalar görür.
+            {/* Instagram / TikTok bağlama: biyografi koduyla (/api/mobile/verify-instagram, verify-tiktok) */}
+            <Sheet visible={modalVisible} onClose={closeModal} title={`${platformLabel} hesabını bağla`}>
+                {step === 1 ? (
+                    <>
+                        <Text variant="small" tone="fg2">{platformLabel} kullanıcı adını gir. Sahipliğini doğrulamak için biyografine bir kod eklemeni isteyeceğiz.</Text>
+                        <TextField icon={AtSign} placeholder="kullaniciadi" value={igUsername} onChangeText={setIgUsername} autoCapitalize="none" autoCorrect={false} />
+                        <Button title="Kod al" onPress={handleGenerate} loading={busy} block />
+                    </>
+                ) : null}
+                {step === 2 ? (
+                    <>
+                        <Text variant="small" tone="fg2">
+                            Bu kodu <Text variant="small" weight="medium">@{igUsername.replace(/^@/, '')}</Text> hesabının biyografisine ekle. Doğrulamadan sonra kaldırabilirsin.
                         </Text>
-                        {RATE_CARD_ITEMS.map((item) => (
-                            <View key={item.key} className="flex-row items-center justify-between mb-3">
-                                <Text className="text-gray-300 text-sm">{item.label}</Text>
-                                <View className="flex-row items-center bg-black/30 border border-white/10 rounded-xl px-3 h-11 w-40">
-                                    <Text className="text-gray-500 mr-1">₺</Text>
-                                    <TextInput
-                                        className="flex-1 text-white text-sm"
-                                        value={ratePrices[item.key]}
-                                        onChangeText={(v) => setRatePrices((p) => ({ ...p, [item.key]: v.replace(/[^0-9]/g, '') }))}
-                                        keyboardType="number-pad"
-                                        maxLength={8}
-                                        placeholder="Boş"
-                                        placeholderTextColor="#374151"
-                                    />
-                                </View>
+                        <Pressable onPress={copyCode} accessibilityRole="button" accessibilityLabel="Kodu kopyala"
+                            className="flex-row items-center justify-between p-4 rounded-[14px] border border-dashed border-gold-line bg-gold-soft">
+                            <Text weight="semibold" tone="champagne" style={{ fontSize: 22, lineHeight: 28, letterSpacing: 2.5 }}>{verificationCode}</Text>
+                            <View className="flex-row items-center h-[34px] px-3 rounded-[9px] bg-s3 border border-line-strong" style={{ gap: 6 }}>
+                                <Copy size={15} color={colors.fg} strokeWidth={ICON_STROKE} />
+                                <Text variant="small" weight="medium">Kopyala</Text>
                             </View>
-                        ))}
-                        <TouchableOpacity onPress={() => setRateNegotiable((v) => !v)} className="flex-row items-center gap-2 mt-1 mb-4">
-                            <View className={`w-5 h-5 rounded-md border items-center justify-center ${rateNegotiable ? 'bg-soft-gold border-soft-gold' : 'border-white/20'}`}>
-                                {rateNegotiable ? <CheckCircle2 size={12} color="black" /> : null}
-                            </View>
-                            <Text className="text-gray-300 text-sm">Pazarlığa açığım</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={handleSaveRateCard} disabled={savingRate}
-                            className="h-11 rounded-xl border border-soft-gold/50 bg-soft-gold/10 items-center justify-center">
-                            {savingRate ? <ActivityIndicator color="#D4AF37" /> : <Text className="text-soft-gold font-bold text-sm">Fiyat kartını kaydet</Text>}
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Save */}
-                    <TouchableOpacity onPress={handleSave} disabled={saving}
-                        className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mt-2 mb-10">
-                        {saving ? <ActivityIndicator color="black" /> : <View className="flex-row items-center gap-2"><Save color="black" size={18} /><Text className="text-black font-bold text-base">Kaydet</Text></View>}
-                    </TouchableOpacity>
-                </ScrollView>
-            </SafeAreaView>
-
-            {/* ── INSTAGRAM & TIKTOK VERIFICATION MODAL ── */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={closeModal}
-            >
-                <View className="flex-1 bg-black/80 justify-center px-6">
-                    <View className="bg-[#15171e] rounded-3xl border border-white/10 p-6">
-                        <View className="flex-row justify-between items-center mb-6">
-                            <Text className="text-white text-xl font-bold">
-                                {platformToVerify === 'tiktok' ? 'TikTok Hesabını Bağla' : 'Instagram Hesabını Bağla'}
-                            </Text>
-                            <TouchableOpacity onPress={closeModal}>
-                                <X color="gray" size={24} />
-                            </TouchableOpacity>
+                        </Pressable>
+                        <Button title="Biyografime ekledim, doğrula" onPress={handleVerify} loading={busy} block />
+                        <Button title="Geri" variant="ghost" size="md" onPress={() => setStep(1)} block />
+                    </>
+                ) : null}
+                {step === 3 ? (
+                    <View className="items-center py-2" style={{ gap: 10 }}>
+                        <View className="w-14 h-14 rounded-full bg-success-soft items-center justify-center">
+                            <CircleCheck size={28} color={colors.success} strokeWidth={ICON_STROKE} />
                         </View>
-
-                        {/* ── STEP 1: Enter username ── */}
-                        {step === 1 && (
-                            <>
-                                <Text className="text-gray-400 text-sm leading-5 mb-5">
-                                    {platformToVerify === 'tiktok' 
-                                        ? 'TikTok kullanıcı adını gir. Sahipliğini doğrulamak için biyografine bir kod eklemeni isteyeceğiz.'
-                                        : 'Instagram kullanıcı adını gir. Sahipliğini doğrulamak için biyografine bir kod eklemeni isteyeceğiz.'}
-                                </Text>
-                                <View className="flex-row items-center bg-black/30 h-14 rounded-xl border border-white/10 px-4 mb-5">
-                                    {platformToVerify === 'tiktok' ? (
-                                        <Music size={20} color="#22d3ee" className="mr-3" />
-                                    ) : (
-                                        <Instagram size={20} color="#a855f7" className="mr-3" />
-                                    )}
-                                    <Text className="text-gray-500 text-base mr-1">@</Text>
-                                    <TextInput
-                                        className="flex-1 text-white text-base font-medium"
-                                        placeholder="kullaniciadi"
-                                        placeholderTextColor="#6b7280"
-                                        value={igUsername}
-                                        onChangeText={setIgUsername}
-                                        autoCapitalize="none"
-                                    />
-                                </View>
-                                <TouchableOpacity 
-                                    onPress={handleGenerate} 
-                                    disabled={busy}
-                                    className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20"
-                                >
-                                    {busy ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold text-base">Kod Al</Text>}
-                                </TouchableOpacity>
-                            </>
-                        )}
-
-                        {/* ── STEP 2: Bio code ── */}
-                        {step === 2 && (
-                            <>
-                                <View className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 mb-5 flex-row items-start gap-3">
-                                    <Info color="#60a5fa" size={16} style={{ marginTop: 1 }} />
-                                    <Text className="text-blue-300 text-xs leading-5 flex-1">
-                                        Bu kod, hesabın gerçekten sana ait olduğunu kanıtlar. Doğrulama sonrası kaldırabilirsin.
-                                    </Text>
-                                </View>
-
-                                <Text className="text-gray-400 text-sm mb-3">
-                                    Aşağıdaki kodu <Text className="text-white font-bold">@{igUsername.replace(/^@/, '')}</Text> hesabının{' '}
-                                    <Text className="text-soft-gold font-bold">biyografisine</Text> ekle:
-                                </Text>
-
-                                <TouchableOpacity onPress={copyCode}
-                                    className="bg-white/5 border border-white/10 rounded-2xl p-4 flex-row items-center justify-between mb-2 active:opacity-75">
-                                    <Text className="text-white font-mono text-xl font-black tracking-widest">{verificationCode}</Text>
-                                    <View className="flex-row items-center gap-2 bg-soft-gold/15 px-3 py-2 rounded-xl">
-                                        <Copy size={14} color="#D4AF37" />
-                                        <Text className="text-soft-gold text-xs font-bold">Kopyala</Text>
-                                    </View>
-                                </TouchableOpacity>
-                                <Text className="text-gray-600 text-xs mb-5 ml-1">Koda dokunarak kopyalayabilirsin</Text>
-
-                                <TouchableOpacity onPress={handleVerify} disabled={busy}
-                                    className="bg-soft-gold h-14 rounded-2xl items-center justify-center shadow-lg shadow-soft-gold/20 mb-3">
-                                    {busy ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold text-base">Biyografime Ekledim, Doğrula ✓</Text>}
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setStep(1)} className="items-center py-2">
-                                    <Text className="text-gray-500 text-xs">Geri Dön</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-
-                        {/* ── STEP 3: Success ── */}
-                        {step === 3 && (
-                            <View className="items-center py-4">
-                                <View className="w-16 h-16 bg-green-500/15 border border-green-500/30 rounded-full items-center justify-center mb-4">
-                                    <CheckCircle2 color="#4ade80" size={32} />
-                                </View>
-                                <Text className="text-white font-bold text-xl mb-1">Hesap Doğrulandı!</Text>
-                                <Text className="text-gray-400 text-sm text-center mb-5">
-                                    @{platformToVerify === 'tiktok' ? tiktokAccount?.username : igAccount?.username} hesabın başarıyla bağlandı.
-                                </Text>
-                                <TouchableOpacity onPress={closeModal}
-                                    className="bg-soft-gold h-13 w-full rounded-2xl items-center justify-center px-6 py-4">
-                                    <Text className="text-black font-bold text-base">Harika, Tamam!</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
+                        <Text weight="semibold" style={{ fontSize: 18 }}>Hesap doğrulandı</Text>
+                        <Text variant="small" tone="fg2" style={{ textAlign: 'center' }}>@{connected?.username} hesabın bağlandı. Biyografindeki kodu silebilirsin.</Text>
+                        <View className="w-full mt-1"><Button title="Tamam" onPress={closeModal} block /></View>
                     </View>
-                </View>
-            </Modal>
-        </View>
+                ) : null}
+            </Sheet>
+        </Screen>
     );
 }
