@@ -183,7 +183,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
         setForm({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
         Alert.alert('Teklif gönderildi', 'Influencer yanıt verdiğinde bildirim alacaksınız.', [
             { text: 'Tamam' },
-            { text: 'Tekliflerim', onPress: () => navigation.navigate('BrandDashboard', { screen: 'Teklifler' }) },
+            { text: 'Tekliflerim', onPress: () => navigation.navigate('BrandDashboard', { screen: 'İşler' }) },
         ]);
     };
 

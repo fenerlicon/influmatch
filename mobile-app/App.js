@@ -2,12 +2,16 @@ import './global.css';
 import './lib/nativewind-interop';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, Platform } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, ShoppingBag, Send, MessageCircle, User, Briefcase, Search, Mail } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { House, Briefcase, Megaphone, MessageCircle, UserRound, Search } from 'lucide-react-native';
+import { useFonts, Geist_400Regular, Geist_500Medium, Geist_600SemiBold, Geist_700Bold } from '@expo-google-fonts/geist';
+import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 import { supabase } from './lib/supabase';
+import { TabBar, colors } from './components/ui';
 
 // ─── Auth Screens ─────────────────────────────────────────────────────────────
 import LoginScreen from './screens/LoginScreen';
@@ -57,130 +61,51 @@ export const navigationRef = createNavigationContainerRef();
 // ─── Components ───────────────────────────────────────────────────────────────
 import FeedbackBanner from './components/FeedbackBanner';
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
-const MyDarkTheme = {
+// ─── Tema (components/ui/theme.js) ────────────────────────────────────────────
+const AppTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: '#0B0F19',
-    card: '#0F1014',
-    text: '#ffffff',
-    border: 'rgba(255,255,255,0.05)',
+    primary: colors.gold,
+    background: colors.bg,
+    card: colors.bg,
+    text: colors.fg,
+    border: colors.line,
+    notification: colors.gold,
   },
-};
-
-// ─── Tab bar shared options ───────────────────────────────────────────────────
-const TAB_BAR_STYLE = {
-  headerShown: false,
-  tabBarShowLabel: false, // Image doesn't show labels
-  tabBarStyle: {
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    height: 70,
-    position: 'absolute',
-    bottom: 25, 
-    left: 20, 
-    right: 20,
-    elevation: 0,
-    borderRadius: 30,
-    overflow: 'hidden',
-  },
-  tabBarBackground: () => (
-    <View style={{ 
-      flex: 1, 
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      borderRadius: 30,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.1)',
-    }}>
-      <LinearGradient
-        colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.02)']}
-        style={{ position: 'absolute', inset: 0, borderRadius: 30 }}
-      />
-    </View>
-  ),
-  tabBarActiveTintColor: '#fbbf24',
-  tabBarInactiveTintColor: '#94a3b8',
 };
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// ─── Influencer Tab Navigator ─────────────────────────────────────────────────
+// Sekme çubuğu components/ui/TabBar.js; her sekme options.tabIcon + title verir.
+const TAB_OPTIONS = { headerShown: false };
+const renderTabBar = (props) => <TabBar {...props} />;
+
+// ─── Influencer sekmeleri: Ana Sayfa · İşler · İlanlar · Mesajlar · Profil ────
+// Rota adları ekranlar ve bildirim yönlendirmesi (utils/notifications.js) tarafından kullanılır; değiştirirken ikisini de güncelle.
 function InfluencerTabs() {
   return (
-    <Tab.Navigator screenOptions={TAB_BAR_STYLE}>
-      <Tab.Screen
-        name="Ana Sayfa"
-        component={DashboardScreen}
-        options={{ tabBarIcon: ({ color, size }) => <Home color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="Vitrin"
-        component={DiscoverScreen}
-        options={{ tabBarIcon: ({ color, size }) => <ShoppingBag color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="İlanlar"
-        component={ProposalsScreen}
-        options={{ tabBarIcon: ({ color, size }) => <Send color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="Teklifler"
-        component={OffersScreen}
-        options={{ tabBarIcon: ({ color, size }) => <Mail color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="Mesajlar"
-        component={MessagesScreen}
-        options={{ tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="Profil"
-        component={ProfileScreen}
-        options={{ tabBarIcon: ({ color, size }) => <User color={color} size={size} /> }}
-      />
+    <Tab.Navigator screenOptions={TAB_OPTIONS} tabBar={renderTabBar}>
+      <Tab.Screen name="Ana Sayfa" component={DashboardScreen} options={{ tabIcon: House }} />
+      <Tab.Screen name="İşler" component={OffersScreen} options={{ tabIcon: Briefcase }} />
+      <Tab.Screen name="İlanlar" component={ProposalsScreen} options={{ tabIcon: Megaphone }} />
+      <Tab.Screen name="Mesajlar" component={MessagesScreen} options={{ tabIcon: MessageCircle }} />
+      <Tab.Screen name="Profil" component={ProfileScreen} options={{ tabIcon: UserRound }} />
     </Tab.Navigator>
   );
 }
 
-// ─── Brand Tab Navigator ──────────────────────────────────────────────────────
+// ─── Marka sekmeleri: Ana Sayfa · Keşfet · İlanlar · İşler · Mesajlar ─────────
+// Marka profili ve ayarlar sekme değil; üst sağdaki avatardan "BrandProfile" açılır.
 function BrandTabs() {
   return (
-    <Tab.Navigator screenOptions={TAB_BAR_STYLE}>
-      <Tab.Screen
-        name="Ana Sayfa"
-        component={BrandDashboardScreen}
-        options={{ tabBarIcon: ({ color, size }) => <Home color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="Keşfet"
-        component={DiscoverScreen}
-        options={{ tabBarIcon: ({ color, size }) => <Search color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="BrandAdverts"
-        component={BrandAdvertsScreen}
-        options={{
-          tabBarLabel: 'İlanlarım',
-          tabBarIcon: ({ color, size }) => <Briefcase color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="Teklifler"
-        component={OffersScreen}
-        options={{ tabBarIcon: ({ color, size }) => <Mail color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="Mesajlar"
-        component={MessagesScreen}
-        options={{ tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} /> }}
-      />
-      <Tab.Screen
-        name="Profil"
-        component={BrandProfileScreen}
-        options={{ tabBarIcon: ({ color, size }) => <User color={color} size={size} /> }}
-      />
+    <Tab.Navigator screenOptions={TAB_OPTIONS} tabBar={renderTabBar}>
+      <Tab.Screen name="Ana Sayfa" component={BrandDashboardScreen} options={{ tabIcon: House }} />
+      <Tab.Screen name="Keşfet" component={DiscoverScreen} options={{ tabIcon: Search }} />
+      <Tab.Screen name="BrandAdverts" component={BrandAdvertsScreen} options={{ title: 'İlanlar', tabIcon: Megaphone }} />
+      <Tab.Screen name="İşler" component={OffersScreen} options={{ tabIcon: Briefcase }} />
+      <Tab.Screen name="Mesajlar" component={MessagesScreen} options={{ tabIcon: MessageCircle }} />
     </Tab.Navigator>
   );
 }
@@ -190,6 +115,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [initialRoute, setInitialRoute] = useState('Login');
   const [session, setSession] = useState(null);
+  const [fontsLoaded, fontError] = useFonts({
+    Geist_400Regular, Geist_500Medium, Geist_600SemiBold, Geist_700Bold,
+    InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic,
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -263,24 +192,35 @@ export default function App() {
     }
   }
 
+  // Yazı tipi yüklenemezse (ağ yok vb.) sistem yazı tipiyle devam edilir.
+  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+
+  // Geliştirme: simülatörde ?ui=1 bileşen vitrinini açar
+  if (__DEV__ && Platform.OS === 'web' && typeof window !== 'undefined' && window.location.search.includes('ui=1')) {
+    const UIGalleryScreen = require('./screens/dev/UIGalleryScreen').default;
+    return <SafeAreaProvider><UIGalleryScreen /></SafeAreaProvider>;
+  }
+
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0B0F19', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#D4AF37" />
+      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={colors.gold} />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0B0F19' }}>
+    <SafeAreaProvider>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <StatusBar style="light" />
       <FeedbackBanner navigation={navigationRef} />
-      <NavigationContainer theme={MyDarkTheme} ref={navigationRef}>
+      <NavigationContainer theme={AppTheme} ref={navigationRef}>
         <Stack.Navigator
           initialRouteName={initialRoute}
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#0B0F19' },
-            animation: 'fade',
+            contentStyle: { backgroundColor: colors.bg },
+            animation: 'slide_from_right',
           }}
         >
           {/* ── Auth Flow ── */}
@@ -306,6 +246,8 @@ export default function App() {
           <Stack.Screen name="Statistics" component={StatisticsScreen} />
           <Stack.Screen name="MyProfile" component={MyProfileScreen} />
           <Stack.Screen name="InfluencerDetail" component={InfluencerDetailScreen} />
+          {/* Influencer vitrini artık sekme değil; profilden açılır */}
+          <Stack.Screen name="Vitrin" component={DiscoverScreen} />
 
           {/* ── Shared Sub-screens ── */}
           <Stack.Screen name="Settings" component={SettingsScreen} />
@@ -315,9 +257,11 @@ export default function App() {
 
           {/* ── Brand Sub-screens ── */}
           <Stack.Screen name="BrandVerification" component={BrandVerificationScreen} />
+          <Stack.Screen name="BrandProfile" component={BrandProfileScreen} />
 
         </Stack.Navigator>
       </NavigationContainer>
     </View>
+    </SafeAreaProvider>
   );
 }
