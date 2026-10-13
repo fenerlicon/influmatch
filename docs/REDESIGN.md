@@ -66,7 +66,18 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
 ## Aşamalar
 
 0. ✅ **OpenDesign** (2026-10-13, kullanıcı yönü onayladı): tasarım sistemi + ana ekranlar (ana sayfa, giriş/kayıt, iki rol ana sayfası, İşler, keşif, profil, mesajlar, ayarlar, bir admin ekranı). Kullanıcı onayı.
-1. **Temel:** Tailwind tokenları + `components/ui/*` ortak bileşenler.
+1. ✅ **Temel** (2026-10-13): Tailwind tokenları + `components/ui/*` ortak bileşenler.
+   - Tokenlar `tailwind.config.ts`: `bg-surface-1/2/3`, `border-line` / `border-line-strong`, `text-ink` / `text-ink-muted` / `text-ink-faint`,
+     `bg-gold` / `hover:bg-gold-hover` / `text-gold-ink`, `success` / `warning` / `danger` / `info`, `font-display`. Köşeler Tailwind'in
+     `rounded-lg` (8) / `rounded-xl` (12) / `rounded-2xl` (16) değerleri. Eski adlar (`soft-gold`, `background`, `shadow-glow`) taşınma bitene kadar duruyor.
+   - Yazı: arayüz Geist (`geist` paketi 1.5.1, next/font/local; Next 14.2'nin Google listesinde yok), başlık Instrument Serif. Geist'ta `₺` yok,
+     sistem fontundan gelir.
+   - Bileşenler (`@/components/ui`): `Button`, `ButtonLink`, `Card` + `CardHeader` + `CardBody` + `ListRow`, `Chip`, `Field` + `Input` / `Select` /
+     `Textarea` (Field istemci bileşeni, render-prop), `Notice`, `Tabs`, `Segmented`, `Avatar`, `PageHeader`, `Eyebrow`, `StatCard`, `EmptyState`,
+     `Progress`, `VerifiedTick`, `Modal`, `ConfirmDialog`, `Switch`. `DeleteConfirmationModal` artık `ConfirmDialog` kullanıyor (API aynı).
+   - Modal: portal, Esc, dışarı tıklama, odak tuzağı, kaydırma kilidi, kapanınca odak geri döner; geri alınamaz onayda odak "Vazgeç"te.
+     Yerel önizlemede elle denendi.
+   - Kural: taşınan/yeni sayfada elle renk (`bg-[#...]`), elle köşe ve emoji ikon yazılmaz; yalnızca bu bileşenler ve tokenlar.
 2. **Kabuk:** kenar çubuğu, üst çubuk, mobil gezinme, tek bildirim alanı; profil panel içinde.
 3. **Panel sayfaları** (rol rol), İşler birleşmesi, terim temizliği, ölü arayüz temizliği.
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding.
