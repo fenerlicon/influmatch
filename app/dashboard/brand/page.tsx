@@ -104,7 +104,7 @@ export default async function BrandDashboardPage() {
         actions={
           verified ? (
             <>
-              <ButtonLink href="/dashboard/brand/advert?tab=mine" leftIcon={<Plus />}>
+              <ButtonLink href="/dashboard/brand/advert?new=1" leftIcon={<Plus />}>
                 İlan aç
               </ButtonLink>
               <ButtonLink href="/dashboard/brand/discover" variant="primary" leftIcon={<Compass />}>

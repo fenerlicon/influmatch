@@ -136,7 +136,7 @@ async function brandSteps(supabase: SupabaseClient, userId: string): Promise<Fir
       description: 'Kampanyan için bir ilan oluştur.',
       done: advert,
       note: null,
-      href: '/dashboard/brand/advert?tab=mine',
+      href: '/dashboard/brand/advert?new=1',
     },
     {
       key: 'first_offer',

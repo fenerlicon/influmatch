@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getBrandApplicationsAdmin } from './actions'
-import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
-import { type AdvertApplication } from '@/components/dashboard/AdvertApplicationsList'
-import BrandAdvertTabs from '@/components/dashboard/BrandAdvertTabs'
+import BrandAdverts from '@/components/adverts/BrandAdverts'
+import type { AdvertApplication, AdvertProject } from '@/lib/adverts-shared'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
@@ -107,7 +106,7 @@ export default async function BrandAdvertPage() {
     const brandUser = row.brand_user_id ? brandMap.get(row.brand_user_id) : null
     return {
       id: row.id,
-      title: row.title ?? 'İsimsiz proje',
+      title: row.title ?? 'İsimsiz ilan',
       summary: row.summary ?? '',
       category: row.category ?? 'Genel',
       brandName: row.brand_name ?? brandUser?.full_name ?? 'Marka',
@@ -149,12 +148,21 @@ export default async function BrandAdvertPage() {
 
   const openProjects: AdvertProject[] = allOpenRows?.map((row) => mapRowToProject(row, true)) ?? []
   const myProjects: AdvertProject[] = myRows?.map((row) => mapRowToProject(row, false)) ?? []
-  const myProjectIds = myRows?.map((row) => row.id).filter(Boolean) ?? []
+
+  // Başvuru sohbet odaları (okunmamış mesaj sayısı için); oda yoksa "Mesaj" ilk tıklamada açar.
+  const applicationIds = (applicationRows ?? []).map((row: any) => row.id).filter(Boolean) as string[]
+  const roomByApplication = new Map<string, string>()
+  if (applicationIds.length > 0) {
+    const { data: rooms } = await supabase.from('rooms').select('id, advert_application_id').in('advert_application_id', applicationIds)
+    rooms?.forEach((room) => {
+      if (room.advert_application_id) roomByApplication.set(room.advert_application_id, room.id)
+    })
+  }
 
   const myApplications: AdvertApplication[] = (applicationRows ?? []).map((row: any) => ({
     id: row.id,
     advert_id: row.advert_id,
-    advert_title: row.advert?.title ?? 'Bilinmeyen İlan',
+    advert_title: row.advert?.title ?? 'Bilinmeyen ilan',
     advert_category: row.advert?.category ?? null,
     influencer: {
       id: row.influencer?.id ?? row.influencer_id,
@@ -164,47 +172,22 @@ export default async function BrandAdvertPage() {
       verification_status: row.influencer?.verification_status ?? null,
       displayed_badges: row.influencer?.displayed_badges ?? null,
     },
-    // For brand view, we don't necessarily need brand details in the application object 
-    // as we are the brand, but we can populate it if needed or leave undefined.
-    // The AdvertApplicationsList uses it for Avatar if 'isInfluencerView' is true.
-    // Here logic is clearer. 
     cover_letter: row.cover_letter,
     deliverable_idea: row.deliverable_idea,
-    budget_expectation: row.budget_expectation,
+    budget_expectation: row.budget_expectation === null || row.budget_expectation === undefined ? null : Number(row.budget_expectation),
     status: row.status,
     created_at: row.created_at,
+    room_id: roomByApplication.get(row.id) ?? null,
   }))
-  // actually, look at line 4 imports: `import BrandAdvertTabs from '@/components/dashboard/BrandAdvertTabs'`
-
-  // Let's just restore the return block assuming the commented out variables are available.
 
   return (
-    <div className="space-y-8">
-      <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#131421] to-[#090A0F] p-6 text-white shadow-glow">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Liderlik</p>
-            <h1 className="mt-3 text-3xl font-semibold">İlan Yönetimi</h1>
-            <p className="mt-2 max-w-2xl text-sm text-gray-300">
-              Yeni iş birlikleri başlat, gelen başvuruları değerlendir ve kampanyalarını yönet.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            {/* Action buttons could be here */}
-          </div>
-        </div>
-      </header>
-
-      <BrandAdvertTabs
-        myProjects={myProjects}
-        communityProjects={openProjects}
-        applications={myApplications}
-        currentUserId={user.id}
-        myProjectIds={myProjectIds}
-        verificationStatus={verificationStatus}
-        userSpotlightStatus={hasActiveSpotlight(userProfile)}
-      />
-    </div>
+    <BrandAdverts
+      myProjects={myProjects}
+      communityProjects={openProjects}
+      applications={myApplications}
+      currentUserId={user.id}
+      verificationStatus={verificationStatus}
+      hasSpotlight={hasActiveSpotlight(userProfile)}
+    />
   )
 }
-

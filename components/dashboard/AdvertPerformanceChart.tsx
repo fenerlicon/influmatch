@@ -70,32 +70,32 @@ export default function AdvertPerformanceChart({ brandId, className }: AdvertPer
 
     if (isLoading) {
         return (
-            <div className={`flex h-64 items-center justify-center rounded-3xl border border-white/10 bg-[#0F1014] ${className}`}>
-                <Loader2 className="h-8 w-8 animate-spin text-soft-gold" />
+            <div className={`flex h-64 items-center justify-center rounded-2xl border border-line bg-surface-1 ${className ?? ''}`}>
+                <Loader2 className="h-6 w-6 animate-spin text-ink-faint" />
             </div>
         )
     }
 
     if (error) {
         return (
-            <div className={`flex h-64 items-center justify-center rounded-3xl border border-white/10 bg-[#0F1014] text-red-400 ${className}`}>
+            <div className={`flex h-64 items-center justify-center rounded-2xl border border-line bg-surface-1 text-sm text-danger ${className ?? ''}`}>
                 {error}
             </div>
         )
     }
 
     return (
-        <div className={`rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow ${className}`}>
+        <div className={`rounded-2xl border border-line bg-surface-1 p-5 ${className ?? ''}`}>
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">İlan Görüntülenmeleri</h3>
-                    <p className="text-sm text-gray-400">Son 7 günlük performans</p>
+                    <h3 className="text-[17px] font-semibold tracking-tight text-ink">İlan görüntülenmeleri</h3>
+                    <p className="text-[12.5px] text-ink-faint">Son 7 gün</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-2xl font-bold text-soft-gold">
+                    <p className="text-[26px] font-semibold tabular-nums text-ink">
                         {data.reduce((acc, curr) => acc + curr.views, 0)}
                     </p>
-                    <p className="text-xs text-gray-500">Toplam Görüntülenme</p>
+                    <p className="text-xs text-ink-faint">toplam</p>
                 </div>
             </div>
 
@@ -104,25 +104,25 @@ export default function AdvertPerformanceChart({ brandId, className }: AdvertPer
                     <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#d4af37" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
+                                <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.18} />
+                                <stop offset="95%" stopColor="#D4AF37" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.07)" />
                         <XAxis
                             dataKey="date"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#9ca3af', fontSize: 12 }}
+                            tick={{ fill: '#6B6B70', fontSize: 12 }}
                             dy={10}
                         />
                         <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#9ca3af', fontSize: 12 }}
+                            tick={{ fill: '#6B6B70', fontSize: 12 }}
                         />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1A1B23', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
+                            contentStyle={{ backgroundColor: '#17191F', border: '1px solid rgba(255,255,255,0.13)', borderRadius: '8px', color: '#F3F1EC' }}
                             itemStyle={{ color: '#d4af37' }}
                         />
                         <Area
