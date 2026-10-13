@@ -48,11 +48,11 @@ import { resolveHomeRoute } from './lib/routing';
 
 // ─── Shared Screens ───────────────────────────────────────────────────────────
 import MessagesScreen from './screens/MessagesScreen';
-import OffersScreen from './screens/OffersScreen';
-import CollaborationsScreen from './screens/CollaborationsScreen';
+import JobsScreen from './screens/JobsScreen';
 import CollaborationDetailScreen from './screens/CollaborationDetailScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import FeedbackScreen from './screens/FeedbackScreen';
+import NotificationsScreen from './screens/NotificationsScreen';
 
 // ─── Navigation Ref ───────────────────────────────────────────────────────────
 import { createNavigationContainerRef } from '@react-navigation/native';
@@ -96,7 +96,7 @@ function InfluencerTabs() {
   return (
     <Tab.Navigator screenOptions={TAB_OPTIONS} tabBar={renderTabBar}>
       <Tab.Screen name="Ana Sayfa" component={DashboardScreen} options={{ tabIcon: House }} />
-      <Tab.Screen name="İşler" component={OffersScreen} options={{ tabIcon: Briefcase }} />
+      <Tab.Screen name="İşler" component={JobsScreen} options={{ tabIcon: Briefcase }} />
       <Tab.Screen name="İlanlar" component={ProposalsScreen} options={{ tabIcon: Megaphone }} />
       <Tab.Screen name="Mesajlar" component={MessagesScreen} options={{ tabIcon: MessageCircle }} />
       <Tab.Screen name="Profil" component={ProfileScreen} options={{ tabIcon: UserRound }} />
@@ -112,7 +112,7 @@ function BrandTabs() {
       <Tab.Screen name="Ana Sayfa" component={BrandDashboardScreen} options={{ tabIcon: House }} />
       <Tab.Screen name="Keşfet" component={DiscoverScreen} options={{ tabIcon: Search }} />
       <Tab.Screen name="BrandAdverts" component={BrandAdvertsScreen} options={{ title: 'İlanlar', tabIcon: Megaphone }} />
-      <Tab.Screen name="İşler" component={OffersScreen} options={{ tabIcon: Briefcase }} />
+      <Tab.Screen name="İşler" component={JobsScreen} options={{ tabIcon: Briefcase }} />
       <Tab.Screen name="Mesajlar" component={MessagesScreen} options={{ tabIcon: MessageCircle }} />
     </Tab.Navigator>
   );
@@ -266,7 +266,7 @@ export default function App() {
           {/* ── Shared Sub-screens ── */}
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Feedback" component={FeedbackScreen} />
-          <Stack.Screen name="Collaborations" component={CollaborationsScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="CollaborationDetail" component={CollaborationDetailScreen} />
 
           {/* ── Brand Sub-screens ── */}

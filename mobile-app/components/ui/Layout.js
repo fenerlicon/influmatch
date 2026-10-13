@@ -45,6 +45,18 @@ export function Screen({ children, scroll = false, refreshing, onRefresh, keyboa
 
 // Sekme ekranlarının büyük başlığı (Instrument Serif). left: logo vb., right: zil/avatar.
 export function LargeHeader({ title, subtitle, left, right }) {
+    // Sol öğe yoksa başlık sağdaki düğmelerle aynı satırda durur (İşler, Keşfet vb.)
+    if (!left && right && title) {
+        return (
+            <View className="px-5 pt-1 pb-3.5">
+                <View className="flex-row items-center justify-between min-h-[44px]">
+                    <Text variant="display" style={{ flexShrink: 1 }}>{title}</Text>
+                    <View className="flex-row items-center" style={{ gap: 4 }}>{right}</View>
+                </View>
+                {subtitle ? <Text tone="fg2" className="mt-0.5">{subtitle}</Text> : null}
+            </View>
+        );
+    }
     return (
         <View className="px-5 pt-1 pb-3.5">
             {(left || right) ? (
