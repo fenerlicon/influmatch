@@ -260,7 +260,7 @@ export default function SettingsScreen({ navigation }) {
                             subtitle="Ad, biyografi, kategori..."
                             onPress={() => {
                                 if (role === 'brand') {
-                                    navigation.navigate('BrandDashboard', { screen: 'Profil' });
+                                    navigation.navigate('BrandProfile');
                                 } else {
                                     navigation.navigate('MyProfile');
                                 }

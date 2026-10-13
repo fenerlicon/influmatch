@@ -286,7 +286,7 @@ export default function BrandDashboardScreen({ navigation }) {
                 <View className="px-6 pt-4 pb-2 flex-row justify-between items-center">
                     <View className="flex-row items-center gap-3">
                         <TouchableOpacity
-                            onPress={() => navigation.navigate('BrandDashboard', { screen: 'Profil' })}
+                            onPress={() => navigation.navigate('BrandProfile')}
                             className="w-12 h-12 rounded-full bg-white/5 border border-white/10 items-center justify-center overflow-hidden"
                         >
                             {profile?.avatar_url ? (

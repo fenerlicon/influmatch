@@ -108,5 +108,6 @@ Claude masaüstü uygulamasında `.claude/launch.json`'daki `mobil-simulator` ay
 - Simülatör `/api/mobile/*` isteklerini kendi adresine atar; `metro.config.js` bunları web sunucusuna iletir
   (canlı sitede CORS açmaya gerek yok). Varsayılan hedef influmatch.net; yerel web için
   `SIM_API_TARGET=http://localhost:3000 npm run simulator`.
+- `http://localhost:8081/?ui=1`: ortak arayüz bileşenlerinin vitrini (`mobile-app/components/ui`, yalnızca geliştirme modunda).
 - Veriler canlı Supabase'den gelir; simülatörde yapılan işlemler gerçektir. Test hesaplarıyla kullan.
 - Push bildirimi, kamera, galeri gibi cihaz özellikleri tarayıcıda çalışmaz ya da farklı davranır; bunları telefonda (Expo Go) dene.

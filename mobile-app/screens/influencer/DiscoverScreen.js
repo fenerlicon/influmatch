@@ -11,6 +11,7 @@ import { influencerCategoryLabel } from '../../constants/categories';
 import { getThumbnailUrl } from '../../utils/image';
 import { apiRequest } from '../../lib/api';
 import DiscoveryWheelCard from '../../components/DiscoveryWheelCard';
+import { StackHeader } from '../../components/ui';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 48 - 12) / 2;
@@ -112,7 +113,7 @@ const CategorySection = memo(({ title, data, onProfilePress, canFavorite, favori
     </View>
 ));
 
-export default function DiscoverScreen({ navigation }) {
+export default function DiscoverScreen({ navigation, route }) {
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -242,6 +243,8 @@ export default function DiscoverScreen({ navigation }) {
             <WavyBackground />
 
             <SafeAreaView className="flex-1" edges={['top']}>
+                {/* Influencer vitrini profilden ayrı ekran olarak açılır; markada Keşfet sekmesi */}
+                {route?.name === 'Vitrin' ? <StackHeader title="Vitrin" onBack={() => navigation.goBack()} /> : null}
                 <View className="px-6 pt-6 pb-2">
                     <Text className="text-orange-200 text-3xl font-black leading-[42px] mb-8 w-[90%] tracking-tighter">
                         Best Influencers for your marketing campaigns

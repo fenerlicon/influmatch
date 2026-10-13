@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { signOutAndClearPush } from '../../utils/notifications';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import { useFocusEffect } from '@react-navigation/native';
+import { StackHeader } from '../../components/ui';
 import { decode } from 'base64-arraybuffer';
 import { apiRequest } from '../../lib/api';
 import SupportTicketForm from '../../components/SupportTicketForm';
@@ -203,7 +204,9 @@ export default function BrandProfileScreen({ navigation }) {
             <View className="absolute top-0 right-0 w-72 h-72 bg-soft-gold/4 rounded-full blur-[80px]" />
 
             <SafeAreaView className="flex-1">
-                <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+                {/* Marka profili sekme değil, üst sağdaki avatardan açılır (yeni tasarım tamamlanana kadar geçici başlık) */}
+                <StackHeader title="Marka profili" onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
+                <ScrollView className="flex-1 px-6 pt-2" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
 
                     {/* ── Hero ── */}
                     <View className="items-center pt-8 pb-6" style={{ zIndex: 10 }}>

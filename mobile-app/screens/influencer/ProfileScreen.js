@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
     Settings, ChevronRight, Star, Award, ShieldCheck,
     User, LogOut, TrendingUp, Instagram, BarChart2,
-    BadgeCheck, MessageSquare
+    BadgeCheck, MessageSquare, Store
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { signOutAndClearPush } from '../../utils/notifications';
@@ -194,6 +194,10 @@ export default function ProfileScreen({ navigation }) {
                     <MenuLink icon={Award} iconColor="#D4AF37" title="Rozetler"
                         subtitle={`${badges.length} rozet kazanıldı`}
                         onPress={() => navigation.navigate('Badges')} />
+                    {/* Vitrin alt sekmeden kalktı (5 sekme); buradan açılır */}
+                    <MenuLink icon={Store} iconColor="#9CA3AF" title="Vitrin"
+                        subtitle="Diğer influencer'ların vitrini"
+                        onPress={() => navigation.navigate('Vitrin')} />
 
                     <SectionLabel title="UYGULAMA" />
                     <MenuLink icon={Settings} iconColor="#9CA3AF" title="Ayarlar" subtitle="Şifre, bildirimler, destek" onPress={() => navigation.navigate('Settings')} />

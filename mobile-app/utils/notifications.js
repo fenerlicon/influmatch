@@ -91,10 +91,11 @@ export function routeForLink(link, role) {
     const collabMatch = link.match(/\/collaborations\/([0-9a-f-]{36})/i);
     if (collabMatch) return { name: 'CollaborationDetail', params: { id: collabMatch[1] } };
     if (link.includes('/collaborations')) return { name: 'Collaborations' };
-    if (link.includes('/offers')) return { name: root, params: { screen: 'Teklifler' } };
+    if (link.includes('/offers')) return { name: root, params: { screen: 'İşler' } };
     if (link.includes('/advert')) return { name: root, params: { screen: role === 'brand' ? 'BrandAdverts' : 'İlanlar' } };
-    if (link.includes('/badges')) return { name: role === 'brand' ? root : 'Badges', params: role === 'brand' ? { screen: 'Profil' } : undefined };
-    if (link.includes('/profile') || link.includes('/settings')) return { name: root, params: { screen: 'Profil' } };
+    // Marka profili sekme değil, ayrı ekran (BrandProfile)
+    if (link.includes('/badges')) return role === 'brand' ? { name: 'BrandProfile' } : { name: 'Badges' };
+    if (link.includes('/profile') || link.includes('/settings')) return role === 'brand' ? { name: 'BrandProfile' } : { name: root, params: { screen: 'Profil' } };
     return { name: root, params: { screen: 'Ana Sayfa' } };
 }
 
