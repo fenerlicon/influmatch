@@ -7,14 +7,10 @@ import { toast } from 'sonner'
 import { Briefcase, MessageSquare } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { collaborationAction } from '@/app/dashboard/collaborations/actions'
-import {
-  AUTO_COMPLETE_DAYS,
-  COLLABORATION_STATUS_LABELS,
-  type CollaborationAction,
-  type CollaborationStatus,
-} from '@/lib/collaboration-shared'
+import { AUTO_COMPLETE_DAYS, COLLABORATION_STATUS_LABELS, type CollaborationAction } from '@/lib/collaboration-shared'
 import type { CollaborationListItem } from '@/lib/collaborations'
-import { Avatar, Button, ButtonLink, Card, Chip, EmptyState, Field, Input, ListRow, Modal, Textarea, type ChipTone } from '@/components/ui'
+import { ACTIVE_COLLAB_STATUSES, COLLABORATION_TONES, collaborationNextStep, formatShortDate } from '@/lib/works'
+import { Avatar, Button, ButtonLink, Card, Chip, EmptyState, Field, Input, ListRow, Modal, Textarea } from '@/components/ui'
 
 /** İşler sayfasındaki iş birliği aşamaları (teklif aşaması OffersManager / BrandOffersList'te). */
 export type CollaborationStage = 'active' | 'agreed' | 'in_progress' | 'published' | 'done'
@@ -24,38 +20,6 @@ interface Props {
   currentUserId: string
   role: 'brand' | 'influencer'
   stage: CollaborationStage
-}
-
-export const COLLABORATION_TONES: Record<CollaborationStatus, ChipTone> = {
-  agreed: 'gold',
-  in_progress: 'info',
-  published: 'warning',
-  completed: 'success',
-  cancelled: 'danger',
-}
-
-const ACTIVE: CollaborationStatus[] = ['agreed', 'in_progress', 'published']
-
-const formatDate = (value: string | null) => (value ? new Date(value).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }) : null)
-
-/** Satırdaki kısa durum cümlesi: kimden ne bekleniyor. */
-function nextStepText(item: CollaborationListItem, role: 'brand' | 'influencer', currentUserId: string): string {
-  switch (item.status) {
-    case 'agreed':
-      if (item.agreement_state === 'pending') return 'Anlaşma özeti onay bekliyor'
-      if (item.agreement_state === 'none') return 'Anlaşma özeti hazırlanmadı'
-      return role === 'influencer' ? 'İçeriğe başlayabilirsin' : 'Influencer içeriğe başlayacak'
-    case 'in_progress':
-      return item.deliverable_total > 0 ? `${item.deliverable_published} / ${item.deliverable_total} teslimat yayında` : 'İçerik hazırlanıyor'
-    case 'published':
-      return role === 'brand'
-        ? `Onayın bekleniyor${item.auto_complete_at ? ` · ${formatDate(item.auto_complete_at)} tarihinde otomatik tamamlanır` : ''}`
-        : `Marka onayı bekleniyor${item.auto_complete_at ? ` · en geç ${formatDate(item.auto_complete_at)}` : ''}`
-    case 'completed':
-      return `${formatDate(item.completed_at) ?? ''} tamamlandı${item.auto_completed ? ' (otomatik)' : ''}`
-    case 'cancelled':
-      return `${formatDate(item.cancelled_at) ?? ''} · ${item.cancelled_by === currentUserId ? 'sen iptal ettin' : 'karşı taraf iptal etti'}`
-  }
 }
 
 export default function CollaborationsManager({ initialItems, currentUserId, role, stage }: Props) {
@@ -83,8 +47,8 @@ export default function CollaborationsManager({ initialItems, currentUserId, rol
   }, [currentUserId, role, router])
 
   const items = useMemo(() => {
-    if (stage === 'active') return initialItems.filter((c) => ACTIVE.includes(c.status))
-    if (stage === 'done') return initialItems.filter((c) => !ACTIVE.includes(c.status))
+    if (stage === 'active') return initialItems.filter((c) => ACTIVE_COLLAB_STATUSES.includes(c.status))
+    if (stage === 'done') return initialItems.filter((c) => !ACTIVE_COLLAB_STATUSES.includes(c.status))
     return initialItems.filter((c) => c.status === stage)
   }, [initialItems, stage])
 
@@ -166,9 +130,9 @@ export default function CollaborationsManager({ initialItems, currentUserId, rol
                     <span>{otherName}</span>
                   )}
                   <span>· {item.source === 'offer' ? 'Teklif' : 'İlan başvurusu'}</span>
-                  <span>· {formatDate(item.created_at)}</span>
+                  <span>· {formatShortDate(item.created_at)}</span>
                 </div>
-                <div className="mt-1 text-[12.5px] text-ink-muted">{nextStepText(item, role, currentUserId)}</div>
+                <div className="mt-1 text-[12.5px] text-ink-muted">{collaborationNextStep(item, role, currentUserId)}</div>
                 {item.publish_url && (
                   <a
                     href={item.publish_url}

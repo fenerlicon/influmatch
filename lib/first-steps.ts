@@ -60,7 +60,7 @@ async function influencerSteps(supabase: SupabaseClient, userId: string, profile
       description: 'Instagram veya TikTok hesabını doğrula.',
       done: verified,
       note: null,
-      href: '/dashboard/influencer#verification-section',
+      href: '/dashboard/influencer/profile#hesaplar',
     },
     {
       key: 'complete_profile',

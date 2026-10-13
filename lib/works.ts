@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { OfferListItem } from '@/components/dashboard/OffersManager'
+import type { ChipTone } from '@/components/ui'
 import { effectiveOfferStatus } from '@/lib/offer-shared'
+import type { CollaborationStatus } from '@/lib/collaboration-shared'
 import type { CollaborationListItem } from '@/lib/collaborations'
 
 // "İşler" sayfası (docs/REDESIGN.md, 3. aşama): teklifler + iş birlikleri tek akışta.
@@ -117,4 +119,48 @@ export function countWorks(offers: Array<{ status: string; created_at: string }>
     published: by('published'),
     completed: by('completed'),
   }
+}
+
+// --- İş birliği satırı yardımcıları (İşler listesi ve ana sayfalar ortak; sunucu + istemci) ---
+
+export const ACTIVE_COLLAB_STATUSES: CollaborationStatus[] = ['agreed', 'in_progress', 'published']
+
+export const COLLABORATION_TONES: Record<CollaborationStatus, ChipTone> = {
+  agreed: 'gold',
+  in_progress: 'info',
+  published: 'warning',
+  completed: 'success',
+  cancelled: 'danger',
+}
+
+export const formatShortDate = (value: string | null) =>
+  value ? new Date(value).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', timeZone: 'Europe/Istanbul' }) : null
+
+/** Satırdaki kısa durum cümlesi: kimden ne bekleniyor. */
+export function collaborationNextStep(item: CollaborationListItem, role: 'brand' | 'influencer', currentUserId: string): string {
+  switch (item.status) {
+    case 'agreed':
+      if (item.agreement_state === 'pending') return 'Anlaşma özeti onay bekliyor'
+      if (item.agreement_state === 'none') return 'Anlaşma özeti hazırlanmadı'
+      return role === 'influencer' ? 'İçeriğe başlayabilirsin' : 'Influencer içeriğe başlayacak'
+    case 'in_progress':
+      return item.deliverable_total > 0 ? `${item.deliverable_published} / ${item.deliverable_total} teslimat yayında` : 'İçerik hazırlanıyor'
+    case 'published':
+      return role === 'brand'
+        ? `Onayın bekleniyor${item.auto_complete_at ? ` · ${formatShortDate(item.auto_complete_at)} tarihinde otomatik tamamlanır` : ''}`
+        : `Marka onayı bekleniyor${item.auto_complete_at ? ` · en geç ${formatShortDate(item.auto_complete_at)}` : ''}`
+    case 'completed':
+      return `${formatShortDate(item.completed_at) ?? ''} tamamlandı${item.auto_completed ? ' (otomatik)' : ''}`
+    case 'cancelled':
+      return `${formatShortDate(item.cancelled_at) ?? ''} · ${item.cancelled_by === currentUserId ? 'sen iptal ettin' : 'karşı taraf iptal etti'}`
+  }
+}
+
+/** İstanbul saatine göre selamlama. */
+export function greetingFor(date = new Date()) {
+  const hour = Number(new Intl.DateTimeFormat('tr-TR', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Europe/Istanbul' }).format(date))
+  if (hour < 6) return 'İyi geceler'
+  if (hour < 12) return 'Günaydın'
+  if (hour < 18) return 'İyi günler'
+  return 'İyi akşamlar'
 }

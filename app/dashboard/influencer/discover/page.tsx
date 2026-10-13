@@ -62,7 +62,7 @@ export default async function InfluencerDiscoverPage() {
             </div>
           </div>
           <Link
-            href="/dashboard/influencer#verification-section"
+            href="/dashboard/influencer/profile#hesaplar"
             className="shrink-0 rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-black hover:bg-yellow-400 transition"
           >
             Hesap Bağla
