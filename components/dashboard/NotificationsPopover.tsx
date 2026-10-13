@@ -135,12 +135,15 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
     return (
         <div className="relative" ref={popoverRef}>
             <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative rounded-full border border-white/10 bg-white/5 p-2.5 text-gray-400 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
+                aria-label={unreadCount > 0 ? `Bildirimler, ${unreadCount} okunmamış` : 'Bildirimler'}
+                aria-expanded={isOpen}
+                className="relative grid h-9 w-9 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
             >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-[18px] w-[18px]" />
                 {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg ring-2 ring-[#101117]">
+                    <span className="absolute right-0.5 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-semibold text-gold-ink ring-2 ring-background">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
@@ -153,7 +156,7 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 top-full mt-4 w-80 sm:w-96 z-50 origin-top-right rounded-2xl border border-white/10 bg-[#1A1B23] shadow-2xl ring-1 ring-black/5 backdrop-blur-xl"
+                        className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] origin-top-right rounded-2xl border border-line-strong bg-surface-1 shadow-modal"
                     >
                         <div className="flex items-center justify-between border-b border-white/5 p-4">
                             <h3 className="text-sm font-semibold text-white">Bildirimler</h3>

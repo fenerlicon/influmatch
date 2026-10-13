@@ -45,7 +45,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
 
   if (access.status === 'brand_unverified') {
     return (
-      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
+      <div className="text-white">
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="relative">
             <Link
@@ -57,13 +57,13 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
           </div>
           <BrandLockScreen status={access.viewer.verification_status === 'rejected' ? 'rejected' : 'pending'} />
         </div>
-      </main>
+      </div>
     )
   }
 
   if (access.status === 'wheel_blocked') {
     return (
-      <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
+      <div className="text-white">
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="relative">
             <Link
@@ -80,7 +80,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
             expiresAt={access.wheel.spin?.expires_at ?? null}
           />
         </div>
-      </main>
+      </div>
     )
   }
 
@@ -174,7 +174,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
   const badgeIds = userBadges?.map((ub) => ub.badge_id).filter((id): id is string => typeof id === 'string') ?? []
 
   return (
-    <main className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
+    <div className="text-white">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Header Profile Card */}
         <section className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-[#15161F] to-[#0C0D10] p-6 sm:p-10 shadow-glow">
@@ -353,6 +353,6 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   )
 }
