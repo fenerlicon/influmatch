@@ -1,92 +1,84 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Alert, ActivityIndicator, Dimensions, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { Clock, CheckCircle2, ChevronRight, Briefcase, Building2, Calendar, DollarSign, X, CheckCircle, BarChart3, TrendingUp, Info, Bookmark, BellRing, Trash2 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Alert, ActivityIndicator, Pressable } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Bookmark, BellRing, Trash2, Megaphone, Inbox, MapPin } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
-import { useFocusEffect } from '@react-navigation/native';
 import { ADVERT_ALERT_LIMIT, ADVERT_ALERT_PLATFORMS, describeAlert } from '../../constants/advertAlerts';
+import { formatBudget, formatTRY, formatDate, daysLeft } from '../../lib/format';
+import {
+    Screen, LargeHeader, Text, Button, Card, ListGroup, ListRow, Avatar, Chip, FilterChip, ChipRow, Segment, SearchBar,
+    EmptyState, Sheet, TextField, KeyValue, Notice, colors, ICON_STROKE,
+} from '../../components/ui';
 
-const { width } = Dimensions.get('window');
+// İlanlar: açık ilanlar, kayıtlılar, başvurularım ve ilan alarmları (design/mobile/influencer.html "İlanlar").
+// Başvuru lib/adverts.ts (/api/mobile/applications), kayıt ve alarm /api/mobile/saved-adverts, /api/mobile/advert-alerts.
 
-// --- REUSABLE GLASS COMPONENTS ---
-const GlassCard = ({ children, className, style, onPress, activeOpacity = 0.9 }) => (
-    <TouchableOpacity
-        activeOpacity={onPress ? activeOpacity : 1}
-        onPress={onPress}
-        style={style}
-        className={`rounded-[24px] overflow-hidden border border-white/10 relative ${className}`}
-    >
-        <LinearGradient
-            colors={['rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0.02)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="absolute inset-0"
-        />
-        {children}
-    </TouchableOpacity>
-);
+const APP_STATUS = {
+    pending: { label: 'Bekliyor', tone: 'warning' },
+    shortlisted: { label: 'Değerlendiriliyor', tone: 'info' },
+    accepted: { label: 'Kabul edildi', tone: 'success' },
+    rejected: { label: 'Reddedildi', tone: 'danger' },
+};
+
+const SEGMENTS = [
+    { key: 'projects', label: 'Açık' },
+    { key: 'saved', label: 'Kayıtlı' },
+    { key: 'applications', label: 'Başvurular' },
+    { key: 'alerts', label: 'Alarmlar' },
+];
+
+function SaveButton({ saved, onPress }) {
+    return (
+        <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={saved ? 'Kaydı kaldır' : 'Kaydet'}
+            className={`w-9 h-9 rounded-[10px] items-center justify-center border ${saved ? 'border-gold-line bg-gold-soft' : 'border-line'}`}>
+            <Bookmark size={17} color={saved ? colors.gold : colors.fg3} fill={saved ? colors.gold : 'transparent'} strokeWidth={ICON_STROKE} />
+        </Pressable>
+    );
+}
 
 export default function ProposalsScreen({ route, navigation }) {
-    const [activeTab, setActiveTab] = useState('projects'); // projects, saved, applications, alerts
+    const [activeTab, setActiveTab] = useState('projects');
+    const [query, setQuery] = useState('');
+    const [platform, setPlatform] = useState('');
     const [selectedProject, setSelectedProject] = useState(null);
+    const [applyStep, setApplyStep] = useState(false);
     const [selectedApplication, setSelectedApplication] = useState(null);
-    const [projectModalVisible, setProjectModalVisible] = useState(false);
-    const [applicationModalVisible, setApplicationModalVisible] = useState(false);
-
-    // Custom Confirmation Modal State
-    const [confirmModalVisible, setConfirmModalVisible] = useState(false);
     const [isApplying, setIsApplying] = useState(false);
 
-    // Form States
+    // Başvuru formu
     const [coverLetter, setCoverLetter] = useState('');
     const [deliveryItem, setDeliveryItem] = useState('');
     const [paymentType, setPaymentType] = useState('cash'); // 'cash' | 'barter'
     const [budgetExpectation, setBudgetExpectation] = useState('');
 
-    // Real Data States
     const [projects, setProjects] = useState([]);
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     // Kaydedilen ilanlar ve ilan alarmları (web ile aynı uçlar: /api/mobile/saved-adverts, /api/mobile/advert-alerts)
     const [savedIds, setSavedIds] = useState(new Set());
     const [alerts, setAlerts] = useState([]);
     const [alertForm, setAlertForm] = useState({ category: '', platform: '', minBudget: '' });
     const [alertBusy, setAlertBusy] = useState(false);
 
-    // Filter params
+    // Ana sayfadan bir ilanla açıldıysa ayrıntıyı göster
     const incomingProject = route.params?.project;
-
-    // Handle Deep Linking / Params
     useEffect(() => {
         if (incomingProject) {
-            // If we received a project from navigation, open it immediately
             setSelectedProject(incomingProject);
-            setProjectModalVisible(true);
-            // Clear params to avoid reopening on simple re-renders is tricky with just params, 
-            // but standard pattern is fine for now or resetting params
+            setApplyStep(false);
             navigation.setParams({ project: null });
         }
     }, [incomingProject]);
 
-    useFocusEffect(
-        useCallback(() => {
-            fetchData();
-        }, [])
-    );
-
     const fetchData = async () => {
-        setLoading(true);
         try {
-            // 1. Fetch Active Projects
             const { data: projectsData, error: projectsError } = await supabase
                 .from('advert_projects')
                 .select('*')
                 .eq('status', 'open')
                 .order('created_at', { ascending: false });
-
             if (projectsError) throw projectsError;
             setProjects(projectsData || []);
 
@@ -94,7 +86,6 @@ export default function ProposalsScreen({ route, navigation }) {
             if (!savedResult.error) setSavedIds(new Set(savedResult.advertIds || []));
             if (!alertsResult.error) setAlerts(alertsResult.alerts || []);
 
-            // 2. Fetch My Applications
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data: appsData, error: appsError } = await supabase
@@ -102,17 +93,18 @@ export default function ProposalsScreen({ route, navigation }) {
                     .select('*, advert_projects!advert_applications_advert_id_fkey(*)') // Use explicit FK avoid ambiguity
                     .eq('influencer_id', user.id)  // DB column is influencer_id (not influencer_user_id)
                     .order('created_at', { ascending: false });
-
                 if (appsError) throw appsError;
                 setApplications(appsData || []);
             }
         } catch (error) {
             console.error('Error fetching proposals:', error);
-            // Alert.alert('Hata', 'Veriler yüklenirken bir sorun oluştu.');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
+
+    useFocusEffect(useCallback(() => { fetchData(); }, []));
 
     const toggleSave = async (advertId) => {
         const nextSaved = !savedIds.has(advertId);
@@ -150,53 +142,29 @@ export default function ProposalsScreen({ route, navigation }) {
         setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     };
 
-    const openProject = (project) => {
-        setSelectedProject(project);
-        setProjectModalVisible(true);
-    };
-
-    const closeProject = () => {
-        setProjectModalVisible(false);
-        setSelectedProject(null);
-    };
-
-    const openApplication = (application) => {
-        setSelectedApplication(application);
-        setApplicationModalVisible(true);
-    };
-
-    const closeApplication = () => {
-        setApplicationModalVisible(false);
-        setSelectedApplication(null);
-    };
-
     const cancelApplication = async (application) => {
         const result = await apiRequest(`applications/${application.id}`, { method: 'DELETE' });
         if (result.error) {
             Alert.alert('İşlem yapılamadı', result.error);
             return;
         }
-        closeApplication();
+        setSelectedApplication(null);
         fetchData();
     };
 
-    const handleApply = (project) => {
-        if (!project) return;
-        setSelectedProject(project);
-        setProjectModalVisible(false);
-        setConfirmModalVisible(true);
+    const closeProject = () => {
+        setSelectedProject(null);
+        setApplyStep(false);
     };
 
     const executeApply = async () => {
         if (!selectedProject) return;
+        if (!coverLetter.trim()) {
+            Alert.alert('Eksik Bilgi', 'Lütfen bir niyet mesajı yazın.');
+            return;
+        }
         setIsApplying(true);
         try {
-            if (!coverLetter.trim()) {
-                Alert.alert('Eksik Bilgi', 'Lütfen bir niyet mesajı yazın.');
-                setIsApplying(false);
-                return;
-            }
-
             // Başvuru web'in sunucu kodundan geçer (lib/adverts.ts): ilan açık mı, mükerrer mi, bildirim.
             const result = await apiRequest('applications', {
                 method: 'POST',
@@ -209,489 +177,254 @@ export default function ProposalsScreen({ route, navigation }) {
             });
             if (result.error) throw new Error(result.error);
 
-            setConfirmModalVisible(false);
-            Alert.alert("Başarılı", "Başvurunuz markaya iletildi!");
+            closeProject();
+            setCoverLetter('');
+            setDeliveryItem('');
+            setBudgetExpectation('');
+            Alert.alert('Başarılı', 'Başvurunuz markaya iletildi!');
             fetchData();
             setActiveTab('applications');
         } catch (error) {
-            Alert.alert("Hata", error.message);
+            Alert.alert('Hata', error.message);
         } finally {
             setIsApplying(false);
         }
     };
 
-    const getStatusInfo = (status) => {
-        switch (status) {
-            case 'pending': return { text: 'BEKLİYOR', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' };
-            case 'shortlisted': return { text: 'DEĞERLENDİRİLİYOR', color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/30' };
-            case 'accepted': return { text: 'KABUL EDİLDİ', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30' };
-            case 'rejected': return { text: 'REDDEDİLDİ', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/30' };
-            default: return { text: status?.toUpperCase(), color: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20' };
-        }
-    };
+    const appliedIds = useMemo(() => new Set(applications.map((a) => a.advert_id || a.advert_projects?.id)), [applications]);
+
+    const listed = useMemo(() => {
+        const base = activeTab === 'saved' ? projects.filter((p) => savedIds.has(p.id)) : projects;
+        const q = query.trim().toLocaleLowerCase('tr-TR');
+        return base.filter((p) => {
+            if (platform && (p.platform || '').toLowerCase() !== platform) return false;
+            if (!q) return true;
+            return [p.title, p.brand_name, p.summary].some((v) => (v || '').toLocaleLowerCase('tr-TR').includes(q));
+        });
+    }, [projects, savedIds, activeTab, query, platform]);
+
+    const renderProject = (item) => (
+        <Card key={item.id} onPress={() => { setSelectedProject(item); setApplyStep(false); }} style={{ gap: 10 }}>
+            <View className="flex-row items-center" style={{ gap: 12 }}>
+                <Avatar name={item.brand_name || item.title} uri={item.brand_logo} square />
+                <View className="flex-1">
+                    <Text weight="semibold" style={{ fontSize: 15.5 }} numberOfLines={2}>{item.title}</Text>
+                    {item.brand_name ? <Text variant="caption" tone="fg3">{item.brand_name}</Text> : null}
+                </View>
+                <SaveButton saved={savedIds.has(item.id)} onPress={() => toggleSave(item.id)} />
+            </View>
+            {item.summary || item.description ? (
+                <Text variant="small" tone="fg2" numberOfLines={2} style={{ fontSize: 14 }}>{item.summary || item.description}</Text>
+            ) : null}
+            <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+                {item.platform ? <Chip label={item.platform} /> : null}
+                {item.location ? <Chip label={item.location} /> : null}
+                {appliedIds.has(item.id) ? <Chip label="Başvurdun" tone="success" /> : null}
+                {item.is_new ? <Chip label="Yeni" tone="gold" /> : null}
+            </View>
+            <View className="flex-row items-center justify-between pt-2.5 border-t border-line">
+                <Text weight="semibold" style={{ fontVariant: ['tabular-nums'] }}>{formatBudget(item.budget_min, item.budget_max)}</Text>
+                {item.deadline ? <Text variant="caption" tone="fg3">{daysLeft(item.deadline)}</Text> : null}
+            </View>
+        </Card>
+    );
+
+    const renderProjects = () => (
+        <>
+            <SearchBar value={query} onChangeText={setQuery} placeholder="İlan veya marka ara" />
+            <ChipRow>
+                <FilterChip label="Tümü" selected={!platform} onPress={() => setPlatform('')} />
+                {ADVERT_ALERT_PLATFORMS.map((p) => (
+                    <FilterChip key={p.key} label={p.label} selected={platform === p.key} onPress={() => setPlatform(platform === p.key ? '' : p.key)} />
+                ))}
+            </ChipRow>
+            {listed.length ? listed.map(renderProject) : (
+                <Card padded={false}>
+                    {activeTab === 'saved' && !query && !platform ? (
+                        <EmptyState icon={Bookmark} title="Kayıtlı ilan yok" text="İlan kartındaki kaydet düğmesiyle ekleyebilirsin." />
+                    ) : (
+                        <EmptyState icon={Megaphone} title={projects.length ? 'Sonuç yok' : 'Şu an açık ilan yok'} text={projects.length ? 'Aramayı veya filtreyi değiştir.' : 'Yeni ilanlar için alarm kurabilirsin.'} />
+                    )}
+                </Card>
+            )}
+        </>
+    );
+
+    const renderApplications = () => (
+        applications.length ? (
+            <ListGroup>
+                {applications.map((app) => {
+                    const s = APP_STATUS[app.status] || { label: app.status, tone: 'neutral' };
+                    return (
+                        <ListRow
+                            key={app.id}
+                            onPress={() => setSelectedApplication(app)}
+                            left={<Avatar name={app.advert_projects?.brand_name || 'İlan'} uri={app.advert_projects?.brand_logo} square />}
+                            title={app.advert_projects?.title || 'İlan'}
+                            subtitle={`${app.advert_projects?.brand_name || ''}${app.budget_expectation ? ` · ${formatTRY(app.budget_expectation)}` : ''}`}
+                            right={<Chip label={s.label} tone={s.tone} />}
+                        />
+                    );
+                })}
+            </ListGroup>
+        ) : (
+            <Card padded={false}><EmptyState icon={Inbox} title="Henüz başvurun yok" text="Açık ilanlardan sana uyanlara başvurabilirsin." action={<Button title="İlanlara bak" variant="secondary" size="md" onPress={() => setActiveTab('projects')} />} /></Card>
+        )
+    );
+
+    const renderAlerts = () => (
+        <>
+            <Notice
+                tone="gold"
+                icon={BellRing}
+                title={`İlan alarmları (${alerts.length}/${ADVERT_ALERT_LIMIT})`}
+                text={'Koşullara uyan yeni ilan yayınlanınca bildirim alırsın; e-posta, ayarlardaki ilan başvuruları tercihine göre gider. Boş alan "fark etmez" demektir.'}
+            />
+            {alerts.length < ADVERT_ALERT_LIMIT ? (
+                <Card style={{ gap: 12 }}>
+                    <TextField label="Kategori / kelime" value={alertForm.category} onChangeText={(v) => setAlertForm((f) => ({ ...f, category: v }))} maxLength={60} placeholder="ör. kozmetik" />
+                    <View style={{ gap: 7 }}>
+                        <Text variant="small" weight="medium" tone="fg2">Platform</Text>
+                        <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                            {[{ key: '', label: 'Hepsi' }, ...ADVERT_ALERT_PLATFORMS].map((p) => (
+                                <FilterChip key={p.key || 'all'} label={p.label} selected={alertForm.platform === p.key} onPress={() => setAlertForm((f) => ({ ...f, platform: p.key }))} />
+                            ))}
+                        </View>
+                    </View>
+                    <TextField label="En az bütçe" prefix="₺" value={alertForm.minBudget} onChangeText={(v) => setAlertForm((f) => ({ ...f, minBudget: v.replace(/[^0-9]/g, '') }))} keyboardType="number-pad" placeholder="0" />
+                    <Button title="Alarm kur" icon={BellRing} onPress={createAlert} loading={alertBusy} block />
+                </Card>
+            ) : null}
+            {alerts.length ? (
+                <ListGroup>
+                    {alerts.map((alert) => (
+                        <ListRow
+                            key={alert.id}
+                            title={describeAlert(alert)}
+                            numberOfLines={2}
+                            right={
+                                <Pressable onPress={() => deleteAlert(alert.id)} hitSlop={8} accessibilityLabel="Alarmı sil" className="w-9 h-9 rounded-[10px] items-center justify-center border border-line">
+                                    <Trash2 size={16} color={colors.danger} strokeWidth={ICON_STROKE} />
+                                </Pressable>
+                            }
+                        />
+                    ))}
+                </ListGroup>
+            ) : <Text variant="small" tone="fg3" style={{ textAlign: 'center' }}>Henüz alarm kurmadın.</Text>}
+        </>
+    );
+
+    const p = selectedProject;
+    const a = selectedApplication;
+    const aStatus = a ? APP_STATUS[a.status] || { label: a.status, tone: 'neutral' } : null;
 
     return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
+        <Screen
+            scroll
+            keyboard
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchData(); }}
+            header={<LargeHeader title="İlanlar" subtitle="Açık iş birliklerini incele ve başvur." />}
+        >
+            <Segment options={SEGMENTS} value={activeTab} onChange={setActiveTab} />
 
-            {/* MASTER BACKGROUND GRADIENTS */}
-            <LinearGradient
-                colors={['#1e1b4b', '#020617', '#020617']}
-                className="absolute inset-0"
-            />
-            <View className="absolute -top-20 right-0 w-80 h-80 bg-soft-gold/5 rounded-full blur-[80px]" />
-            <View className="absolute bottom-0 -left-20 w-80 h-80 bg-purple-600/10 rounded-full blur-[80px]" />
+            {loading ? <View className="py-16"><ActivityIndicator color={colors.gold} /></View> : (
+                <>
+                    {(activeTab === 'projects' || activeTab === 'saved') ? renderProjects() : null}
+                    {activeTab === 'applications' ? renderApplications() : null}
+                    {activeTab === 'alerts' ? renderAlerts() : null}
+                </>
+            )}
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                <View className="px-6 pt-2 pb-6">
-                    <Text className="text-white text-3xl font-bold mb-1 tracking-tight">İlanlar</Text>
-                    <Text className="text-gray-400 text-sm mb-6 font-medium opacity-80">Açık iş birliklerini incele ve başvur.</Text>
-
-                    {/* Tabs */}
-                    <View className="flex-row bg-white/5 border border-white/10 rounded-2xl p-1 h-14 relative">
-                        {/* Selected Tab Indicator - Animated would be better but static for now */}
-                        {[['projects', 'PROJELER'], ['saved', 'KAYITLI'], ['applications', 'BAŞVURULAR'], ['alerts', 'ALARMLAR']].map(([key, label]) => (
-                            <TouchableOpacity
-                                key={key}
-                                onPress={() => setActiveTab(key)}
-                                className={`flex-1 items-center justify-center rounded-xl ${activeTab === key ? 'bg-soft-gold shadow-lg shadow-soft-gold/20' : ''}`}
-                            >
-                                <Text className={`text-[10px] font-bold tracking-wide ${activeTab === key ? 'text-black' : 'text-gray-400'}`}>{label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-
-                    {/* Marka Projeleri (Open Projects) */}
-                    {(activeTab === 'projects' || activeTab === 'saved') && (
-                        <View className="space-y-4">
-                            {(activeTab === 'saved' ? projects.filter((p) => savedIds.has(p.id)) : projects).map((item) => (
-                                <GlassCard
-                                    key={item.id}
-                                    onPress={() => openProject(item)}
-                                    className="p-5 mb-3 !rounded-[32px] !border-white/5 bg-white/[0.02]"
-                                >
-                                    <View className="flex-row justify-between items-start mb-4">
-                                        <View className="flex-row items-center flex-1">
-                                            <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center mr-4 shadow-lg shadow-black/20">
-                                                {item.brand_logo ? (
-                                                    <Image source={{ uri: item.brand_logo }} className="w-8 h-8 resize-contain" />
-                                                ) : (
-                                                    <Text className="font-black text-black text-xl">{(item.brand_name || 'M').substring(0, 1)}</Text>
-                                                )}
-                                            </View>
-                                            <View className="flex-1">
-                                                <Text className="text-white font-bold text-lg leading-6 mb-0.5">{item.title}</Text>
-                                                <Text className="text-gray-400 text-xs font-medium uppercase tracking-wider">{item.brand_name}</Text>
-                                            </View>
-                                        </View>
-                                        {item.is_new && (
-                                            <View className="bg-soft-gold/20 px-2.5 py-1 rounded-full border border-soft-gold/30">
-                                                <Text className="text-soft-gold text-[9px] font-black tracking-widest uppercase">YENİ</Text>
-                                            </View>
-                                        )}
-                                    </View>
-
-                                    <Text className="text-gray-300 text-sm mb-5 leading-5 opacity-80" numberOfLines={2}>
-                                        {item.summary || item.description}
-                                    </Text>
-
-                                    <View className="flex-row items-center justify-between mt-1">
-                                        <View className="flex-row gap-2">
-                                            <View className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/5">
-                                                <Text className="text-gray-200 text-[10px] font-bold">{item.platform || 'Instagram'}</Text>
-                                            </View>
-                                            <View className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/5">
-                                                <Text className="text-soft-gold text-[10px] font-bold">₺{item.budget_min?.toLocaleString()}</Text>
-                                            </View>
-                                        </View>
-
-                                        <View className="flex-row items-center gap-2">
-                                            <TouchableOpacity
-                                                onPress={() => toggleSave(item.id)}
-                                                className={`w-8 h-8 rounded-full items-center justify-center border ${savedIds.has(item.id) ? 'bg-soft-gold border-soft-gold' : 'bg-white/10 border-white/10'}`}
-                                            >
-                                                <Bookmark color={savedIds.has(item.id) ? '#000' : '#fff'} fill={savedIds.has(item.id) ? '#000' : 'transparent'} size={14} />
-                                            </TouchableOpacity>
-                                            <View className="w-8 h-8 rounded-full bg-white/10 items-center justify-center border border-white/10">
-                                                <ChevronRight color="#fff" size={14} />
-                                            </View>
-                                        </View>
-                                    </View>
-                                </GlassCard>
-                            ))}
-                            {activeTab === 'projects' && projects.length === 0 && !loading && (
-                                <View className="items-center justify-center py-20 opacity-50">
-                                    <Briefcase size={48} color="gray" className="mb-4 text-gray-600" />
-                                    <Text className="text-gray-500 font-medium">Şu an açık proje bulunmamaktadır.</Text>
-                                </View>
-                            )}
-                            {activeTab === 'saved' && !loading && !projects.some((p) => savedIds.has(p.id)) && (
-                                <View className="items-center justify-center py-20 opacity-60">
-                                    <Bookmark size={44} color="gray" />
-                                    <Text className="text-gray-500 font-medium mt-4 text-center">Henüz kaydettiğin bir ilan yok. İlan kartındaki kaydet düğmesiyle ekleyebilirsin.</Text>
-                                </View>
-                            )}
-                        </View>
-                    )}
-
-                    {/* İlan alarmları */}
-                    {activeTab === 'alerts' && (
-                        <View>
-                            <GlassCard className="p-5 mb-4">
-                                <View className="flex-row items-center gap-2 mb-2">
-                                    <BellRing color="#D4AF37" size={18} />
-                                    <Text className="text-white font-bold">İlan alarmları ({alerts.length}/{ADVERT_ALERT_LIMIT})</Text>
-                                </View>
-                                <Text className="text-gray-400 text-xs leading-5">
-                                    Koşullara uyan yeni ilan yayınlanınca bildirim alırsın; e-posta, ayarlardaki ilan başvuruları tercihine göre gider. Boş alan "fark etmez" demektir.
-                                </Text>
-                            </GlassCard>
-
-                            {alerts.length < ADVERT_ALERT_LIMIT && (
-                                <View className="mb-4">
-                                    <TextInput value={alertForm.category} onChangeText={(v) => setAlertForm((f) => ({ ...f, category: v }))} maxLength={60}
-                                        placeholder="Kategori / kelime (ör. kozmetik)" placeholderTextColor="#6b7280"
-                                        className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-3" />
-                                    <View className="flex-row gap-2 mb-3">
-                                        {[{ key: '', label: 'Hepsi' }, ...ADVERT_ALERT_PLATFORMS].map((p) => (
-                                            <TouchableOpacity key={p.key || 'all'} onPress={() => setAlertForm((f) => ({ ...f, platform: p.key }))}
-                                                className={`flex-1 h-10 rounded-xl items-center justify-center border ${alertForm.platform === p.key ? 'bg-soft-gold border-soft-gold' : 'bg-white/5 border-white/10'}`}>
-                                                <Text className={`text-[11px] font-bold ${alertForm.platform === p.key ? 'text-black' : 'text-gray-300'}`}>{p.label}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                    <TextInput value={alertForm.minBudget} onChangeText={(v) => setAlertForm((f) => ({ ...f, minBudget: v.replace(/[^0-9]/g, '') }))}
-                                        keyboardType="number-pad" placeholder="En az bütçe (₺)" placeholderTextColor="#6b7280"
-                                        className="bg-white/5 border border-white/10 rounded-2xl px-4 h-12 text-white mb-3" />
-                                    <TouchableOpacity onPress={createAlert} disabled={alertBusy} className="h-12 rounded-2xl bg-soft-gold items-center justify-center">
-                                        {alertBusy ? <ActivityIndicator color="#000" /> : <Text className="text-black font-bold">Alarm kur</Text>}
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            {alerts.length === 0 ? (
-                                <Text className="text-gray-500 text-center py-8">Henüz alarm kurmadın.</Text>
-                            ) : alerts.map((alert) => (
-                                <View key={alert.id} className="flex-row items-center justify-between p-4 mb-2 rounded-2xl bg-white/5 border border-white/10">
-                                    <Text className="text-white text-sm flex-1 mr-3">{describeAlert(alert)}</Text>
-                                    <TouchableOpacity onPress={() => deleteAlert(alert.id)} className="w-9 h-9 rounded-full items-center justify-center border border-white/10">
-                                        <Trash2 color="#f87171" size={16} />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    {/* Başvurularım (My Applications) */}
-                    {activeTab === 'applications' && (
-                        <View className="space-y-4">
-                            {applications.map((app) => {
-                                const statusInfo = getStatusInfo(app.status);
-                                return (
-                                    <GlassCard
-                                        key={app.id}
-                                        onPress={() => openApplication(app)}
-                                        className="p-5 mb-3 !rounded-[28px] !border-white/5 bg-white/[0.02]"
-                                    >
-                                        <View className="flex-row justify-between mb-3">
-                                            <View className={`px-2.5 py-1 rounded-lg border ${statusInfo.border} ${statusInfo.bg}`}>
-                                                <Text className={`${statusInfo.color} text-[10px] font-bold tracking-wider`}>{statusInfo.text}</Text>
-                                            </View>
-                                            <Text className="text-gray-500 text-[10px] font-medium">{new Date(app.created_at).toLocaleDateString('tr-TR')}</Text>
-                                        </View>
-
-                                        <Text className="text-white font-bold text-lg mb-1 leading-6">{app.advert_projects?.title || 'Proje Başlığı Yok'}</Text>
-                                        <Text className="text-gray-400 text-xs mb-4">{app.advert_projects?.brand_name}</Text>
-
-                                        <View className="flex-row justify-between items-center border-t border-white/5 pt-3">
-                                            <View>
-                                                <Text className="text-gray-500 text-[10px] uppercase font-bold mb-0.5">Teklifin</Text>
-                                                <Text className="text-soft-gold font-bold text-sm">₺{app.budget_expectation?.toLocaleString() || '0'}</Text>
-                                            </View>
-                                            <View className="flex-row items-center opacity-60">
-                                                <Text className="text-white text-xs mr-1">Detay</Text>
-                                                <ChevronRight color="white" size={12} />
-                                            </View>
-                                        </View>
-                                    </GlassCard>
-                                );
-                            })}
-
-                            {applications.length === 0 && !loading && (
-                                <View className="items-center justify-center py-20 opacity-50">
-                                    <Text className="text-gray-500 font-medium">Henüz bir başvurunuz bulunmamaktadır.</Text>
-                                </View>
-                            )}
-                        </View>
-                    )}
-                </ScrollView>
-            </SafeAreaView>
-
-            {/* --- PROJECT DETAIL MODAL --- */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={projectModalVisible}
-                onRequestClose={closeProject}
-            >
-                {selectedProject && (
-                    <View className="flex-1 bg-black/80 justify-end">
-                        {/* Close Area */}
-                        <TouchableOpacity className="flex-1" onPress={closeProject} />
-
-                        <View className="h-[85%] bg-[#0B0F19] rounded-t-[40px] border-t border-white/10 overflow-hidden relative shadow-2xl shadow-black">
-                            {/* Modal Glow */}
-                            <View className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-
-                            {/* Header */}
-                            <View className="px-8 py-6 flex-row justify-between items-start pt-8">
-                                <View className="flex-row items-center">
-                                    <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center mr-4 shadow-xl transform rotate-2">
-                                        <Text className="font-black text-black text-2xl">{(selectedProject.brand_name || 'M').substring(0, 1)}</Text>
-                                    </View>
-                                    <View className="flex-1 pr-4">
-                                        <Text className="text-white font-black text-2xl leading-7 mb-1">{selectedProject.title}</Text>
-                                        <Text className="text-gray-400 text-sm font-medium uppercase tracking-widest">{selectedProject.brand_name}</Text>
-                                    </View>
-                                </View>
-                                <TouchableOpacity onPress={closeProject} className="bg-white/5 p-2 rounded-full border border-white/10">
-                                    <X color="#9ca3af" size={20} />
-                                </TouchableOpacity>
+            {/* İlan ayrıntısı → başvuru (aynı sayfa içinde iki adım) */}
+            <Sheet visible={!!p} onClose={closeProject} title={applyStep ? 'Başvur' : undefined} scroll>
+                {p && !applyStep ? (
+                    <>
+                        <View className="flex-row items-center" style={{ gap: 12 }}>
+                            <Avatar name={p.brand_name || p.title} uri={p.brand_logo} square size="lg" />
+                            <View className="flex-1">
+                                <Text variant="eyebrow">İlan</Text>
+                                <Text weight="semibold" style={{ fontSize: 20, lineHeight: 25 }}>{p.title}</Text>
+                                {p.brand_name ? <Text variant="small" tone="fg2">{p.brand_name}</Text> : null}
                             </View>
-
-                            <ScrollView className="flex-1 px-8">
-                                {/* Tags */}
-                                <View className="flex-row flex-wrap gap-2 mb-8">
-                                    <View className="bg-white/5 px-4 py-2 rounded-xl border border-white/10 flex-row items-center">
-                                        <Building2 color="#9CA3AF" size={14} className="mr-2" />
-                                        <Text className="text-gray-300 text-xs font-bold">{selectedProject.location || 'Online'}</Text>
-                                    </View>
-                                    <View className="bg-white/5 px-4 py-2 rounded-xl border border-white/10 flex-row items-center">
-                                        <Calendar color="#9CA3AF" size={14} className="mr-2" />
-                                        <Text className="text-gray-300 text-xs font-bold">Son: {selectedProject.deadline ? new Date(selectedProject.deadline).toLocaleDateString('tr-TR') : 'Belirsiz'}</Text>
-                                    </View>
-                                </View>
-
-                                {/* Description */}
-                                <View className="mb-8">
-                                    <Text className="text-white font-bold text-lg mb-3">Proje Detayları</Text>
-                                    <Text className="text-gray-400 text-base leading-7 font-light">{selectedProject.summary || selectedProject.description}</Text>
-                                </View>
-
-                                {/* Budget Box */}
-                                <GlassCard className="mb-8 p-0 overflow-hidden bg-soft-gold/10 !border-soft-gold/30">
-                                    <View className="p-5 flex-row justify-between items-center">
-                                        <View>
-                                            <Text className="text-soft-gold/70 text-xs font-bold uppercase tracking-widest mb-1">TAHMİNİ BÜTÇE ARALIĞI</Text>
-                                            <Text className="text-white font-black text-3xl">₺{selectedProject.budget_min / 1000}K - ₺{selectedProject.budget_max / 1000}K</Text>
-                                        </View>
-                                        <View className="w-12 h-12 bg-soft-gold rounded-full items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.4)]">
-                                            <DollarSign color="#000" size={24} />
-                                        </View>
-                                    </View>
-                                </GlassCard>
-
-                                {/* Extra Info */}
-                                <View className="mb-32 space-y-4">
-                                    <View className="flex-row items-start">
-                                        <View className="w-2 h-2 rounded-full bg-soft-gold mt-2 mr-3" />
-                                        <View>
-                                            <Text className="text-white font-bold text-sm">Platform</Text>
-                                            <Text className="text-gray-500 text-xs">{selectedProject.platform || 'Instagram'}</Text>
-                                        </View>
-                                    </View>
-                                    <View className="flex-row items-start">
-                                        <View className="w-2 h-2 rounded-full bg-soft-gold mt-2 mr-3" />
-                                        <View>
-                                            <Text className="text-white font-bold text-sm">Beklenen Teslimatlar</Text>
-                                            <Text className="text-gray-500 text-xs">{selectedProject.deliverables?.join(', ') || '1x Reels, 2x Story'}</Text>
-                                        </View>
-                                    </View>
-                                </View>
-                            </ScrollView>
-
-                            {/* Floating Bottom Button */}
-                            <View className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0B0F19] to-transparent pt-20">
-                                <TouchableOpacity
-                                    className="w-full bg-soft-gold h-16 rounded-[20px] items-center justify-center shadow-[0_0_30px_rgba(212,175,55,0.3)] active:scale-[0.98] transition"
-                                    onPress={() => handleApply(selectedProject)}
-                                >
-                                    <Text className="text-black font-black text-lg tracking-wider">HEMEN BAŞVUR</Text>
-                                </TouchableOpacity>
-                            </View>
+                            <SaveButton saved={savedIds.has(p.id)} onPress={() => toggleSave(p.id)} />
                         </View>
-                    </View>
-                )}
-            </Modal>
-
-            {/* --- APPLICATION DETAIL MODAL --- */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={applicationModalVisible}
-                onRequestClose={closeApplication}
-            >
-                {selectedApplication && (
-                    <View className="flex-1 bg-black/80 justify-end">
-                        <TouchableOpacity className="flex-1" onPress={closeApplication} />
-                        <View className="h-[75%] bg-[#0B0F19] rounded-t-[40px] border-t border-white/10 p-8 shadow-2xl">
-                            <View className="items-center mb-8">
-                                <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${getStatusInfo(selectedApplication.status).bg} border ${getStatusInfo(selectedApplication.status).border}`}>
-                                    <Clock color={getStatusInfo(selectedApplication.status).color.replace('text-', '').replace('-500', '') === 'yellow' ? '#EAB308' : '#fff'} size={40} />
-                                </View>
-                                <Text className={`font-black text-2xl mb-2 ${getStatusInfo(selectedApplication.status).color}`}>
-                                    {getStatusInfo(selectedApplication.status).text}
-                                </Text>
-                                <Text className="text-gray-400 text-center text-sm px-8">
-                                    Başvurunuz marka tarafından inceleniyor. Durum değiştiğinde bildirim alacaksınız.
-                                </Text>
+                        <Card padded={false} className="px-4">
+                            <KeyValue label="Bütçe" value={formatBudget(p.budget_min, p.budget_max)} />
+                            {p.platform ? <KeyValue label="Platform" value={p.platform} /> : null}
+                            {p.deliverables?.length ? <KeyValue label="Teslimatlar" value={p.deliverables.join(', ')} /> : null}
+                            <KeyValue label="Son başvuru" value={p.deadline ? `${formatDate(p.deadline)} · ${daysLeft(p.deadline)}` : 'Belirtilmedi'} last />
+                        </Card>
+                        {p.location ? (
+                            <View className="flex-row items-center" style={{ gap: 6 }}>
+                                <MapPin size={15} color={colors.fg3} strokeWidth={ICON_STROKE} />
+                                <Text variant="small" tone="fg2">{p.location}</Text>
                             </View>
+                        ) : null}
+                        {p.summary || p.description ? <Text tone="fg2" style={{ fontSize: 14.5, lineHeight: 22 }}>{p.description || p.summary}</Text> : null}
+                        {appliedIds.has(p.id) ? (
+                            <Chip label="Bu ilana başvurdun" tone="success" />
+                        ) : (
+                            <Button title="Başvur" onPress={() => setApplyStep(true)} block />
+                        )}
+                    </>
+                ) : null}
 
-                            <View className="bg-white/[0.03] rounded-3xl p-6 border border-white/5 space-y-4">
-                                <View className="flex-row justify-between border-b border-white/5 pb-3">
-                                    <Text className="text-gray-500 text-sm">Marka</Text>
-                                    <Text className="text-white font-bold">{selectedApplication.advert_projects?.brand_name}</Text>
-                                </View>
-                                <View className="flex-row justify-between border-b border-white/5 pb-3">
-                                    <Text className="text-gray-500 text-sm">Tarih</Text>
-                                    <Text className="text-white font-bold">{new Date(selectedApplication.created_at).toLocaleDateString('tr-TR')}</Text>
-                                </View>
-                                <View className="flex-row justify-between">
-                                    <Text className="text-gray-500 text-sm">Teklifiniz</Text>
-                                    <Text className="text-soft-gold font-bold text-lg">₺{selectedApplication.budget_expectation}</Text>
-                                </View>
-                            </View>
-
-                            {selectedApplication.status === 'pending' && (
-                                <TouchableOpacity
-                                    onPress={() => Alert.alert('Başvuruyu Geri Çek', 'Bu başvuruyu geri çekmek istediğinize emin misiniz?', [
-                                        { text: 'Vazgeç', style: 'cancel' },
-                                        { text: 'Geri Çek', style: 'destructive', onPress: () => cancelApplication(selectedApplication) }
-                                    ])}
-                                    className="mt-auto w-full h-14 rounded-xl border border-red-500/30 items-center justify-center bg-red-500/5"
-                                >
-                                    <Text className="text-red-500 font-bold">Başvuruyu Geri Çek</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </View>
-                )}
-            </Modal>
-
-            {/* --- CONFIRMATION MODAL --- */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={confirmModalVisible}
-                onRequestClose={() => setConfirmModalVisible(false)}
-            >
-                <View className="flex-1 bg-black/90 items-center justify-center p-6">
-                    <View className="w-full max-w-sm bg-[#0B0F19] rounded-[32px] border border-white/10 p-6 shadow-2xl relative">
-                        {/* Header */}
-                        <Text className="text-white font-bold text-xl mb-6">Başvuru Formu</Text>
-
-                        {/* Form Fields */}
-                        <ScrollView className="max-h-[500px]" showsVerticalScrollIndicator={false}>
-
-                            {/* Niyet Mesajı */}
-                            <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">NİYET MESAJI</Text>
-                            <TextInput
-                                className="bg-[#15171e] text-white p-4 rounded-xl border border-white/10 h-32 mb-4"
-                                placeholder="Kısa olarak neden uygun olduğundan bahset."
-                                placeholderTextColor="#4B5563"
-                                multiline
-                                textAlignVertical="top"
-                                value={coverLetter}
-                                onChangeText={setCoverLetter}
+                {p && applyStep ? (
+                    <>
+                        <Text variant="small" tone="fg2">{p.title}{p.brand_name ? ` · ${p.brand_name}` : ''}</Text>
+                        <TextField label="Markaya notun" multiline value={coverLetter} onChangeText={setCoverLetter} placeholder="Kısaca neden uygun olduğundan bahset." />
+                        <TextField label="Önerdiğin teslim" value={deliveryItem} onChangeText={setDeliveryItem} placeholder="ör. 1 Reels + 3 Hikâye" />
+                        <View style={{ gap: 7 }}>
+                            <Text variant="small" weight="medium" tone="fg2">Ödeme tercihi</Text>
+                            <Segment
+                                options={[{ key: 'cash', label: 'Nakit' }, { key: 'barter', label: 'Barter' }]}
+                                value={paymentType}
+                                onChange={(v) => { setPaymentType(v); if (v === 'barter') setBudgetExpectation(''); }}
                             />
+                        </View>
+                        <TextField
+                            label="Bütçe beklentin"
+                            prefix="₺"
+                            keyboardType="numeric"
+                            value={budgetExpectation}
+                            onChangeText={(v) => setBudgetExpectation(v.replace(/[^0-9]/g, ''))}
+                            editable={paymentType === 'cash'}
+                            placeholder={paymentType === 'barter' ? 'Barterda bütçe girilmez' : 'ör. 25000'}
+                        />
+                        <Text variant="caption" tone="fg3">Profilin ve fiyat kartın markaya görünür.</Text>
+                        <Button title="Başvuruyu gönder" onPress={executeApply} loading={isApplying} block />
+                        <Button title="Geri" variant="ghost" size="md" onPress={() => setApplyStep(false)} block />
+                    </>
+                ) : null}
+            </Sheet>
 
-                            {/* Önerdiğin Teslim */}
-                            <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">ÖNERDİĞİN TESLİM</Text>
-                            <TextInput
-                                className="bg-[#15171e] text-white p-4 rounded-xl border border-white/10 mb-4"
-                                placeholder="Örn: 1 Reels + 3 Story"
-                                placeholderTextColor="#4B5563"
-                                value={deliveryItem}
-                                onChangeText={setDeliveryItem}
+            {/* Başvuru ayrıntısı */}
+            <Sheet visible={!!a} onClose={() => setSelectedApplication(null)} title={a?.advert_projects?.title || 'Başvuru'} headerRight={aStatus ? <Chip label={aStatus.label} tone={aStatus.tone} /> : null}>
+                {a ? (
+                    <>
+                        <Card padded={false} className="px-4">
+                            <KeyValue label="Marka" value={a.advert_projects?.brand_name || '—'} />
+                            <KeyValue label="Tarih" value={formatDate(a.created_at)} />
+                            <KeyValue label="Bütçe beklentin" value={a.budget_expectation ? formatTRY(a.budget_expectation) : 'Belirtilmedi'} last />
+                        </Card>
+                        {a.status === 'pending' || a.status === 'shortlisted' ? (
+                            <Text variant="small" tone="fg2">Başvurun marka tarafından inceleniyor. Durum değişince bildirim alacaksın.</Text>
+                        ) : null}
+                        {a.status === 'pending' ? (
+                            <Button
+                                title="Başvuruyu geri çek"
+                                variant="danger"
+                                onPress={() => Alert.alert('Başvuruyu Geri Çek', 'Bu başvuruyu geri çekmek istediğinize emin misiniz?', [
+                                    { text: 'Vazgeç', style: 'cancel' },
+                                    { text: 'Geri Çek', style: 'destructive', onPress: () => cancelApplication(a) },
+                                ])}
+                                block
                             />
-
-                            {/* Ödeme Tercihi & Bütçe Row */}
-                            <View className="flex-row gap-4 mb-2">
-                                {/* Ödeme Tercihi */}
-                                <View className="flex-1">
-                                    <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">ÖDEME TERCİHİ</Text>
-                                    <View className="flex-row gap-2">
-                                        <TouchableOpacity
-                                            onPress={() => setPaymentType('cash')}
-                                            className={`flex-1 flex-row items-center justify-center p-3 rounded-xl border ${paymentType === 'cash' ? 'bg-white/10 border-white' : 'bg-[#15171e] border-white/10'}`}
-                                        >
-                                            <View className={`w-3 h-3 rounded-full border mr-2 items-center justify-center ${paymentType === 'cash' ? 'border-white' : 'border-gray-500'}`}>
-                                                {paymentType === 'cash' && <View className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                            </View>
-                                            <Text className={paymentType === 'cash' ? 'text-white font-bold' : 'text-gray-500'}>Nakit</Text>
-                                        </TouchableOpacity>
-
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                                setPaymentType('barter');
-                                                setBudgetExpectation('');
-                                            }}
-                                            className={`flex-1 flex-row items-center justify-center p-3 rounded-xl border ${paymentType === 'barter' ? 'bg-white/10 border-white' : 'bg-[#15171e] border-white/10'}`}
-                                        >
-                                            <View className={`w-3 h-3 rounded-full border mr-2 items-center justify-center ${paymentType === 'barter' ? 'border-white' : 'border-gray-500'}`}>
-                                                {paymentType === 'barter' && <View className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                            </View>
-                                            <Text className={paymentType === 'barter' ? 'text-white font-bold' : 'text-gray-500'}>Barter</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </View>
-
-                            {/* Bütçe Beklentisi */}
-                            <View className={`mb-8 ${paymentType === 'barter' ? 'opacity-50' : ''}`}>
-                                <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">BÜTÇE BEKLENTİN</Text>
-                                <TextInput
-                                    className="bg-[#15171e] text-white p-4 rounded-xl border border-white/10"
-                                    placeholder={paymentType === 'barter' ? "Barter anlaşmalarında bütçe girilmez" : "Örn: 25.000"}
-                                    placeholderTextColor="#4B5563"
-                                    keyboardType="numeric"
-                                    value={budgetExpectation}
-                                    onChangeText={setBudgetExpectation}
-                                    editable={paymentType === 'cash'}
-                                />
-                            </View>
-
-                            {/* Action Button */}
-                            <TouchableOpacity
-                                onPress={executeApply}
-                                disabled={isApplying}
-                                className="w-full bg-soft-gold h-14 rounded-xl items-center justify-center flex-row shadow-lg shadow-soft-gold/20"
-                            >
-                                {isApplying ? (
-                                    <ActivityIndicator color="#000" />
-                                ) : (
-                                    <>
-                                        <Text className="text-black font-bold text-base mr-2">Başvuruyu Gönder</Text>
-                                        <ChevronRight color="black" size={18} />
-                                    </>
-                                )}
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={() => setConfirmModalVisible(false)}
-                                className="w-full items-center py-4"
-                            >
-                                <Text className="text-gray-500 font-medium">Vazgeç</Text>
-                            </TouchableOpacity>
-
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
-
-        </View>
+                        ) : null}
+                    </>
+                ) : null}
+            </Sheet>
+        </Screen>
     );
 }

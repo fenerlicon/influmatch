@@ -90,8 +90,9 @@ export function routeForLink(link, role) {
     if (roomMatch) return { name: root, params: { screen: 'Mesajlar', params: { openRoomId: roomMatch[1] } } };
     const collabMatch = link.match(/\/collaborations\/([0-9a-f-]{36})/i);
     if (collabMatch) return { name: 'CollaborationDetail', params: { id: collabMatch[1] } };
-    if (link.includes('/collaborations')) return { name: 'Collaborations' };
-    if (link.includes('/offers')) return { name: root, params: { screen: 'İşler' } };
+    // İş birlikleri ayrı ekran değil, İşler sekmesinin "Aktif" bölümü
+    if (link.includes('/collaborations')) return { name: root, params: { screen: 'İşler', params: { segment: 'active' } } };
+    if (link.includes('/offers')) return { name: root, params: { screen: 'İşler', params: { segment: 'offers' } } };
     if (link.includes('/advert')) return { name: root, params: { screen: role === 'brand' ? 'BrandAdverts' : 'İlanlar' } };
     // Marka profili sekme değil, ayrı ekran (BrandProfile)
     if (link.includes('/badges')) return role === 'brand' ? { name: 'BrandProfile' } : { name: 'Badges' };

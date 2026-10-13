@@ -1,250 +1,78 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, Dimensions, Alert, Modal, Platform } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
+import { View, Alert, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Bell, Sparkles, ScanSearch, Eye, EyeOff, ShieldAlert, Hourglass, Megaphone } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { OWN_PROFILE_COLUMNS } from '../lib/userColumns';
-import { LinearGradient } from 'expo-linear-gradient';
+import { formatBudget, daysLeft } from '../lib/format';
 import {
-    Bell, Zap, ChevronRight,
-    TrendingUp, Instagram, BarChart3,
-    Eye, Info, X, CheckCircle2, Sparkles,
-    Wallet, Music, Star
-} from 'lucide-react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import FirstStepsCard from '../components/FirstStepsCard';
-import { calculateTrustScore, calculateProfileCompletion } from '../utils/calculation';
-import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+    Screen, LargeHeader, Logo, Section, Text, Button, IconButton, Card, ListGroup, ListRow, IconBox, Avatar,
+    Chip, Notice, Ring, StepBar, EmptyState, colors,
+} from '../components/ui';
 
-const { width } = Dimensions.get('window');
-
-// --- PREMIUM COMPONENTS ---
-
-const GlassCard = ({ children, className, style, onPress, activeOpacity = 0.8 }) => (
-    <TouchableOpacity
-        activeOpacity={onPress ? activeOpacity : 1}
-        onPress={onPress}
-        style={style}
-        className={`rounded-[32px] overflow-hidden border border-white/10 relative ${className}`}
-    >
-        <LinearGradient
-            colors={['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.04)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="absolute inset-0"
-        />
-        {children}
-    </TouchableOpacity>
-);
-
-const SemiCircularProgress = ({ score, size = 120 }) => {
-    const radius = size / 2 - 10;
-    const strokeWidth = 10;
-    const center = size / 2;
-    
-    // Top-heavy arc
-    const startAngle = -220;
-    const endAngle = 40;
-    
-    const polarToCartesian = (centerX, centerY, radius, angleInDegrees) => {
-        const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
-        return {
-            x: centerX + (radius * Math.cos(angleInRadians)),
-            y: centerY + (radius * Math.sin(angleInRadians))
-        };
-    };
-
-    const describeArc = (x, y, radius, startAngle, endAngle) => {
-        const start = polarToCartesian(x, y, radius, endAngle);
-        const end = polarToCartesian(x, y, radius, startAngle);
-        const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-        return [
-            "M", start.x, start.y, 
-            "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
-        ].join(" ");
-    };
-
-    const totalAngle = endAngle - startAngle;
-    const currentAngle = startAngle + (totalAngle * (score / 100));
-    const backgroundArc = describeArc(center, center, radius, startAngle, endAngle);
-    const progressArc = describeArc(center, center, radius, startAngle, currentAngle);
-
-    return (
-        <View style={{ width: size, height: size * 0.75, alignItems: 'center', justifyContent: 'center' }}>
-            <Svg width={size} height={size}>
-                <Defs>
-                    <SvgGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <Stop offset="0%" stopColor="#fcd34d" />
-                        <Stop offset="100%" stopColor="#f59e0b" />
-                    </SvgGradient>
-                </Defs>
-                <Path
-                    d={backgroundArc}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.08)"
-                    strokeWidth={strokeWidth}
-                    strokeLinecap="round"
-                />
-                <Path
-                    d={progressArc}
-                    fill="none"
-                    stroke="url(#grad)"
-                    strokeWidth={strokeWidth}
-                    strokeLinecap="round"
-                />
-            </Svg>
-            <View style={{ position: 'absolute', bottom: '30%', alignItems: 'center' }}>
-                <Text className="text-white text-4xl font-bold tracking-tighter">{score}</Text>
-                <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-0">/ 100</Text>
-            </View>
-        </View>
-    );
+// "İlk adımlar" adımı → mobil ekran (web'deki href'in karşılığı; durum /api/mobile/first-steps → lib/first-steps.ts)
+const STEP_ROUTES = {
+    verify_social: 'Verification',
+    complete_profile: 'MyProfile',
+    rate_card: 'MyProfile',
+    first_application: 'İlanlar',
 };
+// "Gizle" tercihi yalnızca bu cihazda, kullanıcıya özel (eski FirstStepsCard ile aynı anahtar)
+const HIDDEN_KEY_PREFIX = 'first_steps_hidden:';
 
-const Header = ({ profile, unreadCount, onNotificationPress }) => {
-    const insets = useSafeAreaInsets();
+// Hesap durumu: ilk adımlar tek kartta, yalnızca sıradaki adım (design/mobile/influencer.html)
+function AccountStatusCard({ status, onGo, onHide }) {
+    const next = status.steps.find((s) => !s.done);
+    if (!next) return null;
+    const percent = Math.round((status.completed / status.total) * 100);
     return (
-        <View
-            className="px-6 pb-2 flex-row justify-between items-center z-50"
-            style={{ paddingTop: Math.max(insets.top, 16) }}
-        >
-            <View>
-                <Text className="text-gray-400 text-2xl font-light">Hello, <Text className="text-white font-bold">{profile?.full_name?.split(' ')[0] || 'Arda'}</Text></Text>
-            </View>
-            <TouchableOpacity
-                onPress={onNotificationPress}
-                className="w-12 h-12 items-center justify-center rounded-2xl bg-white/10 border border-white/5"
-            >
-                <View className="relative">
-                    <Bell color="#fff" size={24} />
-                    {unreadCount > 0 && (
-                        <View className="absolute -top-1.5 -right-1.5 bg-amber-400 w-4 h-4 rounded-full items-center justify-center border-2 border-[#020617]">
-                            <Text className="text-[8px] font-bold text-black">{unreadCount}</Text>
-                        </View>
-                    )}
+        <Card style={{ gap: 14 }}>
+            <View className="flex-row items-center" style={{ gap: 14 }}>
+                <Ring value={percent} />
+                <View className="flex-1">
+                    <View className="flex-row items-center justify-between">
+                        <Text variant="eyebrow">Hesap durumu</Text>
+                        <Text variant="caption" tone="fg3" onPress={onHide} suppressHighlighting>Gizle</Text>
+                    </View>
+                    <Text weight="semibold" style={{ fontSize: 16 }} className="mt-0.5">Sıradaki adım: {next.title.toLocaleLowerCase('tr-TR')}</Text>
+                    <Text variant="small" tone="fg2">{next.description}</Text>
+                    {next.note ? <View className="mt-1.5"><Chip label={next.note} tone="warning" /></View> : null}
                 </View>
-            </TouchableOpacity>
-        </View>
+            </View>
+            <StepBar total={status.total} done={status.completed} current={status.completed < status.total ? status.completed : undefined} />
+            <Text variant="caption" tone="fg3">{status.label}</Text>
+            {STEP_ROUTES[next.key] ? <Button title={next.title} onPress={() => onGo(next.key)} block /> : null}
+        </Card>
     );
-};
-
-const OpportunityCard = ({ project, onPress }) => (
-    <GlassCard
-        onPress={onPress}
-        style={{ width: 260, height: 360 }}
-        className="mr-4 p-6 justify-between bg-white/[0.02]"
-    >
-        <View>
-            <View className="w-full aspect-square bg-black rounded-[24px] items-center justify-center mb-6 overflow-hidden border border-white/5 shadow-2xll">
-                {project.brand_logo ? (
-                    <Image source={{ uri: project.brand_logo }} className="w-full h-full" resizeMode="cover" />
-                ) : (
-                    <Text className="text-white font-bold text-4xl">{(project.brand_name || 'MB').substring(0, 1)}</Text>
-                )}
-            </View>
-            
-            <Text className="text-white font-bold text-xl mb-1" numberOfLines={1}>{project.title}</Text>
-            <Text className="text-gray-400 text-sm mb-4" numberOfLines={1}>
-                {project.category || 'Fitness & Lifestyle'} / ₺{project.budget_min?.toLocaleString() || '0'} Budget
-            </Text>
-        </View>
-
-        <TouchableOpacity 
-            onPress={onPress}
-            className={`w-full py-3.5 rounded-2xl items-center justify-center ${
-                project.brand_name?.toLowerCase().includes('nike') ? 'bg-[#2563eb]' : 
-                project.brand_name?.toLowerCase().includes('sephora') ? 'bg-[#7c3aed]' : 
-                'bg-amber-500'
-            } shadow-lg shadow-black/20`}
-        >
-            <Text className="text-white font-bold text-sm">View Details</Text>
-        </TouchableOpacity>
-    </GlassCard>
-);
-
-const ScoreInfoModal = ({ visible, onClose }) => (
-    <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
-        <View className="flex-1 bg-black/80 justify-center items-center px-6">
-            <View className="bg-[#1a1d24] w-full rounded-[32px] overflow-hidden border border-white/10 relative">
-                <View className="p-6 flex-row justify-between items-center border-b border-white/5 bg-[#15171e]">
-                    <View className="flex-row items-center gap-2">
-                        <TrendingUp color="#fbbf24" size={20} />
-                        <Text className="text-white font-bold text-lg">Skor Nasıl Yükselir?</Text>
-                    </View>
-                    <TouchableOpacity onPress={onClose}>
-                        <X color="#94a3b8" size={24} />
-                    </TouchableOpacity>
-                </View>
-
-                <ScrollView className="p-6 max-h-[60vh]">
-                    <View className="space-y-4 pb-10">
-                        <View className="bg-green-500/10 p-4 rounded-2xl border border-green-500/20 flex-row items-start mb-3">
-                            <CheckCircle2 size={18} color="#22c55e" className="mr-3" />
-                            <View className="flex-1">
-                                <Text className="text-white font-bold text-sm mb-1">Hesap Doğrulama (+30 Puan)</Text>
-                                <Text className="text-gray-400 text-xs">Instagram hesabınızı bağlayın ve doğrulayın.</Text>
-                            </View>
-                        </View>
-                        <View className="bg-blue-500/10 p-4 rounded-2xl border border-blue-500/20 flex-row items-start mb-3">
-                            <TrendingUp size={18} color="#3b82f6" className="mr-3" />
-                            <View className="flex-1">
-                                <Text className="text-white font-bold text-sm mb-1">Sağlıklı Etkileşim (+20 Puan)</Text>
-                                <Text className="text-gray-400 text-xs">%1 - %10 arası etkileşim oranı en idealdir.</Text>
-                            </View>
-                        </View>
-                        <View className="bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20 flex-row items-start mb-3">
-                            <Sparkles size={18} color="#f59e0b" className="mr-3" />
-                            <View className="flex-1">
-                                <Text className="text-white font-bold text-sm mb-1">Profil Doluluğu (+10 Puan)</Text>
-                                <Text className="text-gray-400 text-xs">Tüm biyografi ve kategori bilgilerini girin.</Text>
-                            </View>
-                        </View>
-                    </View>
-                </ScrollView>
-            </View>
-        </View>
-    </Modal>
-);
-
-// --- MAIN SCREEN ---
+}
 
 export default function DashboardScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    
-    // UI States
-    const [scoreModalVisible, setScoreModalVisible] = useState(false);
-    const [notificationModalVisible, setNotificationModalVisible] = useState(false);
 
-    // Data
     const [profile, setProfile] = useState(null);
-    const [stats, setStats] = useState({ trustScore: 0, profileCompletion: 0 });
     const [projects, setProjects] = useState([]);
-    const [socialStats, setSocialStats] = useState(null);
-    const [tiktokStats, setTiktokStats] = useState(null);
-    const [notifications, setNotifications] = useState([]);
     const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+    const [steps, setSteps] = useState(null);
+    const [stepsHidden, setStepsHidden] = useState(true);
 
     const isSpotlightActive = !!profile?.spotlight_active && !(profile?.spotlight_expires_at && new Date(profile?.spotlight_expires_at) < new Date());
-
-    useFocusEffect(
-        useCallback(() => {
-            fetchDashboardData();
-        }, [])
-    );
 
     const fetchDashboardData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const [{ data: profileData }, { data: projectsData }, { data: socialData }, { data: tiktokData }, { data: notifData }] = await Promise.all([
+            let hidden = false;
+            try { hidden = (await AsyncStorage.getItem(HIDDEN_KEY_PREFIX + user.id)) === 'true'; } catch (e) { hidden = false; }
+
+            const [{ data: profileData }, { data: projectsData }, { count: unread }, stepsResult] = await Promise.all([
                 supabase.from('users').select(OWN_PROFILE_COLUMNS).eq('id', user.id).single(),
-                supabase.from('advert_projects').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(5),
-                supabase.from('social_accounts').select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at').eq('user_id', user.id).eq('platform', 'instagram').maybeSingle(),
-                supabase.from('social_accounts').select('id, user_id, platform, username, is_verified, has_stats, follower_count, engagement_rate, last_scraped_at, stats_payload, updated_at, created_at').eq('user_id', user.id).eq('platform', 'tiktok').maybeSingle(),
-                supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+                supabase.from('advert_projects').select('id, title, brand_name, brand_logo, budget_min, budget_max, platform, deadline').eq('status', 'open').order('created_at', { ascending: false }).limit(5),
+                supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
+                hidden ? Promise.resolve({}) : apiRequest('first-steps'),
             ]);
 
             // SECURITY: If rejected, force vitrin off
@@ -255,18 +83,9 @@ export default function DashboardScreen({ navigation }) {
 
             setProfile(profileData);
             setProjects(projectsData || []);
-            setSocialStats(socialData || null);
-            setTiktokStats(tiktokData || null);
-
-            const notifs = notifData || [];
-            setNotifications(notifs);
-            setUnreadNotifCount(notifs.filter(n => !n.is_read).length);
-
-            setStats({
-                trustScore: calculateTrustScore(profileData, socialData || tiktokData),
-                profileCompletion: calculateProfileCompletion(profileData, socialData || tiktokData),
-            });
-
+            setUnreadNotifCount(unread || 0);
+            setStepsHidden(hidden);
+            setSteps(stepsResult?.error ? null : stepsResult?.status || null);
         } catch (e) {
             console.error('[Dashboard] fetchDashboardData error:', e);
         } finally {
@@ -275,284 +94,130 @@ export default function DashboardScreen({ navigation }) {
         }
     };
 
-    const toggleSpotlight = async () => {
+    useFocusEffect(useCallback(() => { fetchDashboardData(); }, []));
+
+    // Vitrin (keşfette görünürlük) aç/kapa — kurallar sunucuda: /api/mobile/showcase
+    const toggleShowcase = async () => {
         if (!profile) return;
 
         if (profile.verification_status === 'rejected') {
-            Alert.alert(
-                'Hesap Reddedildi',
-                'Hesabınız inceleme sonucu reddedildiği için vitrin özelliğini kullanamazsınız. Lütfen destekle iletişime geçin.',
-                [{ text: 'Tamam' }]
-            );
+            Alert.alert('Hesap Reddedildi', 'Hesabınız inceleme sonucu reddedildiği için vitrin özelliğini kullanamazsınız. Lütfen destekle iletişime geçin.');
             return;
         }
 
         const newState = !profile.is_showcase_visible;
 
         if (newState && profile.verification_status !== 'verified') {
-            Alert.alert(
-                'Hesap Doğrulama Gerekli',
-                'Vitrinde görünmek için hesabınızın onaylanmış olması gerekiyor. Doğrulama için profil sayfanızı ziyaret edin.',
-                [{ text: 'Tamam' }]
-            );
+            Alert.alert('Hesap Doğrulama Gerekli', 'Vitrinde görünmek için hesabınızın onaylanmış olması gerekiyor.');
             return;
         }
 
         setProfile(prev => ({ ...prev, is_showcase_visible: newState }));
-
-        // Web ile aynı kurallar (onay + bağlı hesap) sunucuda: /api/mobile/showcase
         const result = await apiRequest('showcase', { method: 'POST', body: { visible: newState } });
 
         if (!result.success) {
             Alert.alert('Hata', result.error || 'Durum güncellenemedi.');
             setProfile(prev => ({ ...prev, is_showcase_visible: !newState }));
-        } else if (newState) {
-            Alert.alert('Vitrin Modu Aktif! 🚀', 'Artık markalar tarafından keşfedilebilirsin.');
         } else {
-            Alert.alert('Gizli Mod 🔒', 'Vitrinden kaldırıldın.');
+            Alert.alert(newState ? 'Vitrin açık' : 'Vitrin kapalı', newState ? 'Artık markalar tarafından keşfedilebilirsin.' : 'Vitrinden kaldırıldın.');
         }
     };
 
-    const handleNotificationPress = async () => {
-        setNotificationModalVisible(true);
-        if (unreadNotifCount > 0 && profile?.id) {
-            const result = await apiRequest('notifications', { method: 'PATCH', body: {} });
-            if (!result.success) return;
-            setUnreadNotifCount(0);
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    const hideSteps = async () => {
+        setStepsHidden(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+            try { await AsyncStorage.setItem(HIDDEN_KEY_PREFIX + session.user.id, 'true'); } catch (e) { /* yalnızca bu oturumda gizli */ }
         }
     };
 
-    const onRefresh = () => {
-        setRefreshing(true);
-        fetchDashboardData();
-    };
+    // Tek bildirim alanı: öncelik sırasıyla ilk uyarı gösterilir, kalanların sayısı "+N"
+    const notices = [];
+    if (profile?.verification_status === 'rejected') {
+        notices.push({ tone: 'danger', icon: ShieldAlert, title: 'Hesabın onaylanmadı', text: 'Ayrıntı için destekle iletişime geç.', onPress: () => navigation.navigate('Settings') });
+    } else if (profile && profile.verification_status !== 'verified') {
+        notices.push({ tone: 'info', icon: Hourglass, title: 'Hesabın inceleniyor', text: 'Onaylanınca vitrinde görünebilirsin.' });
+    }
+    if (profile?.verification_status === 'verified' && !profile?.is_showcase_visible) {
+        notices.push({ tone: 'warning', icon: EyeOff, title: 'Markalara gizlisin', text: 'Vitrini açarak keşfette görün.', onPress: toggleShowcase });
+    }
 
-    if (loading) return (
-        <View className="flex-1 bg-[#020617] items-center justify-center">
-            <ActivityIndicator color="#fbbf24" />
-        </View>
-    );
+    if (loading) {
+        return <View className="flex-1 bg-bg items-center justify-center"><ActivityIndicator color={colors.gold} /></View>;
+    }
+
+    const firstName = profile?.full_name?.split(' ')[0];
+    const showSteps = !stepsHidden && steps && !steps.allDone;
 
     return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
-
-            {/* BACKGROUND DECORATION */}
-            <View className="absolute top-0 left-0 right-0 h-1/2">
-                <LinearGradient colors={['#0f172a', '#020617']} className="flex-1" />
-            </View>
-            <View className="absolute top-[10%] -right-20 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px]" />
-            <View className="absolute top-[30%] -left-20 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px]" />
-
-            <ScoreInfoModal visible={scoreModalVisible} onClose={() => setScoreModalVisible(false)} />
-
-            <SafeAreaView className="flex-1" edges={['left', 'right']}>
-                <Header 
-                    profile={profile} 
-                    unreadCount={unreadNotifCount} 
-                    onNotificationPress={handleNotificationPress} 
+        <Screen
+            scroll
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchDashboardData(); }}
+            header={
+                <LargeHeader
+                    left={<Logo />}
+                    right={<IconButton icon={Bell} dot={unreadNotifCount > 0} onPress={() => navigation.navigate('Notifications')} accessibilityLabel={unreadNotifCount ? `Bildirimler, ${unreadNotifCount} okunmamış` : 'Bildirimler'} />}
+                    title={firstName ? `Merhaba, ${firstName}` : 'Merhaba'}
                 />
+            }
+        >
+            {notices.length ? <Notice {...notices[0]} more={notices.length > 1 ? notices.length - 1 : undefined} /> : null}
 
-                <ScrollView
-                    className="flex-1 px-6"
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 120 }}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fbbf24" />}
-                >
-                    <FirstStepsCard navigation={navigation} />
+            {showSteps ? (
+                <AccountStatusCard status={steps} onHide={hideSteps} onGo={(key) => navigation.navigate(STEP_ROUTES[key])} />
+            ) : null}
 
-                    {/* BENTO ROW: Trust Score & Earnings */}
-                    <View className="flex-row gap-4 mt-6 h-60">
-                        {/* Trust Score */}
-                        <GlassCard 
-                            style={{ flex: 1.1 }} 
-                            className="p-5 items-center justify-between"
-                            onPress={() => setScoreModalVisible(true)}
-                        >
-                            <SemiCircularProgress score={stats.trustScore} />
-                            <View className="w-full">
-                                <View className="flex-row justify-between items-center mb-1">
-                                    <View>
-                                        <Text className="text-white font-bold text-base">Güven Skoru</Text>
+            <Section title="Yeni ilanlar" action="Tümü" onAction={() => navigation.navigate('İlanlar')}>
+                {projects.length ? (
+                    <ListGroup>
+                        {projects.slice(0, 4).map((project) => (
+                            <ListRow
+                                key={project.id}
+                                onPress={() => navigation.navigate('İlanlar', { project })}
+                                left={<Avatar name={project.brand_name || project.title} uri={project.brand_logo} square />}
+                                title={project.title}
+                                subtitle={[project.brand_name, project.platform].filter(Boolean).join(' · ')}
+                                right={
+                                    <View className="items-end">
+                                        <Text variant="small" weight="semibold">{formatBudget(project.budget_min, project.budget_max)}</Text>
+                                        {project.deadline ? <Text variant="caption" tone="fg3">{daysLeft(project.deadline)}</Text> : null}
                                     </View>
-                                </View>
-                                <Text className="text-gray-500 text-[10px]" numberOfLines={2}>
-                                    Performans ve etkileşime göre
-                                </Text>
-                            </View>
-                        </GlassCard>
+                                }
+                            />
+                        ))}
+                    </ListGroup>
+                ) : (
+                    <Card padded={false}><EmptyState icon={Megaphone} title="Şu an açık ilan yok" text="Yeni ilanlar yayınlandığında burada görünür." /></Card>
+                )}
+            </Section>
 
-                        {/* Spotlight */}
-                        <GlassCard 
-                            style={{ flex: 1 }} 
-                            className="p-5 justify-between bg-white/[0.04]"
-                            onPress={() => navigation.navigate('Spotlight')}
-                        >
-                            <View>
-                                <View className="flex-row items-center gap-2 mb-4">
-                                    <View className="w-8 h-8 rounded-full bg-purple-500/20 items-center justify-center">
-                                        <Star size={16} color="#a855f7" fill={isSpotlightActive ? "#a855f7" : "transparent"} />
-                                    </View>
-                                    <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-tight">Spotlight</Text>
-                                </View>
-                                <Text className={`text-2xl font-bold mb-1 ${isSpotlightActive ? 'text-purple-400' : 'text-gray-400'}`}>
-                                    {isSpotlightActive ? 'Aktif' : 'Pasif'}
-                                </Text>
-                                <Text className="text-gray-500 text-[10px] font-medium uppercase tracking-widest">
-                                    {isSpotlightActive ? 'ÖNE ÇIKARILIYORSUN' : 'ÖNE ÇIK'}
-                                </Text>
-                            </View>
-                            
-                            <TouchableOpacity 
-                                className="bg-purple-600 py-3 rounded-2xl items-center shadow-lg shadow-purple-600/20 active:scale-95"
-                                onPress={() => navigation.navigate('Spotlight')}
-                            >
-                                <Text className="text-white font-bold text-xs">
-                                    {isSpotlightActive ? 'Yönet' : 'Aktifleştir'}
-                                </Text>
-                            </TouchableOpacity>
-                        </GlassCard>
-                    </View>
-
-                    {/* NEW OPPORTUNITIES SECTION */}
-                    <View className="mt-10">
-                        <View className="flex-row justify-between items-baseline mb-6 pl-1">
-                            <Text className="text-white text-2xl font-medium tracking-tight">New Opportunities</Text>
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
-                            {projects.length > 0 ? projects.map(project => (
-                                <OpportunityCard 
-                                    key={project.id} 
-                                    project={project} 
-                                    onPress={() => navigation.navigate('İlanlar', { project })} 
-                                />
-                            )) : (
-                                <View className="w-[80vw] h-40 items-center justify-center border border-dashed border-white/10 rounded-[32px]">
-                                    <Text className="text-gray-600 font-medium">No active opportunities found.</Text>
-                                </View>
-                            )}
-                        </ScrollView>
-                    </View>
-
-                    {/* QUICK ACCESS & STATUS */}
-                    <View className="mt-10 space-y-4">
-                        <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-4 ml-1">Status & Quick Access</Text>
-                        
-                        {/* Spotlight Toggle */}
-                        <GlassCard
-                            className={`flex-row items-center p-5 justify-between border-white/[0.05] ${profile?.is_showcase_visible ? 'bg-amber-400/5 border-amber-400/20' : 'bg-white/[0.02]'}`}
-                            onPress={toggleSpotlight}
-                        >
-                            <View className="flex-row items-center">
-                                <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${profile?.is_showcase_visible ? 'bg-amber-400' : 'bg-white/[0.05]'}`}>
-                                    <Eye color={profile?.is_showcase_visible ? "#000" : "#64748b"} size={26} />
-                                </View>
-                                <View>
-                                    <Text className="text-white font-bold text-base">Vitrin Modu</Text>
-                                    <Text className="text-gray-500 text-xs mt-0.5">
-                                        {profile?.is_showcase_visible ? 'Markalar tarafından keşfedilebilirsin' : 'Şu an markalara gizlisin'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <View className={`px-4 py-1.5 rounded-full ${profile?.is_showcase_visible ? 'bg-amber-400' : 'bg-white/10'}`}>
-                                <Text className={`text-[10px] font-bold ${profile?.is_showcase_visible ? 'text-black' : 'text-gray-400'}`}>
-                                    {profile?.is_showcase_visible ? 'AÇIK' : 'KAPALI'}
-                                </Text>
-                            </View>
-                        </GlassCard>
-
-                        {/* Instagram Link */}
-                        <GlassCard
-                            className={`flex-row items-center p-5 justify-between border-white/[0.05] ${socialStats ? 'bg-purple-900/10' : 'bg-white/[0.02]'}`}
-                            onPress={() => navigation.navigate('MyProfile')}
-                        >
-                            <View className="flex-row items-center">
-                                <View className="w-12 h-12 rounded-2xl bg-white/[0.05] items-center justify-center mr-4">
-                                    <Instagram color={socialStats ? "#fbbf24" : "#94a3b8"} size={26} />
-                                </View>
-                                <View>
-                                    <Text className="text-white font-bold text-base">
-                                        {socialStats ? 'Instagram Bağlı' : 'Instagram Bağla'}
-                                    </Text>
-                                    <Text className="text-gray-400 text-xs mt-0.5">
-                                        {socialStats ? `@${socialStats.username}` : 'Pro özellikleri ve analizi aç'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <ChevronRight size={20} color="#94a3b8" />
-                        </GlassCard>
-
-                        {/* TikTok Link */}
-                        <GlassCard
-                            className={`flex-row items-center p-5 justify-between border-white/[0.05] ${tiktokStats ? 'bg-cyan-900/10' : 'bg-white/[0.02]'} mt-3`}
-                            onPress={() => navigation.navigate('MyProfile')}
-                        >
-                            <View className="flex-row items-center">
-                                <View className="w-12 h-12 rounded-2xl bg-white/[0.05] items-center justify-center mr-4">
-                                    <Music color={tiktokStats ? "#22d3ee" : "#94a3b8"} size={26} />
-                                </View>
-                                <View>
-                                    <Text className="text-white font-bold text-base">
-                                        {tiktokStats ? 'TikTok Bağlı' : 'TikTok Bağla'}
-                                    </Text>
-                                    <Text className="text-gray-400 text-xs mt-0.5">
-                                        {tiktokStats ? `@${tiktokStats.username}` : 'Resmi istatistiklerini doğrula'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <ChevronRight size={20} color="#94a3b8" />
-                        </GlassCard>
-
-                        {/* Stats Info */}
-                        <View className="flex-row gap-4 mt-2">
-                            <GlassCard style={{ flex: 1 }} className="p-5 items-center bg-amber-500/5 border-amber-500/10" onPress={() => navigation.navigate('Analysis')}>
-                                <Zap size={24} color="#f59e0b" className="mb-2 opacity-80" />
-                                <Text className="text-white text-lg font-bold">Analiz Et</Text>
-                                <Text className="text-amber-500/60 text-[10px] font-bold uppercase tracking-widest mt-1">Detayları Gör</Text>
-                            </GlassCard>
-                        </View>
-                    </View>
-                </ScrollView>
-            </SafeAreaView>
-
-            {/* NOTIFICATION MODAL */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={notificationModalVisible}
-                onRequestClose={() => setNotificationModalVisible(false)}
-            >
-                <View className="flex-1 bg-black/80 justify-end">
-                    <TouchableOpacity className="flex-1" onPress={() => setNotificationModalVisible(false)} />
-                    <View className="bg-[#0B0F19] rounded-t-[32px] border-t border-white/10 p-6 max-h-[70%]">
-                        <View className="flex-row justify-between items-center mb-6">
-                            <Text className="text-white font-bold text-xl">Bildirimler</Text>
-                            <TouchableOpacity onPress={() => setNotificationModalVisible(false)} className="w-10 h-10 items-center justify-center">
-                                <X color="#94a3b8" size={24} />
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            {notifications.length === 0 ? (
-                                <View className="items-center py-10 opacity-30">
-                                    <Bell color="#475569" size={64} />
-                                    <Text className="text-gray-400 mt-4 text-sm font-medium">Henüz bildiriminiz yok.</Text>
-                                </View>
-                            ) : (
-                                notifications.map(notif => (
-                                    <View
-                                        key={notif.id}
-                                        className={`mb-4 p-4 rounded-2xl border ${notif.is_read ? 'border-white/5 bg-white/[0.01]' : 'border-amber-500/20 bg-amber-500/5'}`}
-                                    >
-                                        <Text className="text-white font-bold text-sm mb-1">{notif.title}</Text>
-                                        <Text className="text-gray-400 text-xs leading-4">{notif.message}</Text>
-                                    </View>
-                                ))
-                            )}
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
-        </View>
+            <Section title="Hızlı erişim">
+                <ListGroup>
+                    <ListRow
+                        onPress={() => navigation.navigate('Spotlight')}
+                        left={<IconBox icon={Sparkles} tone="gold" />}
+                        title="Spotlight"
+                        subtitle={isSpotlightActive ? 'Öne çıkarılıyorsun' : 'Keşfette öne çık'}
+                        right={<Chip label={isSpotlightActive ? 'Aktif' : 'Pasif'} tone={isSpotlightActive ? 'gold' : 'neutral'} />}
+                        chevron
+                    />
+                    <ListRow
+                        onPress={() => navigation.navigate('Analysis')}
+                        left={<IconBox icon={ScanSearch} />}
+                        title="Profil analizi"
+                        subtitle="Etkileşim ve hesap sağlığı"
+                        chevron
+                    />
+                    <ListRow
+                        onPress={toggleShowcase}
+                        left={<IconBox icon={profile?.is_showcase_visible ? Eye : EyeOff} tone={profile?.is_showcase_visible ? 'success' : 'neutral'} />}
+                        title="Vitrin"
+                        subtitle={profile?.is_showcase_visible ? 'Markalar seni keşfette görebilir' : 'Şu an markalara gizlisin'}
+                        right={<Chip label={profile?.is_showcase_visible ? 'Açık' : 'Kapalı'} tone={profile?.is_showcase_visible ? 'success' : 'neutral'} />}
+                    />
+                </ListGroup>
+            </Section>
+        </Screen>
     );
 }
