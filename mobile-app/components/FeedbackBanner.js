@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, Animated } from 'react-native';
-import { AlertTriangle, X } from 'lucide-react-native';
+import { View, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MessageSquareWarning, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Text, colors, ICON_STROKE } from './ui';
 
 const BANNER_KEY = 'mvp_banner_dismissed';
 
-const FeedbackBanner = ({ navigation }) => {
+// MVP bilgi bandı. Giriş/kayıt ekranlarında gösterilmez (hidden); panelde tek satırlık sade bant.
+const FeedbackBanner = ({ navigation, hidden = false }) => {
     const [visible, setVisible] = useState(false); // start hidden until we check storage
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         AsyncStorage.getItem(BANNER_KEY).then((value) => {
@@ -27,27 +31,20 @@ const FeedbackBanner = ({ navigation }) => {
         }
     };
 
-    if (!visible) return null;
+    if (!visible || hidden) return null;
 
     return (
-        <View
-            className="bg-[#1e1b4b] flex-row items-center px-4 shadow-sm"
-            style={{ paddingTop: Platform.OS === 'ios' ? 50 : 35, paddingBottom: 8 }}
-        >
-            <AlertTriangle color="#60a5fa" size={13} style={{ marginRight: 6, flexShrink: 0 }} />
-            <Text className="text-blue-100 text-[10px] font-medium flex-1">
-                Bu bir <Text className="font-bold text-white">MVP</Text> (Minimum Viable Product) sürümüdür.{" "}
-                <Text onPress={handlePress} className="text-white underline font-bold">
-                    Hata ve geribildirimlerinizi bizimle paylaşın.
+        <View className="flex-row items-center px-4 bg-s1 border-b border-line" style={{ paddingTop: insets.top + 6, paddingBottom: 8, gap: 10 }}>
+            <MessageSquareWarning color={colors.info} size={15} strokeWidth={ICON_STROKE} />
+            <Text variant="caption" tone="fg2" style={{ flex: 1 }}>
+                Bu bir MVP sürümüdür.{' '}
+                <Text variant="caption" weight="medium" tone="fg" onPress={handlePress} suppressHighlighting style={{ textDecorationLine: 'underline' }}>
+                    Hata ve geri bildirimini paylaş
                 </Text>
             </Text>
-            <TouchableOpacity
-                onPress={handleDismiss}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={{ marginLeft: 8, padding: 4, flexShrink: 0 }}
-            >
-                <X color="#93c5fd" size={14} />
-            </TouchableOpacity>
+            <Pressable onPress={handleDismiss} hitSlop={12} accessibilityLabel="Bandı kapat">
+                <X color={colors.fg3} size={16} strokeWidth={ICON_STROKE} />
+            </Pressable>
         </View>
     );
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Switch, Pressable } from 'react-native';
-import { Search, Check } from 'lucide-react-native';
+import { Search, Check, ChevronDown } from 'lucide-react-native';
 import Text from './Text';
 import { colors, fonts, ICON_STROKE } from './theme';
 
@@ -10,12 +10,13 @@ import { colors, fonts, ICON_STROKE } from './theme';
  */
 export function TextField({ label, hint, error, icon: Icon, right, prefix, multiline = false, height, className = '', inputStyle, onFocus, onBlur, ...props }) {
     const [focused, setFocused] = useState(false);
-    const border = error ? 'border-danger/60' : focused ? 'border-gold-line' : 'border-line-strong';
+    const readOnly = props.editable === false;
+    const border = error ? 'border-danger/60' : focused ? 'border-gold-line' : readOnly ? 'border-line' : 'border-line-strong';
     return (
         <View className={className} style={{ gap: 7 }}>
             {label ? <Text variant="small" weight="medium" tone="fg2">{label}</Text> : null}
             <View
-                className={`flex-row bg-s2 border rounded-xl px-3.5 ${border} ${multiline ? 'items-start pt-3' : 'items-center'}`}
+                className={`flex-row border rounded-xl px-3.5 ${readOnly ? 'bg-s1' : 'bg-s2'} ${border} ${multiline ? 'items-start pt-3' : 'items-center'}`}
                 style={{ gap: 10, height: multiline ? (height || 96) : (height || 50) }}
             >
                 {Icon ? <Icon size={18} color={colors.fg3} strokeWidth={ICON_STROKE} /> : null}
@@ -29,10 +30,32 @@ export function TextField({ label, hint, error, icon: Icon, right, prefix, multi
                     {...props}
                     onFocus={(e) => { setFocused(true); onFocus?.(e); }}
                     onBlur={(e) => { setFocused(false); onBlur?.(e); }}
-                    style={[{ flex: 1, color: colors.fg, fontFamily: fonts.regular, fontSize: 15, height: '100%', paddingVertical: 0, outlineStyle: 'none' }, inputStyle]}
+                    style={[{ flex: 1, color: readOnly ? colors.fg2 : colors.fg, fontFamily: fonts.regular, fontSize: 15, height: '100%', paddingVertical: 0, outlineStyle: 'none' }, inputStyle]}
                 />
                 {right}
             </View>
+            {error ? <Text variant="small" tone="danger">{error}</Text> : hint ? <Text variant="small" tone="fg3">{hint}</Text> : null}
+        </View>
+    );
+}
+
+// Dokununca seçim açan alan (şehir, tarih vb.). Görünümü TextField ile aynı.
+export function SelectField({ label, hint, error, icon: Icon, value, placeholder, onPress }) {
+    return (
+        <View style={{ gap: 7 }}>
+            {label ? <Text variant="small" weight="medium" tone="fg2">{label}</Text> : null}
+            <Pressable
+                onPress={onPress}
+                disabled={!onPress}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                className={`flex-row items-center h-[50px] border rounded-xl px-3.5 ${onPress ? 'bg-s2' : 'bg-s1'} ${error ? 'border-danger/60' : onPress ? 'border-line-strong' : 'border-line'}`}
+                style={{ gap: 10 }}
+            >
+                {Icon ? <Icon size={18} color={colors.fg3} strokeWidth={ICON_STROKE} /> : null}
+                <Text tone={value ? (onPress ? 'fg' : 'fg2') : 'fg3'} style={{ flex: 1 }} numberOfLines={1}>{value || placeholder}</Text>
+                {onPress ? <ChevronDown size={18} color={colors.fg3} strokeWidth={ICON_STROKE} /> : null}
+            </Pressable>
             {error ? <Text variant="small" tone="danger">{error}</Text> : hint ? <Text variant="small" tone="fg3">{hint}</Text> : null}
         </View>
     );

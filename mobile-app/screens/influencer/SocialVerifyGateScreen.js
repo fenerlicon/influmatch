@@ -1,21 +1,30 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Pressable, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { ShieldCheck, Instagram, Copy, CheckCircle2, LogOut } from 'lucide-react-native';
+import { Instagram, Music2, Copy, CircleCheck, LogOut, AtSign } from 'lucide-react-native';
 import { signOutAndClearPush } from '../../utils/notifications';
 import { apiRequest } from '../../lib/api';
+import { Screen, StackHeader, Text, Button, IconButton, TextField, Card, colors, ICON_STROKE } from '../../components/ui';
 
 // Zorunlu sosyal hesap doğrulaması (web: /onboarding/verify). Influencer / UGC, Instagram veya TikTok
 // hesaplarından en az birini biyografi koduyla doğrulamadan panele giremez. Kod üretme ve kontrol
 // web'in sunucu uçlarından (/api/mobile/verify-instagram, verify-tiktok) yapılır.
 
 const PLATFORMS = [
-    { id: 'instagram', label: 'Instagram' },
-    { id: 'tiktok', label: 'TikTok' },
+    { id: 'instagram', label: 'Instagram', icon: Instagram },
+    { id: 'tiktok', label: 'TikTok', icon: Music2 },
 ];
+
+function Step({ n, children }) {
+    return (
+        <View className="flex-row items-start" style={{ gap: 12 }}>
+            <View className="w-6 h-6 rounded-full bg-s3 items-center justify-center">
+                <Text variant="caption" weight="semibold" tone="fg2">{n}</Text>
+            </View>
+            <Text tone="fg2" style={{ flex: 1, fontSize: 14 }}>{children}</Text>
+        </View>
+    );
+}
 
 export default function SocialVerifyGateScreen({ navigation }) {
     const [platform, setPlatform] = useState('instagram');
@@ -26,6 +35,7 @@ export default function SocialVerifyGateScreen({ navigation }) {
     const [done, setDone] = useState(false);
 
     const endpoint = platform === 'tiktok' ? 'verify-tiktok' : 'verify-instagram';
+    const platformLabel = platform === 'tiktok' ? 'TikTok' : 'Instagram';
 
     const generate = async () => {
         const clean = username.trim().replace(/^@/, '').toLowerCase();
@@ -59,83 +69,88 @@ export default function SocialVerifyGateScreen({ navigation }) {
         setError(null);
     };
 
-    return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
-            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
-            <SafeAreaView className="flex-1">
-                <ScrollView className="flex-1 px-6" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 24, paddingBottom: 48 }}>
-                    <View className="w-14 h-14 rounded-2xl bg-soft-gold/15 border border-soft-gold/30 items-center justify-center mb-5">
-                        <ShieldCheck color="#D4AF37" size={26} />
-                    </View>
-                    <Text className="text-white text-2xl font-bold mb-2">Hesabını doğrula</Text>
-                    <Text className="text-gray-400 text-sm leading-6 mb-6">
-                        Devam etmek için Instagram veya TikTok hesaplarından en az birinin sana ait olduğunu doğrulaman gerekiyor.
-                        Biyografine geçici bir kod ekleyeceksin; doğrulamadan sonra kodu silebilirsin.
-                    </Text>
+    const signOut = () => signOutAndClearPush().then(() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] }));
 
-                    {done ? (
-                        <View className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-5">
-                            <View className="flex-row items-center gap-2 mb-2">
-                                <CheckCircle2 color="#34d399" size={20} />
-                                <Text className="text-emerald-300 font-bold">Hesabın doğrulandı</Text>
-                            </View>
-                            <Text className="text-gray-300 text-sm mb-4">Artık biyografindeki kodu silebilirsin.</Text>
-                            <TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] })}
-                                className="h-12 rounded-2xl bg-soft-gold items-center justify-center">
-                                <Text className="text-black font-bold">Devam et</Text>
-                            </TouchableOpacity>
-                        </View>
+    return (
+        <Screen
+            scroll
+            keyboard
+            header={<StackHeader title="Hesap doğrulama" right={<IconButton icon={LogOut} onPress={signOut} accessibilityLabel="Çıkış yap" />} />}
+            contentClassName="pt-2"
+        >
+            <View style={{ gap: 6 }}>
+                <Text variant="title">Hesabının sana ait olduğunu doğrula</Text>
+                <Text tone="fg2">Devam etmek için Instagram veya TikTok hesaplarından en az birini doğrulaman gerekiyor. Biyografine geçici bir kod ekleyeceksin.</Text>
+            </View>
+
+            {done ? (
+                <Card className="border-success/40" style={{ gap: 10 }}>
+                    <View className="flex-row items-center" style={{ gap: 8 }}>
+                        <CircleCheck color={colors.success} size={20} strokeWidth={ICON_STROKE} />
+                        <Text weight="semibold" tone="success">Hesabın doğrulandı</Text>
+                    </View>
+                    <Text variant="small" tone="fg2">Artık biyografindeki kodu silebilirsin.</Text>
+                    <Button title="Devam et" onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Dashboard' }] })} block />
+                </Card>
+            ) : (
+                <>
+                    <View className="flex-row" style={{ gap: 10 }}>
+                        {PLATFORMS.map((p) => {
+                            const on = platform === p.id;
+                            return (
+                                <Pressable
+                                    key={p.id}
+                                    onPress={() => switchPlatform(p.id)}
+                                    accessibilityRole="radio"
+                                    accessibilityState={{ selected: on }}
+                                    className={`flex-1 h-14 rounded-[14px] border flex-row items-center justify-center ${on ? 'border-gold-line bg-gold-soft' : 'border-line-strong'}`}
+                                    style={{ gap: 8 }}
+                                >
+                                    <p.icon size={20} color={on ? colors.fg : colors.fg2} strokeWidth={ICON_STROKE} />
+                                    <Text weight="medium" tone={on ? 'fg' : 'fg2'}>{p.label}</Text>
+                                </Pressable>
+                            );
+                        })}
+                    </View>
+
+                    <TextField
+                        label={`${platformLabel} kullanıcı adın`}
+                        icon={AtSign}
+                        placeholder="kullaniciadi"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        value={username}
+                        onChangeText={(v) => { setUsername(v); setCode(''); }}
+                    />
+
+                    {!code ? (
+                        <Button title="Doğrulama kodu al" onPress={generate} loading={busy === 'generate'} disabled={!!busy} block />
                     ) : (
                         <>
-                            <View className="flex-row gap-3 mb-5">
-                                {PLATFORMS.map((p) => (
-                                    <TouchableOpacity key={p.id} onPress={() => switchPlatform(p.id)}
-                                        className={`flex-1 h-11 rounded-2xl border items-center justify-center ${platform === p.id ? 'border-soft-gold bg-soft-gold/15' : 'border-white/10 bg-white/5'}`}>
-                                        <Text className={platform === p.id ? 'text-soft-gold font-bold' : 'text-gray-400 font-semibold'}>{p.label}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                            <Pressable onPress={copyCode} accessibilityRole="button" accessibilityLabel="Kodu kopyala"
+                                className="flex-row items-center justify-between p-4 rounded-[14px] border border-dashed border-gold-line bg-gold-soft">
+                                <View>
+                                    <Text variant="caption" tone="fg3">Doğrulama kodun</Text>
+                                    <Text weight="semibold" tone="champagne" style={{ fontSize: 22, lineHeight: 28, letterSpacing: 2.5 }}>{code}</Text>
+                                </View>
+                                <View className="flex-row items-center h-[34px] px-3 rounded-[9px] bg-s3 border border-line-strong" style={{ gap: 6 }}>
+                                    <Copy size={15} color={colors.fg} strokeWidth={ICON_STROKE} />
+                                    <Text variant="small" weight="medium">Kopyala</Text>
+                                </View>
+                            </Pressable>
+                            <View style={{ gap: 12 }}>
+                                <Step n={1}>Kodu {platformLabel} biyografine ekle ve kaydet.</Step>
+                                <Step n={2}>Buraya dön ve "Doğrula"ya dokun.</Step>
+                                <Step n={3}>Doğrulandıktan sonra kodu silebilirsin.</Step>
                             </View>
-
-                            <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2 ml-1">{platform === 'tiktok' ? 'TikTok' : 'Instagram'} kullanıcı adı</Text>
-                            <View className="flex-row items-center bg-black/30 border border-white/10 rounded-2xl px-4 h-14 mb-4">
-                                {platform === 'instagram' ? <Instagram color="#6b7280" size={16} /> : <Text className="text-gray-500">@</Text>}
-                                <TextInput className="flex-1 text-white text-sm ml-2" value={username} onChangeText={(v) => { setUsername(v); setCode(''); }}
-                                    placeholder="kullaniciadi" placeholderTextColor="#4b5563" autoCapitalize="none" autoCorrect={false} />
-                            </View>
-
-                            {!code ? (
-                                <TouchableOpacity disabled={!!busy} onPress={generate} className="h-12 rounded-2xl bg-soft-gold items-center justify-center">
-                                    {busy === 'generate' ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold">Doğrulama kodu al</Text>}
-                                </TouchableOpacity>
-                            ) : (
-                                <>
-                                    <Text className="text-gray-400 text-sm mb-2">1. Bu kodu {platform === 'tiktok' ? 'TikTok' : 'Instagram'} biyografine ekle ve kaydet:</Text>
-                                    <TouchableOpacity onPress={copyCode} className="flex-row items-center justify-between rounded-2xl border border-soft-gold/40 bg-soft-gold/10 px-4 h-14 mb-4">
-                                        <Text className="text-soft-gold font-bold text-lg tracking-widest">{code}</Text>
-                                        <Copy color="#D4AF37" size={18} />
-                                    </TouchableOpacity>
-                                    <Text className="text-gray-400 text-sm mb-3">2. Ardından doğrula:</Text>
-                                    <TouchableOpacity disabled={!!busy} onPress={verify} className="h-12 rounded-2xl bg-soft-gold items-center justify-center mb-3">
-                                        {busy === 'verify' ? <ActivityIndicator color="black" /> : <Text className="text-black font-bold">Doğrula</Text>}
-                                    </TouchableOpacity>
-                                    <TouchableOpacity disabled={!!busy} onPress={generate} className="h-11 rounded-2xl border border-white/10 items-center justify-center">
-                                        <Text className="text-gray-300 font-semibold text-sm">Yeni kod al</Text>
-                                    </TouchableOpacity>
-                                </>
-                            )}
-
-                            {error && <Text className="text-red-300 text-sm mt-4">{error}</Text>}
+                            <Button title="Doğrula" onPress={verify} loading={busy === 'verify'} disabled={!!busy} block />
+                            <Button title="Yeni kod al" variant="ghost" size="md" onPress={generate} disabled={!!busy} block />
                         </>
                     )}
 
-                    <TouchableOpacity onPress={() => signOutAndClearPush().then(() => navigation.reset({ index: 0, routes: [{ name: 'Login' }] }))}
-                        className="flex-row items-center justify-center gap-2 mt-10">
-                        <LogOut color="#6b7280" size={16} />
-                        <Text className="text-gray-500 text-sm">Çıkış yap</Text>
-                    </TouchableOpacity>
-                </ScrollView>
-            </SafeAreaView>
-        </View>
+                    {error ? <Text variant="small" tone="danger">{error}</Text> : null}
+                </>
+            )}
+        </Screen>
     );
 }

@@ -1,9 +1,58 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Pressable } from 'react-native';
+import { Sparkles, Building2, Check } from 'lucide-react-native';
+import { Screen, StackHeader, BottomBar, Text, Button, colors, ICON_STROKE } from '../components/ui';
+
+const ROLES = [
+    {
+        role: 'influencer',
+        title: 'Influencer / Üretici',
+        subtitle: 'İçerik üretiyorum',
+        icon: Sparkles,
+        features: ['Marka tekliflerini al, değerlendir', 'İlanlara başvur', 'Fiyat kartını ve profilini yönet'],
+    },
+    {
+        role: 'brand',
+        title: 'Marka',
+        subtitle: 'İş birliği arıyorum',
+        icon: Building2,
+        features: ['Influencer keşfet, teklif gönder', 'İlan yayınla, başvuruları yönet'],
+    },
+];
+
+function RoleCard({ item, selected, onPress }) {
+    const Icon = item.icon;
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            className={`rounded-[18px] p-[18px] border ${selected ? 'border-gold-line bg-gold-soft' : 'border-line bg-s1'}`}
+            style={{ gap: 10 }}
+        >
+            <View className="flex-row items-center" style={{ gap: 12 }}>
+                <View className={`w-11 h-11 rounded-xl items-center justify-center ${selected ? 'bg-gold-soft' : 'bg-s3'}`}>
+                    <Icon size={22} color={selected ? colors.gold : colors.fg2} strokeWidth={ICON_STROKE} />
+                </View>
+                <View className="flex-1">
+                    <Text weight="semibold" style={{ fontSize: 17 }}>{item.title}</Text>
+                    <Text variant="small" tone="fg2">{item.subtitle}</Text>
+                </View>
+                <View className={`w-[22px] h-[22px] rounded-full border-[1.5px] items-center justify-center ${selected ? 'border-gold' : 'border-line-strong'}`}>
+                    {selected ? <View className="w-[11px] h-[11px] rounded-full bg-gold" /> : null}
+                </View>
+            </View>
+            <View style={{ gap: 6 }}>
+                {item.features.map((f) => (
+                    <View key={f} className="flex-row items-center" style={{ gap: 8 }}>
+                        <Check size={15} color={colors.fg3} strokeWidth={ICON_STROKE} />
+                        <Text variant="small" tone="fg2" style={{ fontSize: 13.5 }}>{f}</Text>
+                    </View>
+                ))}
+            </View>
+        </Pressable>
+    );
+}
 
 export default function RegisterRoleScreen({ navigation }) {
     const [selectedRole, setSelectedRole] = useState('influencer'); // Varsayılan seçim
@@ -12,109 +61,19 @@ export default function RegisterRoleScreen({ navigation }) {
         navigation.navigate('RegisterForm', { role: selectedRole });
     };
 
-    const RenderCard = ({ role, title, description, features }) => {
-        const isSelected = selectedRole === role;
-
-        return (
-            <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setSelectedRole(role)}
-                className={`rounded-3xl p-6 mb-4 border transition-all ${isSelected ? 'border-soft-gold bg-white/5' : 'border-white/10 bg-transparent'}`}
-            >
-                <View className="flex-row justify-between items-start mb-2">
-                    <View>
-                        <Text className="text-soft-gold/80 text-[10px] font-bold tracking-[4px] uppercase mb-2">HESAP TÜRÜ</Text>
-                        <Text className="text-white text-3xl font-bold">{title}</Text>
-                    </View>
-
-                    {/* Seçim Yuvarlağı */}
-                    <View className={`w-8 h-8 rounded-full items-center justify-center border ${isSelected ? 'bg-soft-gold border-soft-gold' : 'border-white/20'}`}>
-                        {isSelected && <Check size={16} color="black" strokeWidth={3} />}
-                    </View>
-                </View>
-
-                <Text className="text-gray-400 text-sm leading-5 mt-2 mb-6">
-                    {description}
-                </Text>
-
-                {/* Özellik Listesi */}
-                <View className="space-y-3">
-                    {features.map((feature, index) => (
-                        <View key={index} className="flex-row items-center space-x-3">
-                            <View className="w-1.5 h-1.5 rounded-full bg-soft-gold" />
-                            <Text className="text-gray-300 text-sm font-medium">{feature}</Text>
-                        </View>
-                    ))}
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
     return (
-        <View className="flex-1 bg-midnight">
-            <StatusBar style="light" />
-
-            {/* Arka Plan Işığı */}
-            <View className="absolute top-0 w-full h-96 opacity-30">
-                <LinearGradient
-                    colors={['#D4AF37', 'transparent']}
-                    style={{ flex: 1 }}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                />
+        <Screen
+            scroll
+            header={<StackHeader onBack={() => navigation.goBack()} right={<Text variant="caption" tone="fg3">1 / 3</Text>} />}
+            footer={<BottomBar><View className="flex-1"><Button title="Devam et" onPress={handleContinue} block /></View></BottomBar>}
+        >
+            <View style={{ gap: 6 }} className="mb-1.5">
+                <Text variant="display">Nasıl katılıyorsun?</Text>
+                <Text tone="fg2">Hesap türünü seç.</Text>
             </View>
-
-            <SafeAreaView className="flex-1">
-                <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }} showsVerticalScrollIndicator={false}>
-
-                    {/* Header */}
-                    <View className="items-center mb-10">
-                        <Text className="text-soft-gold text-xs font-bold tracking-[4px] uppercase mb-4">BAŞLANGIÇ</Text>
-                        <Text className="text-white text-4xl font-bold text-center mb-4">Rolünüzü Seçin</Text>
-                        <Text className="text-gray-400 text-center text-sm px-4 leading-6">
-                            Influmatch'e nasıl katılmak istersiniz? Size en uygun deneyimi sunabilmemiz için lütfen seçiminizi yapın.
-                        </Text>
-                    </View>
-
-                    {/* Kartlar */}
-                    <RenderCard
-                        role="influencer"
-                        title="Influencer"
-                        description="Markalarla işbirliği yapın, gelirinizi artırın ve kariyerinizi yönetin."
-                        features={[
-                            "Spotlight ile öne çıkın",
-                            "Marka tekliflerini değerlendirin",
-                            "Profesyonel profil yönetimi"
-                        ]}
-                    />
-
-                    <RenderCard
-                        role="brand"
-                        title="Marka"
-                        description="En uygun influencerları bulun, kampanyalar oluşturun ve yönetin."
-                        features={[
-                            "Influencerları keşfedin",
-                            "Kampanya akışını yönetin",
-                            "Proje bazlı anlaşmalar"
-                        ]}
-                    />
-
-                    {/* Alt Kısım */}
-                    <View className="mt-8 items-center">
-                        <Text className="text-gray-300 text-sm mb-6">
-                            Seçilen Rol: <Text className="font-bold text-white">{selectedRole === 'brand' ? 'Marka' : 'Influencer'}</Text>
-                        </Text>
-
-                        <TouchableOpacity
-                            onPress={handleContinue}
-                            className="w-full bg-soft-gold h-14 rounded-full items-center justify-center active:opacity-90 shadow-lg shadow-soft-gold/20"
-                        >
-                            <Text className="text-[#0B0F19] font-bold text-base">Devam Et</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                </ScrollView>
-            </SafeAreaView>
-        </View>
+            {ROLES.map((item) => (
+                <RoleCard key={item.role} item={item} selected={selectedRole === item.role} onPress={() => setSelectedRole(item.role)} />
+            ))}
+        </Screen>
     );
 }

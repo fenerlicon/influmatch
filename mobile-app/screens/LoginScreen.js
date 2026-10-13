@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { resolveHomeRoute, REJECTED_MESSAGE } from '../lib/routing';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { CustomToast } from '../components/CustomToast';
+import { Text, Button, TextField, colors } from '../components/ui';
 
 // Türkçe Hata Mesajları Çevirisi
 function getTurkishErrorMessage(error) {
@@ -82,128 +81,70 @@ export default function LoginScreen({ navigation }) {
         }
     }
 
+    const EyeIcon = showPassword ? EyeOff : Eye;
+
     return (
-        <View className="flex-1 bg-midnight">
-            <StatusBar style="light" />
+        <SafeAreaView className="flex-1 bg-bg">
+            <CustomToast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
 
-            <CustomToast
-                visible={toast.visible}
-                message={toast.message}
-                type={toast.type}
-                onHide={hideToast}
-            />
-
-            {/* Arka Plan Efekti */}
-            <View className="absolute top-0 right-0 h-64 w-64 bg-soft-gold rounded-full opacity-[0.03] blur-3xl -translate-y-10 translate-x-10" />
-            <View className="absolute bottom-0 left-0 h-64 w-64 bg-blue-600 rounded-full opacity-[0.03] blur-3xl translate-y-10 -translate-x-10" />
-
-            {/* KeyboardAvoidingView ile sarmaladık */}
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                className="flex-1"
-                keyboardVerticalOffset={Platform.OS === 'ios' ? -64 : 0}
-            >
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
                 <ScrollView
-                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-                    className="flex-1 px-6"
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 32, gap: 28 }}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    <SafeAreaView className="flex-1 justify-center">
+                    <View style={{ gap: 10 }}>
+                        <Text weight="bold" style={{ fontSize: 30, lineHeight: 36, letterSpacing: 0.3 }}>
+                            INFLU<Text weight="bold" tone="gold" style={{ fontSize: 30, lineHeight: 36, letterSpacing: 0.3 }}>MATCH</Text>
+                        </Text>
+                        <Text variant="display" style={{ fontSize: 40, lineHeight: 42 }}>Türkiye'nin Influencer Pazaryeri</Text>
+                    </View>
 
-                        {/* Header */}
-                        <View className="items-center mb-16">
-                            <View className="flex-row items-center mb-4">
-                                <Text className="text-white text-5xl font-black tracking-tighter uppercase">
-                                    INFLU<Text className="text-soft-gold">MATCH</Text>
-                                </Text>
-                            </View>
-                            <Text className="text-gray-400 text-sm font-medium tracking-wide bg-white/5 px-4 py-1 rounded-full border border-white/5 overflow-hidden">
-                                Türkiye'nin Influencer Pazaryeri
-                            </Text>
-                        </View>
+                    <View style={{ gap: 14 }}>
+                        <TextField
+                            label="E-posta"
+                            icon={Mail}
+                            placeholder="ornek@mail.com"
+                            autoCapitalize="none"
+                            autoComplete="email"
+                            keyboardType="email-address"
+                            textContentType="emailAddress"
+                            value={email}
+                            onChangeText={setEmail}
+                            returnKeyType="next"
+                        />
+                        <TextField
+                            label="Şifre"
+                            icon={Lock}
+                            placeholder="••••••••"
+                            secureTextEntry={!showPassword}
+                            autoCapitalize="none"
+                            autoComplete="password"
+                            textContentType="password"
+                            value={password}
+                            onChangeText={setPassword}
+                            returnKeyType="go"
+                            onSubmitEditing={signInWithEmail}
+                            right={
+                                <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={10} accessibilityLabel={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>
+                                    <EyeIcon size={18} color={colors.fg3} />
+                                </Pressable>
+                            }
+                        />
+                        <Text variant="small" tone="fg2" style={{ textAlign: 'right' }} onPress={() => navigation.navigate('ForgotPassword')} suppressHighlighting>
+                            Şifremi unuttum
+                        </Text>
+                    </View>
 
-                        {/* Form */}
-                        <View className="space-y-6">
-
-                            <View className="space-y-2">
-                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">E-Posta</Text>
-                                <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl px-4 h-14 space-x-3 focus:border-soft-gold/50 transition-all">
-                                    <Mail color="#6B7280" size={20} />
-                                    <TextInput
-                                        className="flex-1 text-white font-medium h-full"
-                                        placeholder="ornek@mail.com"
-                                        placeholderTextColor="#4B5563"
-                                        autoCapitalize="none"
-                                        value={email}
-                                        onChangeText={setEmail}
-                                    />
-                                </View>
-                            </View>
-
-                            <View className="space-y-2">
-                                <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider ml-1">Şifre</Text>
-                                <View className="flex-row items-center bg-surface border border-white/10 rounded-2xl px-4 h-14 space-x-3 focus:border-soft-gold/50 transition-all">
-                                    <Lock color="#6B7280" size={20} />
-                                    <TextInput
-                                        className="flex-1 text-white font-medium h-full"
-                                        placeholder="******"
-                                        placeholderTextColor="#4B5563"
-                                        secureTextEntry={!showPassword}
-                                        autoCapitalize="none"
-                                        value={password}
-                                        onChangeText={setPassword}
-                                    />
-                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={10}>
-                                        {showPassword ? (
-                                            <EyeOff color="#6B7280" size={20} />
-                                        ) : (
-                                            <Eye color="#6B7280" size={20} />
-                                        )}
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            <TouchableOpacity
-                                className="items-end"
-                                onPress={() => navigation.navigate('ForgotPassword')}
-                            >
-                                <Text className="text-gray-400 text-xs font-medium">Şifremi Unuttum?</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                activeOpacity={0.9}
-                                onPress={signInWithEmail}
-                                disabled={loading}
-                                className="overflow-hidden rounded-2xl mt-4 shadow-lg shadow-soft-gold/10"
-                            >
-                                <LinearGradient
-                                    colors={['#D4AF37', '#B4932C']}
-                                    className="h-14 items-center justify-center flex-row space-x-2"
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator color="black" />
-                                    ) : (
-                                        <>
-                                            <Text className="text-[#0B0F19] font-bold text-lg">Giriş Yap</Text>
-                                            <ArrowRight color="#0B0F19" size={20} strokeWidth={2.5} />
-                                        </>
-                                    )}
-                                </LinearGradient>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Footer */}
-                        <View className="flex-row justify-center mt-12 mb-10 items-center space-x-1">
-                            <Text className="text-gray-500 font-medium">Hesabın yok mu?</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('RegisterRole')}>
-                                <Text className="text-soft-gold font-bold">Kayıt Ol</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </SafeAreaView>
+                    <View style={{ gap: 14 }}>
+                        <Button title="Giriş yap" onPress={signInWithEmail} loading={loading} block />
+                        <Text variant="small" tone="fg2" style={{ textAlign: 'center' }}>
+                            Hesabın yok mu?{' '}
+                            <Text variant="small" weight="medium" tone="gold" onPress={() => navigation.navigate('RegisterRole')} suppressHighlighting>Kayıt ol</Text>
+                        </Text>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </View>
+        </SafeAreaView>
     );
 }
-

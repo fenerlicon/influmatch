@@ -61,6 +61,14 @@ export const navigationRef = createNavigationContainerRef();
 // ─── Components ───────────────────────────────────────────────────────────────
 import FeedbackBanner from './components/FeedbackBanner';
 
+// Geliştirme: simülatörde ?screen=EkranAdı oturumdan bağımsız o ekranı açar (görünüm kontrolü için; veriler yine oturuma bağlı).
+const DEV_SCREEN = __DEV__ && Platform.OS === 'web' && typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('screen')
+  : null;
+
+// MVP bandının gösterilmediği giriş/kayıt/doğrulama ekranları
+const AUTH_ROUTES = new Set(['Login', 'ForgotPassword', 'RegisterRole', 'RegisterForm', 'VerifyEmail', 'Onboarding', 'SocialVerifyGate', 'BrandVerification']);
+
 // ─── Tema (components/ui/theme.js) ────────────────────────────────────────────
 const AppTheme = {
   ...DarkTheme,
@@ -115,6 +123,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [initialRoute, setInitialRoute] = useState('Login');
   const [session, setSession] = useState(null);
+  const [currentRoute, setCurrentRoute] = useState(null);
   const [fontsLoaded, fontError] = useFonts({
     Geist_400Regular, Geist_500Medium, Geist_600SemiBold, Geist_700Bold,
     InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic,
@@ -213,10 +222,15 @@ export default function App() {
     <SafeAreaProvider>
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <StatusBar style="light" />
-      <FeedbackBanner navigation={navigationRef} />
-      <NavigationContainer theme={AppTheme} ref={navigationRef}>
+      <FeedbackBanner navigation={navigationRef} hidden={AUTH_ROUTES.has(currentRoute ?? initialRoute)} />
+      <NavigationContainer
+        theme={AppTheme}
+        ref={navigationRef}
+        onReady={() => setCurrentRoute(navigationRef.getCurrentRoute()?.name)}
+        onStateChange={() => setCurrentRoute(navigationRef.getCurrentRoute()?.name)}
+      >
         <Stack.Navigator
-          initialRouteName={initialRoute}
+          initialRouteName={DEV_SCREEN || initialRoute}
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.bg },
@@ -227,8 +241,8 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="RegisterRole" component={RegisterRoleScreen} />
-          <Stack.Screen name="RegisterForm" component={RegisterFormScreen} />
-          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+          <Stack.Screen name="RegisterForm" component={RegisterFormScreen} initialParams={DEV_SCREEN ? { role: 'influencer' } : undefined} />
+          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} initialParams={DEV_SCREEN ? { email: 'ornek@mail.com' } : undefined} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="SocialVerifyGate" component={SocialVerifyGateScreen} options={{ gestureEnabled: false }} />
 
