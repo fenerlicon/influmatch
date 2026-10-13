@@ -1,64 +1,26 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Building2, Mail, Phone, Globe, Camera, LogOut, ChevronRight, Shield, FileText, HelpCircle, Edit3, Check, X, Send, Settings } from 'lucide-react-native';
+import { View, Alert, ActivityIndicator, Pressable, Linking } from 'react-native';
+import { Camera, LogOut, ShieldCheck, FileText, LifeBuoy, Settings, Pencil, Award, Sparkles, ExternalLink } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { signOutAndClearPush } from '../../utils/notifications';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import { useFocusEffect } from '@react-navigation/native';
-import { StackHeader } from '../../components/ui';
+import {
+    Screen, StackHeader, Section, Text, Button, IconButton, ListGroup, ListRow, IconBox, Avatar, Chip, TextField, Sheet, colors, ICON_STROKE,
+} from '../../components/ui';
 import { decode } from 'base64-arraybuffer';
 import { apiRequest } from '../../lib/api';
 import SupportTicketForm from '../../components/SupportTicketForm';
 
-// ─── Design ───────────────────────────────────────────────────────────────────
-const GlassCard = ({ children, className }) => (
-    <View className={`rounded-[24px] overflow-hidden border border-white/10 relative ${className}`}>
-        <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="absolute inset-0" />
-        {children}
-    </View>
-);
-
-const SectionLabel = ({ title }) => (
-    <Text className="text-soft-gold/70 text-[10px] font-bold tracking-widest mt-6 mb-3 ml-1">{title}</Text>
-);
-
-const InfoRow = ({ label, value, last, editing, edit, onEditChange, onStartEdit, onSave, onCancel }) => (
-    <View className={`px-5 py-4 flex-row items-center justify-between ${!last ? 'border-b border-white/[0.06]' : ''}`}>
-        <View className="flex-1 mr-4">
-            <Text className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">{label}</Text>
-            {editing ? (
-                <View className="flex-row items-center gap-2">
-                    <TextInput
-                        className="flex-1 text-white text-sm bg-black/20 border border-white/10 rounded-xl px-3 py-2"
-                        value={edit}
-                        onChangeText={onEditChange}
-                        autoFocus
-                        placeholderTextColor="#4b5563"
-                    />
-                    <TouchableOpacity onPress={onSave} className="w-8 h-8 bg-green-500/15 rounded-xl items-center justify-center border border-green-500/25">
-                        <Check color="#4ade80" size={15} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={onCancel} className="w-8 h-8 bg-red-500/10 rounded-xl items-center justify-center border border-red-500/20">
-                        <X color="#f87171" size={15} />
-                    </TouchableOpacity>
-                </View>
-            ) : (
-                <Text className="text-white text-sm font-medium" numberOfLines={2}>
-                    {value || <Text className="text-gray-600 italic">Belirtilmemiş</Text>}
-                </Text>
-            )}
-        </View>
-        {!editing && (
-            <TouchableOpacity onPress={onStartEdit} className="w-8 h-8 bg-white/5 rounded-xl items-center justify-center border border-white/10">
-                <Edit3 color="#9ca3af" size={14} />
-            </TouchableOpacity>
-        )}
-    </View>
-);
+// Düzenlenebilir marka bilgileri (web marka profil formuyla aynı alanlar; kayıt /api/mobile/profile)
+const FIELDS = [
+    { label: 'Marka adı', field: 'full_name' },
+    { label: 'Şirket unvanı', field: 'company_legal_name' },
+    { label: 'Şehir', field: 'city' },
+    { label: 'İnternet sitesi', field: 'website' },
+    { label: 'Marka açıklaması', field: 'bio' },
+];
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function BrandProfileScreen({ navigation }) {
@@ -187,190 +149,84 @@ export default function BrandProfileScreen({ navigation }) {
     const isVerified = profile?.verification_status === 'verified';
 
     if (loading) {
-        return (
-            <View className="flex-1 bg-[#020617] items-center justify-center">
-                <StatusBar style="light" />
-                <ActivityIndicator color="#D4AF37" size="large" />
-            </View>
-        );
+        return <View className="flex-1 bg-bg items-center justify-center"><ActivityIndicator color={colors.gold} size="large" /></View>;
     }
 
-    const initials = (profile?.company_legal_name || profile?.full_name || '?').substring(0, 2).toUpperCase();
+    const name = profile?.full_name || profile?.company_legal_name || 'Marka';
+    const fieldLabel = FIELDS.find((f) => f.field === editField)?.label;
 
     return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
-            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
-            <View className="absolute top-0 right-0 w-72 h-72 bg-soft-gold/4 rounded-full blur-[80px]" />
-
-            <SafeAreaView className="flex-1">
-                {/* Marka profili sekme değil, üst sağdaki avatardan açılır (yeni tasarım tamamlanana kadar geçici başlık) */}
-                <StackHeader title="Marka profili" onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
-                <ScrollView className="flex-1 px-6 pt-2" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-
-                    {/* ── Hero ── */}
-                    <View className="items-center pt-8 pb-6" style={{ zIndex: 10 }}>
-                        <View className="relative mb-4" style={{ zIndex: 10 }}>
-                            <TouchableOpacity
-                                onPress={pickAvatar}
-                                activeOpacity={0.7}
-                                className="w-24 h-24 rounded-full bg-[#1A1D24] border-2 border-soft-gold/40 items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.2)]"
-                                style={{ zIndex: 1 }}
-                            >
-                                {profile?.avatar_url
-                                    ? <Image source={{ uri: `${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}t=${Date.now()}` }} className="w-full h-full" resizeMode="cover" />
-                                    : <Text className="text-white text-3xl font-black">{initials}</Text>}
-
-                                {saving && (
-                                    <View className="absolute inset-0 bg-black/60 items-center justify-center">
-                                        <ActivityIndicator color="#D4AF37" size="small" />
-                                    </View>
-                                )}
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={pickAvatar}
-                                activeOpacity={0.8}
-                                className="absolute bottom-0 right-0 w-8 h-8 bg-soft-gold rounded-full items-center justify-center border-2 border-[#020617] shadow-lg"
-                                style={{ zIndex: 100 }}
-                            >
-                                <Camera size={14} color="black" />
-                            </TouchableOpacity>
-
-                            {isVerified && (
-                                <View
-                                    className="absolute -top-1 -right-1 w-7 h-7 bg-blue-500 rounded-full items-center justify-center border-2 border-[#020617]"
-                                    style={{ zIndex: 100 }}
-                                >
-                                    <Shield color="white" size={13} />
-                                </View>
-                            )}
-                        </View>
-
-                        <Text className="text-white text-2xl font-black tracking-tight">
-                            {profile?.company_legal_name || profile?.full_name || 'Marka'}
-                        </Text>
-                        <Text className="text-gray-500 text-sm mt-1">@{profile?.username}</Text>
-
-                        {isVerified && (
-                            <View className="mt-3 flex-row items-center gap-2 bg-blue-500/10 border border-blue-500/25 px-4 py-2 rounded-full">
-                                <Shield color="#60a5fa" size={13} />
-                                <Text className="text-blue-300 text-xs font-bold">Doğrulanmış Marka</Text>
-                            </View>
-                        )}
+        <Screen
+            scroll
+            keyboard
+            header={<StackHeader title="Marka profili" onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} right={<IconButton icon={Settings} onPress={() => navigation.navigate('Settings')} accessibilityLabel="Ayarlar" />} />}
+        >
+            <View className="items-center" style={{ gap: 10 }}>
+                <Pressable onPress={pickAvatar} accessibilityRole="button" accessibilityLabel="Logoyu değiştir">
+                    <Avatar name={name} uri={profile?.avatar_url} size="xl" square />
+                    <View className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gold border-2 border-bg items-center justify-center">
+                        {saving ? <ActivityIndicator size="small" color={colors.goldInk} /> : <Camera size={15} color={colors.goldInk} strokeWidth={2} />}
                     </View>
+                </Pressable>
+                <Text variant="heading">{name}</Text>
+                <Chip label={isVerified ? 'Doğrulanmış marka' : 'Doğrulama bekliyor'} tone={isVerified ? 'success' : 'warning'} dot />
+            </View>
 
-                    {/* ── Contact & Company Info ── */}
-                    <SectionLabel title="ŞİRKET BİLGİLERİ" />
-                    <GlassCard>
-                        {[
-                            // Web marka profil formuyla aynı alanlar (Marka Adı = full_name).
-                            { label: 'Marka Adı', field: 'full_name', icon: null },
-                            { label: 'Şirket Ünvanı', field: 'company_legal_name', icon: Building2 },
-                            { label: 'Şehir', field: 'city', icon: null },
-                            { label: 'İnternet Sitesi', field: 'website', icon: Globe },
-                        ].map((row, i, arr) => (
-                            <InfoRow
-                                key={row.field}
-                                label={row.label}
-                                value={profile?.[row.field]}
-                                last={i === arr.length - 1}
-                                editing={editField === row.field}
-                                edit={editValue}
-                                onEditChange={setEditValue}
-                                onStartEdit={() => startEdit(row.field, profile?.[row.field])}
-                                onSave={saveField}
-                                onCancel={() => setEditField(null)}
-                            />
-                        ))}
-                    </GlassCard>
-
-                    <Text className="text-gray-600 text-[11px] mt-2 ml-2 leading-4">Bilgilerinizi düzenlemek için sağdaki kalem ikonuna dokunun.</Text>
-
-                    {/* ── Bio ── */}
-                    <SectionLabel title="HAKKINDA" />
-                    <GlassCard>
-                        <InfoRow
-                            label="Marka Açıklaması"
-                            value={profile?.bio}
-                            last
-                            editing={editField === 'bio'}
-                            edit={editValue}
-                            onEditChange={setEditValue}
-                            onStartEdit={() => startEdit('bio', profile?.bio)}
-                            onSave={saveField}
-                            onCancel={() => setEditField(null)}
+            <Section title="Bilgiler">
+                <ListGroup>
+                    {FIELDS.map((row) => (
+                        <ListRow
+                            key={row.field}
+                            onPress={() => startEdit(row.field, profile?.[row.field])}
+                            title={<Text variant="caption" tone="fg3">{row.label}</Text>}
+                            subtitle={<Text tone={profile?.[row.field] ? 'fg' : 'fg3'} numberOfLines={2}>{profile?.[row.field] || 'Belirtilmemiş'}</Text>}
+                            right={<Pencil size={16} color={colors.fg3} strokeWidth={ICON_STROKE} />}
                         />
-                    </GlassCard>
+                    ))}
+                </ListGroup>
+            </Section>
 
-                    {/* ── Verification ── */}
-                    {!isVerified && (
-                        <>
-                            <SectionLabel title="DOĞRULAMA" />
-                            <GlassCard className="border border-amber-500/20">
-                                <LinearGradient colors={['rgba(245,158,11,0.07)', 'transparent']} className="absolute inset-0" />
-                                <TouchableOpacity className="px-5 py-4 flex-row items-center gap-4" onPress={() => navigation.navigate('BrandVerification')}>
-                                    <View className="w-10 h-10 bg-amber-500/15 rounded-xl border border-amber-500/25 items-center justify-center">
-                                        <Shield color="#fbbf24" size={18} />
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className="text-amber-300 font-bold text-sm">İşletmeni Doğrula</Text>
-                                        <Text className="text-gray-500 text-xs mt-0.5">Güven rozeti ve özellikler için</Text>
-                                    </View>
-                                    <ChevronRight color="#4b5563" size={16} />
-                                </TouchableOpacity>
-                            </GlassCard>
-                        </>
-                    )}
+            <Section title="Hesap">
+                <ListGroup>
+                    <ListRow
+                        onPress={() => navigation.navigate('BrandVerification')}
+                        left={<IconBox icon={ShieldCheck} tone={isVerified ? 'success' : 'warning'} />}
+                        title="İşletme doğrulama"
+                        subtitle="Kurumsal kimlik, kurumsal e-posta, vergi levhası"
+                        right={isVerified ? <Chip label="Onaylı" tone="success" /> : null}
+                        chevron
+                    />
+                    <ListRow onPress={() => navigation.navigate('Badges')} left={<IconBox icon={Award} />} title="Rozetler" chevron />
+                    <ListRow onPress={() => navigation.navigate('Spotlight')} left={<IconBox icon={Sparkles} tone="gold" />} title="Spotlight" subtitle="Akıllı eşleştirme ve öne çıkma" chevron />
+                </ListGroup>
+            </Section>
 
-                    {/* ── Settings / Support / Docs ── */}
-                    <SectionLabel title="AYARLAR VE DESTEK" />
-                    <GlassCard>
-                        <TouchableOpacity className="px-5 py-4 flex-row items-center gap-4 border-b border-white/[0.06]"
-                            onPress={() => navigation.navigate('Settings')}>
-                            <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center border border-white/[0.07]">
-                                <Settings color="#9ca3af" size={17} />
-                            </View>
-                            <Text className="text-white font-semibold text-sm flex-1">Ayarlar</Text>
-                            <ChevronRight color="#4b5563" size={16} />
-                        </TouchableOpacity>
+            <Section title="Destek">
+                <ListGroup>
+                    <ListRow onPress={() => setSupportOpen(true)} left={<IconBox icon={LifeBuoy} />} title="Destek talebi" chevron />
+                    <ListRow onPress={() => Linking.openURL('https://influmatch.net/legal?tab=terms').catch(() => null)} left={<IconBox icon={FileText} />} title="Koşullar ve gizlilik" right={<ExternalLink size={16} color={colors.fg3} strokeWidth={ICON_STROKE} />} />
+                </ListGroup>
+            </Section>
 
-                        <TouchableOpacity onPress={() => setSupportOpen(v => !v)} activeOpacity={0.7}
-                            className={`flex-row items-center px-5 py-4 ${!supportOpen ? 'border-b border-white/[0.06]' : ''}`}>
-                            <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center border border-white/[0.07]">
-                                <HelpCircle color="#9CA3AF" size={17} />
-                            </View>
-                            <View className="flex-1 ml-4">
-                                <Text className="text-white font-semibold text-sm">Yardım & Destek Talebi</Text>
-                            </View>
-                            <ChevronRight color="#4B5563" size={18}
-                                style={{ transform: [{ rotate: supportOpen ? '90deg' : '0deg' }] }} />
-                        </TouchableOpacity>
+            <Button title="Çıkış yap" icon={LogOut} variant="danger" onPress={handleLogout} block />
+            <Text variant="caption" tone="fg3" style={{ textAlign: 'center' }}>Influmatch · sürüm 1.0</Text>
 
-                        {supportOpen && <SupportTicketForm onSent={() => setSupportOpen(false)} />}
+            <Sheet visible={!!editField} onClose={() => setEditField(null)} title={fieldLabel}>
+                <TextField
+                    value={editValue}
+                    onChangeText={setEditValue}
+                    multiline={editField === 'bio'}
+                    autoCapitalize={editField === 'website' ? 'none' : 'sentences'}
+                    keyboardType={editField === 'website' ? 'url' : 'default'}
+                    autoFocus
+                />
+                {editField === 'company_legal_name' ? <Text variant="caption" tone="fg3">Onaylı markada yasal bilgileri değiştirmek onayı yeniden incelemeye alır.</Text> : null}
+                <Button title="Kaydet" onPress={saveField} loading={saving} block />
+            </Sheet>
 
-                        <TouchableOpacity className={`px-5 py-4 flex-row items-center gap-4 ${supportOpen ? 'border-t border-white/[0.06]' : ''}`}
-                            onPress={() => Alert.alert('Koşullar', 'influmatch.net/terms adresinden erişebilirsiniz.')}>
-                            <View className="w-9 h-9 bg-white/5 rounded-xl items-center justify-center border border-white/[0.07]">
-                                <FileText color="#9ca3af" size={17} />
-                            </View>
-                            <Text className="text-white font-semibold text-sm flex-1">Kullanım Koşulları</Text>
-                            <ChevronRight color="#4b5563" size={16} />
-                        </TouchableOpacity>
-                    </GlassCard>
-
-                    <View className="h-12" />
-
-                    {/* ── Logout ── */}
-                    <TouchableOpacity onPress={handleLogout} activeOpacity={0.7}
-                        className="bg-red-500/8 border border-red-500/20 py-3 rounded-2xl flex-row items-center justify-center">
-                        <LogOut color="#EF4444" size={24} style={{ marginRight: 10 }} />
-                        <Text className="text-red-500 font-bold text-sm" style={{ includeFontPadding: false, textAlignVertical: 'center' }}>Çıkış Yap</Text>
-                    </TouchableOpacity>
-
-                    <Text className="text-gray-700 text-[11px] text-center mt-8 mb-4">InfluMatch v1.0 · influmatch.net</Text>
-                </ScrollView>
-            </SafeAreaView>
-        </View>
+            <Sheet visible={supportOpen} onClose={() => setSupportOpen(false)} title="Destek talebi" scroll>
+                <SupportTicketForm onSent={() => setSupportOpen(false)} />
+            </Sheet>
+        </Screen>
     );
 }
