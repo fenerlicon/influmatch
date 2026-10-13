@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Influencer Ana Sayfa — Influmatch</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .ring { --p: 80; width: 76px; height: 76px; border-radius: 50%; flex: none;
+    background: conic-gradient(var(--gold) calc(var(--p) * 1%), var(--surface-3) 0); display: grid; place-items: center; }
+  .ring span { width: 62px; height: 62px; border-radius: 50%; background: var(--surface-1); display: grid; place-items: center; font-weight: 600; font-size: 17px; }
+  .check { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 13px; }
+  .check i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; flex: none; border: 1px solid var(--line-strong); }
+  .check i svg { width: 11px; height: 11px; }
+  .check.done { color: var(--text-3); }
+  .check.done i { background: var(--success-soft); border-color: transparent; color: var(--success); }
+  .check.next { color: var(--text); font-weight: 500; }
+  .check.next i { border-color: var(--gold); }
+  .next-step { padding: 14px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
+  .mini { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .stage { font-size: 12px; color: var(--text-3); }
+  .stepper { display: flex; gap: 3px; margin-top: 8px; }
+  .stepper i { height: 3px; flex: 1; border-radius: 9px; background: var(--surface-3); }
+  .stepper i.on { background: var(--gold); }
+  .ad-row .price { font-weight: 600; }
+  .notices { display: grid; gap: 8px; margin-bottom: 22px; }
+  .more-notice { font-size: 12.5px; color: var(--text-3); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- KENAR ÇUBUĞU: gruplu menü, Rozetler profile taşındı, Teklifler + İş Birlikleri = İşler -->
+  <aside class="side">
+    <div class="logo">INFLU<b>MATCH</b></div>
+    <nav class="nav">
+      <a class="active" href="#"><i data-lucide="home"></i>Ana Sayfa</a>
+      <a href="isler.html"><i data-lucide="briefcase"></i>İşler<span class="badge">3</span></a>
+      <a href="#"><i data-lucide="message-square"></i>Mesajlar<span class="badge">2</span></a>
+      <div class="nav-group"><div class="eyebrow">Fırsatlar</div>
+        <a href="#"><i data-lucide="megaphone"></i>İlanlar</a>
+        <a href="#"><i data-lucide="compass"></i>Keşfet</a>
+      </div>
+      <div class="nav-group"><div class="eyebrow">Ben</div>
+        <a href="#"><i data-lucide="user-round"></i>Profilim</a>
+        <a href="#"><i data-lucide="line-chart"></i>İstatistikler</a>
+      </div>
+    </nav>
+    <div class="side-foot">
+      <div class="spot-mini">
+        <div class="hstack" style="color:var(--gold);font-weight:600;font-size:13px"><i data-lucide="sparkles" style="width:14px;height:14px"></i>Spotlight</div>
+        <div class="small muted" style="margin-top:4px">Vitrinde öne çık, profil görüntülenmelerini gör.</div>
+      </div>
+      <nav class="nav"><a href="#"><i data-lucide="settings"></i>Ayarlar</a></nav>
+      <div class="me"><div class="av a1">EY</div><div style="min-width:0"><div style="font-weight:500;font-size:13px">Elif Yıldız</div><div class="faint small">@elifyildiz</div></div><i data-lucide="log-out" style="width:15px;margin-left:auto;color:var(--text-3)"></i></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div class="crumb"><b>Ana Sayfa</b></div>
+      <div class="search"><i data-lucide="search"></i>İlan, marka veya iş ara<span class="kbd">/</span></div>
+      <button class="btn btn-ghost btn-icon bell" aria-label="Bildirimler"><i data-lucide="bell"></i></button>
+    </header>
+
+    <div class="content">
+      <!-- TEK BİLDİRİM ALANI: en önemli uyarı görünür, diğerleri sayı olarak -->
+      <div class="notices">
+        <div class="notice notice-warning">
+          <div class="ic"><i data-lucide="mail"></i></div>
+          <div class="grow"><b style="font-weight:500">E-posta adresini doğrula.</b> <span class="muted">Teklif ve iş bildirimleri bu adrese gelecek.</span></div>
+          <span class="more-notice">+1 bildirim</span>
+          <button class="btn btn-secondary btn-sm">Bağlantıyı tekrar gönder</button>
+        </div>
+      </div>
+
+      <div class="page-head">
+        <div>
+          <h1 class="h1">İyi akşamlar, Elif</h1>
+          <p class="muted">3 teklif yanıtını bekliyor, bir işin teslim tarihi 2 gün sonra.</p>
+        </div>
+        <div class="hstack">
+          <a class="btn btn-secondary" href="#"><i data-lucide="eye"></i>Profilimi gör</a>
+          <a class="btn btn-secondary" href="#"><i data-lucide="megaphone"></i>İlanlara göz at</a>
+        </div>
+      </div>
+
+      <div class="grid g4" style="margin-bottom:16px">
+        <div class="card stat"><div class="eyebrow">Bekleyen teklif</div><div class="v">3</div><div class="d">2'si bu hafta geldi</div></div>
+        <div class="card stat"><div class="eyebrow">Süren iş</div><div class="v">2</div><div class="d">1 teslim yaklaşıyor</div></div>
+        <div class="card stat"><div class="eyebrow">Tamamlanan iş</div><div class="v">7</div><div class="d">Profilinde görünür</div></div>
+        <div class="card stat"><div class="eyebrow">Profil görüntülenme</div><div class="v">128</div><div class="d">Son 30 gün · Spotlight</div></div>
+      </div>
+
+      <div class="split">
+        <div class="stack">
+          <!-- Yanıt bekleyen teklifler -->
+          <section class="card">
+            <div class="card-head">
+              <div><h2 class="h2">Yanıt bekleyen teklifler</h2><div class="faint small">Yanıtlanmayan teklif 7 gün sonra düşer.</div></div>
+              <a class="btn btn-ghost btn-sm" href="isler.html">Tümü<i data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="row">
+              <div class="av av-sq a3">NK</div>
+              <div class="grow">
+                <div class="title">Nara Kahve · Sonbahar menüsü lansmanı</div>
+                <div class="faint small">1 Reels + 3 Story · <span class="num">₺12.000</span> nakit</div>
+              </div>
+              <span class="chip chip-warning"><span class="dot"></span>2 gün kaldı</span>
+              <div class="actions">
+                <button class="btn btn-ghost btn-sm">Reddet</button>
+                <button class="btn btn-secondary btn-sm">Markayla görüş</button>
+                <button class="btn btn-primary btn-sm">Kabul et</button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="av av-sq a4">LV</div>
+              <div class="grow">
+                <div class="title">Lova Cilt Bakım · UGC ürün videosu</div>
+                <div class="faint small">2 UGC video · Barter + <span class="num">₺4.000</span></div>
+              </div>
+              <span class="chip"><span class="dot"></span>5 gün kaldı</span>
+              <div class="actions">
+                <button class="btn btn-ghost btn-sm">Reddet</button>
+                <button class="btn btn-secondary btn-sm">Markayla görüş</button>
+                <button class="btn btn-primary btn-sm">Kabul et</button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="av av-sq a2">PT</div>
+              <div class="grow">
+                <div class="title">Pati Mama · Yeni ürün tanıtımı</div>
+                <div class="faint small">1 gönderi · <span class="num">₺6.500</span> nakit</div>
+              </div>
+              <span class="chip"><span class="dot"></span>6 gün kaldı</span>
+              <div class="actions">
+                <button class="btn btn-ghost btn-sm">Reddet</button>
+                <button class="btn btn-secondary btn-sm">Markayla görüş</button>
+                <button class="btn btn-primary btn-sm">Kabul et</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Süren işler -->
+          <section class="card">
+            <div class="card-head"><h2 class="h2">Süren işler</h2><a class="btn btn-ghost btn-sm" href="isler.html">İşlere git<i data-lucide="arrow-right"></i></a></div>
+            <div class="row">
+              <div class="av av-sq a5">MD</div>
+              <div class="grow">
+                <div class="title">Moda Dükkân · Kış koleksiyonu</div>
+                <div class="stage">İçerik hazırlanıyor · Taslak teslimi <b style="color:var(--warning);font-weight:500">15 Ekim</b> · Revize 0 / 2</div>
+                <div class="stepper"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+              </div>
+              <button class="btn btn-secondary btn-sm">Taslak linki ekle</button>
+            </div>
+            <div class="row">
+              <div class="av av-sq a6">YB</div>
+              <div class="grow">
+                <div class="title">Yeşil Bahçe · Ev bitkileri serisi</div>
+                <div class="stage">Yayında, onay bekliyor · Marka 7 gün içinde yanıt vermezse tamamlanır</div>
+                <div class="stepper"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+              </div>
+              <button class="btn btn-ghost btn-sm">Ayrıntı</button>
+            </div>
+          </section>
+
+          <!-- İlan önerileri -->
+          <section class="card">
+            <div class="card-head"><div><h2 class="h2">Sana uygun yeni ilanlar</h2><div class="faint small">Kategorine ve fiyat kartına göre</div></div><a class="btn btn-ghost btn-sm" href="#">İlanlar<i data-lucide="arrow-right"></i></a></div>
+            <div class="row ad-row">
+              <div class="av av-sq a1">GL</div>
+              <div class="grow"><div class="title">Glow Lab · Nemlendirici deneyim videosu</div><div class="faint small">Güzellik & Bakım · Instagram · 18 başvuru</div></div>
+              <div class="price num">₺5.000–8.000</div>
+              <button class="btn btn-ghost btn-sm btn-icon" aria-label="Kaydet"><i data-lucide="bookmark"></i></button>
+            </div>
+            <div class="row ad-row">
+              <div class="av av-sq a4">TR</div>
+              <div class="grow"><div class="title">Trendo · Hafta sonu kombin serisi</div><div class="faint small">Moda & Stil · TikTok · 9 başvuru</div></div>
+              <div class="price num">₺3.500</div>
+              <button class="btn btn-ghost btn-sm btn-icon" aria-label="Kaydet"><i data-lucide="bookmark"></i></button>
+            </div>
+          </section>
+        </div>
+
+        <!-- HESAP DURUMU: doluluk + ilk adımlar + güven skoru + mavi tik tek kartta -->
+        <aside class="stack">
+          <section class="card card-pad">
+            <div class="between">
+              <div><div class="eyebrow">Hesap durumu</div><h2 class="h2" style="margin-top:6px">Neredeyse hazırsın</h2></div>
+              <div class="ring" style="--p:80"><span class="num">%80</span></div>
+            </div>
+            <div class="next-step" style="margin-top:16px">
+              <div class="faint small">Sıradaki adım</div>
+              <div style="font-weight:500;margin:3px 0 10px">Fiyat kartını doldur</div>
+              <div class="small muted" style="margin-bottom:12px">Doğrulanmış markalar başlangıç fiyatını görür, bütçe filtresinde çıkarsın.</div>
+              <button class="btn btn-secondary btn-sm">Fiyat kartını aç<i data-lucide="arrow-right"></i></button>
+            </div>
+            <div style="margin-top:12px">
+              <div class="check done"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></i>Instagram hesabı doğrulandı</div>
+              <div class="check done"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></i>Profil fotoğrafı ve biyografi</div>
+              <div class="check done"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></i>Kategori ve şehir</div>
+              <div class="check next"><i></i>Fiyat kartı</div>
+              <div class="check"><i></i>TikTok hesabını da doğrula <span class="chip" style="margin-left:auto">İsteğe bağlı</span></div>
+            </div>
+            <div class="mini"><span class="muted">Güven skoru</span><span class="num" style="font-weight:600">72 <span class="faint">/ 100</span></span></div>
+            <div class="mini"><span class="muted hstack"><svg class="tick" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 2.1 3.1-.4.9 3 2.7 1.6-1 3 1 3-2.7 1.6-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3-2.7-1.6 1-3-1-3 2.7-1.6.9-3 3.1.4z"/><path d="M8 12l3 3 5-6" stroke="#0C0D10" stroke-width="2" fill="none"/></svg>Mavi tik</span><span class="small muted">3 koşuldan 2'si tamam</span></div>
+          </section>
+
+          <section class="card card-pad card-accent">
+            <div class="hstack" style="color:var(--gold);font-weight:600"><i data-lucide="sparkles" style="width:16px"></i>Spotlight</div>
+            <p class="small muted" style="margin:8px 0 14px">Vitrinde öncelikli listelen, seni kimin incelediğini gör, ilan alarmlarını anında al.</p>
+            <a class="btn btn-secondary btn-sm" href="#">Paketleri gör</a>
+          </section>
+
+          <div class="faint small" style="padding:0 4px">Influmatch MVP sürümünde. <a href="#" style="color:var(--text-2);text-decoration:underline;text-underline-offset:3px">Geri bildirim gönder</a></div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav class="mobile-tabbar">
+  <a class="active" href="#"><i data-lucide="home"></i>Ana Sayfa</a>
+  <a href="isler.html"><i data-lucide="briefcase"></i>İşler</a>
+  <a href="#"><i data-lucide="megaphone"></i>İlanlar</a>
+  <a href="#"><i data-lucide="message-square"></i>Mesajlar</a>
+  <a href="#"><i data-lucide="menu"></i>Menü</a>
+</nav>
+
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -48,6 +48,16 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
 - Köşe: 8 / 12 / 16 + tam yuvarlak. Gölge: tek, hafif. İkon: yalnızca lucide.
 - Ortak bileşenler: Button, Card, Badge/Chip, Input/Select/Textarea, Modal, Tabs, PageHeader, EmptyState, Notice (bant), StatCard, Avatar, Table.
 
+## OpenDesign projesi
+
+- Proje: **Influmatch Yeni Görünüm** (`influmatch-yeni-gorunum`, OpenDesign yerel çalışma alanı). Kopyası repoda `design/redesign/` (tarayıcıda `tasarim-sistemi.html` ile aç).
+- Dosyalar: `styles.css` (tokenlar + bileşenler, koda taşınacak kaynak), `tasarim-sistemi.html` (giriş + bileşen vitrini),
+  `ana-sayfa.html`, `influencer-ana-sayfa.html`, `isler.html` (marka), `marka-kesfet.html`. Mobil görünüm (alt sekme çubuğu) dahil.
+- Yazı tipi (2026-10-13, kullanıcı serbest bıraktı): başlıklar **Instrument Serif**, arayüz **Geist** (ikisi de `next/font/google`'da var).
+- Altın buton kuralı: ana eylem; sayfa başlığında en fazla bir, listelerde satırın kendi ana eylemi.
+- Ana sayfa önerisi: "Doğru influencer'ı bul. Aracısız çalış." + "Ücretsiz başla". "Komisyonsuz anlaşma" satırı mevcut sitedeki
+  "komisyon yok" iddiasından alındı; kullanıcı onayı gerekir (kural 7).
+
 ## Aşamalar
 
 0. **OpenDesign:** tasarım sistemi + ana ekranlar (ana sayfa, giriş/kayıt, iki rol ana sayfası, İşler, keşif, profil, mesajlar, ayarlar, bir admin ekranı). Kullanıcı onayı.

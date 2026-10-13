@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keşfet — Influmatch</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0 18px; }
+  .fbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; border-radius: var(--r-sm); background: var(--surface-1); border: 1px solid var(--line-strong); font-size: 12.5px; color: var(--text-2); }
+  .fbtn svg { width: 14px; height: 14px; }
+  .fbtn.on { color: var(--text); border-color: var(--gold-line); background: var(--gold-soft); }
+  .fbtn.on b { color: var(--gold); font-weight: 500; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .pc { padding: 16px; display: flex; flex-direction: column; gap: 14px; transition: border-color .15s; }
+  .pc:hover { border-color: var(--line-strong); }
+  .pc .head { display: flex; gap: 12px; align-items: center; }
+  .pc .head .hstack { flex-wrap: wrap; }
+  .pc .name { font-weight: 600; display: flex; align-items: center; gap: 5px; }
+  .pc .sub { font-size: 12px; color: var(--text-3); }
+  .pc .fav { margin-left: auto; align-self: flex-start; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: var(--r-md); }
+  .metrics div { padding: 9px 10px; }
+  .metrics div + div { border-left: 1px solid var(--line); }
+  .metrics .k { font-size: 11px; color: var(--text-3); }
+  .metrics .v { font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 1px; }
+  .pc .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+  .match { font-size: 12px; color: var(--text-2); display: flex; gap: 6px; align-items: center; }
+  .match b { color: var(--gold); font-weight: 600; }
+  .pf { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; color: var(--text-2); }
+  .pf svg { width: 13px; height: 13px; }
+  .reason { font-size: 12px; color: var(--text-3); border-top: 1px dashed var(--line-strong); padding-top: 10px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="logo">INFLU<b>MATCH</b></div>
+    <nav class="nav">
+      <a href="#"><i data-lucide="home"></i>Ana Sayfa</a>
+      <a class="active" href="#"><i data-lucide="compass"></i>Keşfet</a>
+      <a href="#"><i data-lucide="megaphone"></i>İlanlar<span class="badge">4</span></a>
+      <a href="isler.html"><i data-lucide="briefcase"></i>İşler</a>
+      <a href="#"><i data-lucide="message-square"></i>Mesajlar<span class="badge">1</span></a>
+      <div class="nav-group"><div class="eyebrow">Marka</div>
+        <a href="#"><i data-lucide="building-2"></i>Profilim</a>
+      </div>
+    </nav>
+    <div class="side-foot">
+      <div class="spot-mini">
+        <div class="hstack" style="color:var(--gold);font-weight:600;font-size:13px"><i data-lucide="sparkles" style="width:14px;height:14px"></i>Spotlight Pro</div>
+        <div class="small muted" style="margin-top:4px">28 Kasım'a kadar aktif</div>
+      </div>
+      <nav class="nav"><a href="#"><i data-lucide="settings"></i>Ayarlar</a></nav>
+      <div class="me"><div class="av av-sq a3">NK</div><div style="min-width:0"><div style="font-weight:500;font-size:13px">Nara Kahve</div><div class="faint small">Marka hesabı</div></div><i data-lucide="log-out" style="width:15px;margin-left:auto;color:var(--text-3)"></i></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div class="crumb"><b>Keşfet</b></div>
+      <div class="search"><i data-lucide="search"></i>İsim, @kullanıcı adı veya kategori<span class="kbd">/</span></div>
+      <button class="btn btn-ghost btn-icon bell" aria-label="Bildirimler"><i data-lucide="bell"></i></button>
+    </header>
+
+    <div class="content" style="max-width:1320px">
+      <div class="page-head" style="margin-bottom:14px">
+        <div>
+          <h1 class="h1">Keşfet</h1>
+          <p class="muted">Yalnızca doğrulanmış Instagram veya TikTok hesabı olan profiller listelenir.</p>
+        </div>
+      </div>
+
+      <!-- Eskiden ayrı sayfalar: /brand/discover, /brand/ai (menüde yoktu), /brand/favorites (menüde yoktu) -->
+      <div class="tabs">
+        <a class="tab active" href="#">Tümü <span class="count num">1.240</span></a>
+        <a class="tab" href="#"><i data-lucide="wand-sparkles" style="width:14px"></i>Önerilenler</a>
+        <a class="tab" href="#"><i data-lucide="heart" style="width:14px"></i>Favoriler ve Listeler <span class="count num">18</span></a>
+      </div>
+
+      <div class="filters">
+        <button class="fbtn on"><i data-lucide="tag"></i>Kategori: <b>Yeme & İçme</b><i data-lucide="x"></i></button>
+        <button class="fbtn"><i data-lucide="map-pin"></i>Şehir</button>
+        <button class="fbtn"><i data-lucide="users"></i>Takipçi</button>
+        <button class="fbtn"><i data-lucide="activity"></i>Etkileşim</button>
+        <button class="fbtn on"><i data-lucide="wallet"></i>Bütçem: <b>₺10.000'e kadar</b><i data-lucide="x"></i></button>
+        <button class="fbtn"><i data-lucide="video"></i>Influencer / UGC</button>
+        <span style="margin-left:auto" class="hstack faint small">Sırala
+          <select class="select" style="height:32px;width:auto;padding:0 8px"><option>Önerilen</option><option>Takipçi</option><option>Etkileşim</option></select>
+        </span>
+      </div>
+
+      <div class="cards">
+        <!-- Kart -->
+        <article class="card pc">
+          <div class="head">
+            <div class="av av-lg a1">EY</div>
+            <div style="min-width:0">
+              <div class="name">Elif Yıldız <svg class="tick" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 2.1 3.1-.4.9 3 2.7 1.6-1 3 1 3-2.7 1.6-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3-2.7-1.6 1-3-1-3 2.7-1.6.9-3 3.1.4z"/></svg></div>
+              <div class="sub">@elifyildiz · İstanbul</div>
+              <div class="hstack" style="margin-top:6px;gap:6px"><span class="chip">Yeme & İçme</span><span class="chip chip-gold">Spotlight</span></div>
+            </div>
+            <button class="btn btn-ghost btn-icon btn-sm fav" aria-label="Favori"><i data-lucide="heart"></i></button>
+          </div>
+          <div class="metrics">
+            <div><div class="k">Takipçi</div><div class="v">48,2B</div></div>
+            <div><div class="k">Etkileşim</div><div class="v">%4,8</div></div>
+            <div><div class="k">Tamamlanan</div><div class="v">7 iş</div></div>
+          </div>
+          <div class="foot">
+            <div><div class="faint small">Başlangıç</div><div style="font-weight:600" class="num">₺6.000'den</div></div>
+            <div class="hstack"><span class="pf"><i data-lucide="instagram"></i></span><span class="pf"><i data-lucide="music-2"></i></span><a class="btn btn-secondary btn-sm" href="#">Profil</a><button class="btn btn-primary btn-sm">Teklif</button></div>
+          </div>
+        </article>
+
+        <article class="card pc">
+          <div class="head">
+            <div class="av av-lg a2">SD</div>
+            <div style="min-width:0">
+              <div class="name">Selin Demir</div>
+              <div class="sub">@selindemir · İzmir</div>
+              <div class="hstack" style="margin-top:6px;gap:6px"><span class="chip">Yeme & İçme</span><span class="chip">UGC</span></div>
+            </div>
+            <button class="btn btn-ghost btn-icon btn-sm fav" aria-label="Favori" style="color:var(--gold)"><i data-lucide="heart" fill="currentColor"></i></button>
+          </div>
+          <div class="metrics">
+            <div><div class="k">Takipçi</div><div class="v">12,9B</div></div>
+            <div><div class="k">Etkileşim</div><div class="v">%7,1</div></div>
+            <div><div class="k">Tamamlanan</div><div class="v">3 iş</div></div>
+          </div>
+          <div class="foot">
+            <div><div class="faint small">Başlangıç</div><div style="font-weight:600" class="num">₺2.500'den</div></div>
+            <div class="hstack"><span class="pf"><i data-lucide="music-2"></i></span><a class="btn btn-secondary btn-sm" href="#">Profil</a><button class="btn btn-primary btn-sm">Teklif</button></div>
+          </div>
+        </article>
+
+        <article class="card pc">
+          <div class="head">
+            <div class="av av-lg a4">CK</div>
+            <div style="min-width:0">
+              <div class="name">Can Kaya <svg class="tick" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 2.1 3.1-.4.9 3 2.7 1.6-1 3 1 3-2.7 1.6-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3-2.7-1.6 1-3-1-3 2.7-1.6.9-3 3.1.4z"/></svg></div>
+              <div class="sub">@cankaya · Ankara</div>
+              <div class="hstack" style="margin-top:6px;gap:6px"><span class="chip">Yeme & İçme</span><span class="chip">UGC & Influencer</span></div>
+            </div>
+            <button class="btn btn-ghost btn-icon btn-sm fav" aria-label="Favori"><i data-lucide="heart"></i></button>
+          </div>
+          <div class="metrics">
+            <div><div class="k">Takipçi</div><div class="v">96,4B</div></div>
+            <div><div class="k">Etkileşim</div><div class="v">%3,2</div></div>
+            <div><div class="k">Tamamlanan</div><div class="v">11 iş</div></div>
+          </div>
+          <div class="foot">
+            <div><div class="faint small">Başlangıç</div><div style="font-weight:600" class="num">₺9.500'den</div></div>
+            <div class="hstack"><span class="pf"><i data-lucide="instagram"></i></span><a class="btn btn-secondary btn-sm" href="#">Profil</a><button class="btn btn-primary btn-sm">Teklif</button></div>
+          </div>
+        </article>
+
+        <article class="card pc">
+          <div class="head">
+            <div class="av av-lg a6">ZT</div>
+            <div style="min-width:0">
+              <div class="name">Zeynep Tan</div>
+              <div class="sub">@zeynepmutfakta · Bursa</div>
+              <div class="hstack" style="margin-top:6px;gap:6px"><span class="chip">Yeme & İçme</span></div>
+            </div>
+            <button class="btn btn-ghost btn-icon btn-sm fav" aria-label="Favori"><i data-lucide="heart"></i></button>
+          </div>
+          <div class="metrics">
+            <div><div class="k">Takipçi</div><div class="v">31,7B</div></div>
+            <div><div class="k">Etkileşim</div><div class="v">%5,4</div></div>
+            <div><div class="k">Tamamlanan</div><div class="v">—</div></div>
+          </div>
+          <div class="foot">
+            <div><div class="faint small">Başlangıç</div><div class="faint">Fiyat kartı yok</div></div>
+            <div class="hstack"><span class="pf"><i data-lucide="instagram"></i></span><a class="btn btn-secondary btn-sm" href="#">Profil</a><button class="btn btn-primary btn-sm">Teklif</button></div>
+          </div>
+        </article>
+
+        <!-- Önerilenler sekmesindeki kart örneği: eşleşme nedeni görünür -->
+        <article class="card pc" style="border-color:var(--gold-line)">
+          <div class="head">
+            <div class="av av-lg a5">BA</div>
+            <div style="min-width:0">
+              <div class="name">Berk Aslan</div>
+              <div class="sub">@berkaslan · İstanbul</div>
+              <div class="hstack" style="margin-top:6px;gap:6px"><span class="chip">Yaşam Tarzı</span></div>
+            </div>
+            <button class="btn btn-ghost btn-icon btn-sm fav" aria-label="Favori"><i data-lucide="heart"></i></button>
+          </div>
+          <div class="metrics">
+            <div><div class="k">Takipçi</div><div class="v">22,1B</div></div>
+            <div><div class="k">Etkileşim</div><div class="v">%6,0</div></div>
+            <div><div class="k">Tamamlanan</div><div class="v">4 iş</div></div>
+          </div>
+          <div class="reason"><span class="match">Uyum <b>%86</b></span> Sektörünle eşleşen kategori, bütçene uygun fiyat kartı.</div>
+          <div class="foot">
+            <div><div class="faint small">Başlangıç</div><div style="font-weight:600" class="num">₺4.000'den</div></div>
+            <div class="hstack"><span class="pf"><i data-lucide="instagram"></i></span><a class="btn btn-secondary btn-sm" href="#">Profil</a><button class="btn btn-primary btn-sm">Teklif</button></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="between" style="margin-top:20px">
+        <span class="faint small">1.240 profilden 1–24 arası</span>
+        <div class="hstack"><button class="btn btn-secondary btn-sm"><i data-lucide="chevron-left"></i>Önceki</button><button class="btn btn-secondary btn-sm">Sonraki<i data-lucide="chevron-right"></i></button></div>
+      </div>
+    </div>
+  </main>
+</div>
+<nav class="mobile-tabbar">
+  <a href="#"><i data-lucide="home"></i>Ana Sayfa</a>
+  <a class="active" href="#"><i data-lucide="compass"></i>Keşfet</a>
+  <a href="isler.html"><i data-lucide="briefcase"></i>İşler</a>
+  <a href="#"><i data-lucide="message-square"></i>Mesajlar</a>
+  <a href="#"><i data-lucide="menu"></i>Menü</a>
+</nav>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
