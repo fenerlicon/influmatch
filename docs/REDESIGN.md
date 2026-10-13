@@ -126,4 +126,8 @@ Her aşama mevcut akışla: dal → PR → Vercel önizlemesi READY → birleşt
   `mobil.css` (mobil kalıplar), `mobil.js` (durum ve sekme çubukları). Kopyası repoda `design/mobile/` (tarayıcıda `index.html`).
 - Kullanıcı onayı bekleyen metin/iş kararları tasarımda not olarak işaretli: giriş başlığı ("aracısız"), Spotlight fiyat ve içeriği.
 - Açık soru: influencer'ın web'deki "Keşfet" (vitrin) sayfası mobilde 5 sekmeye sığmıyor; şimdilik sekme değil.
+- Durum (2026-10-14): ✅ temel bileşenler (#68), giriş/kayıt (#69), influencer ekranları (#70, #72), marka ekranları (#74),
+  ortak ekranlar (Mesajlar + sohbet, iş birliği detayı, Ayarlar, Geri bildirim; Bildirimler #72'de). Mesaj listesinde her sohbetin
+  bağlı işi (Teklif / Başvuru / Aktif iş) ve okunmamış sayısı; Ayarlar'da web ile aynı e-posta tercihleri
+  (`lib/email-preferences.ts`, `/api/mobile/email-preferences`). Sırada: oturumlu akışlar toplu testte.
 

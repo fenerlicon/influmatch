@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
+import { saveEmailPreferences } from '@/lib/email-preferences'
 
 export interface EmailNotificationSettings {
   offers: boolean
@@ -28,15 +29,9 @@ export async function updateEmailNotifications(
       return { success: false, error: 'Yetkisiz erişim' }
     }
 
-    const { error } = await supabase
-      .from('users')
-      .update({ email_notifications: settings })
-      .eq('id', userId)
-
-    if (error) {
-      console.error('[updateEmailNotifications] error:', error)
-      return { success: false, error: 'Ayarlar kaydedilemedi. Lütfen tekrar deneyin.' }
-    }
+    // Ortak kod (lib/email-preferences.ts): yalnızca bilinen anahtarlar yazılır; mobil uç da aynısını kullanır.
+    const result = await saveEmailPreferences(supabase, userId, settings)
+    if ('error' in result) return { success: false, error: result.error }
 
     revalidatePath('/dashboard/influencer/settings')
     revalidatePath('/dashboard/brand/settings')
