@@ -28,6 +28,10 @@ export default async function SpotlightSelectionPage() {
 
     const role = userData?.role || 'influencer' // Fallback to influencer
 
+    // Rol belliyken iki paketi gösterip birini kilitlemek gereksiz adım (docs/REDESIGN.md); admin ikisini de görür.
+    if (role === 'influencer') redirect('/dashboard/spotlight/influencer')
+    if (role === 'brand') redirect('/dashboard/spotlight/brand')
+
     return (
         <div className="min-h-[80vh] space-y-12 py-10">
             <header className="mx-auto max-w-3xl text-center">

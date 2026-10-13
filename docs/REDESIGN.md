@@ -61,7 +61,7 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
 - Yazı tipi (2026-10-13, kullanıcı serbest bıraktı): başlıklar **Instrument Serif**, arayüz **Geist** (ikisi de `next/font/google`'da var).
 - Altın buton kuralı: ana eylem; sayfa başlığında en fazla bir, listelerde satırın kendi ana eylemi.
 - Ana sayfa önerisi: "Doğru influencer'ı bul. Aracısız çalış." + "Ücretsiz başla". "Komisyonsuz anlaşma" satırı mevcut sitedeki
-  "komisyon yok" iddiasından alındı; kullanıcı onayı gerekir (kural 7).
+  "komisyon yok" iddiasından alındı; kullanıcı 2026-10-13'te onayladı ("Komisyonsuz kalsın").
 
 ## Aşamalar
 
@@ -78,7 +78,18 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
    - Modal: portal, Esc, dışarı tıklama, odak tuzağı, kaydırma kilidi, kapanınca odak geri döner; geri alınamaz onayda odak "Vazgeç"te.
      Yerel önizlemede elle denendi.
    - Kural: taşınan/yeni sayfada elle renk (`bg-[#...]`), elle köşe ve emoji ikon yazılmaz; yalnızca bu bileşenler ve tokenlar.
-2. **Kabuk:** kenar çubuğu, üst çubuk, mobil gezinme, tek bildirim alanı; profil panel içinde.
+2. ✅ **Kabuk** (2026-10-13): `components/shell/AppShell.tsx` (kenar çubuğu, üst çubuk, mobil alt sekme çubuğu + "Menü" çekmecesi),
+   menü tanımı `components/shell/nav-config.ts` (rol bazlı, gruplu), kullanıcı bilgisi `lib/shell-user.ts`.
+   - Tek bildirim alanı `components/shell/ShellNotices.tsx`: e-posta doğrulama → sosyal hesap eksik → onay bekleniyor; en önemlisi görünür,
+     diğerleri "+N bildirim". MVP notu kenar çubuğunun altında (bildirim alanını meşgul etmesin diye).
+   - Profil (`/profile/*`) `app/profile/layout.tsx` ile panel kabuğunda açılıyor; giriş zorunluluğu aynı.
+   - Spotlight menüsü doğrudan rolün paket sayfasına gider; `/dashboard/spotlight` influencer/markayı yönlendirir, admin iki paketi görür.
+   - Menü şimdilik mevcut sayfalara gider: Teklifler ve İş Birlikleri ayrı (3. aşamada "İşler"), Rozetler menüde (3. aşamada profile).
+     Marka menüsüne Favoriler eklendi (önceden menüde yoktu); `/dashboard/brand/ai` Keşfet altında etkin görünür.
+   - Kaldırılan eski dosyalar: DashboardSidebar, DashboardHeader, SidebarLink, SettingsButton, EmailVerificationBanner,
+     IncompleteProfileBanner, MVPBanner, PageTransition. Arama kutusu eklenmedi (arkasında çalışan arama yok).
+   - Panel sayfaları giriş gerektirdiği ve yerel sunucu canlı veritabanına bağlı olduğu için kabuk, sahte kullanıcılı geçici bir
+     yerel sayfada (commit edilmedi) masaüstü ve 375 px'te denendi.
 3. **Panel sayfaları** (rol rol), İşler birleşmesi, terim temizliği, ölü arayüz temizliği.
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding.
 5. **Admin paneli.**
