@@ -1,10 +1,18 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Instrument_Serif } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
 import { Toaster } from 'sonner'
 import CookieConsent from '@/components/consent/CookieConsent'
 import AuthProvider from '@/components/providers/AuthProvider'
 
-const inter = Inter({ subsets: ['latin'] })
+// Başlık yazı tipi; arayüz Geist (tailwind font-sans / font-display)
+const display = Instrument_Serif({
+  subsets: ['latin', 'latin-ext'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+  display: 'swap',
+})
 
 export const metadata = {
   title: 'Influmatch | Ücretsiz Influencer Bulma Platformu & Arama Motoru',
@@ -49,14 +57,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="tr">
+    <html lang="tr" className={`${GeistSans.variable} ${display.variable}`}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans">
         <AuthProvider>
           {children}
           <Toaster position="top-center" richColors />
