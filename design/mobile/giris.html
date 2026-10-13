@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giriş ve Kayıt — Influmatch Mobil</title>
+<link rel="stylesheet" href="mobil.css">
+<style>
+  .brand-hero { display: grid; gap: 10px; padding: 0 4px; }
+  .brand-hero .logo-big { font-weight: 700; font-size: 30px; letter-spacing: .01em; }
+  .brand-hero .logo-big b { color: var(--gold); }
+  .brand-hero h1 { font-family: var(--font-display); font-weight: 400; font-size: 40px; line-height: 1.02; margin: 6px 0 0; letter-spacing: -0.015em; }
+  .brand-hero h1 em { color: var(--champagne); }
+  .role-card { padding: 18px; border-radius: 18px; background: var(--surface-1); border: 1px solid var(--line); display: grid; gap: 10px; }
+  .role-card.on { border-color: var(--gold-line); background: linear-gradient(180deg, var(--gold-soft), transparent 80%), var(--surface-1); }
+  .role-card .top { display: flex; align-items: center; gap: 12px; }
+  .role-card .ricon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-2); }
+  .role-card.on .ricon { background: var(--gold-soft); color: var(--gold); }
+  .role-card .ricon svg { width: 22px; height: 22px; }
+  .radio { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-strong); margin-left: auto; display: grid; place-items: center; }
+  .role-card.on .radio { border-color: var(--gold); }
+  .role-card.on .radio::after { content: ''; width: 11px; height: 11px; border-radius: 50%; background: var(--gold); }
+  .role-card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13.5px; color: var(--text-2); }
+  .role-card li { display: flex; gap: 8px; align-items: center; }
+  .role-card li svg { width: 15px; height: 15px; color: var(--text-3); }
+  .big-ic { width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center; background: var(--surface-1); border: 1px solid var(--line); color: var(--gold); }
+  .big-ic svg { width: 32px; height: 32px; }
+  .code-box { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-radius: 14px; border: 1px dashed var(--gold-line); background: var(--gold-soft); }
+  .code-box .code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 22px; letter-spacing: .12em; font-weight: 600; color: var(--champagne); }
+  .num-step { width: 24px; height: 24px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-size: 12px; font-weight: 600; flex: none; color: var(--text-2); }
+  .how { display: grid; gap: 12px; }
+  .how .row { align-items: flex-start; font-size: 14px; }
+  .how .row span:last-child { color: var(--text-2); }
+  .upload { border: 1px dashed var(--line-strong); border-radius: 14px; padding: 18px; display: flex; gap: 12px; align-items: center; background: var(--surface-1); }
+  .cats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .progress-top { display: flex; gap: 6px; padding: 0 20px; flex: none; }
+  .progress-top i { height: 4px; flex: 1; border-radius: 9px; background: var(--surface-3); }
+  .progress-top i.on { background: var(--gold); }
+  .platform { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .platform a { height: 56px; border-radius: 14px; border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; color: var(--text-2); }
+  .platform a.on { border-color: var(--gold-line); background: var(--gold-soft); color: var(--text); }
+  .platform svg { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <div>
+      <h1>Giriş, kayıt <em>ve</em> doğrulama</h1>
+      <p>Hesap doğrulaması zorunlu: influencer sosyal hesabını biyografi koduyla, marka vergi levhası ve kurumsal e-postasıyla doğrular. Doğrulamadan panele girilmez (web ile aynı kural).</p>
+    </div>
+    <nav class="board-nav">
+      <a href="index.html">Tasarım sistemi</a><a class="active" href="giris.html">Giriş · Kayıt</a><a href="influencer.html">Influencer</a><a href="marka.html">Marka</a><a href="ortak.html">Ortak</a>
+    </nav>
+  </div>
+
+  <div class="section-title"><h2>Giriş</h2></div>
+  <div class="screens">
+
+    <!-- GİRİŞ -->
+    <div class="screen">
+      <div class="screen-label"><b>Giriş</b><span>LoginScreen</span></div>
+      <div class="phone">
+        <div class="body center" style="padding-bottom:40px; gap:28px">
+          <div class="brand-hero">
+            <div class="logo-big">INFLU<b>MATCH</b></div>
+            <h1>Markalar ve üreticiler, <em>aracısız</em> buluşur.</h1>
+          </div>
+          <div class="col" style="gap:14px">
+            <div class="field"><span class="label">E-posta</span><div class="minput focus"><i data-lucide="mail"></i><span class="val">deniz@ornek.com</span></div></div>
+            <div class="field"><span class="label">Şifre</span><div class="minput"><i data-lucide="lock"></i><span class="ph">••••••••</span><i data-lucide="eye"></i></div></div>
+            <div style="text-align:right"><a class="small muted">Şifremi unuttum</a></div>
+          </div>
+          <div class="col" style="gap:14px">
+            <a class="mbtn primary block">Giriş yap</a>
+            <div class="small muted" style="text-align:center">Hesabın yok mu? <a class="link">Kayıt ol</a></div>
+          </div>
+        </div>
+      </div>
+      <p class="note"><b>Değişen:</b> "MVP" bandı giriş ekranından kalktı (panelde tek bildirim alanına taşındı). Başlık metni örnektir; kesin metin onayla (kural 7).</p>
+    </div>
+
+    <!-- ŞİFREMİ UNUTTUM -->
+    <div class="screen">
+      <div class="screen-label"><b>Şifremi unuttum</b><span>ForgotPasswordScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title"></span><span style="width:44px"></span></div>
+        <div class="body" style="gap:22px; padding-top:12px">
+          <div class="big-ic"><i data-lucide="key-round"></i></div>
+          <div class="col" style="gap:6px">
+            <h1 class="serif" style="font-size:32px; margin:0">Şifreni sıfırla</h1>
+            <span class="muted">Hesabına bağlı e-postayı yaz, sıfırlama bağlantısı gönderelim.</span>
+          </div>
+          <div class="field"><span class="label">E-posta</span><div class="minput focus"><i data-lucide="mail"></i><span class="val">deniz@ornek.com</span></div></div>
+          <a class="mbtn primary block">Bağlantı gönder</a>
+          <div class="notice info"><div class="ic"><i data-lucide="info"></i></div><div class="grow"><span>Bağlantı birkaç dakika içinde gelmezse spam klasörüne bak.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Kayıt</h2><span>Rol → bilgiler → e-posta doğrulama</span></div>
+  <div class="screens">
+
+    <!-- ROL SEÇİMİ -->
+    <div class="screen">
+      <div class="screen-label"><b>Rol seçimi</b><span>RegisterRoleScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title"></span><span class="xs faint" style="width:44px; text-align:right">1 / 3</span></div>
+        <div class="body" style="gap:16px">
+          <div class="col" style="gap:6px; margin-bottom:6px">
+            <h1 class="serif" style="font-size:34px; margin:0">Nasıl katılıyorsun?</h1>
+            <span class="muted">Rolünü daha sonra değiştiremezsin.</span>
+          </div>
+          <div class="role-card on">
+            <div class="top"><div class="ricon"><i data-lucide="sparkles"></i></div><div><div class="b" style="font-size:17px">Influencer / Üretici</div><div class="small muted">İçerik üretiyorum</div></div><span class="radio"></span></div>
+            <ul><li><i data-lucide="check"></i>Marka tekliflerini al, değerlendir</li><li><i data-lucide="check"></i>İlanlara başvur</li><li><i data-lucide="check"></i>Fiyat kartını ve profilini yönet</li></ul>
+          </div>
+          <div class="role-card">
+            <div class="top"><div class="ricon"><i data-lucide="building-2"></i></div><div><div class="b" style="font-size:17px">Marka</div><div class="small muted">İş birliği arıyorum</div></div><span class="radio"></span></div>
+            <ul><li><i data-lucide="check"></i>Influencer keşfet, teklif gönder</li><li><i data-lucide="check"></i>İlan yayınla, başvuruları yönet</li></ul>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Devam et</a></div>
+      </div>
+    </div>
+
+    <!-- KAYIT FORMU -->
+    <div class="screen">
+      <div class="screen-label"><b>Kayıt formu</b><span>RegisterFormScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title"></span><span class="xs faint" style="width:44px; text-align:right">2 / 3</span></div>
+        <div class="body" style="gap:14px">
+          <div class="col" style="gap:6px; margin-bottom:4px">
+            <h1 class="serif" style="font-size:32px; margin:0">Hesabını oluştur</h1>
+            <span class="muted">Influencer olarak kaydoluyorsun.</span>
+          </div>
+          <div class="field"><span class="label">Ad soyad</span><div class="minput"><span class="val">Deniz Aksoy</span></div></div>
+          <div class="field"><span class="label">Kullanıcı adı</span><div class="minput focus"><i data-lucide="at-sign"></i><span class="val">denizaksoy</span><i data-lucide="circle-check" style="color:var(--success)"></i></div><span class="hint">Kullanıcı adı sonradan değiştirilemez.</span></div>
+          <div class="field"><span class="label">E-posta</span><div class="minput"><span class="val">deniz@ornek.com</span></div></div>
+          <div class="field"><span class="label">Şifre</span><div class="minput"><span class="ph">En az 8 karakter</span><i data-lucide="eye"></i></div></div>
+          <div class="row small" style="align-items:flex-start; gap:12px; margin-top:4px">
+            <span class="toggle on" style="width:22px; height:22px; border-radius:6px; flex:none"></span>
+            <span class="muted"><a class="link">Kullanım koşulları</a> ve <a class="link">gizlilik politikasını</a> okudum, kabul ediyorum.</span>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Kayıt ol</a></div>
+      </div>
+      <p class="note">Onay kutusu toggle değil kare onay kutusu olarak kodlanır (görselde sadeleştirildi).</p>
+    </div>
+
+    <!-- E-POSTA DOĞRULAMA -->
+    <div class="screen">
+      <div class="screen-label"><b>E-posta doğrulama</b><span>VerifyEmailScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><span style="width:44px"></span><span class="title"></span><span class="xs faint" style="width:44px; text-align:right">3 / 3</span></div>
+        <div class="body center" style="gap:22px; padding-bottom:40px; text-align:center; align-items:center">
+          <div class="big-ic"><i data-lucide="mail-check"></i></div>
+          <div class="col" style="gap:8px; align-items:center">
+            <h1 class="serif" style="font-size:32px; margin:0">E-postanı kontrol et</h1>
+            <span class="muted" style="max-width:290px"><b style="color:var(--text); font-weight:500">deniz@ornek.com</b> adresine bir doğrulama bağlantısı gönderdik. Bağlantıya dokununca uygulama devam eder.</span>
+          </div>
+          <div class="col" style="width:100%; gap:10px; margin-top:8px">
+            <a class="mbtn primary block">E-posta uygulamasını aç</a>
+            <a class="mbtn secondary block">Doğruladım, devam et</a>
+          </div>
+          <span class="small faint">Gelmedi mi? <span class="muted">Tekrar gönder (0:42)</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Onboarding ve hesap doğrulama</h2><span>Doğrulama bitmeden panel açılmaz</span></div>
+  <div class="screens">
+
+    <!-- ONBOARDING -->
+    <div class="screen">
+      <div class="screen-label"><b>Onboarding — profil</b><span>OnboardingScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><span style="width:44px"></span><span class="title small muted" style="font-weight:500">Profilini tamamla</span><a class="small muted" style="width:44px; text-align:right">Atla</a></div>
+        <div class="progress-top"><i class="on"></i><i class="on"></i><i></i></div>
+        <div class="body" style="gap:16px; padding-top:18px">
+          <div class="col" style="gap:6px">
+            <h1 class="serif" style="font-size:30px; margin:0">Ne üretiyorsun?</h1>
+            <span class="muted">Markalar seni bu bilgilere göre bulur.</span>
+          </div>
+          <div class="field"><span class="label">Kategoriler <span class="faint">(en fazla 3)</span></span>
+            <div class="cats">
+              <span class="fchip on">Güzellik</span><span class="fchip on">Moda</span><span class="fchip">Yemek</span><span class="fchip">Seyahat</span><span class="fchip">Teknoloji</span><span class="fchip on">Yaşam</span><span class="fchip">Spor</span><span class="fchip">Oyun</span><span class="fchip">Anne-çocuk</span>
+            </div>
+          </div>
+          <div class="field"><span class="label">Şehir</span><div class="minput"><i data-lucide="map-pin"></i><span class="val">İstanbul</span><i data-lucide="chevron-down"></i></div></div>
+          <div class="field"><span class="label">Kısa tanıtım</span><div class="minput area"><span class="val small" style="line-height:1.5">Günlük cilt bakımı ve sade stil üzerine içerik üretiyorum.</span></div><span class="hint" style="text-align:right">58 / 300</span></div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Devam et</a></div>
+      </div>
+    </div>
+
+    <!-- HESAP DOĞRULAMA KAPISI -->
+    <div class="screen">
+      <div class="screen-label"><b>Hesap doğrulama (influencer)</b><span>SocialVerifyGateScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><span style="width:44px"></span><span class="title small muted" style="font-weight:500">Hesap doğrulama</span><a class="icon-btn"><i data-lucide="log-out"></i></a></div>
+        <div class="progress-top"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+        <div class="body" style="gap:16px; padding-top:18px">
+          <div class="col" style="gap:6px">
+            <h1 class="serif" style="font-size:30px; margin:0">Hesabının sana ait olduğunu doğrula</h1>
+          </div>
+          <div class="platform"><a class="on"><i data-lucide="instagram"></i>Instagram</a><a><i data-lucide="music-2"></i>TikTok</a></div>
+          <div class="field"><span class="label">Instagram kullanıcı adın</span><div class="minput"><i data-lucide="at-sign"></i><span class="val">denizaksoy</span></div></div>
+          <div class="code-box"><div><div class="xs faint" style="margin-bottom:2px">Doğrulama kodun</div><span class="code">IM-7K2Q</span></div><a class="mbtn xs secondary"><i data-lucide="copy"></i>Kopyala</a></div>
+          <div class="how">
+            <div class="row"><span class="num-step">1</span><span>Kodu Instagram biyografine ekle.</span></div>
+            <div class="row"><span class="num-step">2</span><span>Buraya dön ve "Doğrula"ya dokun.</span></div>
+            <div class="row"><span class="num-step">3</span><span>Doğrulandıktan sonra kodu silebilirsin.</span></div>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Doğrula</a></div>
+      </div>
+      <p class="note">Doğrulama sunucu ucundan yapılır (<b>/api/mobile/verify-instagram</b>, <b>verify-tiktok</b>).</p>
+    </div>
+
+    <!-- MARKA DOĞRULAMA -->
+    <div class="screen">
+      <div class="screen-label"><b>Marka doğrulama</b><span>BrandVerificationScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><span style="width:44px"></span><span class="title small muted" style="font-weight:500">Marka doğrulama</span><a class="icon-btn"><i data-lucide="log-out"></i></a></div>
+        <div class="body" style="gap:16px; padding-top:6px">
+          <div class="col" style="gap:6px">
+            <h1 class="serif" style="font-size:30px; margin:0">Markanı doğrula</h1>
+            <span class="muted">İki adım: kurumsal e-posta ve vergi levhası. Belgen yalnızca ekibimiz tarafından incelenir.</span>
+          </div>
+          <div class="list">
+            <div class="li"><div class="li-ic success"><i data-lucide="mail-check"></i></div><div class="grow"><div class="t">Kurumsal e-posta</div><div class="s">ayse@lunakozmetik.com.tr</div></div><span class="chip chip-success">Doğrulandı</span></div>
+            <div class="li"><div class="li-ic gold"><i data-lucide="file-text"></i></div><div class="grow"><div class="t">Vergi levhası</div><div class="s">PDF, JPG veya PNG</div></div><span class="chip">Bekliyor</span></div>
+          </div>
+          <div class="upload"><div class="li-ic"><i data-lucide="upload"></i></div><div class="grow"><div class="b" style="font-size:14.5px">Vergi levhası yükle</div><div class="xs faint">En fazla 10 MB</div></div><a class="mbtn xs secondary">Seç</a></div>
+          <div class="field"><span class="label">Şirket unvanı</span><div class="minput"><span class="val">Luna Kozmetik Ltd. Şti.</span></div></div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">İncelemeye gönder</a></div>
+      </div>
+    </div>
+
+    <!-- MARKA İNCELEMEDE -->
+    <div class="screen">
+      <div class="screen-label"><b>Marka — incelemede</b><span>BrandVerificationScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><span style="width:44px"></span><span class="title"></span><a class="icon-btn"><i data-lucide="log-out"></i></a></div>
+        <div class="body center" style="gap:20px; padding-bottom:60px; text-align:center; align-items:center">
+          <div class="big-ic" style="color:var(--warning)"><i data-lucide="hourglass"></i></div>
+          <div class="col" style="gap:8px; align-items:center">
+            <span class="chip chip-warning"><span class="dot"></span>İncelemede</span>
+            <h1 class="serif" style="font-size:30px; margin:0">Belgen ekibimizde</h1>
+            <span class="muted" style="max-width:290px">Onaylandığında bildirim ve e-posta gelecek. Bu sırada profilini düzenleyebilirsin.</span>
+          </div>
+          <div class="m-card p" style="width:100%; text-align:left">
+            <div class="kv"><span>Kurumsal e-posta</span><span class="success">Doğrulandı</span></div>
+            <div class="kv"><span>Vergi levhası</span><span class="warning">İncelemede</span></div>
+          </div>
+          <a class="mbtn secondary block">Profili düzenle</a>
+        </div>
+      </div>
+      <p class="note">Süre vaadi yazılmadı ("24 saatte" gibi); istersen metni sen belirle.</p>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="mobil.js"></script>
+</body>
+</html>

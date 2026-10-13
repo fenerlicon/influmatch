@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Influencer — Influmatch Mobil</title>
+<link rel="stylesheet" href="mobil.css">
+<style>
+  .ring { --p: 70; width: 58px; height: 58px; border-radius: 50%; flex: none; background: conic-gradient(var(--gold) calc(var(--p) * 1%), var(--surface-3) 0); display: grid; place-items: center; }
+  .ring span { width: 48px; height: 48px; border-radius: 50%; background: var(--surface-1); display: grid; place-items: center; font-weight: 600; font-size: 15px; }
+  .ad-card { padding: 14px; display: grid; gap: 10px; }
+  .ad-card .top { display: flex; gap: 12px; align-items: center; }
+  .ad-card .t { font-weight: 600; font-size: 15.5px; line-height: 1.3; }
+  .ad-card .bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .price { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .offer { padding: 16px; display: grid; gap: 12px; }
+  .offer .deliv { display: flex; gap: 6px; flex-wrap: wrap; }
+  .offer .msg { font-size: 14px; color: var(--text-2); padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+  .offer .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .offer .acts .mbtn.primary { grid-column: 1 / -1; }
+  .job { padding: 14px; display: grid; gap: 12px; }
+  .hero-prof { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 4px 16px 0; }
+  .hero-prof .nm { font-size: 20px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+  .pstats { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); }
+  .pstats div { padding: 12px 6px; text-align: center; }
+  .pstats div + div { border-left: 1px solid var(--line); }
+  .pstats b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .pstats span { font-size: 12px; color: var(--text-3); }
+  .rate { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .rate:last-child { border-bottom: 0; }
+  .rate .li-ic { width: 38px; height: 38px; }
+  .badge-tile { padding: 14px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); display: grid; gap: 8px; }
+  .badge-tile .bi { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); }
+  .badge-tile.locked { opacity: .5; }
+  .badge-tile.locked .bi { background: var(--surface-3); color: var(--text-3); }
+  .bgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chart { height: 120px; display: flex; align-items: flex-end; gap: 7px; padding: 4px 2px 0; }
+  .chart i { flex: 1; border-radius: 5px 5px 2px 2px; background: var(--surface-3); }
+  .chart i.hl { background: var(--gold); }
+  .plan { padding: 16px; display: grid; gap: 12px; }
+  .plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; color: var(--text-2); }
+  .plan li { display: flex; gap: 8px; align-items: center; }
+  .plan li svg { width: 16px; height: 16px; color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <div>
+      <h1>Influencer <em>ekranları</em></h1>
+      <p>Alt sekmeler: Ana Sayfa · İşler · İlanlar · Mesajlar · Profil. İstatistikler, Rozetler, Spotlight ve Ayarlar profilin içinden açılır.</p>
+    </div>
+    <nav class="board-nav">
+      <a href="index.html">Tasarım sistemi</a><a href="giris.html">Giriş · Kayıt</a><a class="active" href="influencer.html">Influencer</a><a href="marka.html">Marka</a><a href="ortak.html">Ortak</a>
+    </nav>
+  </div>
+
+  <div class="section-title"><h2>Ana sayfa ve İşler</h2></div>
+  <div class="screens">
+
+    <!-- ANA SAYFA -->
+    <div class="screen">
+      <div class="screen-label"><b>Ana Sayfa</b><span>DashboardScreen</span></div>
+      <div class="phone" data-tabs="influencer:home">
+        <div class="appbar large">
+          <div class="row1"><span class="logo-m">INFLU<b>MATCH</b></span><a class="icon-btn"><i data-lucide="bell"></i><span class="pip"></span></a></div>
+          <h1>Merhaba, Deniz</h1>
+        </div>
+        <div class="body">
+          <div class="notice info">
+            <div class="ic"><i data-lucide="info"></i></div>
+            <div class="grow"><b>TikTok hesabını da bağla</b><span>Markalar seni iki platformda da görebilsin.</span></div>
+            <span class="more">+1</span>
+          </div>
+
+          <div class="m-card p" style="display:grid; gap:14px">
+            <div class="row" style="gap:14px">
+              <div class="ring" style="--p:80"><span class="num">%80</span></div>
+              <div class="grow">
+                <div class="eyebrow" style="margin-bottom:3px">Hesap durumu</div>
+                <div class="b" style="font-size:16px">Sıradaki adım: fiyat kartı</div>
+                <div class="small muted">Markalar teklif verirken başlangıç fiyatlarını görmek ister.</div>
+              </div>
+            </div>
+            <div class="steps"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i></div>
+            <a class="mbtn primary block">Fiyat kartını doldur</a>
+          </div>
+
+          <div class="sec"><h3>Sana uygun ilanlar</h3><a>Tümü</a></div>
+          <div class="list">
+            <div class="li"><div class="av sq a3">L</div><div class="grow"><div class="t">Yaz serisi cilt bakımı</div><div class="s">Luna Kozmetik · 2 Reels</div></div><div class="meta"><div class="price" style="color:var(--text)">₺8.000</div>3 gün kaldı</div></div>
+            <div class="li"><div class="av sq a4">K</div><div class="grow"><div class="t">Kahve molası UGC</div><div class="s">Kavruk Kahve · 3 video</div></div><div class="meta"><div class="price" style="color:var(--text)">₺4.500</div>1 hafta</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="note"><b>Değişen:</b> Profil doluluğu, ilk adımlar, güven skoru ve mavi tik tek <b>Hesap durumu</b> kartında; kart yalnızca sıradaki adımı gösteriyor. Bantlar tek bildirim kartında, "+1" diğer uyarıyı açar. Doğrulanmış kullanıcıya hesap bağlama kartı gösterilmez.</p>
+    </div>
+
+    <!-- İŞLER: TEKLİFLER -->
+    <div class="screen">
+      <div class="screen-label"><b>İşler — Teklifler</b><span>OffersScreen + Collaborations</span></div>
+      <div class="phone" data-tabs="influencer:jobs">
+        <div class="appbar large">
+          <div class="row1"><h1>İşler</h1><a class="icon-btn"><i data-lucide="bell"></i></a></div>
+        </div>
+        <div class="body">
+          <div class="mseg"><a class="on">Teklifler <span class="c">2</span></a><a>Aktif <span class="c">3</span></a><a>Tamamlanan</a></div>
+          <div class="m-card offer">
+            <div class="row"><div class="av sq a3">L</div><div class="grow"><div class="b name">Luna Kozmetik <i data-lucide="badge-check" class="tick"></i></div><div class="xs faint">2 saat önce</div></div><span class="chip chip-gold">Yeni</span></div>
+            <div><div class="b" style="font-size:16px">Yaz serisi cilt bakımı</div><div class="deliv" style="margin-top:8px"><span class="chip">2 × Reels</span><span class="chip">3 × Hikâye</span><span class="chip">Teslim: 28 Ekim</span></div></div>
+            <div class="msg">Merhaba Deniz, yeni güneş kremimiz için doğal ışıkta kısa bir rutin videosu düşünüyoruz.</div>
+            <div class="between"><span class="muted small">Bütçe</span><span class="price" style="font-size:18px">₺8.000</span></div>
+            <div class="acts"><a class="mbtn primary">Kabul et</a><a class="mbtn secondary sm">Markayla görüş</a><a class="mbtn danger sm">Reddet</a></div>
+          </div>
+          <div class="list">
+            <div class="li"><div class="av sq a5">N</div><div class="grow"><div class="t">Nane Giyim · Sonbahar kombin</div><div class="s">1 Reels · ₺5.200 · Görüşülüyor</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">"Beklet" → <b>Markayla görüş</b> (davranış aynı, sohbet açılır). Teklif ve iş birliği tek ekranda; kabul edilen teklif "Aktif"e geçer.</p>
+    </div>
+
+    <!-- İŞLER: AKTİF -->
+    <div class="screen">
+      <div class="screen-label"><b>İşler — Aktif</b><span>CollaborationsScreen</span></div>
+      <div class="phone" data-tabs="influencer:jobs">
+        <div class="appbar large">
+          <div class="row1"><h1>İşler</h1><a class="icon-btn"><i data-lucide="bell"></i></a></div>
+        </div>
+        <div class="body">
+          <div class="mseg"><a>Teklifler <span class="c">2</span></a><a class="on">Aktif <span class="c">3</span></a><a>Tamamlanan</a></div>
+          <div class="m-card job">
+            <div class="row"><div class="av sq a4">K</div><div class="grow"><div class="b">Kahve molası UGC</div><div class="xs faint">Kavruk Kahve</div></div><span class="chip chip-warning">Taslak bekleniyor</span></div>
+            <div class="timeline"><div class="st done"><i></i>Teklif</div><div class="st done"><i></i>Anlaşıldı</div><div class="st now"><i></i>İçerik</div><div class="st"><i></i>Yayın</div><div class="st"><i></i>Bitti</div></div>
+            <div class="between small"><span class="muted">Son taslak: 21 Ekim</span><a class="link">Taslak gönder</a></div>
+          </div>
+          <div class="m-card job">
+            <div class="row"><div class="av sq a3">L</div><div class="grow"><div class="b">Bahar lansmanı</div><div class="xs faint">Luna Kozmetik</div></div><span class="chip chip-info">Yayın bekleniyor</span></div>
+            <div class="timeline"><div class="st done"><i></i>Teklif</div><div class="st done"><i></i>Anlaşıldı</div><div class="st done"><i></i>İçerik</div><div class="st now"><i></i>Yayın</div><div class="st"><i></i>Bitti</div></div>
+            <div class="between small"><span class="muted">Taslak onaylandı</span><a class="link">Yayın linki ekle</a></div>
+          </div>
+          <div class="m-card job">
+            <div class="row"><div class="av sq a2">B</div><div class="grow"><div class="b">Kamp ekipmanı tanıtımı</div><div class="xs faint">Bozkır Outdoor</div></div><span class="chip chip-success">Ödeme onayı</span></div>
+            <div class="timeline"><div class="st done"><i></i>Teklif</div><div class="st done"><i></i>Anlaşıldı</div><div class="st done"><i></i>İçerik</div><div class="st done"><i></i>Yayın</div><div class="st now"><i></i>Bitti</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Karta dokununca <b>İş birliği detayı</b> açılır (ortak ekranlar). Kartta tek bir sıradaki eylem görünür.</p>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>İlanlar</h2></div>
+  <div class="screens">
+
+    <!-- İLANLAR -->
+    <div class="screen">
+      <div class="screen-label"><b>İlanlar</b><span>ProposalsScreen</span></div>
+      <div class="phone" data-tabs="influencer:ads">
+        <div class="appbar large">
+          <div class="row1"><h1>İlanlar</h1><a class="icon-btn"><i data-lucide="bookmark"></i></a></div>
+        </div>
+        <div class="body">
+          <div class="search-bar"><i data-lucide="search"></i>İlan veya marka ara</div>
+          <div class="chips"><span class="fchip on">Sana uygun</span><span class="fchip"><i data-lucide="sliders-horizontal"></i>Filtre</span><span class="fchip">Güzellik</span><span class="fchip">UGC</span></div>
+          <div class="m-card ad-card">
+            <div class="top"><div class="av sq a3">L</div><div class="grow"><div class="t">Yaz serisi cilt bakımı</div><div class="xs faint name">Luna Kozmetik <i data-lucide="badge-check" class="tick" style="width:13px;height:13px"></i></div></div><i data-lucide="bookmark" class="ic18 faint"></i></div>
+            <div class="row" style="gap:6px; flex-wrap:wrap"><span class="chip">Instagram</span><span class="chip">2 Reels</span><span class="chip">İstanbul</span></div>
+            <div class="bottom"><span class="price">₺8.000</span><span class="xs faint">14 başvuru · 3 gün kaldı</span></div>
+          </div>
+          <div class="m-card ad-card">
+            <div class="top"><div class="av sq a4">K</div><div class="grow"><div class="t">Kahve molası UGC</div><div class="xs faint">Kavruk Kahve</div></div><i data-lucide="bookmark" class="ic18 faint"></i></div>
+            <div class="row" style="gap:6px; flex-wrap:wrap"><span class="chip">UGC</span><span class="chip">3 video</span><span class="chip chip-success">Başvurdun</span></div>
+            <div class="bottom"><span class="price">₺4.500</span><span class="xs faint">6 başvuru · 1 hafta</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- İLAN DETAYI + BAŞVUR -->
+    <div class="screen">
+      <div class="screen-label"><b>İlan detayı → Başvur</b><span>bottom sheet</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title"></span><a class="icon-btn"><i data-lucide="share"></i></a></div>
+        <div class="body" style="gap:16px">
+          <div class="row"><div class="av sq lg a3">L</div><div><div class="eyebrow">İlan</div><div class="b" style="font-size:20px; line-height:1.25">Yaz serisi cilt bakımı</div><div class="small muted">Luna Kozmetik</div></div></div>
+          <div class="m-card p"><div class="kv"><span>Bütçe</span><span>₺8.000</span></div><div class="kv"><span>Teslimat</span><span>2 Reels</span></div><div class="kv"><span>Son başvuru</span><span>16 Ekim</span></div></div>
+          <p class="muted" style="margin:0; font-size:14.5px">Yeni güneş kremimiz için doğal ışıkta, sade bir sabah rutini videosu arıyoruz…</p>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h2>Başvur</h2>
+          <div class="field"><span class="label">Markaya notun</span><div class="minput area focus"><span class="val small" style="line-height:1.5">Sabah rutini serim bu ilana çok uygun, örnek video ekledim.</span></div></div>
+          <div class="field"><span class="label">Teklif ettiğin ücret <span class="faint">(isteğe bağlı)</span></span><div class="minput"><span class="faint">₺</span><span class="val num">8.000</span></div></div>
+          <div class="row small muted"><i data-lucide="info" class="ic16"></i>Profilin ve fiyat kartın markaya görünür.</div>
+          <a class="mbtn primary block">Başvuruyu gönder</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Profil</h2><span>Sekmeler: Profil · Fiyat kartı · Rozetler · İstatistikler</span></div>
+  <div class="screens">
+
+    <!-- PROFİL -->
+    <div class="screen">
+      <div class="screen-label"><b>Profil</b><span>MyProfileScreen</span></div>
+      <div class="phone" data-tabs="influencer:profile">
+        <div class="appbar"><span style="width:44px"></span><span class="title"></span><a class="icon-btn"><i data-lucide="settings"></i></a></div>
+        <div class="body flush" style="gap:16px">
+          <div class="hero-prof">
+            <div class="av xl a1">DA</div>
+            <div><div class="nm">Deniz Aksoy <i data-lucide="badge-check" class="tick" style="width:18px;height:18px"></i></div><div class="small muted">@denizaksoy · İstanbul</div></div>
+            <div class="pstats"><div><b>48,2B</b><span>Takipçi</span></div><div><b>%4,1</b><span>Etkileşim</span></div><div><b>12</b><span>İş birliği</span></div></div>
+          </div>
+          <div class="mtabs"><a class="on">Profil</a><a>Fiyat kartı</a><a>Rozetler</a><a>İstatistik</a></div>
+          <div class="pad col" style="gap:12px">
+            <div class="list">
+              <div class="li"><div class="li-ic gold"><i data-lucide="sparkles"></i></div><div class="grow"><div class="t">Spotlight</div><div class="s">Keşfette öne çık</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+              <div class="li"><div class="li-ic"><i data-lucide="user-pen"></i></div><div class="grow"><div class="t">Profili düzenle</div><div class="s">Bio, kategoriler, şehir</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+              <div class="li"><div class="li-ic"><i data-lucide="link"></i></div><div class="grow"><div class="t">Sosyal hesaplar</div><div class="s">Instagram doğrulandı · TikTok bağla</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Ayarlar sağ üstte. Profil, markaların gördüğü haliyle önizlenebilir (üstteki "Önizle" sonraki turda).</p>
+    </div>
+
+    <!-- FİYAT KARTI -->
+    <div class="screen">
+      <div class="screen-label"><b>Profil — Fiyat kartı</b><span>rate-card</span></div>
+      <div class="phone" data-tabs="influencer:profile">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">Fiyat kartı</span><span style="width:44px"></span></div>
+        <div class="body" style="gap:14px">
+          <span class="muted small">Teslimat başına başlangıç fiyatların. Markalar teklif verirken görür.</span>
+          <div class="list">
+            <div class="rate"><div class="li-ic"><i data-lucide="clapperboard"></i></div><div class="grow"><div class="b">Reels</div><div class="xs faint">Instagram</div></div><div class="minput" style="width:120px; height:44px"><span class="faint">₺</span><span class="val num">4.000</span></div></div>
+            <div class="rate"><div class="li-ic"><i data-lucide="circle-dashed"></i></div><div class="grow"><div class="b">Hikâye</div><div class="xs faint">Instagram</div></div><div class="minput" style="width:120px; height:44px"><span class="faint">₺</span><span class="val num">1.200</span></div></div>
+            <div class="rate"><div class="li-ic"><i data-lucide="image"></i></div><div class="grow"><div class="b">Gönderi</div><div class="xs faint">Instagram</div></div><div class="minput" style="width:120px; height:44px"><span class="faint">₺</span><span class="ph">—</span></div></div>
+            <div class="rate"><div class="li-ic"><i data-lucide="video"></i></div><div class="grow"><div class="b">UGC video</div><div class="xs faint">Markaya teslim</div></div><div class="minput" style="width:120px; height:44px"><span class="faint">₺</span><span class="val num">2.500</span></div></div>
+          </div>
+          <div class="m-card p between"><div><div class="b">Pazarlığa açığım</div><div class="xs faint">Profilinde çip olarak görünür</div></div><span class="toggle on"></span></div>
+        </div>
+        <div class="bottom-cta" style="bottom:86px; padding-bottom:12px"><a class="mbtn primary block">Kaydet</a></div>
+      </div>
+    </div>
+
+    <!-- ROZETLER -->
+    <div class="screen">
+      <div class="screen-label"><b>Profil — Rozetler</b><span>BadgesScreen → sekme</span></div>
+      <div class="phone" data-tabs="influencer:profile">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">Rozetler</span><span style="width:44px"></span></div>
+        <div class="body" style="gap:14px">
+          <div class="m-card p row"><div class="li-ic gold"><i data-lucide="award"></i></div><div class="grow"><div class="b">3 / 8 rozet</div><div class="bar" style="margin-top:8px"><i style="width:37%"></i></div></div></div>
+          <div class="bgrid">
+            <div class="badge-tile"><div class="bi"><i data-lucide="badge-check"></i></div><div class="b small">Doğrulanmış</div><div class="xs faint">Hesabını doğruladın</div></div>
+            <div class="badge-tile"><div class="bi"><i data-lucide="handshake"></i></div><div class="b small">İlk iş birliği</div><div class="xs faint">1 iş tamamlandı</div></div>
+            <div class="badge-tile"><div class="bi"><i data-lucide="zap"></i></div><div class="b small">Hızlı yanıt</div><div class="xs faint">Tekliflere çabuk dönüş</div></div>
+            <div class="badge-tile locked"><div class="bi"><i data-lucide="lock"></i></div><div class="b small">10 iş birliği</div><div class="xs faint">3 / 10 tamamlandı</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Rozet listesi ve koşulları mevcut koddan (BadgeProgressInfo) alınır; buradakiler örnek.</p>
+    </div>
+
+    <!-- İSTATİSTİKLER -->
+    <div class="screen">
+      <div class="screen-label"><b>Profil — İstatistikler</b><span>StatisticsScreen</span></div>
+      <div class="phone" data-tabs="influencer:profile">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">İstatistikler</span><span style="width:44px"></span></div>
+        <div class="body" style="gap:14px">
+          <div class="mseg"><a class="on">30 gün</a><a>90 gün</a><a>Tümü</a></div>
+          <div class="stats"><div class="stat"><div class="k">Profil görüntüleme</div><div class="v">1.284</div></div><div class="stat"><div class="k">Teklif</div><div class="v">9</div></div><div class="stat"><div class="k">Kabul</div><div class="v">%56</div></div></div>
+          <div class="m-card p">
+            <div class="between"><span class="b">Profil görüntüleme</span><span class="xs faint">Haftalık</span></div>
+            <div class="chart"><i style="height:34%"></i><i style="height:52%"></i><i style="height:41%"></i><i style="height:66%"></i><i style="height:58%"></i><i style="height:72%"></i><i class="hl" style="height:90%"></i></div>
+          </div>
+          <div class="list">
+            <div class="li"><div class="li-ic"><i data-lucide="wallet"></i></div><div class="grow"><div class="t">Tamamlanan işlerden</div><div class="s">Son 30 gün</div></div><span class="price">₺12.700</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPOTLIGHT -->
+    <div class="screen">
+      <div class="screen-label"><b>Spotlight</b><span>SpotlightScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">Spotlight</span><span style="width:44px"></span></div>
+        <div class="body" style="gap:14px">
+          <div class="col" style="gap:6px"><h1 class="serif" style="font-size:30px; margin:0">Keşfette öne çık</h1><span class="muted">Spotlight profilin markaların keşif listesinde üst sıralarda görünür.</span></div>
+          <div class="m-card accent plan">
+            <div class="between"><span class="b" style="font-size:17px">Influencer Spotlight</span><span class="chip chip-gold">Sana uygun</span></div>
+            <ul><li><i data-lucide="check"></i>Vitrin sırasında üst sıralara geç</li><li><i data-lucide="check"></i>Markalara öncelikli görünürlük</li><li><i data-lucide="check"></i>Temel profil analitikleri</li></ul>
+            <div class="between"><span class="muted small">Fiyat</span><span class="b">Fiyat yakında</span></div>
+          </div>
+          <div class="notice info"><div class="ic"><i data-lucide="info"></i></div><div class="grow"><span>Satın alma henüz uygulamada yok. Bilgi için destek talebi açabilirsin.</span></div></div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Haber ver</a></div>
+      </div>
+      <p class="note">Rolüne ait paket doğrudan açılır (ara seçim ekranı yok). Özellikler mevcut koddaki Basic paketten; koddaki fiyatlar (299 ₺ / 599 ₺) tasarıma konmadı. Fiyat ve paket içeriği iş kararı: <b>senin onayın gerekiyor</b>.</p>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="mobil.js"></script>
+</body>
+</html>

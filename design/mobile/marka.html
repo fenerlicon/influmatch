@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marka — Influmatch Mobil</title>
+<link rel="stylesheet" href="mobil.css">
+<style>
+  .inf { padding: 14px; display: grid; gap: 12px; }
+  .inf .top { display: flex; gap: 12px; align-items: center; }
+  .inf .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .inf .nums div { padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+  .inf .nums b { display: block; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .inf .nums span { font-size: 11.5px; color: var(--text-3); }
+  .fav { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--text-3); border: 1px solid var(--line); }
+  .fav.on { color: var(--gold); border-color: var(--gold-line); background: var(--gold-soft); }
+  .fav svg { width: 18px; height: 18px; }
+  .rec { width: 148px; flex: none; padding: 14px; display: grid; gap: 8px; justify-items: center; text-align: center; }
+  .hscroll { display: flex; gap: 10px; overflow: hidden; margin-right: -16px; flex: none; }
+  .hero-prof { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 0 16px; }
+  .hero-prof .nm { font-size: 20px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+  .pstats { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); }
+  .pstats div { padding: 12px 6px; text-align: center; }
+  .pstats div + div { border-left: 1px solid var(--line); }
+  .pstats b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .pstats span { font-size: 12px; color: var(--text-3); }
+  .rate-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+  .rate-row:last-child { border-bottom: 0; }
+  .rate-row b { font-variant-numeric: tabular-nums; }
+  .applicant { padding: 14px; display: grid; gap: 10px; }
+  .applicant .msg { font-size: 13.5px; color: var(--text-2); }
+  .applicant .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ad-hdr { padding: 14px; display: grid; gap: 10px; }
+  .job { padding: 14px; display: grid; gap: 12px; }
+  .stepper-form { display: flex; gap: 6px; padding: 0 20px; flex: none; }
+  .stepper-form i { height: 4px; flex: 1; border-radius: 9px; background: var(--surface-3); }
+  .stepper-form i.on { background: var(--gold); }
+  .banner-up { height: 120px; border-radius: 14px; border: 1px dashed var(--line-strong); background: var(--surface-1); display: grid; place-items: center; color: var(--text-3); font-size: 13.5px; text-align: center; }
+  .banner-up svg { width: 22px; height: 22px; margin-bottom: 4px; }
+  .price { font-weight: 600; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <div>
+      <h1>Marka <em>ekranları</em></h1>
+      <p>Alt sekmeler: Ana Sayfa · Keşfet · İlanlar · İşler · Mesajlar. Marka profili ve ayarlar sağ üstteki avatardan.</p>
+    </div>
+    <nav class="board-nav">
+      <a href="index.html">Tasarım sistemi</a><a href="giris.html">Giriş · Kayıt</a><a href="influencer.html">Influencer</a><a class="active" href="marka.html">Marka</a><a href="ortak.html">Ortak</a>
+    </nav>
+  </div>
+
+  <div class="section-title"><h2>Ana sayfa ve Keşfet</h2></div>
+  <div class="screens">
+
+    <!-- ANA SAYFA -->
+    <div class="screen">
+      <div class="screen-label"><b>Ana Sayfa</b><span>BrandDashboardScreen</span></div>
+      <div class="phone" data-tabs="brand:home">
+        <div class="appbar large">
+          <div class="row1"><span class="logo-m">INFLU<b>MATCH</b></span><div class="row" style="gap:4px"><a class="icon-btn"><i data-lucide="bell"></i><span class="pip"></span></a><span class="av sm a3">L</span></div></div>
+          <h1>Merhaba, Luna</h1>
+        </div>
+        <div class="body">
+          <div class="notice gold"><div class="ic"><i data-lucide="inbox"></i></div><div class="grow"><b>4 yeni başvuru</b><span>"Yaz serisi cilt bakımı" ilanına</span></div><i data-lucide="chevron-right" class="ic18 faint"></i></div>
+          <div class="stats"><div class="stat"><div class="k">Aktif ilan</div><div class="v">2</div></div><div class="stat"><div class="k">Bekleyen teklif</div><div class="v">3</div></div><div class="stat"><div class="k">Aktif iş</div><div class="v">1</div></div></div>
+          <a class="mbtn primary block"><i data-lucide="plus"></i>Yeni ilan</a>
+          <div class="sec"><h3>Son başvurular</h3><a>Tümü</a></div>
+          <div class="list">
+            <div class="li"><div class="av a1">DA</div><div class="grow"><div class="t name">Deniz Aksoy <i data-lucide="badge-check" class="tick"></i></div><div class="s">48,2B · Güzellik · 2 saat önce</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+            <div class="li"><div class="av a6">EK</div><div class="grow"><div class="t">Ece Kaya</div><div class="s">21,7B · Yaşam · dün</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">"Hızlı erişim" ızgarası ve dönen parlama kartı kalktı. Tek altın eylem: <b>Yeni ilan</b>.</p>
+    </div>
+
+    <!-- KEŞFET -->
+    <div class="screen">
+      <div class="screen-label"><b>Keşfet</b><span>DiscoverScreen</span></div>
+      <div class="phone" data-tabs="brand:discover">
+        <div class="appbar large">
+          <div class="row1"><h1>Keşfet</h1><span class="av sm a3">L</span></div>
+        </div>
+        <div class="body">
+          <div class="mseg"><a class="on">Tümü</a><a>Önerilenler</a><a>Favoriler</a></div>
+          <div class="search-bar"><i data-lucide="search"></i>İsim, kategori veya şehir</div>
+          <div class="chips"><span class="fchip"><i data-lucide="sliders-horizontal"></i>Filtre</span><span class="fchip on">Güzellik</span><span class="fchip">10B–100B</span><span class="fchip">İstanbul</span></div>
+          <div class="m-card inf">
+            <div class="top"><div class="av lg a1">DA</div><div class="grow"><div class="b name" style="font-size:16px">Deniz Aksoy <i data-lucide="badge-check" class="tick"></i></div><div class="small muted">Güzellik · Yaşam · İstanbul</div><div class="row" style="gap:6px; margin-top:6px"><span class="chip chip-gold"><i data-lucide="sparkles"></i>Spotlight</span></div></div><span class="fav on"><i data-lucide="heart"></i></span></div>
+            <div class="nums"><div><b>48,2B</b><span>Takipçi</span></div><div><b>%4,1</b><span>Etkileşim</span></div><div><b>₺4.000</b><span>Reels'ten</span></div></div>
+          </div>
+          <div class="m-card inf">
+            <div class="top"><div class="av lg a6">EK</div><div class="grow"><div class="b" style="font-size:16px">Ece Kaya</div><div class="small muted">Yaşam · İzmir</div></div><span class="fav"><i data-lucide="heart"></i></span></div>
+            <div class="nums"><div><b>21,7B</b><span>Takipçi</span></div><div><b>%6,3</b><span>Etkileşim</span></div><div><b>—</b><span>Fiyat yok</span></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Sayfalama ile sonsuz liste (kota şimdilik açık, kural 6). Favoriler ve listeler segmentte.</p>
+    </div>
+
+    <!-- KEŞFET: ÖNERİLENLER -->
+    <div class="screen">
+      <div class="screen-label"><b>Keşfet — Önerilenler</b><span>Akıllı eşleştirme</span></div>
+      <div class="phone" data-tabs="brand:discover">
+        <div class="appbar large">
+          <div class="row1"><h1>Keşfet</h1><span class="av sm a3">L</span></div>
+        </div>
+        <div class="body">
+          <div class="mseg"><a>Tümü</a><a class="on">Önerilenler</a><a>Favoriler</a></div>
+          <div class="sec"><h3>"Yaz serisi cilt bakımı" için</h3><a>İlan değiştir</a></div>
+          <div class="hscroll">
+            <div class="m-card rec"><div class="av lg a1">DA</div><div class="b small name">Deniz Aksoy <i data-lucide="badge-check" class="tick" style="width:13px;height:13px"></i></div><div class="xs faint">48,2B · %4,1</div><span class="chip chip-success">Başvurdu</span></div>
+            <div class="m-card rec"><div class="av lg a2">MY</div><div class="b small">Mert Yalçın</div><div class="xs faint">33,9B · %3,8</div><span class="chip">Güzellik</span></div>
+            <div class="m-card rec"><div class="av lg a5">SÖ</div><div class="b small">Selin Öz</div><div class="xs faint">12,4B · %7,2</div><span class="chip">Yaşam</span></div>
+          </div>
+          <div class="sec"><h3>Neden bunlar?</h3></div>
+          <div class="m-card p small muted" style="line-height:1.55">İlanındaki kategori, şehir ve bütçeye uyan, doğrulanmış hesaplar. Bütçene göre fiyat kartı uygun olanlar önce.</div>
+        </div>
+      </div>
+      <p class="note">"AI" ifadesi kullanılmadı; kural tabanlı eşleştirme olarak anlatıldı.</p>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Influencer detayı ve teklif</h2></div>
+  <div class="screens">
+
+    <!-- INFLUENCER DETAYI -->
+    <div class="screen">
+      <div class="screen-label"><b>Influencer detayı</b><span>InfluencerDetailScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title"></span><a class="icon-btn"><i data-lucide="heart" style="color:var(--gold)"></i></a></div>
+        <div class="body flush" style="gap:14px">
+          <div class="hero-prof">
+            <div class="av xl a1">DA</div>
+            <div><div class="nm">Deniz Aksoy <i data-lucide="badge-check" class="tick" style="width:18px;height:18px"></i></div><div class="small muted">Güzellik · Yaşam · İstanbul</div></div>
+            <div class="pstats"><div><b>48,2B</b><span>Takipçi</span></div><div><b>%4,1</b><span>Etkileşim</span></div><div><b>12</b><span>İş birliği</span></div></div>
+          </div>
+          <div class="mtabs"><a class="on">Fiyat kartı</a><a>Hakkında</a><a>Rozetler</a></div>
+          <div class="pad col" style="gap:10px">
+            <div class="between"><span class="small muted">Teslimat başına başlangıç</span><span class="chip">Pazarlığa açık</span></div>
+            <div class="m-card" style="padding:2px 16px">
+              <div class="rate-row"><span>Reels</span><b>₺4.000</b></div>
+              <div class="rate-row"><span>Hikâye</span><b>₺1.200</b></div>
+              <div class="rate-row"><span>UGC video</span><b>₺2.500</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn secondary" style="width:52px; padding:0"><i data-lucide="list-plus"></i></a><a class="mbtn primary block" style="flex:1">Teklif gönder</a></div>
+      </div>
+      <p class="note">Teklifsiz "Mesaj" butonu yok (doğrudan mesaj kapalı, kural 6). Sol buton: listeye ekle.</p>
+    </div>
+
+    <!-- TEKLİF SHEET -->
+    <div class="screen">
+      <div class="screen-label"><b>Teklif gönder</b><span>bottom sheet</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title"></span><span style="width:44px"></span></div>
+        <div class="body flush"><div class="hero-prof"><div class="av xl a1">DA</div><div class="nm">Deniz Aksoy</div></div></div>
+        <div class="scrim"></div>
+        <div class="sheet" style="gap:12px">
+          <div class="grab"></div>
+          <div class="between"><h2>Teklif gönder</h2><a class="small link">Şablondan</a></div>
+          <div class="field"><span class="label">İlan / iş adı</span><div class="minput"><span class="val">Yaz serisi cilt bakımı</span><i data-lucide="chevron-down"></i></div></div>
+          <div class="field"><span class="label">Teslimatlar</span>
+            <div class="row" style="gap:8px; flex-wrap:wrap"><span class="fchip on">2 × Reels</span><span class="fchip on">3 × Hikâye</span><span class="fchip"><i data-lucide="plus"></i>Ekle</span></div>
+          </div>
+          <div class="row" style="gap:10px">
+            <div class="field grow"><span class="label">Bütçe</span><div class="minput"><span class="faint">₺</span><span class="val num">8.000</span></div></div>
+            <div class="field grow"><span class="label">Teslim</span><div class="minput"><i data-lucide="calendar"></i><span class="val">28 Eki</span></div></div>
+          </div>
+          <div class="field"><span class="label">Mesaj</span><div class="minput area" style="height:76px"><span class="val small" style="line-height:1.5">Merhaba Deniz, yeni güneş kremimiz için…</span></div></div>
+          <a class="mbtn primary block">Teklifi gönder</a>
+        </div>
+      </div>
+      <p class="note">"Son teklifimi kopyala" ve "Şablon olarak kaydet" sağ üstteki <b>Şablondan</b> menüsünde.</p>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>İlanlar ve İşler</h2></div>
+  <div class="screens">
+
+    <!-- İLANLARIM -->
+    <div class="screen">
+      <div class="screen-label"><b>İlanlar</b><span>BrandAdvertsScreen</span></div>
+      <div class="phone" data-tabs="brand:ads">
+        <div class="appbar large">
+          <div class="row1"><h1>İlanlar</h1><a class="mbtn sm primary"><i data-lucide="plus"></i>Yeni ilan</a></div>
+        </div>
+        <div class="body">
+          <div class="mseg"><a class="on">Yayında <span class="c">2</span></a><a>Taslak</a><a>Kapanan</a></div>
+          <div class="m-card ad-hdr">
+            <div class="between"><div class="b" style="font-size:16px">Yaz serisi cilt bakımı</div><span class="chip chip-success"><span class="dot"></span>Yayında</span></div>
+            <div class="row small muted" style="gap:14px"><span>2 Reels</span><span class="price" style="color:var(--text)">₺8.000</span><span>3 gün kaldı</span></div>
+            <div class="divider"></div>
+            <div class="between"><div class="row" style="gap:0"><span class="av sm a1">DA</span><span class="av sm a6" style="margin-left:-8px">EK</span><span class="av sm a2" style="margin-left:-8px">MY</span><span class="small muted" style="margin-left:8px">14 başvuru · 4 yeni</span></div><i data-lucide="chevron-right" class="ic18 faint"></i></div>
+          </div>
+          <div class="m-card ad-hdr">
+            <div class="between"><div class="b" style="font-size:16px">Sonbahar UGC serisi</div><span class="chip chip-success"><span class="dot"></span>Yayında</span></div>
+            <div class="row small muted" style="gap:14px"><span>3 video</span><span class="price" style="color:var(--text)">₺6.000</span><span>12 gün kaldı</span></div>
+            <div class="divider"></div>
+            <div class="between"><span class="small muted">Henüz başvuru yok</span><a class="small link">Önerilenleri gör</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- İLAN BAŞVURULARI -->
+    <div class="screen">
+      <div class="screen-label"><b>İlan → Başvurular</b><span>applications</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">Yaz serisi cilt bakımı</span><a class="icon-btn"><i data-lucide="ellipsis"></i></a></div>
+        <div class="body">
+          <div class="mseg"><a class="on">Yeni <span class="c">4</span></a><a>Kısa liste <span class="c">2</span></a><a>Kabul</a></div>
+          <div class="m-card applicant">
+            <div class="row"><div class="av a1">DA</div><div class="grow"><div class="b name">Deniz Aksoy <i data-lucide="badge-check" class="tick"></i></div><div class="xs faint">48,2B takipçi · %4,1 etkileşim</div></div><span class="price">₺8.000</span></div>
+            <div class="msg">Sabah rutini serim bu ilana çok uygun, örnek video ekledim.</div>
+            <div class="acts"><a class="mbtn sm secondary"><i data-lucide="bookmark"></i>Kısa liste</a><a class="mbtn sm primary">Kabul et</a></div>
+          </div>
+          <div class="m-card applicant">
+            <div class="row"><div class="av a6">EK</div><div class="grow"><div class="b">Ece Kaya</div><div class="xs faint">21,7B takipçi · %6,3 etkileşim</div></div><span class="price">₺6.500</span></div>
+            <div class="msg">Yaz içeriklerimde güneş koruma konusunu sık işliyorum.</div>
+            <div class="acts"><a class="mbtn sm secondary"><i data-lucide="bookmark"></i>Kısa liste</a><a class="mbtn sm primary">Kabul et</a></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Web kuralı: listelerde her satırın kendi ana eylemi altın olabilir. Kabul edilen başvuru için sohbet açılır ve iş "İşler"e düşer.</p>
+    </div>
+
+    <!-- YENİ İLAN -->
+    <div class="screen">
+      <div class="screen-label"><b>Yeni ilan</b><span>2 adımlı form</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="x"></i></a><span class="title">Yeni ilan</span><a class="small muted" style="width:44px; text-align:right">Taslak</a></div>
+        <div class="stepper-form"><i class="on"></i><i></i></div>
+        <div class="body" style="gap:14px; padding-top:16px">
+          <div class="banner-up"><div><i data-lucide="image-plus"></i><div>Kapak görseli ekle</div><div class="xs">16:9 önerilir</div></div></div>
+          <div class="field"><span class="label">İlan başlığı</span><div class="minput focus"><span class="val">Sonbahar UGC serisi</span></div></div>
+          <div class="field"><span class="label">Platform</span><div class="row" style="gap:8px"><span class="fchip on"><i data-lucide="instagram"></i>Instagram</span><span class="fchip">TikTok</span><span class="fchip on">UGC</span></div></div>
+          <div class="row" style="gap:10px">
+            <div class="field grow"><span class="label">Bütçe</span><div class="minput"><span class="faint">₺</span><span class="val num">6.000</span></div></div>
+            <div class="field grow"><span class="label">Son başvuru</span><div class="minput"><i data-lucide="calendar"></i><span class="val">25 Eki</span></div></div>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Devam: teslimatlar ve açıklama</a></div>
+      </div>
+    </div>
+
+    <!-- İŞLER (MARKA) -->
+    <div class="screen">
+      <div class="screen-label"><b>İşler — marka</b><span>Offers + Collaborations</span></div>
+      <div class="phone" data-tabs="brand:jobs">
+        <div class="appbar large">
+          <div class="row1"><h1>İşler</h1><span class="av sm a3">L</span></div>
+        </div>
+        <div class="body">
+          <div class="mseg"><a>Gönderilen <span class="c">3</span></a><a class="on">Aktif <span class="c">1</span></a><a>Tamamlanan</a></div>
+          <div class="m-card job">
+            <div class="row"><div class="av a2">MY</div><div class="grow"><div class="b">Bahar lansmanı</div><div class="xs faint">Mert Yalçın</div></div><span class="chip chip-gold">Onayın bekleniyor</span></div>
+            <div class="timeline"><div class="st done"><i></i>Teklif</div><div class="st done"><i></i>Anlaşıldı</div><div class="st now"><i></i>İçerik</div><div class="st"><i></i>Yayın</div><div class="st"><i></i>Bitti</div></div>
+            <div class="row" style="gap:8px"><a class="mbtn sm secondary" style="flex:1">Revize iste</a><a class="mbtn sm primary" style="flex:1">Taslağı onayla</a></div>
+          </div>
+          <div class="sec"><h3>Gönderilen teklifler</h3><a>3</a></div>
+          <div class="list">
+            <div class="li"><div class="av a1">DA</div><div class="grow"><div class="t">Yaz serisi cilt bakımı</div><div class="s">Deniz Aksoy · ₺8.000</div></div><span class="chip">Bekliyor</span></div>
+            <div class="li"><div class="av a5">SÖ</div><div class="grow"><div class="t">Sonbahar UGC</div><div class="s">Selin Öz · ₺3.000</div></div><span class="chip chip-info">Görüşülüyor</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Marka için ilk segment "Gönderilen" (teklifleri marka gönderir). Sıradaki eylem markadaysa kartta altın çip.</p>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="mobil.js"></script>
+</body>
+</html>

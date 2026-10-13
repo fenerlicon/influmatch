@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ortak Ekranlar — Influmatch Mobil</title>
+<link rel="stylesheet" href="mobil.css">
+<style>
+  .ctx { margin: 0 16px; padding: 10px 12px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--line); display: flex; align-items: center; gap: 10px; flex: none; }
+  .ctx .li-ic { width: 34px; height: 34px; }
+  .chat { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 110px; }
+  .deliv { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .deliv:last-child { border-bottom: 0; }
+  .deliv .grow .t { font-weight: 500; }
+  .deliv .grow .s { font-size: 12.5px; color: var(--text-2); }
+  .group-h { font-size: 12px; color: var(--text-3); margin: 6px 4px -4px; letter-spacing: .04em; }
+  .set-row { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 54px; border-bottom: 1px solid var(--line); }
+  .set-row:last-child { border-bottom: 0; }
+  .set-row .grow .t { font-size: 15px; }
+  .set-row .grow .s { font-size: 12.5px; color: var(--text-3); }
+  .pay { padding: 16px; display: grid; gap: 12px; }
+  .msg-li .t { display: flex; align-items: center; gap: 6px; }
+  .msg-li .ctxtag { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .msg-li .ctxtag svg { width: 12px; height: 12px; }
+  .msg-li .right { display: grid; justify-items: end; gap: 6px; flex: none; }
+  .cnt { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--gold); color: var(--gold-ink); font-size: 11.5px; font-weight: 700; display: grid; place-items: center; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <div>
+      <h1>Ortak <em>ekranlar</em></h1>
+      <p>Mesajlar, sohbet, iş birliği detayı, bildirimler ve ayarlar iki rolde aynı. Sohbet yalnızca bir teklif veya başvuru üzerinden açılır.</p>
+    </div>
+    <nav class="board-nav">
+      <a href="index.html">Tasarım sistemi</a><a href="giris.html">Giriş · Kayıt</a><a href="influencer.html">Influencer</a><a href="marka.html">Marka</a><a class="active" href="ortak.html">Ortak</a>
+    </nav>
+  </div>
+
+  <div class="section-title"><h2>Mesajlar</h2></div>
+  <div class="screens">
+
+    <!-- MESAJLAR -->
+    <div class="screen">
+      <div class="screen-label"><b>Mesajlar</b><span>MessagesScreen</span></div>
+      <div class="phone" data-tabs="influencer:messages">
+        <div class="appbar large">
+          <div class="row1"><h1>Mesajlar</h1><a class="icon-btn"><i data-lucide="bell"></i></a></div>
+        </div>
+        <div class="body">
+          <div class="search-bar"><i data-lucide="search"></i>Sohbetlerde ara</div>
+          <div class="list">
+            <div class="li msg-li"><div class="av sq a3">L</div><div class="grow"><div class="t"><span class="b">Luna Kozmetik</span><i data-lucide="badge-check" class="tick" style="width:13px;height:13px"></i></div><div class="s" style="color:var(--text)">Harika, taslağı bekliyoruz</div><div class="ctxtag"><i data-lucide="briefcase"></i>Bahar lansmanı · Aktif iş</div></div><div class="right"><span class="xs faint">14:20</span><span class="cnt">2</span></div></div>
+            <div class="li msg-li"><div class="av sq a5">N</div><div class="grow"><div class="t"><span class="b">Nane Giyim</span></div><div class="s" style="color:var(--text)">Bütçeyi biraz esnetebiliriz.</div><div class="ctxtag"><i data-lucide="send"></i>Sonbahar kombin · Teklif</div></div><div class="right"><span class="xs faint">Dün</span><span class="cnt">1</span></div></div>
+            <div class="li msg-li"><div class="av sq a4">K</div><div class="grow"><div class="t"><span>Kavruk Kahve</span></div><div class="s">Sen: Videoları cuma gönderiyorum.</div><div class="ctxtag"><i data-lucide="megaphone"></i>Kahve molası UGC · Başvuru</div></div><div class="right"><span class="xs faint">Pzt</span></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Her satırda bağlı iş etiketi: <b>Teklif</b>, <b>Başvuru</b> veya <b>Aktif iş</b>. Yeni sohbet başlatma butonu yok.</p>
+    </div>
+
+    <!-- SOHBET -->
+    <div class="screen">
+      <div class="screen-label"><b>Sohbet</b><span>room</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><div class="row grow" style="gap:10px"><div class="av sm sq a3">L</div><div><div class="b name" style="font-size:15px">Luna Kozmetik <i data-lucide="badge-check" class="tick" style="width:13px;height:13px"></i></div><div class="xs faint">Marka</div></div></div><a class="icon-btn"><i data-lucide="ellipsis-vertical"></i></a></div>
+        <div class="ctx"><div class="li-ic gold"><i data-lucide="briefcase"></i></div><div class="grow"><div class="b small">Bahar lansmanı</div><div class="xs faint">İçerik aşaması · Son taslak 21 Ekim</div></div><a class="small link">İşe git</a></div>
+        <div class="chat">
+          <span class="sys">Teklif kabul edildi · 12 Ekim</span>
+          <div class="bubble in">Merhaba Deniz, brief'i ekte paylaştık. Doğal ışık ve sade bir arka plan olursa çok iyi olur.<span class="time">13:58</span></div>
+          <div class="bubble out">Merhaba! Sabah ışığında çekmeyi planlıyorum, salı günü ilk taslağı yüklerim.<span class="time">14:05</span></div>
+          <div class="bubble in">Harika, taslağı bekliyoruz<span class="time">14:20</span></div>
+        </div>
+        <div class="composer"><a class="icon-btn"><i data-lucide="paperclip"></i></a><div class="minput"><span class="ph">Mesaj yaz</span></div><a class="send"><i data-lucide="arrow-up"></i></a></div>
+      </div>
+      <p class="note">Üstteki iş kartı sohbetin neden açık olduğunu gösterir; dokununca iş birliği detayı açılır.</p>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>İş birliği detayı</h2><span>Teklif → Anlaşıldı → İçerik → Yayın → Tamamlandı</span></div>
+  <div class="screens">
+
+    <!-- İŞ BİRLİĞİ: ÖZET -->
+    <div class="screen">
+      <div class="screen-label"><b>İş birliği — özet ve teslimatlar</b><span>CollaborationDetailScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">İş birliği</span><a class="icon-btn"><i data-lucide="message-circle"></i></a></div>
+        <div class="body" style="gap:14px">
+          <div class="col" style="gap:4px"><div class="row" style="gap:10px"><div class="av sq a3">L</div><div><div class="b" style="font-size:18px">Bahar lansmanı</div><div class="small muted">Luna Kozmetik</div></div></div></div>
+          <div class="m-card p" style="display:grid; gap:12px">
+            <div class="timeline"><div class="st done"><i></i>Teklif</div><div class="st done"><i></i>Anlaşıldı</div><div class="st now"><i></i>İçerik</div><div class="st"><i></i>Yayın</div><div class="st"><i></i>Bitti</div></div>
+            <div class="row small" style="gap:8px"><i data-lucide="clock" class="ic16 gold"></i><span>Sıradaki: <b>taslak gönder</b> · son tarih 21 Ekim</span></div>
+          </div>
+          <div class="sec"><h3>Anlaşma özeti</h3><a>Tümü</a></div>
+          <div class="m-card" style="padding:2px 16px"><div class="kv"><span>Ücret</span><span>₺8.000</span></div><div class="kv"><span>Revize hakkı</span><span>1 / 2 kaldı</span></div><div class="kv"><span>Yayın tarihi</span><span>28 Ekim</span></div></div>
+          <div class="sec"><h3>Teslimatlar</h3><a>1 / 3</a></div>
+          <div class="list">
+            <div class="deliv"><div class="li-ic success"><i data-lucide="check"></i></div><div class="grow"><div class="t">Reels 1</div><div class="s">Onaylandı</div></div></div>
+            <div class="deliv"><div class="li-ic warning"><i data-lucide="rotate-ccw"></i></div><div class="grow"><div class="t">Reels 2</div><div class="s">Revize istendi: "Ürün daha yakın görünsün"</div></div></div>
+            <div class="deliv"><div class="li-ic"><i data-lucide="circle-dashed"></i></div><div class="grow"><div class="t">3 × Hikâye</div><div class="s">Taslak bekleniyor</div></div></div>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block"><i data-lucide="upload"></i>Taslak gönder</a></div>
+      </div>
+    </div>
+
+    <!-- TASLAK GÖNDER SHEET -->
+    <div class="screen">
+      <div class="screen-label"><b>Taslak gönder</b><span>bottom sheet</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">İş birliği</span><span style="width:44px"></span></div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h2>Reels 2 — yeni taslak</h2>
+          <div class="field"><span class="label">Taslak bağlantısı</span><div class="minput focus"><i data-lucide="link"></i><span class="val">drive.google.com/…/reels2-v2</span></div><span class="hint">Video dosyası, Drive veya paylaşım bağlantısı.</span></div>
+          <div class="field"><span class="label">Not <span class="faint">(isteğe bağlı)</span></span><div class="minput area" style="height:76px"><span class="val small">Ürünü yakın çekime aldım, ışığı da düzelttim.</span></div></div>
+          <div class="notice warning"><div class="ic"><i data-lucide="rotate-ccw"></i></div><div class="grow"><span>Bu teslimat için 1 revize hakkı kaldı.</span></div></div>
+          <a class="mbtn primary block">Gönder</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÖDEME ONAYI -->
+    <div class="screen">
+      <div class="screen-label"><b>Yayın ve ödeme onayı</b><span>tamamlanma</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">İş birliği</span><a class="icon-btn"><i data-lucide="message-circle"></i></a></div>
+        <div class="body" style="gap:14px">
+          <div class="row" style="gap:10px"><div class="av sq a2">B</div><div><div class="b" style="font-size:18px">Kamp ekipmanı tanıtımı</div><div class="small muted">Bozkır Outdoor</div></div></div>
+          <div class="m-card p" style="display:grid; gap:12px">
+            <div class="timeline"><div class="st done"><i></i>Teklif</div><div class="st done"><i></i>Anlaşıldı</div><div class="st done"><i></i>İçerik</div><div class="st done"><i></i>Yayın</div><div class="st now"><i></i>Bitti</div></div>
+          </div>
+          <div class="sec"><h3>Yayın</h3></div>
+          <div class="list"><div class="li"><div class="li-ic success"><i data-lucide="instagram"></i></div><div class="grow"><div class="t">instagram.com/reel/…</div><div class="s">Yayınlandı · 9 Ekim</div></div><i data-lucide="external-link" class="ic18 faint"></i></div></div>
+          <div class="sec"><h3>Ödeme</h3></div>
+          <div class="m-card pay">
+            <div class="between"><span class="muted">Anlaşılan ücret</span><span class="b" style="font-size:18px">₺5.000</span></div>
+            <div class="list" style="background:var(--surface-2)">
+              <div class="li" style="min-height:52px"><div class="li-ic success"><i data-lucide="check"></i></div><div class="grow"><div class="t" style="font-size:14px">Marka ödemeyi yaptı</div><div class="s">10 Ekim</div></div></div>
+              <div class="li" style="min-height:52px"><div class="li-ic"><i data-lucide="circle-dashed"></i></div><div class="grow"><div class="t" style="font-size:14px">Sen aldığını onayla</div><div class="s">Onaylayınca iş tamamlanır</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Ödemeyi aldım</a></div>
+      </div>
+      <p class="note">Ödeme platform dışında yapılır; uygulama yalnızca iki tarafın onayını kaydeder (mevcut web akışı). Bu konuda arayüze ek iddia yazılmadı.</p>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Bildirimler ve ayarlar</h2></div>
+  <div class="screens">
+
+    <!-- BİLDİRİMLER -->
+    <div class="screen">
+      <div class="screen-label"><b>Bildirimler</b><span>notifications</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">Bildirimler</span><a class="small muted" style="width:44px; text-align:right">Tümü okundu</a></div>
+        <div class="body" style="gap:10px">
+          <div class="group-h">BUGÜN</div>
+          <div class="list">
+            <div class="li"><div class="li-ic gold"><i data-lucide="send"></i></div><div class="grow"><div class="t">Yeni teklif: Luna Kozmetik</div><div class="s">Yaz serisi cilt bakımı · ₺8.000</div></div><span class="unread-dot"></span></div>
+            <div class="li"><div class="li-ic warning"><i data-lucide="rotate-ccw"></i></div><div class="grow"><div class="t">Revize istendi</div><div class="s">Bahar lansmanı · Reels 2</div></div><span class="unread-dot"></span></div>
+          </div>
+          <div class="group-h">BU HAFTA</div>
+          <div class="list">
+            <div class="li"><div class="li-ic success"><i data-lucide="circle-check"></i></div><div class="grow"><div class="t">Başvurun kabul edildi</div><div class="s">Kahve molası UGC</div></div><span class="xs faint">Pzt</span></div>
+            <div class="li"><div class="li-ic info"><i data-lucide="life-buoy"></i></div><div class="grow"><div class="t">Destek talebin yanıtlandı</div><div class="s">"Fiyat kartı kaydedilmiyor"</div></div><span class="xs faint">Paz</span></div>
+            <div class="li"><div class="li-ic"><i data-lucide="message-circle"></i></div><div class="grow"><div class="t">Nane Giyim mesaj gönderdi</div><div class="s">Sonbahar kombin</div></div><span class="xs faint">Cmt</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Zil ikonundan açılır. Dokununca ilgili teklif/iş/sohbet açılır. Aynı olaylar push olarak da gelir.</p>
+    </div>
+
+    <!-- AYARLAR -->
+    <div class="screen">
+      <div class="screen-label"><b>Ayarlar</b><span>SettingsScreen</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">Ayarlar</span><span style="width:44px"></span></div>
+        <div class="body" style="gap:10px">
+          <div class="group-h">E-POSTA BİLDİRİMLERİ</div>
+          <div class="list">
+            <div class="set-row"><div class="grow"><div class="t">Yeni teklif ve yanıtlar</div></div><span class="toggle on"></span></div>
+            <div class="set-row"><div class="grow"><div class="t">Başvuru sonuçları</div></div><span class="toggle on"></span></div>
+            <div class="set-row"><div class="grow"><div class="t">Yeni mesaj özeti</div><div class="s">En fazla saatte bir</div></div><span class="toggle"></span></div>
+          </div>
+          <div class="group-h">HESAP</div>
+          <div class="list">
+            <div class="set-row"><div class="li-ic"><i data-lucide="key-round"></i></div><div class="grow"><div class="t">Şifre değiştir</div></div><i data-lucide="chevron-right" class="ic18 faint"></i></div>
+            <div class="set-row"><div class="li-ic"><i data-lucide="bell-ring"></i></div><div class="grow"><div class="t">Push bildirimleri</div><div class="s">Telefon ayarlarından yönetilir</div></div><i data-lucide="chevron-right" class="ic18 faint"></i></div>
+          </div>
+          <div class="group-h">DESTEK</div>
+          <div class="list">
+            <div class="set-row"><div class="li-ic"><i data-lucide="life-buoy"></i></div><div class="grow"><div class="t">Destek talebi</div></div><i data-lucide="chevron-right" class="ic18 faint"></i></div>
+            <div class="set-row"><div class="li-ic"><i data-lucide="file-text"></i></div><div class="grow"><div class="t">Koşullar ve gizlilik</div></div><i data-lucide="external-link" class="ic18 faint"></i></div>
+          </div>
+          <a class="mbtn danger block" style="margin-top:6px"><i data-lucide="log-out"></i>Çıkış yap</a>
+          <div class="xs faint" style="text-align:center">Influmatch · sürüm 1.0</div>
+        </div>
+      </div>
+      <p class="note">E-posta tercihleri web'deki <b>email_notifications</b> ile aynı alanlar (kural 6).</p>
+    </div>
+
+    <!-- DESTEK TALEBİ -->
+    <div class="screen">
+      <div class="screen-label"><b>Destek talebi</b><span>SupportTicketForm</span></div>
+      <div class="phone">
+        <div class="appbar"><a class="icon-btn"><i data-lucide="chevron-left"></i></a><span class="title">Destek talebi</span><span style="width:44px"></span></div>
+        <div class="body" style="gap:14px">
+          <div class="field"><span class="label">Konu</span><div class="row" style="gap:8px; flex-wrap:wrap"><span class="fchip">Ödeme Sorunu</span><span class="fchip on">Teknik Hata</span><span class="fchip">Şikayet/Bildirim</span><span class="fchip">Öneri</span></div></div>
+          <div class="field"><span class="label">Öncelik</span><div class="mseg"><a>Düşük</a><a class="on">Orta</a><a>Acil</a></div></div>
+          <div class="field"><span class="label">Başlık</span><div class="minput"><span class="val">Fiyat kartı kaydedilmiyor</span></div></div>
+          <div class="field"><span class="label">Açıklama</span><div class="minput area" style="height:110px"><span class="val small" style="line-height:1.5">Reels fiyatını değiştirip kaydet'e bastığımda eski değer geri geliyor.</span></div></div>
+          <div class="list">
+            <div class="li"><div class="li-ic info"><i data-lucide="inbox"></i></div><div class="grow"><div class="t">Önceki talepler</div><div class="s">1 yanıtlandı</div></div><i data-lucide="chevron-right" class="chev"></i></div>
+          </div>
+        </div>
+        <div class="bottom-cta"><a class="mbtn primary block">Gönder</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="mobil.js"></script>
+</body>
+</html>

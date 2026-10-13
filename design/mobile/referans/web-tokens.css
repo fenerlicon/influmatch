@@ -1,0 +1,85 @@
+/* Influmatch — Sakin Premium tasarım sistemi (WEB kaynağı, mobil bununla aynı olmalı)
+   Aynı renkler (koyu zemin + soft gold + champagne), düz yüzeyler, altın yalnızca ana eylemde. */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --bg: #0C0D10;
+  --surface-1: #121318;
+  --surface-2: #17191F;
+  --surface-3: #1F2129;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.13);
+  --text: #F3F1EC;
+  --text-2: #A3A29E;
+  --text-3: #6B6B70;
+  --gold: #D4AF37;
+  --gold-hover: #E2C25A;
+  --gold-ink: #17130A;
+  --gold-soft: rgba(212, 175, 55, 0.10);
+  --gold-line: rgba(212, 175, 55, 0.32);
+  --champagne: #F7E7CE;
+  --success: #5BBF8A;  --success-soft: rgba(91, 191, 138, 0.10);
+  --warning: #E3A94B;  --warning-soft: rgba(227, 169, 75, 0.10);
+  --danger: #E26464;   --danger-soft: rgba(226, 100, 100, 0.10);
+  --info: #7FA6DB;     --info-soft: rgba(127, 166, 219, 0.10);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+  --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.6);
+  --font-ui: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;
+}
+
+/* Tipografi */
+.display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
+.display em { font-style: italic; color: var(--champagne); }
+.h1 { font-family: var(--font-display); font-size: 34px; font-weight: 400; line-height: 1.1; letter-spacing: -0.01em; }
+.h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.h3 { font-size: 14px; font-weight: 600; }
+.eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+/* Butonlar: 4 tür (primary=altın, secondary, ghost, danger) × 2 boy */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: var(--r-sm); font-size: 13.5px; font-weight: 500; border: 1px solid transparent; }
+.btn-primary { background: var(--gold); color: var(--gold-ink); }
+.btn-secondary { background: var(--surface-3); border-color: var(--line-strong); color: var(--text); }
+.btn-ghost { background: transparent; color: var(--text-2); }
+.btn-danger { background: transparent; border-color: rgba(226,100,100,.35); color: var(--danger); }
+
+/* Kart */
+.card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.card-accent { border-color: var(--gold-line); background: linear-gradient(180deg, var(--gold-soft), transparent 70%), var(--surface-1); }
+
+/* Çip */
+.chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; background: var(--surface-3); color: var(--text-2); border: 1px solid var(--line); }
+.chip-gold { background: var(--gold-soft); color: var(--gold); border-color: var(--gold-line); }
+.chip-success { background: var(--success-soft); color: var(--success); border-color: transparent; }
+.chip-warning { background: var(--warning-soft); color: var(--warning); border-color: transparent; }
+.chip-danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.chip-info { background: var(--info-soft); color: var(--info); border-color: transparent; }
+
+/* Form */
+.label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+.input { height: 38px; padding: 0 12px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); }
+.input:focus { border-color: var(--gold-line); box-shadow: 0 0 0 3px var(--gold-soft); }
+
+/* Sekme ve segment */
+.tab.active { color: var(--text); border-bottom: 2px solid var(--gold); }
+.seg { display: inline-flex; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; }
+.seg a.active { background: var(--surface-3); color: var(--text); box-shadow: 0 0 0 1px var(--line-strong); }
+
+/* Tek bildirim alanı (eski 4 bandın yerine) */
+.notice { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--r-md); background: var(--surface-1); border: 1px solid var(--line); }
+.notice .ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; }
+
+/* Avatar (fotoğraf yoksa baş harf, koyu renk tonlarından biri) */
+.av { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line-strong); }
+.av.a1 { background: #2A2433; } .av.a2 { background: #1F2B2A; } .av.a3 { background: #2E2620; }
+.av.a4 { background: #232838; } .av.a5 { background: #302228; } .av.a6 { background: #262B1F; }
+.tick { color: var(--info); } /* mavi tik */ .tick-gold { color: var(--gold); }
+
+/* İstatistik, ilerleme */
+.stat .v { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 99px; background: var(--surface-3); } .bar > i { background: var(--gold); }
+
+/* Web'in mobil alt sekme çubuğu */
+.mobile-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); background: rgba(12,13,16,.95); border-top: 1px solid var(--line); padding: 6px 4px 10px; }
+.mobile-tabbar a { display: grid; justify-items: center; gap: 3px; font-size: 10.5px; color: var(--text-3); }
+.mobile-tabbar a.active { color: var(--gold); }
