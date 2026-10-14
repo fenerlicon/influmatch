@@ -15,7 +15,7 @@ export default function PublicSpotlightPage() {
     // Since this is a public page, we always direct to signup/login or dashboard if already logged in (checked by middleware usually)
     // But for this specific request, we simplify and just show "Kayıt Ol & Başla" for everyone
     const handleAction = (role: 'brand' | 'influencer') => {
-        router.push(`/signup-role?role=${role}`)
+        router.push(`/signup?role=${role}`)
     }
 
     return (
@@ -27,7 +27,7 @@ export default function PublicSpotlightPage() {
                 </Link>
                 <div className="flex items-center gap-4">
                     <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white">Giriş Yap</Link>
-                    <Link href="/signup-role" className="rounded-full bg-soft-gold px-5 py-2 text-sm font-bold text-[#0B0C10] transition hover:bg-white hover:text-black">Kayıt Ol</Link>
+                    <Link href="/signup" className="rounded-full bg-soft-gold px-5 py-2 text-sm font-bold text-[#0B0C10] transition hover:bg-white hover:text-black">Kayıt Ol</Link>
                 </div>
             </nav>
 

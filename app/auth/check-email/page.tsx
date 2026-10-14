@@ -3,8 +3,11 @@
 import { Suspense, useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Mail, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import AuthShell from '@/components/auth/AuthShell'
+import { Button, Notice } from '@/components/ui'
+import { cn } from '@/utils/cn'
 
 function CheckEmailPageContent() {
   const router = useRouter()
@@ -32,7 +35,7 @@ function CheckEmailPageContent() {
   const handleVerify = async () => {
     const otp = code.join('')
     // Projede doğrulama kodu 6 hane (canlıda kayıtlar bu kodla onaylanıyor).
-    if (otp.length !== 6 || !email) return
+    if (otp.length !== 6 || !email || isLoading) return
 
     setIsLoading(true)
     setErrorMessage(null)
@@ -48,11 +51,8 @@ function CheckEmailPageContent() {
         setErrorMessage(error.message || 'Hatalı kod, lütfen tekrar deneyin.')
         setIsLoading(false)
       } else {
-        setSuccessMessage('Hesabınız başarıyla doğrulandı! Yönlendiriliyorsunuz...')
-        // Başarılı, Onboarding'e yönlendir
-        setTimeout(() => {
-          router.push('/onboarding')
-        }, 1500)
+        setSuccessMessage('Hesabın doğrulandı. Profilini tamamlamaya yönlendiriliyorsun…')
+        router.push('/onboarding')
       }
     } catch (err) {
       setErrorMessage('Bir hata oluştu.')
@@ -129,97 +129,63 @@ function CheckEmailPageContent() {
 
   if (!email) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-6 py-24 bg-[#0F1014]">
-        <div className="text-center">
-          <h1 className="text-white text-xl">Email adresi bulunamadı.</h1>
-          <Link href="/signup-role" className="text-soft-gold hover:underline mt-4 block">Tekrar Kayıt Ol</Link>
-        </div>
-      </main>
+      <AuthShell eyebrow="E-posta doğrulama" title="E-posta adresi bulunamadı">
+        <p className="text-[13px] text-ink-muted">
+          <Link href="/signup" className="text-gold hover:underline">Kayıt sayfasına dön</Link>
+        </p>
+      </AuthShell>
     )
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-24 bg-[#0F1014]">
-      <div className="mx-auto max-w-lg w-full text-center">
-        <div className="rounded-[32px] border border-white/10 bg-[#151621] p-8 md:p-12 shadow-2xl relative overflow-hidden">
-
-          {/* Background Glows */}
-          <div className="absolute top-0 right-0 h-64 w-64 bg-soft-gold rounded-full opacity-[0.03] blur-3xl -translate-y-10 translate-x-10 pointer-events-none" />
-
-          <div className="flex justify-center mb-8">
-            <div className="rounded-full bg-soft-gold/10 p-5 border border-soft-gold/20">
-              <Mail className="h-8 w-8 text-soft-gold" />
-            </div>
-          </div>
-
-          <h1 className="text-2xl font-bold text-white mb-3">
-            Email Doğrulama
-          </h1>
-          <p className="text-gray-400 mb-8 text-sm leading-relaxed">
-            <span className="text-white font-semibold">{email}</span> adresine gönderilen doğrulama kodunu girin.
-          </p>
-
-          <div className="flex justify-center gap-3 mb-8" onPaste={handlePaste}>
-            {code.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => { inputRefs.current[index] = el }}
-                type="text"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                // Larger width for 6 params
-                className={`w-11 h-14 md:w-14 md:h-16 rounded-xl border bg-white/5 text-center text-2xl font-bold text-white transition-all focus:outline-none focus:ring-2 focus:ring-soft-gold/50 ${digit ? 'border-soft-gold/50 shadow-glow-sm' : 'border-white/10'
-                  }`}
-              />
-            ))}
-          </div>
-
-          <button
-            onClick={handleVerify}
-            disabled={isLoading || code.join('').length < 6}
-            className="w-full rounded-2xl bg-soft-gold py-4 font-bold text-[#0B0F19] transition hover:bg-[#b89428] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isLoading ? 'İşleniyor...' : (
-              <>
-                Doğrula <ArrowRight size={18} strokeWidth={2.5} />
-              </>
-            )}
-          </button>
-
-          <div className="mt-6 flex flex-col items-center gap-3">
-            {errorMessage && (
-              <p className="text-red-400 text-sm flex items-center gap-2 bg-red-500/10 px-4 py-2 rounded-lg">
-                <AlertCircle size={14} /> {errorMessage}
-              </p>
-            )}
-            {successMessage && (
-              <p className="text-emerald-400 text-sm flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-lg">
-                <CheckCircle size={14} /> {successMessage}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-8 pt-8 border-t border-white/5">
-            <button
-              onClick={handleResend}
-              disabled={timeLeft > 0}
-              className="text-sm text-gray-400 hover:text-white transition disabled:hover:text-gray-400"
-            >
-              {timeLeft > 0 ? (
-                `Kodu tekrar göndermek için bekle: ${timeLeft}sn`
-              ) : (
-                <>
-                  Kod gelmedi mi? <span className="text-soft-gold font-bold">Tekrar Gönder</span>
-                </>
+    <AuthShell
+      eyebrow="E-posta doğrulama"
+      title="E-postanı kontrol et"
+      description={<><span className="text-ink">{email}</span> adresine gönderilen 6 haneli kodu gir.</>}
+    >
+      <div className="grid gap-4">
+        <div className="flex justify-between gap-2" onPaste={handlePaste}>
+          {code.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => { inputRefs.current[index] = el }}
+              type="text"
+              inputMode="numeric"
+              autoComplete={index === 0 ? 'one-time-code' : 'off'}
+              aria-label={`${index + 1}. hane`}
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              className={cn(
+                'h-14 w-full min-w-0 rounded-lg border bg-surface-2 text-center text-2xl font-semibold tabular-nums text-ink outline-none transition focus:border-gold/40 focus:ring-[3px] focus:ring-gold/10',
+                digit ? 'border-gold/40' : 'border-line-strong',
               )}
-            </button>
-          </div>
-
+            />
+          ))}
         </div>
+
+        {errorMessage && <Notice tone="danger">{errorMessage}</Notice>}
+        {successMessage && <Notice tone="success">{successMessage}</Notice>}
+
+        <Button variant="primary" block className="h-[42px]" onClick={handleVerify} loading={isLoading} disabled={code.join('').length < 6} rightIcon={<ArrowRight />}>
+          Doğrula
+        </Button>
+
+        <p className="text-center text-[13px] text-ink-muted">
+          {timeLeft > 0 ? (
+            <>Kodu tekrar göndermek için {timeLeft} sn bekle</>
+          ) : (
+            <>
+              Kod gelmedi mi?{' '}
+              <button type="button" onClick={handleResend} disabled={isLoading} className="text-gold hover:underline disabled:opacity-50">
+                Tekrar gönder
+              </button>
+            </>
+          )}
+        </p>
       </div>
-    </main>
+    </AuthShell>
   )
 }
 

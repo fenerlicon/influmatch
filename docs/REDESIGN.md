@@ -129,6 +129,11 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      (marka/üretici), Doğrulama, öne çıkan profiller (canlı Spotlight verisi; yoksa gizli), Spotlight (maddeler `lib/spotlight-plans.ts`'ten),
      S.S.S., son çağrı. S.S.S.: TikTok "yakında" ve Spotlight maddeleri koddaki gerçeğe göre düzeltildi; "kampanya" → "ilan".
      Kayıt bağlantıları `/signup` (rol formda). Eski 10 tanıtım bileşeni silindi.
+   - ✅ Giriş / kayıt / şifre (2026-10-14): ortak `components/auth/AuthShell.tsx` (solda tanıtım paneli, sağda form) +
+     `PasswordInput`. Kayıtta hesap türü formun içinde: Marka · Influencer · UGC (UGC = influencer rolü, `creator_type: 'ugc'`;
+     onboarding ön seçili getirir). `/signup-role` → `/signup`'a yönlenir (rol ve creator_type korunur). Şifre tekrarı kayıttan kalktı
+     (göster/gizle var), yeni şifre ekranında duruyor. Koşullar için açık onay kutusu kaldı (tasarımdaki örtük kabul uygulanmadı).
+     Kod ekranında aynı anda iki doğrulama isteği gitmesi engellendi. Sırada: onboarding.
 5. **Admin paneli.**
    - ✅ Kabuk ve alt paneller (2026-10-14): `app/admin/layout.tsx` admin sayfalarını `AppShell`'de açar; menü (`nav-config` ADMIN):
      Kullanıcılar · Destek (talepler, geri bildirimler, raporlanan mesajlar, mesajlar) · Sistem (marka sınırları, API anahtarları,
