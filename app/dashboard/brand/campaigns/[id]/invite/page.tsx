@@ -9,6 +9,8 @@ import { CAMPAIGN_OPEN_STATUSES, campaignFeaturesFor, getCampaignAs, suggestCamp
 import { getBrandLimitContext, getOfferQuota, offerQuotaSummary } from '@/lib/brand-limits'
 
 export const revalidate = 0
+// Toplu davet (en fazla 25 teklif, her biri bildirimle) bu sayfanın sunucu aksiyonunda sırayla gönderilir.
+export const maxDuration = 60
 
 // Kampanya sihirbazı, 3-4. adım: önerilen profiller → toplu davet. Bayrak açıkken yalnızca Spotlight Pro (3.19).
 export default async function CampaignInvitePage({ params }: { params: { id: string } }) {

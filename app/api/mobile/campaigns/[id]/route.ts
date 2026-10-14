@@ -14,6 +14,8 @@ import {
 } from '@/lib/campaigns'
 
 export const dynamic = 'force-dynamic'
+// Toplu davet (en fazla 25 teklif, her biri bildirimle) sırayla gönderilir.
+export const maxDuration = 60
 
 const status = (error: string) => (error === CAMPAIGN_NOT_FOUND ? 404 : 400)
 
