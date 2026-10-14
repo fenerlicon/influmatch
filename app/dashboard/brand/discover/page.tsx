@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import BrandDiscoverGrid from '@/components/dashboard/BrandDiscoverGrid'
+import DiscoverGrid from '@/components/discover/DiscoverGrid'
+import BrandDiscoverHeader from '@/components/discover/BrandDiscoverHeader'
 import { getEnrichedInfluencers } from '@/utils/fetchInfluencers'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
@@ -47,7 +48,6 @@ export default async function BrandDiscoverPage() {
     completedCollaborationCounts(supabase, influencerIds),
   ])
 
-  // 4. Fetch Favorites
   const { data: favorites } = favoritesLocked
     ? { data: [] as { influencer_id: string }[] }
     : await supabase
@@ -55,23 +55,14 @@ export default async function BrandDiscoverPage() {
         .select('influencer_id')
         .eq('brand_id', user.id)
 
-  // ...
   const favoritedIds = new Set(favorites?.map((f: { influencer_id: string }) => f.influencer_id) || [])
 
-  const userRole = 'brand' // marka layout'u DB rolünü zaten doğruladı
   // Süresi dolmuş Spotlight PRO filtrelerini açmasın.
   const isSpotlight = hasActiveSpotlight(userData)
 
   return (
-    <div className="space-y-6">
-      <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 text-white shadow-glow">
-        <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Keşfet</p>
-        <h1 className="mt-2 text-2xl font-semibold">İlham veren influencer setleri</h1>
-        <p className="mt-2 text-gray-300 max-w-2xl">
-          Kategoriye göre filtrele, Spotlight rozetine sahip profilleri öne çıkar ve marka hikâyene en uygun
-          eşleştirmeyi oluştur.
-        </p>
-      </header>
+    <div>
+      <BrandDiscoverHeader tab="all" counts={{ all: influencers.length }} />
 
       {wheel.limited && (
         <DiscoveryWheelCard
@@ -81,17 +72,21 @@ export default async function BrandDiscoverPage() {
         />
       )}
 
-      {(!wheel.limited || wheel.spin) && <BrandDiscoverGrid
-        influencers={influencers}
-        initialFavoritedIds={Array.from(favoritedIds) as string[]}
-        userRole={userRole}
-        isSpotlightMember={isSpotlight}
-        spotlightPlan={isSpotlight ? (userData?.spotlight_plan ?? null) : null}
-        defaultCategory={userData?.category}
-        minPrices={minPrices}
-        completedCounts={Object.fromEntries(counts)}
-        favoritesLocked={favoritesLocked}
-      />}
+      {(!wheel.limited || wheel.spin) && (
+        <DiscoverGrid
+          viewerRole="brand"
+          influencers={influencers}
+          favoritedIds={Array.from(favoritedIds) as string[]}
+          isSpotlightMember={isSpotlight}
+          spotlightPlan={isSpotlight ? (userData?.spotlight_plan ?? null) : null}
+          defaultCategory={userData?.category}
+          minPrices={minPrices}
+          completedCounts={Object.fromEntries(counts)}
+          favoritesLocked={favoritesLocked}
+          emptyTitle="Henüz listelenen profil yok"
+          emptyDescription="Doğrulanmış hesabı olan influencer'lar katıldıkça burada görünür."
+        />
+      )}
     </div>
   )
 }

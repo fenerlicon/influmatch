@@ -1,5 +1,5 @@
 import {
-  Award, Briefcase, Building2, Compass, Heart, Home, LayoutDashboard, LifeBuoy, LineChart, Megaphone, MessageSquare,
+  Award, Briefcase, Building2, Compass, Home, LayoutDashboard, LifeBuoy, LineChart, Megaphone, MessageSquare,
   MessagesSquare, UserRound, type LucideIcon,
 } from 'lucide-react'
 
@@ -57,8 +57,14 @@ const BRAND: NavGroup[] = [
   {
     label: 'Bul',
     items: [
-      { id: 'discover', label: 'Keşfet', href: '/dashboard/brand/discover', icon: Compass, alsoActive: ['/dashboard/brand/ai'] },
-      { id: 'favorites', label: 'Favoriler', href: '/dashboard/brand/favorites', icon: Heart, alsoActive: ['/dashboard/brand/inflist'] },
+      // Önerilenler ve Favoriler/Listeler Keşfet'in sekmeleri (docs/REDESIGN.md).
+      {
+        id: 'discover',
+        label: 'Keşfet',
+        href: '/dashboard/brand/discover',
+        icon: Compass,
+        alsoActive: ['/dashboard/brand/ai', '/dashboard/brand/favorites', '/dashboard/brand/inflist'],
+      },
       { id: 'adverts', label: 'İlanlar', href: '/dashboard/brand/advert', icon: Megaphone },
     ],
   },
