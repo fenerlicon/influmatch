@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
  * ?limit= (en fazla 500). Filtreler (lib/discover-filters.ts, sunucuda uygulanır): ?city=, ?platform=instagram|tiktok,
  * ?creatorType=influencer|ugc, ?minFollowers=, ?maxFollowers=, ?minEngagement=, ?maxEngagement= (yüzde),
  * ?sort=followers_desc|followers_asc|engagement_desc; Spotlight Pro'da ?withData=1, ?blueTick=1 (yanıtta proFilters).
+ * ?availableOnly=1 "Şu an dolu" profilleri gizler; dolu profiller her sıralamada sonda. Her profilde availability (3.19).
  */
 export async function GET(request: Request) {
   const ctx = await getBearerContext(request)

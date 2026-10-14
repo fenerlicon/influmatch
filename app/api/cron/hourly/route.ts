@@ -9,6 +9,7 @@ import { sweepOfficialBusiness } from '@/lib/official-business'
 import { refreshStaleAccounts } from '@/lib/social-stats'
 import { autoCompleteCollaborations } from '@/lib/collaborations'
 import { expireStaleOffers } from '@/lib/offers'
+import { resetExpiredAvailability } from '@/lib/availability'
 import { processAdvertAlerts } from '@/lib/advert-alerts'
 
 export const dynamic = 'force-dynamic'
@@ -110,6 +111,14 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] Teklif süresi kontrolü başarısız:', error)
     result.offerExpiryError = error instanceof Error ? error.message : String(error)
+  }
+
+  // Bitiş tarihi geçen "Şu an dolu" durumları (okuma zaten geçmiş tarihi "İş alıyorum" sayar; bu yalnızca temizlik).
+  try {
+    result.availability = await resetExpiredAvailability(admin)
+  } catch (error) {
+    console.error('[cron/hourly] Müsaitlik temizliği başarısız:', error)
+    result.availabilityError = error instanceof Error ? error.message : String(error)
   }
 
   try {

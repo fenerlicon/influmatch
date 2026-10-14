@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import { saveEmailPreferences } from '@/lib/email-preferences'
+import { setAvailabilityAs } from '@/lib/availability'
 
 export interface EmailNotificationSettings {
   offers: boolean
@@ -153,3 +154,18 @@ export async function deleteAccount(password: string): Promise<{ success: boolea
   }
 }
 
+
+// Müsaitlik "İş alıyorum / Şu an dolu" (3.19). Kurallar lib/availability.ts'te; mobil /api/mobile/availability aynısını çağırır.
+export async function updateAvailability(input: { status: string; note?: string | null; until?: string | null }) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Oturumunuz bulunamadı.' }
+  const result = await setAvailabilityAs(supabase, user.id, input)
+  if ('success' in result) {
+    revalidatePath('/dashboard/influencer/settings')
+    revalidatePath('/dashboard/influencer')
+  }
+  return result
+}

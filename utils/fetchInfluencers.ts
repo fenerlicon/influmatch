@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { profileReader } from '@/lib/profile-reads'
 import { type DiscoverInfluencer } from '@/types/influencer'
 import { categoryQueryValues, influencerCategoriesForBrand } from '@/lib/category-map'
+import { effectiveAvailability } from '@/lib/availability-shared'
 
 // `.in(...)` listeleri URL'ye yazıldığı için kimlikler parça parça sorgulanır (3.5-S2).
 const ID_CHUNK = 100
@@ -12,7 +13,7 @@ function chunk<T>(items: T[], size: number): T[][] {
     return out
 }
 
-const USER_COLUMNS = 'id, full_name, avatar_url, category, city, username, spotlight_active, displayed_badges, verification_status, creator_type, user_badges(badge_id)'
+const USER_COLUMNS = 'id, full_name, avatar_url, category, city, username, spotlight_active, displayed_badges, verification_status, creator_type, availability_status, availability_note, availability_until, user_badges(badge_id)'
 
 // Başka kullanıcıların satırları istemci oturumuyla okunamaz (3.17-S2); bu fonksiyonlar yalnızca sunucuda, çağıran sayfa
 // oturumu ve kuralları (marka onayı, keşif çarkı, Spotlight) uyguladıktan sonra çağrılır. Okuma service role ile
@@ -166,7 +167,8 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
             platforms: platforms,
             platforms_data: platforms_data,
             stats: stats,
-            creator_type: user.creator_type as any
+            creator_type: user.creator_type as any,
+            availability: effectiveAvailability(user)
         }
     })
 

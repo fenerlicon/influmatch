@@ -1,4 +1,5 @@
 import { type PlatformType } from '@/components/showcase/ProfileCard'
+import type { Availability } from '@/lib/availability-shared'
 
 export interface DiscoverInfluencer {
     id: string
@@ -28,6 +29,8 @@ export interface DiscoverInfluencer {
         avg_comments?: string
     }
     creator_type?: 'influencer' | 'ugc' | 'both' | null
+    /** Müsaitlik (3.19); yoksa "iş alıyorum". */
+    availability?: Availability | null
     matchScore?: number
     matchReasons?: string[]
 }

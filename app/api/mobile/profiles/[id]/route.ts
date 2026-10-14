@@ -1,5 +1,5 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
-import { getProfileForViewer } from '@/lib/profile-reads'
+import { availabilityOf, getProfileForViewer } from '@/lib/profile-reads'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
  * Profil detayı (mobil InfluencerDetail). Web profil sayfasıyla aynı kural (lib/profile-reads.ts):
  * { status: 'ok', profile, socialAccounts } | { status: 'brand_unverified', verificationStatus }
  * | { status: 'wheel_blocked', profilesPerSpin, windowHours, expiresAt } | 404.
+ * availability: geçerli müsaitlik (3.19; bitiş tarihi geçmiş "dolu" = "iş alıyorum").
  */
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const ctx = await getBearerContext(request)
@@ -25,5 +26,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
       expiresAt: access.wheel.spin?.expires_at ?? null,
     })
   }
-  return mobileJson({ status: 'ok', profile: access.profile, socialAccounts: access.socialAccounts })
+  return mobileJson({
+    status: 'ok',
+    profile: access.profile,
+    socialAccounts: access.socialAccounts,
+    availability: access.profile.role === 'influencer' ? availabilityOf(access.profile) : null,
+  })
 }
