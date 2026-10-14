@@ -52,9 +52,8 @@ export default function BrandBadgesPage() {
           </span>
         </h1>
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-gray-300 md:text-base">
-          Rozetler, platformumuzda güveni ve prestiji simgeler. Kurumsal kimlik doğrulamasından başarı metriklerine kadar,
-          her rozet markanızın görünürlüğünü artırır ve influencerların sizi keşfetmesini kolaylaştırır. Algoritmamız,
-          rozetli profilleri önceliklendirerek daha fazla işbirliği fırsatı sunar.
+          Rozetler, platformumuzda güveni ve prestiji simgeler. Kurumsal kimlik doğrulamasından başarı metriklerine kadar
+          kazandığınız rozetler marka profilinizde ve ilan kartlarınızda görünür; influencerlar sizi değerlendirirken bunları görür.
         </p>
       </header>
 

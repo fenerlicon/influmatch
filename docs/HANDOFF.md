@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-14 (kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-14 (geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -75,10 +75,16 @@
   formu kampanyanın varsayılan teslimatlarıyla dolar. **Kapı:** bayrak (`free_brand_limits_enabled`) açıkken öneriler ve çoklu davet yalnızca Spotlight Pro; bayrak
   kapalı (bugün) herkes kullanır. Influencer **müsaitliği** ("İş alıyorum / Şu an dolu", not, bitiş tarihi): ayarlar (web + mobil), keşif kartı ve profil çipi,
   doluyken keşifte sonda, "Yalnızca iş alanlar" filtresi, teklif penceresinde uyarı. Mobil: Kampanyalar + pano + oluşturma + davet (`/api/mobile/campaigns`),
-  Ayarlar'da müsaitlik (`/api/mobile/availability`). Migration `20261014000030` canlıda, rollback'li RLS denemesiyle doğrulandı. Karar bekleyen: 3.19-N8
-  (Spotlight Pro listesine ekleme, satış başlarken), 3.19-N9 (kampanya silme).
+  Ayarlar'da müsaitlik (`/api/mobile/availability`). Migration `20261014000030` canlıda, rollback'li RLS denemesiyle doğrulandı. Kararlar (2026-10-14):
+  3.19-N8 "Kampanya sihirbazı ve toplu davet" satış başlarken (bayrak açıldığı anda) Marka Pro listesine eklenir (ROADMAP'te not); 3.19-N9 kampanya silme yok, yalnızca arşiv.
+- **`claude/withdraw-room-claims` (2026-10-14):** marka teklifini geri çekince "Markayla görüş" odası kapanır (3.6-S8): `rooms.closed_at/closed_reason`,
+  "Marka teklifini geri çekti." sistem mesajı (`messages.is_system`), web + mobil sohbet salt okunur (banner, yazma alanı kapalı), web birleşik sohbette yeni
+  mesaj en son **açık** odaya gider. Kapanış `lib/room-close.ts` (service role); DB yedeği tetikleyicilerle (migration `20261014000050`, canlıda, rollback'li
+  denemeyle doğrulandı). Reddedilen teklifin odası bilerek açık kalır. Influencer Spotlight paketlerinden çalışmayan "Uyum skoru analizi" / "Profil koçu"
+  çıktı, düğmeleri ve analiz modülleri kaldırıldı; "Kampanya ROI" yalnızca profilin kendi ölçümleri; web + mobilde kaynaksız iddialar temizlendi (4.3-S6).
+  Karar bekleyen yeni bulgu: 4.3-S7 (Influencer Basic ile Pro listesi artık aynı).
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -241,6 +247,9 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **`offers` güncelleme koruması (2026-10-14):** istemciye yalnızca `UPDATE (status)` yetkisi var; `secure_offers_final` içerik/kimlik/tarih kolonlarını dondurur,
   durumu yalnızca alıcı influencer bekleyen teklifte `accepted`/`rejected` yapar. Geri çekme, düzenleme ve süre dolumu service role ile (`lib/offers.ts`).
   Teklife yeni kolon eklenirse istemci yazmayacaksa ek yetki gerekmez.
+- **Kapalı sohbet odası (2026-10-14):** `rooms.closed_at` doluysa oda salt okunur; yalnızca sunucu (service role) kapatır ve `messages.is_system = true`
+  sistem mesajı yazar. İstemci oturumunun yazdığı mesajda `is_system` tetikleyiciyle false'a çevrilir. Yeni kapanma nedeni eklenirse
+  `rooms_closed_reason_check`, `lib/room-close.ts` `ROOM_CLOSED_TEXT` ve mobil `MessagesScreen.js` metni birlikte değişir.
 - **Kampanyalar (3.19):** `campaigns` istemciye yalnızca sahibine SELECT; brief davetliye yalnızca `lib/campaigns.ts` (`briefsForOffers`,
   `campaignBriefForCollaboration`) üzerinden, çağıran tarafın teklif / iş birliği tarafı olduğu RLS'li okumayla doğrulandıktan sonra. `offers.campaign_id` /
   `advert_projects.campaign_id` yazımlarını `enforce_campaign_owner` tetikleyicisi denetler. `createOfferAs` kota hatasında `code: 'quota'` döner (toplu davet bununla durur).

@@ -63,6 +63,9 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
      **satış başlayınca** açılır, altyapı kapalı bayrakla hazırlanır; cevapsız teklif 7 günde düşer; teklif şablonu, ilan alarmı,
      haftalık e-postalar (Resend ücretli plan), ekip/ajans hesabı. Spotlight listesine yalnızca canlıdaki özellik eklenir.
      Ayrıntı ve iş sırası: `docs/ROADMAP.md`.
+   - **2026-10-14:** marka teklifini geri çekince teklif sohbeti kapanır (sistem mesajı, iki taraf için salt okunur; reddedilen teklifte
+     değişiklik yok). Çalışmayan influencer "uyum skoru" / "profil koçu" paketlerden çıktı; arayüzde kaynaksız sayısal/karşılaştırmalı iddia yok.
+     "Kampanya sihirbazı ve toplu davet" satış başlayınca (bayrak açıldığı anda) Marka Pro listesine eklenir; kampanya silme yok, yalnızca arşiv.
    - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi, yayından sonra); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`

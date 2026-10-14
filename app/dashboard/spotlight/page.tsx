@@ -50,7 +50,7 @@ export default async function SpotlightSelectionPage() {
             <div className="grid gap-6 px-4 md:grid-cols-2 lg:gap-8">
                 <SpotlightSelectionCard
                     title="Influencer Edition"
-                    description="Keşfedilme gücünü artır, markaların radarına daha sık gir. Vitrin rozeti, öncelikli listeleme ve daha fazlası."
+                    description="Spotlight rozeti ve çerçevesi, keşifte öncelikli listeleme ve profil görüntülenme sayıları."
                     icon={Crown}
                     href="/dashboard/spotlight/influencer"
                     variant="influencer"

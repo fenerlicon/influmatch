@@ -15,7 +15,7 @@ export default function SpotlightShowcase() {
                         <span className="text-white">Spotlight</span> <span className="text-soft-gold">Etkisi</span>
                     </h2>
                     <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-                        Spotlight paketleri sadece özellik değil, gerçek sonuçlar sunar. İşte hesabınızda yaşanacak değişimler.
+                        Spotlight paketleriyle hesabınızda açılan özellikler.
                     </p>
                 </div>
 
@@ -119,7 +119,7 @@ function VisibilityShowcase() {
                     </div>
                     <h3 className="text-2xl font-bold text-white">Keşfedilme Hızı</h3>
                     <p className="text-sm text-gray-400">
-                        Öne çıkan profiller markaların karşısına daha sık çıkar; görüntülenmelerini panelinden takip edersin.
+                        Profilini kaç markanın görüntülediğini panelinden takip edersin.
                     </p>
                 </div>
                 <div className="relative h-48 rounded-2xl bg-black/50 border border-white/5 p-6 flex flex-col justify-end mt-auto">
@@ -210,7 +210,7 @@ function BrandMatchShowcase() {
                     </div>
                     <h3 className="text-2xl font-bold text-white">Akıllı Eşleşme</h3>
                     <p className="text-sm text-gray-400">
-                        Akıllı eşleştirme, markanız için en uygun influencerları kategori, etkileşim ve doğrulama verilerine göre sıralar.
+                        Akıllı eşleştirme, influencerları markanızın sektörüyle kategori uyumu, etkileşim ve doğrulama verilerine göre sıralar.
                     </p>
                 </div>
                 <div className="relative h-48 rounded-2xl bg-black/50 border border-white/5 overflow-hidden flex items-center justify-center mt-auto">

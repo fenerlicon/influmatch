@@ -355,8 +355,15 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     bekleyen teklifte `accepted` / `rejected` yapabilir; içerik, kimlik ve tarih kolonları donuk; `withdrawn` / `expired` yalnızca sunucudan. Geri çekme ve
     düzenleme service role ile. Rollback'li denemeyle doğrulandı (influencer `withdrawn`/`expired` yapamaz, bütçe/tarih yazamaz; marka durum ve mesaj
     değiştiremez; service role geri çeker; geri çekilen teklif kabul edilemez; normal kabul çalışır).
-  - **3.6-S8 [DÜŞÜK]** (yeni bulgu, 2026-10-14) "Markayla görüş" ile açılmış teklif odası teklif geri çekilince açık kalır (sohbet sürer, iş satırı "Geri çekildi" der).
-    Reddedilen teklifin odasıyla aynı davranış; odanın kapanması istenirse ürün kararı.
+  - ✅ ~~**3.6-S8 [DÜŞÜK]**~~ (2026-10-14, kullanıcı kararı; `20261014000050`, canlıda) "Markayla görüş" ile açılmış teklif odası teklif geri çekilince açık
+    kalıyordu. Artık geri çekmede (`withdrawOfferAs` → `lib/room-close.ts`, service role) oda kapanır (`rooms.closed_at` / `closed_reason = offer_withdrawn`)
+    ve odaya "Marka teklifini geri çekti." sistem mesajı (`messages.is_system`) yazılır; geçmiş görünür, iki taraf da yazamaz. Web sohbet (aynı kişiyle
+    birleşik görünüm) yeni mesajı en son yazışılan **açık** odaya gönderir; bütün odalar kapalıysa yazma alanı kapalı + açıklama; sistem mesajı ortada.
+    Mobil Mesajlar ekranında aynı. `sendMessageAs` kapalı odayı reddeder. DB yedeği: istemci oturumu kapalı odaya mesaj ekleyemez, sistem mesajı yazamaz,
+    kapalı oda açamaz, geri çekilmiş teklif için yeni oda açamaz (`enforce_room_open_on_message`, `enforce_room_insert_state`); rooms'ta istemci
+    UPDATE politikası zaten yok. Rollback'li denemeyle doğrulandı (kapalı odaya ekleme reddedildi, açık odada mesaj gidiyor ve `is_system` false'a
+    çevriliyor, istemci odayı yeniden açamıyor, geri çekilmiş teklife oda açılamıyor). **Not:** reddedilen teklifin odası (Markayla görüş sonrası red)
+    bilerek değişmedi, açık kalır.
 
 ### 3.7 İlanlar (advert projects / kampanyalar)
 - **Dosyalar:** `brand/advert/page.tsx`, `influencer/advert/page.tsx`, `components/adverts/*` (yeni görünüm, 2026-10-14), `lib/adverts-shared.ts`,
@@ -673,8 +680,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.19-S3 [DÜŞÜK]** (yeni bulgu) Toplu davet sırayla gönderilir (25 teklif, her biri bildirim + e-posta + push); sayfa ve mobil uçta `maxDuration = 60`. Resend
     ücretsiz plan kotası (8.4-S1) büyük davetlerde hızla dolabilir (%80'de bildirim e-postaları zaten durur).
   - **3.19-N8 [KARAR]** Spotlight paket listesi (`lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`): "Kampanya sihirbazı ve toplu davet" Marka Pro'ya
-    eklenmedi; kapı yalnızca bayrak açıkken çalıştığı için bugün herkese açık. Satış başlarken (bayrak açılınca) listeye eklenmesi kullanıcı kararı.
-  - **3.19-N9 [KARAR]** Kampanya silme yok (arşiv var); bağlı teklif / ilan silinince bağ `ON DELETE SET NULL`. Silme istenirse ürün kararı.
+    eklenmedi; kapı yalnızca bayrak açıkken çalıştığı için bugün herkese açık. **Karar (2026-10-14):** satış başladığında, `free_brand_limits_enabled`
+    açıldığı anda Marka Pro listesine (web + mobil + SSS) eklenir; o zamana kadar açık kalır (ROADMAP "satış başlarken yapılacaklar").
+  - ✅ ~~**3.19-N9 [KARAR]**~~ (2026-10-14, kullanıcı kararı: silme yok, yalnızca arşiv; kod değişikliği yok) Kampanya silme yok (arşiv var); bağlı teklif / ilan silinince bağ `ON DELETE SET NULL`.
 
 ---
 
@@ -712,10 +720,16 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     Seviye yalnızca profil sayfasındaki analiz düğmelerini (`InfluencerStats`, `generateAIAnalysis`) belirler. **Değişen:** "Kampanya ROI" analizi
     önceden her markaya açıktı, artık yalnızca Marka Pro'da (diğer markalarda kilit + paket penceresi). "Genel Özet" herkese açık kaldı; "Uyum Skoru"
     düğmesi zaten "Çok yakında" uyarısı veriyor. Paket listelerine ROI eklenmedi (metinlerinde doğrulanmamış iddialar var, bkz. 4.3-S6).
-  - **4.3-S6 [DÜŞÜK]** (yeni bulgu, 2026-10-14) Influencer paketlerinde "Uyum skoru analizi" (ibasic/ipro) ve "Profil koçu (detaylı analiz)" (ipro)
-    yazıyor ama profil sayfasındaki iki düğme de yalnızca "Çok yakın zamanda!" uyarısı veriyor (analiz çalışmıyor). Ayrıca "Kampanya ROI" kural
-    metinlerinde kaynaksız iddialar var ("sektör ortalamasının 3x üzerinde" vb.). Karar: düğmeler açılsın mı, yoksa maddeler paketlerden çıksın mı;
-    ROI metinleri sadeleştirilsin mi.
+  - ✅ ~~**4.3-S6 [DÜŞÜK]**~~ (2026-10-14, kullanıcı kararı: maddeler çıksın) Influencer paketlerinde "Uyum skoru analizi" ve "Profil koçu" yazıyordu ama
+    düğmeler yalnızca "Çok yakın zamanda!" diyordu. Paket listelerinden (web + mobil), influencer Spotlight sayfasından ("Detaylı Profil Analizi" kartı),
+    SSS'den çıktı; profil sayfasındaki iki düğme ve `generateAIAnalysis` içindeki iki modül kaldırıldı. "Kampanya ROI" yalnızca profilin kendi ölçümlerini
+    yazar (etkileşim hacmi, izlenme oranı, etkileşim oranı); "sektör ortalamasının 3x üzerinde", "birim maliyetiniz çok ucuza gelir", "para kaybettirmez",
+    uydurma erişim çarpanı (×2.5 / ×1.2) gibi kaynaksız iddialar çıktı. Web + mobilde benzer kaynaksız iddialar da temizlendi (Genel Özet'te
+    "Geleneksel TV reklamlarına rakip", "Ortalamanın üzerinde"; rozet sayfalarında "Algoritmamız rozetli profilleri önceliklendirir" (böyle sıralama yok);
+    Spotlight vitrininde "gerçek sonuçlar sunar", "rakiplerinin önüne geç"; site açıklamasında "Türkiye'nin en şeffaf", "doğrudan iletişime geçin").
+  - **4.3-S7 [KARAR]** (yeni bulgu, 2026-10-14) 4.3-S6 sonrası Influencer Basic (99 ₺) ve Pro (199 ₺) listeleri aynı (rozet/çerçeve, öncelikli listeleme,
+    profil görüntülenmeleri); kodda da `ipro`'nun ek bir karşılığı kalmadı. Pro'ya çalışan bir özellik eklenene kadar (ör. yol haritasındaki sonuç raporları)
+    fiyat/paket kararı kullanıcıda. Uydurma madde eklenmedi.
   - ✅ ~~**4.3-S3 [DÜŞÜK]**~~ (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. 2026-10-10, kullanıcı kararı: ajans sayfası ve Spotlight seçimindeki "Agency Edition" kartı kaldırıldı; ajans paketi gelince eklenir) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller

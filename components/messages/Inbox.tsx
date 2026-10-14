@@ -7,6 +7,7 @@ import { Lock, MessageSquare, Search } from 'lucide-react'
 import { parseChatImageUrl } from '@/lib/chat-image'
 import { markRoomsRead } from '@/lib/room-reads'
 import { JOB_KIND_LABEL } from '@/lib/conversation-jobs'
+import { ROOM_CLOSED_TEXT, type RoomClosedReason } from '@/lib/room-close'
 import { Avatar, Card, EmptyState, Input, Segmented, VerifiedTick } from '@/components/ui'
 import { normalizeText } from '@/lib/advert-alerts-shared'
 import { cn } from '@/utils/cn'
@@ -42,7 +43,7 @@ function listTime(iso: string) {
 const preview = (c: Conversation, me: string) => {
   if (!c.lastMessage) return 'Henüz mesaj yok'
   const text = parseChatImageUrl(c.lastMessage.content) ? 'Fotoğraf' : c.lastMessage.content
-  return c.lastMessage.senderId === me ? `Sen: ${text}` : text
+  return c.lastMessage.senderId === me && !c.lastMessage.isSystem ? `Sen: ${text}` : text
 }
 
 /** Mesajlar: sohbet listesi (aynı kişiyle olan odalar tek sohbet) + seçili sohbet. */
@@ -52,10 +53,12 @@ export default function Inbox({ currentUserId, role, initialConversations, initi
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(initialRoomId ?? null)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
-  const [thread, setThread] = useState<{ participantId: string; roomIds: string[]; primaryRoomId: string; messages: ChatMessage[] } | null>(null)
+  const [thread, setThread] = useState<{ participantId: string; roomIds: string[]; messages: ChatMessage[] } | null>(null)
   // oda → karşı taraf (yeni mesajı doğru sohbete yazmak için)
   // oda listesi gelene kadar null: mesajlar ancak bütün odalar bilinince yüklenir (aksi hâlde iki kez yüklenirdi).
   const [roomOwner, setRoomOwner] = useState<Map<string, string> | null>(null)
+  // Kapalı odalar → kapanma nedeni (3.6-S8: teklif geri çekildi; salt okunur).
+  const [closedRooms, setClosedRooms] = useState<Map<string, RoomClosedReason>>(new Map())
 
   const conversationsRef = useRef(conversations)
   conversationsRef.current = conversations
@@ -64,18 +67,40 @@ export default function Inbox({ currentUserId, role, initialConversations, initi
   useEffect(() => {
     supabase
       .from('rooms')
-      .select('id, brand_id, influencer_id, created_at')
+      .select('id, brand_id, influencer_id, created_at, closed_at, closed_reason')
       .or(`brand_id.eq.${currentUserId},influencer_id.eq.${currentUserId}`)
       .then(({ data, error }) => {
         if (error) console.error('[Inbox] rooms load error', error.message)
         const map = new Map<string, string>()
+        const closed = new Map<string, RoomClosedReason>()
         data?.forEach((r) => {
           const other = r.brand_id === currentUserId ? r.influencer_id : r.brand_id
           if (other && other !== currentUserId) map.set(r.id, other)
+          if (r.closed_at) closed.set(r.id, (r.closed_reason ?? 'offer_withdrawn') as RoomClosedReason)
         })
+        setClosedRooms(closed)
         setRoomOwner(map)
       })
   }, [supabase, currentUserId])
+
+  // Sohbet açıkken oda kapanırsa (marka teklifi geri çekti) yazma alanı hemen kapanır.
+  useEffect(() => {
+    const channel = supabase
+      .channel('inbox-rooms')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms' }, (payload) => {
+        const room = payload.new as { id: string; closed_at: string | null; closed_reason: string | null }
+        setClosedRooms((prev) => {
+          if (!room.closed_at || prev.has(room.id)) return prev
+          const next = new Map(prev)
+          next.set(room.id, (room.closed_reason ?? 'offer_withdrawn') as RoomClosedReason)
+          return next
+        })
+      })
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase])
 
   // ?roomId= başka bir kişinin ikincil odasıysa da o kişinin sohbeti açılır.
   const selected = useMemo(() => {
@@ -111,7 +136,7 @@ export default function Inbox({ currentUserId, role, initialConversations, initi
     setThread(null)
     supabase
       .from('messages')
-      .select('id, sender_id, content, created_at, room_id')
+      .select('id, sender_id, content, created_at, room_id, is_system')
       .in('room_id', ids)
       .order('created_at', { ascending: false })
       .limit(MESSAGE_LIMIT)
@@ -122,10 +147,7 @@ export default function Inbox({ currentUserId, role, initialConversations, initi
           toast.error('Mesajlar yüklenemedi.')
           return
         }
-        const rows = (data ?? []).slice().reverse()
-        // Yeni mesaj, en son yazışılan odaya gider (mesaj yoksa sohbetin kendi odası).
-        const primaryRoomId = rows.length > 0 ? rows[rows.length - 1].room_id : (selected?.roomId ?? ids[0])
-        setThread({ participantId: selectedParticipantId, roomIds: ids, primaryRoomId, messages: rows.map(({ room_id: _r, ...m }) => m) })
+        setThread({ participantId: selectedParticipantId, roomIds: ids, messages: (data ?? []).slice().reverse() })
       })
     return () => {
       cancelled = true
@@ -148,7 +170,7 @@ export default function Inbox({ currentUserId, role, initialConversations, initi
               c.otherParticipant?.id === owner
                 ? {
                     ...c,
-                    lastMessage: { content: msg.content, createdAt: msg.created_at, senderId: msg.sender_id },
+                    lastMessage: { content: msg.content, createdAt: msg.created_at, senderId: msg.sender_id, isSystem: !!msg.is_system },
                     unreadCount: msg.sender_id !== currentUserId && !isOpen ? c.unreadCount + 1 : c.unreadCount,
                   }
                 : c,
@@ -178,6 +200,21 @@ export default function Inbox({ currentUserId, role, initialConversations, initi
     url.searchParams.delete('roomId')
     window.history.replaceState(null, '', url)
   }
+
+  // Yeni mesaj, açık odalardan en son yazışılana gider (mesaj yoksa sohbetin kendi odası). Aynı kişiyle olan
+  // bütün odalar kapalıysa sohbet salt okunur (3.6-S8); kapalı bir odaya yazılmaz.
+  const threadRoom = useMemo(() => {
+    if (!thread) return null
+    const openIds = thread.roomIds.filter((id) => !closedRooms.has(id))
+    if (openIds.length === 0) {
+      const lastClosed = [...thread.messages].reverse().find((m) => m.room_id)?.room_id ?? thread.roomIds[0]
+      const reason = closedRooms.get(lastClosed) ?? closedRooms.get(thread.roomIds[0]) ?? 'offer_withdrawn'
+      return { primaryRoomId: lastClosed, closedNotice: `${ROOM_CLOSED_TEXT[reason]} Bu sohbet kapandı; mesaj geçmişi görünür, yeni mesaj yazılamaz.` }
+    }
+    const lastOpen = [...thread.messages].reverse().find((m) => m.room_id && openIds.includes(m.room_id))?.room_id
+    const primaryRoomId = lastOpen ?? (selected && openIds.includes(selected.roomId) ? selected.roomId : openIds[0])
+    return { primaryRoomId, closedNotice: null }
+  }, [thread, closedRooms, selected])
 
   const counts = useMemo(
     () => ({ unread: conversations.filter((c) => c.unreadCount > 0).length, active: conversations.filter((c) => c.job?.active).length }),
@@ -270,11 +307,12 @@ export default function Inbox({ currentUserId, role, initialConversations, initi
 
       <div className={cn('min-h-0 min-w-0 flex-1 flex-col', selected ? 'flex' : 'hidden md:flex')}>
         {selected?.otherParticipant ? (
-          thread && thread.participantId === selected.otherParticipant.id ? (
+          thread && threadRoom && thread.participantId === selected.otherParticipant.id ? (
             <ChatThread
               key={selected.otherParticipant.id}
-              roomId={thread.primaryRoomId}
+              roomId={threadRoom.primaryRoomId}
               roomIds={thread.roomIds}
+              closedNotice={threadRoom.closedNotice}
               currentUserId={currentUserId}
               currentUserRole={role}
               isSenderVerified={currentUserVerificationStatus === 'verified'}

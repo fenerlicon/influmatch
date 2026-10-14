@@ -33,11 +33,17 @@ export async function sendMessageAs(
     return { success: false, error: 'Mesaj göndermek için hesabınızın onaylanması gerekmektedir.' }
   }
 
-  const { data: room } = await supabase.from('rooms').select('brand_id, influencer_id').eq('id', roomId).maybeSingle()
+  const { data: room } = await supabase
+    .from('rooms')
+    .select('brand_id, influencer_id, closed_at')
+    .eq('id', roomId)
+    .maybeSingle()
   if (!room) return { success: false, error: 'Sohbet bulunamadı.' }
   if (room.brand_id !== userId && room.influencer_id !== userId) {
     return { success: false, error: 'Bu sohbete erişim yetkiniz yok.' }
   }
+  // Kapalı oda salt okunur (3.6-S8; DB tetikleyicisi de reddeder).
+  if (room.closed_at) return { success: false, error: 'Bu sohbet kapandı; yeni mesaj gönderilemez.' }
 
   const otherUserId = (room.brand_id === userId ? room.influencer_id : room.brand_id) as string | null
   if (!otherUserId) return { success: false, error: 'Geçersiz sohbet.' }
