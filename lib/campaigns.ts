@@ -24,6 +24,7 @@ import { canonicalCity, type DiscoverFilters } from '@/lib/discover-filters'
 import { influencerCategoriesForBrand, normalizeInfluencerCategory } from '@/lib/category-map'
 import { INFLUENCER_CATEGORY_KEYS } from '@/utils/categories'
 import { COLLABORATION_STATUS_LABELS, type CollaborationStatus } from '@/lib/collaboration-shared'
+import type { CampaignResults } from '@/lib/post-metrics-shared'
 import {
   CAMPAIGN_BRIEF_COLUMNS,
   CAMPAIGN_COLUMNS,
@@ -66,11 +67,11 @@ export const CAMPAIGN_PRO_ONLY = 'Kampanya önerileri ve toplu davet Spotlight P
 
 // --- Yetki ----------------------------------------------------------------------------------------
 
-/** Kampanya özellikleri: bayrak açıkken öneriler ve toplu davet yalnızca Spotlight Pro'da. */
+/** Kampanya özellikleri: bayrak açıkken öneriler, toplu davet ve kampanya sonuç raporu yalnızca Spotlight Pro'da. */
 export async function campaignFeaturesFor(userId: string, ctx?: BrandLimitContext): Promise<CampaignFeatures> {
   const context = ctx ?? (await getBrandLimitContext(userId))
   const limited = context.active && context.plan !== 'pro'
-  return { suggestions: !limited, bulkInvite: !limited }
+  return { suggestions: !limited, bulkInvite: !limited, results: !limited }
 }
 
 /** Yalnızca onaylı marka kampanya kullanır. Sorun yoksa null. */
@@ -847,8 +848,11 @@ export async function getCampaignDashboardAs(
   }
 }
 
-/** Panodaki tablo CSV olarak (Excel için ; ayraçlı, UTF-8 BOM). Formül olarak yorumlanabilecek hücreler kaçırılır. */
-export function campaignDashboardCsv(dashboard: CampaignDashboard): string {
+/**
+ * Panodaki tablo CSV olarak (Excel için ; ayraçlı, UTF-8 BOM). Formül olarak yorumlanabilecek hücreler kaçırılır.
+ * results verilirse (sonuç raporu açık, 3.20) ölçüm ve maliyet sütunları eklenir.
+ */
+export function campaignDashboardCsv(dashboard: CampaignDashboard, results?: CampaignResults | null): string {
   const cell = (value: unknown) => {
     let text = value === null || value === undefined ? '' : String(value)
     if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`
@@ -868,7 +872,12 @@ export function campaignDashboardCsv(dashboard: CampaignDashboard): string {
     'Marka ödeme yaptı',
     'Influencer ödemeyi aldı',
     'Tarih',
+    ...(results
+      ? ['Ölçülen gönderi', 'İzlenme', 'Beğeni', 'Yorum', 'Etkileşim (%)', 'Etkileşim ölçütü', '1000 izlenme başı maliyet (₺)', 'Etkileşim başı maliyet (₺)', 'Son ölçüm']
+      : []),
   ]
+  const resultByKey = new Map((results?.rows ?? []).map((r) => [r.key, r]))
+  const decimal = (value: number | null | undefined) => (value === null || value === undefined ? '' : value.toFixed(2).replace('.', ','))
   const lines = dashboard.rows.map((r) =>
     [
       r.creator.full_name ?? '',
@@ -884,6 +893,23 @@ export function campaignDashboardCsv(dashboard: CampaignDashboard): string {
       r.collaboration_id ? (r.brand_paid ? 'Evet' : 'Hayır') : '',
       r.collaboration_id ? (r.influencer_confirmed ? 'Evet' : 'Hayır') : '',
       r.created_at.slice(0, 10),
+      ...(results
+        ? (() => {
+            const m = resultByKey.get(r.key)
+            if (!m) return ['', '', '', '', '', '', '', '', '']
+            return [
+              m.posts_measured,
+              m.views ?? '',
+              m.likes,
+              m.comments,
+              decimal(m.engagement?.value),
+              m.engagement ? (m.engagement.basis === 'views' ? 'İzlenmeye göre' : 'Takipçiye göre') : '',
+              decimal(m.cost_per_1000_views),
+              decimal(m.cost_per_engagement),
+              m.last_captured_at ? m.last_captured_at.slice(0, 10) : '',
+            ]
+          })()
+        : []),
     ]
       .map(cell)
       .join(';'),

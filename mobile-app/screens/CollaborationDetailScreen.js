@@ -6,6 +6,7 @@ import {
 } from 'lucide-react-native';
 import { apiRequest } from '../lib/api';
 import CampaignBrief from '../components/CampaignBrief';
+import DeliverableMetrics from '../components/DeliverableMetrics';
 import {
     AGREEMENT_LIMITS,
     AGREEMENT_SUMMARY_NOTE,
@@ -404,6 +405,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                                         </View>
                                     ) : null}
                                     <LinkLine label="Yayın" url={d.publish_url} />
+                                    {d.metrics ? <DeliverableMetrics collaborationId={id} metrics={d.metrics} onUpdated={load} /> : null}
                                     {isBrand && d.status === 'draft_submitted' && d.revisions_used >= revisionLimit ? (
                                         <Text variant="caption" tone="fg3">Revize hakkı doldu.</Text>
                                     ) : null}

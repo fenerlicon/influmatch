@@ -129,6 +129,8 @@ export interface CampaignFeatures {
   suggestions: boolean
   /** Tek seferde birden fazla profile davet. */
   bulkInvite: boolean
+  /** Kampanya sonuç raporu (toplamlar, maliyet, yazdırılabilir rapor, CSV ölçüm sütunları; 3.20). İş birliği başına ölçüm herkese açık. */
+  results: boolean
 }
 
 export interface CampaignSuggestion {

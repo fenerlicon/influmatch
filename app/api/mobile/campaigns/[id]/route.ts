@@ -12,6 +12,7 @@ import {
   setCampaignStatusAs,
   suggestCampaignProfilesAs,
 } from '@/lib/campaigns'
+import { buildCampaignResults } from '@/lib/post-metrics'
 
 export const dynamic = 'force-dynamic'
 // Toplu davet (en fazla 25 teklif, her biri bildirimle) sırayla gönderilir.
@@ -20,7 +21,7 @@ export const maxDuration = 60
 const status = (error: string) => (error === CAMPAIGN_NOT_FOUND ? 404 : 400)
 
 /**
- * Kampanya (3.19). Varsayılan: pano { dashboard, features, quotaText }. ?view=suggestions → { suggestions } (Pro kapısı),
+ * Kampanya (3.19). Varsayılan: pano { dashboard, features, quotaText, results } (results: sonuç raporu, 3.20; kapalıysa null). ?view=suggestions → { suggestions } (Pro kapısı),
  * ?view=attachables → { offers, adverts } (kampanyaya bağlanabilecek kendi kayıtları). Yalnızca kampanyanın sahibi marka.
  */
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -40,7 +41,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const result = await getCampaignDashboardAs(ctx.supabase, ctx.user.id, params.id)
   if (!result.success) return mobileJson({ error: result.error }, status(result.error))
   const [features, quota] = await Promise.all([campaignFeaturesFor(ctx.user.id), getOfferQuota(ctx.user.id).catch(() => null)])
-  return mobileJson({ dashboard: result.dashboard, features, quotaText: offerQuotaSummary(quota) })
+  const results = features.results ? await buildCampaignResults(ctx.supabase, result.dashboard) : null
+  return mobileJson({ dashboard: result.dashboard, features, quotaText: offerQuotaSummary(quota), results })
 }
 
 /** Kampanya bilgilerini günceller. Gövde: CampaignInput. */

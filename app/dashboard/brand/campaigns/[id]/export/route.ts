@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { campaignCsvFilename, campaignDashboardCsv, getCampaignDashboardAs } from '@/lib/campaigns'
+import { campaignCsvFilename, campaignDashboardCsv, campaignFeaturesFor, getCampaignDashboardAs } from '@/lib/campaigns'
+import { buildCampaignResults } from '@/lib/post-metrics'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +16,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const result = await getCampaignDashboardAs(supabase, user.id, params.id)
   if (!result.success) return new Response(result.error, { status: result.error === 'Kampanya bulunamadı.' ? 404 : 403 })
 
+  // Ölçüm sütunları sonuç raporuyla aynı kapıda (bayrak açıkken yalnızca Spotlight Pro, 3.20).
+  const results = (await campaignFeaturesFor(user.id)).results ? await buildCampaignResults(supabase, result.dashboard) : null
   const filename = campaignCsvFilename(result.dashboard.campaign)
-  return new Response(campaignDashboardCsv(result.dashboard), {
+  return new Response(campaignDashboardCsv(result.dashboard, results), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="${filename}"`,

@@ -5,6 +5,7 @@ import { UserPlus, Pencil, Link2, Users, Lock, Check } from 'lucide-react-native
 import { apiRequest } from '../../lib/api';
 import CampaignBrief from '../../components/CampaignBrief';
 import CampaignFormSheet from '../../components/CampaignFormSheet';
+import CampaignResults from '../../components/CampaignResults';
 import { influencerCategoryLabel } from '../../constants/categories';
 import {
     CAMPAIGN_LIMITS, CAMPAIGN_OFFER_STATUS, CAMPAIGN_OPEN_STATUSES, CAMPAIGN_STATUSES, CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_TONES,
@@ -18,6 +19,7 @@ import {
 // Kampanya panosu (3.19): profiller, teklif / iş birliği / teslimat / ödeme durumu, bütçe özeti, toplu davet ve bağlama.
 // Bütün kurallar sunucuda (/api/mobile/campaigns/[id] → lib/campaigns.ts); davetler lib/offers.ts createOfferAs ile gider.
 
+const RESULTS_PRO_TEXT = 'Kampanya sonuç raporu Spotlight Pro markalara özel. Her gönderinin ölçümlerini iş birliği ekranında görmeye devam edersin.';
 const PRO_TEXT = 'Kampanya önerileri ve toplu davet Spotlight Pro markalara özel. Profilleri tek tek ekleyebilirsin: keşifte bir profil aç, teklif formunda bu kampanyayı seç.';
 
 function rowSubtitle(r) {
@@ -219,7 +221,7 @@ export default function CampaignDetailScreen({ navigation, route }) {
         );
     }
 
-    const { dashboard, features, quotaText } = state;
+    const { dashboard, features, quotaText, results } = state;
     const { campaign, rows, summary, adverts } = dashboard;
     const open = CAMPAIGN_OPEN_STATUSES.includes(campaign.status);
     const remaining = summary.total_budget != null ? summary.total_budget - summary.committed : null;
@@ -292,6 +294,10 @@ export default function CampaignDetailScreen({ navigation, route }) {
                         <EmptyState icon={Users} title="Bu kampanyada henüz profil yok" text="Profilleri davet et ya da mevcut tekliflerini bağla." />
                     </Card>
                 )}
+            </Section>
+
+            <Section title="Sonuçlar">
+                {features?.results ? <CampaignResults results={results} /> : <Notice tone="gold" icon={Lock} text={RESULTS_PRO_TEXT} />}
             </Section>
 
             {adverts?.length ? (

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import CampaignBriefView from '@/components/campaigns/CampaignBriefView'
+import DeliverableMetricsPanel from '@/components/dashboard/DeliverableMetricsPanel'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { workspaceAction } from '@/app/dashboard/collaborations/[id]/actions'
 import { collaborationAction } from '@/app/dashboard/collaborations/actions'
@@ -556,6 +557,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
               <DeliverableCard
                 key={d.id}
                 d={d}
+                collaborationId={collab.id}
                 revisionLimit={agreement?.revision_limit ?? 0}
                 isBrand={isBrand}
                 busy={busy}
@@ -679,6 +681,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
 
 function DeliverableCard({
   d,
+  collaborationId,
   revisionLimit,
   isBrand,
   busy,
@@ -690,6 +693,7 @@ function DeliverableCard({
   run,
 }: {
   d: DeliverableView
+  collaborationId: string
   revisionLimit: number
   isBrand: boolean
   busy: boolean
@@ -736,6 +740,7 @@ function DeliverableCard({
           </a>
         </p>
       )}
+      {d.metrics && <DeliverableMetricsPanel collaborationId={collaborationId} metrics={d.metrics} />}
 
       <div className="mt-3 flex flex-wrap gap-2">
         {d.actions.includes('submit_draft') && (
