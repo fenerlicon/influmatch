@@ -17,7 +17,7 @@ const FAQS = [
   },
   {
     q: 'Spotlight üyeliği ne işe yarar?',
-    a: "Influencer'lar için Spotlight rozeti ve çerçevesi, keşifte öncelikli listeleme ve profil görüntülenme sayıları; markalar için akıllı eşleştirme önerileri, kampanya uyum skoru, benzer profil keşfi ve ilanların topluluk listesinde öne çıkması. Marka Pro paketinde ayrıca keşifte \"Verisi olanlar\" ve \"Mavi tikli\" filtreleri vardır.",
+    a: "Influencer'lar için Spotlight rozeti ve çerçevesi, keşifte öncelikli listeleme ve profil görüntülenme sayıları; markalar için akıllı eşleştirme önerileri, kampanya uyum skoru, benzer profil keşfi ve ilanların topluluk listesinde öne çıkması. Influencer Pro paketinde ayrıca profilde tamamlanan iş birliklerinin ölçülen sonuçları (portföy) görünür; Marka Pro paketinde keşifte \"Verisi olanlar\" ve \"Mavi tikli\" filtreleri vardır.",
   },
   {
     q: 'Ödemeler ve güvenlik nasıl sağlanıyor?',
