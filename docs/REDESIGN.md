@@ -101,7 +101,11 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      kartı (takipçi / etkileşim / tamamlanan, başlangıç fiyatı, Profil + Teklif); "Teklif" profili teklif penceresi açık getirir (`?teklif=1`).
      Uyum puanı yalnızca Önerilenler'de. Güven skoru çubuk yerine kartın alt bilgi satırında ("Güven 82/100", yalnızca marka). Influencer Keşfet aynı kartla;
      ölü "Vitrinde görünmüyorsun" uyarısı kaldırıldı. Telefonda filtreler "Filtreler" düğmesinin arkasında.
-   - Sırada: Mesajlar, Profil (+ Rozetler sekmesi, menüden çıkar), Ayarlar; terim ve ölü arayüz temizliği.
+   - ✅ Mesajlar (2026-10-14): `components/messages/*`. Liste (arama, Tümü / Okunmamış / Süren işler) + sohbet; her sohbetin üstünde
+     bağlı olduğu iş satırı (iş birliği > teklif > ilan başvurusu, `lib/conversation-jobs.ts`) ve "İşe git". Mesajlar günlere ayrılmış;
+     rapor / engelle ve profil penceresi ortak Modal ile, tarayıcı `alert` / `confirm` kalktı. Aynı kişiyle olan odalar yine tek sohbet.
+     Telefonda liste ve sohbet ayrı ekran (geri düğmesi). Tasarımdaki sistem satırları ("Teklif kabul edildi") veride olmadığı için eklenmedi.
+   - Sırada: Profil (+ Rozetler sekmesi, menüden çıkar), Ayarlar; terim ve ölü arayüz temizliği.
    - ✅ **İşler** (2026-10-14): `/dashboard/works` (`app/dashboard/works/page.tsx` veri, `components/dashboard/WorksView.tsx` görünüm,
      `lib/works.ts` teklif yükleme + sayılar). Aşama kartları Teklif → Anlaşıldı → İçerik → Yayında → Tamamlandı (`?stage=`).
      Teklif aşamasında influencer `OffersManager`, marka `BrandOffersList`; diğer aşamalarda `CollaborationsManager` (`stage` prop).

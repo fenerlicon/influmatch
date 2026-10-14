@@ -631,8 +631,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 ## 5. İletişim
 
 ### 5.1 Mesaj kutusu
-- **Dosyalar:** `app/dashboard/messages/page.tsx`, `components/messages/MessagesPage.tsx`,
-  `components/chat/{ModernChatWindow,ModernChatInput,MessageActionsMenu}.tsx`, `app/dashboard/messages/send/actions.ts`
+- **Dosyalar:** `app/dashboard/messages/page.tsx`, `components/messages/{Inbox,ChatThread,Composer,MessageMenu,ProfileSheet}.tsx`
+  (yeni görünüm, 2026-10-14), `lib/conversation-jobs.ts` (sohbetin bağlı olduğu iş), `app/dashboard/messages/send/actions.ts`
 - **İş:** Karşı tarafa göre gruplanmış sohbetler (teklif, başvuru, destek odaları birleşik), metin + görsel eki.
 - **Sorunlar:**
   - ✅ ~~**5.1-S1 [YÜKSEK]**~~ (kullanıcı kararı: doğrudan mesaj açılmayacak. `?userId=` artık yeni oda açmıyor, yalnızca mevcut sohbeti açıyor; teklif listeleri teklifin kendi odasına gidiyor. Mobil tarafı 10.3-S4) Doğrudan sohbet başlatma bozuk: `MessagesPage.tsx` `offer_id`/`advert_application_id` olmadan oda ekliyor,
@@ -642,6 +642,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.1-S4 [ORTA]**~~ (yalnızca chat-attachments adresi görsel sayılıyor, diğerleri düz metin; boyut sınırı PR #19) Görseller `![image](url)` ile algılanıyor; herkes istediği URL'yi gönderip `next/image` üzerinden açtırabiliyor (bkz. 8.5-S1). Ek boyut kontrolü yok.
   - ✅ ~~**5.1-S5 [ORTA]**~~ (5 MB/görsel sınırı canlıda; yükleme politikası oda katılımcısıyla sınırlandı — canlıda mevcut "Authenticated users can upload chat attachments" politikası ALTER ile daraltıldı, bkz. `20261007000017`) `chat-attachments` bucket'ı hiçbir migration'da yok, politika yok; public URL ile servis ediliyor (bkz. 7.5-S2).
   - ✅ ~~**5.1-S6 [DÜŞÜK]**~~ (okunmamış sayısı kenar çubuğunda tek kanca/tek kanalla izleniyor) Her mesajda engel kontrolü için sunucu aksiyonu; `SidebarLink` iki kez render edilip aynı adlı iki kanal açıyor.
+  - ✅ ~~**5.1-S7 [ORTA]**~~ (2026-10-14, yeni görünüm: sondan 500 mesaj okunuyor) Seçilen sohbetin mesajları eskiden yeniye ve sınırsız
+    çekiliyordu; PostgREST 1000 satır sınırı yüzünden 1000 mesajı geçen sohbette en yeni mesajlar hiç görünmüyordu. Daha eskileri için
+    "önceki mesajlar" yüklemesi henüz yok (500'den uzun sohbet nadir).
 
 ### 5.2 Eski sohbet sayfası
 - **Dosyalar:** `app/chat/[roomId]/page.tsx`, `components/chat/ChatWindow.tsx`

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import MessagesPage from '@/components/messages/MessagesPage'
+import Inbox from '@/components/messages/Inbox'
+import { conversationJobs } from '@/lib/conversation-jobs'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getLastReadMap } from '@/lib/room-reads'
 
@@ -32,7 +33,7 @@ export default async function DashboardMessagesPage({
   // Get all rooms for this user
   const { data: rooms, error: roomsError } = await supabase
     .from('rooms')
-    .select('id, brand_id, influencer_id, created_at')
+    .select('id, brand_id, influencer_id, created_at, offer_id, advert_application_id')
     .or(`brand_id.eq.${user.id},influencer_id.eq.${user.id}`)
     .order('created_at', { ascending: false })
 
@@ -166,14 +167,24 @@ export default async function DashboardMessagesPage({
     }
   })
 
+  // Her sohbetin bağlı olduğu iş (iş birliği > teklif > ilan başvurusu); tasarımdaki iş satırı.
+  const jobs = await conversationJobs(
+    supabase,
+    user.id,
+    role,
+    (rooms ?? [])
+      .map((room) => ({ ...room, otherId: (room.brand_id === user.id ? room.influencer_id : room.brand_id) as string }))
+      .filter((room) => room.otherId && room.otherId !== user.id),
+  )
+
   // Convert map to array and sort by last message time
   const conversations = Array.from(conversationsMap.values())
-    .map(({ lastMessageTime, ...rest }) => rest)
+    .map(({ lastMessageTime, ...rest }) => ({ ...rest, job: rest.otherParticipant ? (jobs.get(rest.otherParticipant.id) ?? null) : null }))
     .sort((a, b) => {
       const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0
       const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0
       return timeB - timeA
     })
 
-  return <MessagesPage currentUserId={user.id} role={role} initialConversations={conversations} initialUserId={searchParams.userId} initialRoomId={searchParams.roomId} currentUserVerificationStatus={userProfile?.verification_status as 'pending' | 'verified' | 'rejected' | undefined} />
+  return <Inbox currentUserId={user.id} role={role} initialConversations={conversations} initialUserId={searchParams.userId} initialRoomId={searchParams.roomId} currentUserVerificationStatus={userProfile?.verification_status as 'pending' | 'verified' | 'rejected' | undefined} />
 }
