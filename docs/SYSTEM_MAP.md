@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-14 (3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -727,6 +727,25 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     çoğu zaman markanın hesabında).
   - **3.20-S5 [DÜŞÜK]** (yeni bulgu) YouTube linkleri ölçülmüyor ("Bu bağlantı için ölçüm yok"). Havuzda YouTube Data API anahtarı yok; eklenirse ya da ucuz aktör
     seçilirse `fetchPostMetrics`'e eklenir.
+  - ✅ ~~**3.20-N6 [ÖZELLİK]**~~ (2026-10-14, 4.3-S7 kararı, `claude/portfolio-results`) **Portföyde iş birliği sonuçları:** influencer/UGC profilinde (web
+    `/profile/[username]`, mobil profil detayında "Sonuçlar" sekmesi) tamamlanan iş birlikleri: marka, teslimat türleri, yayın tarihi, iş birliği toplamı ve gönderi
+    başına son ölçüm (izlenme, beğeni, yorum, etkileşim; etiketler sonuç raporuyla aynı). Kod `lib/portfolio-results.ts` (+ `-shared`), web
+    `components/profile/PortfolioResults.tsx`, `app/actions/portfolio.ts`, mobil `components/PortfolioResults.js`, `constants/portfolio.js`, `/api/mobile/portfolio`,
+    `/api/mobile/profiles/[id]` (`portfolio`). **Kapı:** başkalarına yalnızca profil sahibi Influencer Pro ise (onaylı + aktif Spotlight + `ipro`,
+    `resolveSubscriptionTier` = SPOTLIGHT_PLUS; sunucuda, bayrağa bağlı değil). Sahibi kendi sonuçlarını her zaman görür (influencer Ayarlar sayfası, kendi profili,
+    mobil Profil → Sonuçlar) ve Pro değilse fiyatsız kilit notu. Profil erişim kuralı (oturum, marka onayı, keşif çarkı) önce `getProfileForViewer` ile uygulanır.
+    **Gizlilik:** influencer iş birliğini tek tek gizler (`portfolio_hidden_items`; gizli kayıt başkalarına hiç gönderilmez). Marka adı yalnızca marka izin verdiyse
+    (`brand_portfolio_settings.show_name`, **varsayılan kapalı**; web marka Ayarlar + mobil Ayarlar "İş birliği sonuçlarımda markamın adı görünsün"); yoksa "Bir marka" +
+    sektör. Gönderi bağlantısı markayı gösterdiği için izin yoksa başkalarına bağlantı da gönderilmez (bkz. 3.20-N8). Ücret, anlaşma, başlık, not hiç gönderilmez.
+    Migration `20261014000090` canlıda; iki tablo da istemcilere tamamen kapalı (RLS açık, politika yok, anon/authenticated SELECT/INSERT/UPDATE reddi rollback'li denemeyle doğrulandı).
+  - **3.20-N7 [ÖZELLİK, GÖNDERİM BEKLİYOR]** (2026-10-14) **Haftalık özette detaylı istatistik:** `lib/weekly-summary.ts` `buildWeeklyCreatorSummary(userId)` (son 7 gün:
+    gelen / kabul edilen / bekleyen teklif; Influencer Pro'da ayrıca profil görüntülenme + görüntüleyen marka sayısı ve hafta içinde ölçülen gönderilerin son ölçümü)
+    ve `renderWeeklyCreatorEmail` (konu, düz metin, kaçışlı HTML). Admin önizlemesi `/admin/weekly-preview?user=` (menü: "Haftalık Özet Önizleme"; "Pro görünümünü dene").
+    **Gönderim ve cron yok:** Resend ücretli plana geçilince eklenecek (e-posta tercihi + %80 kota kuralı uygulanmalı); o zaman Influencer Pro listesine yazılır.
+  - **3.20-N8 [KARAR]** (yeni, 2026-10-14) Portföyde marka izin vermediyse gönderi bağlantısı da gizleniyor (bağlantı markayı açık eder; daha güvenli seçenek).
+    Kullanıcı isterse bağlantı her zaman gösterilebilir (`lib/portfolio-results.ts` `showLinks`).
+  - **3.20-S6 [DÜŞÜK]** (yeni bulgu) Canlıda tamamlanmış iş birliği yok (2026-10-14); portföy ve haftalık özet gerçek veriyle denenmedi. Toplu testte bir iş birliği
+    tamamlanıp ölçüldükten sonra Pro / Pro olmayan profil, gizleme ve marka adı izni kontrol edilmeli.
   - **3.20-N5 [KARAR]** Spotlight paket listesi: "Kampanya sonuç raporu" Marka Pro'ya eklenmedi (dosya başka dalda düzenleniyor). 3.19-N8 ile aynı: bayrak açıldığında
     Marka Pro listesine (web `lib/spotlight-plans.ts` + mobil `constants/spotlightPlans.js` + SSS) eklenir. Önerilen satır: "Kampanya sonuç raporu (izlenme, etkileşim,
     maliyet; yazdırılabilir)".
@@ -774,7 +793,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     uydurma erişim çarpanı (×2.5 / ×1.2) gibi kaynaksız iddialar çıktı. Web + mobilde benzer kaynaksız iddialar da temizlendi (Genel Özet'te
     "Geleneksel TV reklamlarına rakip", "Ortalamanın üzerinde"; rozet sayfalarında "Algoritmamız rozetli profilleri önceliklendirir" (böyle sıralama yok);
     Spotlight vitrininde "gerçek sonuçlar sunar", "rakiplerinin önüne geç"; site açıklamasında "Türkiye'nin en şeffaf", "doğrudan iletişime geçin").
-  - **4.3-S7 [KARAR]** (yeni bulgu, 2026-10-14) 4.3-S6 sonrası Influencer Basic (99 ₺) ve Pro (199 ₺) listeleri aynı (rozet/çerçeve, öncelikli listeleme,
+  - ✅ ~~**4.3-S7 [KARAR]**~~ (2026-10-14, `claude/portfolio-results`: Influencer Pro'ya gerçek özellik "Portföyde iş birliği sonuçları" (3.20-N6) eklendi ve
+    paket listesine (web `lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`, SSS) yazıldı. Haftalık özetin verisi ve admin önizlemesi hazır (3.20-N7);
+    gönderim Resend ücretli planı bekliyor, o yüzden listede yok) (yeni bulgu, 2026-10-14) 4.3-S6 sonrası Influencer Basic (99 ₺) ve Pro (199 ₺) listeleri aynı (rozet/çerçeve, öncelikli listeleme,
     profil görüntülenmeleri); kodda da `ipro`'nun ek bir karşılığı kalmadı. Pro'ya çalışan bir özellik eklenene kadar (ör. yol haritasındaki sonuç raporları)
     fiyat/paket kararı kullanıcıda. Uydurma madde eklenmedi.
     **Karar (2026-10-14):** Influencer Pro'ya sonuç raporunun (3.20) üstüne gerçek özellikler gelecek: önce **"portföyde sonuç raporları"** (tamamlanan iş birliklerinin
@@ -977,6 +998,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `advert_alert_runs` | alarm eşleştirmesi yapılan ilanlar (3.15) | yalnızca service role |
 | `campaigns` | marka kampanyaları: brief, hedef, bütçe, varsayılan teslimatlar (3.19) | sahibi marka ve admin okur; yazma yalnızca sunucu; davetli influencer brief'i sunucudan |
 | `deliverable_metric_tracking` / `deliverable_metric_snapshots` | sonuç raporu: gönderi ölçüm takvimi ve ölçümler (3.20) | iş birliğinin tarafları ve admin okur; yazma yalnızca sunucu |
+| `portfolio_hidden_items` / `brand_portfolio_settings` | portföyde gizlenen iş birlikleri, markanın "adım görünsün" tercihi (3.20-N6) | yalnızca service role (istemcilere kapalı) |
 
 ### 7.3 `users` koruma katmanı
 - RLS: authenticated herkes okur; anon için SELECT politikası **yok**. Kolon bazlı gizlilik: email, phone, tax_id, tax_office, tax_office_city,
