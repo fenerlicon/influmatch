@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
+import { Button, ButtonLink, Card, Eyebrow } from '@/components/ui'
 import { spinDiscoveryWheel } from '@/app/dashboard/brand/discover/actions'
 
 interface DiscoveryWheelCardProps {
@@ -45,53 +46,39 @@ export default function DiscoveryWheelCard({ profilesPerSpin, windowHours, expir
   }
 
   return (
-    <section className="rounded-3xl border border-soft-gold/30 bg-gradient-to-br from-[#1A1712] to-[#0C0D10] p-6 text-white shadow-glow">
-      <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Keşif çarkı</p>
-      {variant === 'profile' ? (
-        <h2 className="mt-2 text-xl font-semibold">Bu profil şu anki keşif çarkında değil</h2>
-      ) : (
-        <h2 className="mt-2 text-xl font-semibold">
-          {expiresAt ? 'Bugünkü profillerin hazır' : 'Çarkı çevir, sana uygun profilleri gör'}
-        </h2>
-      )}
-      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-300">
+    <Card accent padded as="section" className="mb-5">
+      <Eyebrow className="text-gold">Keşif çarkı</Eyebrow>
+      <h2 className="mt-1.5 text-[17px] font-semibold tracking-tight text-ink">
+        {variant === 'profile' ? 'Bu profil şu anki keşif çarkında değil' : expiresAt ? 'Bugünkü profillerin hazır' : 'Çarkı çevir, sana uygun profilleri gör'}
+      </h2>
+      <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-ink-muted">
         Her {windowHours} saatte bir çarkı çevirebilirsin. Çark, markanın sektörüne uygun {profilesPerSpin} doğrulanmış
         influencer/UGC profilini seçer; bu profiller {windowHours} saat boyunca açık kalır. Sonraki çevirişte, daha önce
         gösterilmemiş profiller gelir. Teklif gönderdiğin, iş birliği yaptığın ya da ilanına başvuran profilleri her zaman
         açabilirsin. Spotlight markalar tüm profilleri görür.
       </p>
-
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         {expiresAt ? (
           <>
-            <span className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200">
+            <span className="text-[13px] text-ink-muted">
               Profiller {formatDateTime(expiresAt)} tarihine kadar açık; sonra çarkı yeniden çevirebilirsin.
             </span>
             {variant === 'profile' && (
-              <Link
-                href="/dashboard/brand/discover"
-                className="rounded-2xl border border-soft-gold/50 bg-soft-gold/10 px-5 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
+              <ButtonLink href="/dashboard/brand/discover" size="sm">
                 Çarktaki profillere dön
-              </Link>
+              </ButtonLink>
             )}
           </>
         ) : (
-          <button
-            type="button"
-            onClick={handleSpin}
-            disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/50 bg-soft-gold/10 px-5 py-2.5 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          <Button variant="primary" size="sm" leftIcon={<RefreshCw />} loading={isPending} onClick={handleSpin}>
             Çarkı çevir
-          </button>
+          </Button>
         )}
-        <Link href="/dashboard/spotlight/brand" className="text-sm text-gray-400 underline-offset-4 transition hover:text-white hover:underline">
+        <Link href="/dashboard/spotlight/brand" className="text-[13px] text-ink-muted underline-offset-4 hover:text-ink hover:underline">
           Spotlight&apos;ı incele
         </Link>
       </div>
-      {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
-    </section>
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+    </Card>
   )
 }

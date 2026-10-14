@@ -20,6 +20,7 @@ import { getOfferQuota, offerQuotaSummary } from '@/lib/brand-limits'
 
 interface ProfilePageProps {
   params: { username: string }
+  searchParams?: { teklif?: string }
 }
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -29,7 +30,7 @@ const SOCIAL_LABELS: Record<string, string> = {
   website: 'Website',
 }
 
-export default async function ProfileDetailPage({ params }: ProfilePageProps) {
+export default async function ProfileDetailPage({ params, searchParams }: ProfilePageProps) {
   const supabase = createSupabaseServerClient()
   const {
     data: { user: viewer },
@@ -347,6 +348,7 @@ export default async function ProfileDetailPage({ params }: ProfilePageProps) {
                   receiverName={profile.full_name || profile.username || ''}
                   isViewerVerified={isViewerVerified}
                   quotaText={offerQuotaText}
+                  defaultOpen={searchParams?.teklif === '1'}
                 />
               </div>
             )}

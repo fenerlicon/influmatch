@@ -13,6 +13,8 @@ interface OfferModalProps {
   isViewerVerified: boolean
   /** Sınır uygulanan markada kalan teklif hakkı (ör. "Bu ay 12 teklif hakkın kaldı"); yoksa gösterilmez. */
   quotaText?: string | null
+  /** Keşif kartındaki "Teklif" düğmesinden gelindiyse (?teklif=1) pencere açık başlar. */
+  defaultOpen?: boolean
 }
 
 const CAMPAIGN_TYPES = ['Story', 'Reel', 'Post', 'YouTube'] as const
@@ -37,9 +39,9 @@ function draftToForm(draft: OfferDraft): typeof initialFormState {
   }
 }
 
-export default function OfferModal({ receiverId, receiverName, isViewerVerified, quotaText }: OfferModalProps) {
+export default function OfferModal({ receiverId, receiverName, isViewerVerified, quotaText, defaultOpen = false }: OfferModalProps) {
   const router = useRouter()
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(defaultOpen && isViewerVerified)
   const [formState, setFormState] = useState(initialFormState)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isPending, startTransition] = useTransition()
