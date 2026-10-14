@@ -11,6 +11,9 @@ import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } f
 import { saveOnboardingProfile } from './actions'
 import { validateUsername } from '@/utils/usernameValidation'
 import { validateCorporateEmail } from '@/lib/corporate-email'
+import { ArrowRight } from 'lucide-react'
+import OnboardingShell from '@/components/onboarding/OnboardingShell'
+import { Button, Card, CardBody, Notice } from '@/components/ui'
 
 type SocialLinks = {
   instagram?: string | null
@@ -452,50 +455,45 @@ export default function OnboardingPage() {
     return null
   }
 
+  const isBrand = role === 'brand'
+
   return (
-    <main className="px-6 py-24 md:px-12 lg:px-24">
-      <div className="mx-auto max-w-5xl">
-        <div className="glass-panel rounded-[32px] p-10">
-          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">BAŞLANGIÇ</p>
-          <h1 className="mt-4 text-3xl font-semibold text-white">Profilini Tamamla</h1>
-          <p className="mt-2 text-gray-300">
-            Seçilen Rol:{' '}
-            <span className="text-soft-gold">
-              {role === 'brand' ? 'Marka' : role === 'influencer' ? 'Influencer' : '...'}
-            </span>
-          </p>
-
-          {isLoadingProfile ? (
-            <p className="mt-10 text-gray-400">Profil yükleniyor...</p>
-          ) : (
-            <div className="mt-10 space-y-8">
-              <AvatarUploader
-                label={role === 'brand' ? 'Marka Logosu' : 'Profil Fotoğrafı'}
-                imageUrl={avatarUrl}
-                isUploading={isUploadingAvatar}
-                onFileChange={handleAvatarUpload}
-              />
-
-              {role === 'brand' ? (
-                <BrandForm form={brandForm} onChange={handleBrandChange} />
-              ) : (
-                <InfluencerForm form={influencerForm} onChange={handleInfluencerChange} />
-              )}
-
-              {errorMessage && <p className="text-sm text-red-400">{errorMessage}</p>}
-
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className="w-full rounded-full bg-soft-gold px-8 py-4 font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSaving ? 'Kaydediliyor...' : 'Kaydet ve Devam Et'}
-              </button>
+    <OnboardingShell
+      eyebrow={isBrand ? 'Marka hesabı' : 'Influencer hesabı'}
+      title="Profilini tamamla"
+      description={
+        isBrand
+          ? 'Markalar keşifte ve ilanlarda bu bilgilerle görünür. Kurumsal e-posta ve vergi bilgileri onay için kullanılır.'
+          : 'Markalar seni bu bilgilerle keşfeder. Sonraki adımda sosyal medya hesabını doğrulayacaksın.'
+      }
+      steps={isBrand ? undefined : ['Profil', 'Hesap doğrulama']}
+      current={0}
+    >
+      {isLoadingProfile ? (
+        <p className="text-[13.5px] text-ink-muted">Profil yükleniyor…</p>
+      ) : (
+        <Card>
+          <CardBody className="grid gap-6">
+            <AvatarUploader
+              label={isBrand ? 'Marka logosu' : 'Profil fotoğrafı'}
+              imageUrl={avatarUrl}
+              isUploading={isUploadingAvatar}
+              onFileChange={handleAvatarUpload}
+            />
+            {isBrand ? (
+              <BrandForm form={brandForm} onChange={handleBrandChange} />
+            ) : (
+              <InfluencerForm form={influencerForm} onChange={handleInfluencerChange} />
+            )}
+            {errorMessage && <Notice tone="danger">{errorMessage}</Notice>}
+            <div className="flex justify-end border-t border-line pt-5">
+              <Button variant="primary" size="lg" onClick={handleSubmit} loading={isSaving} rightIcon={<ArrowRight />}>
+                {isBrand ? 'Kaydet ve panele geç' : 'Kaydet ve devam et'}
+              </Button>
             </div>
-          )}
-        </div>
-      </div>
-    </main>
+          </CardBody>
+        </Card>
+      )}
+    </OnboardingShell>
   )
 }

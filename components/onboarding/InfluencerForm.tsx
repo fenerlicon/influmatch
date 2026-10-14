@@ -7,6 +7,14 @@ import { validateUsername } from '@/utils/usernameValidation'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey } from '@/utils/categories'
+import { Field, Input, Notice, Select, Textarea } from '@/components/ui'
+import { cn } from '@/utils/cn'
+
+const CREATOR_TYPES: { value: InfluencerFormState['creatorType']; label: string; desc: string }[] = [
+  { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
+  { value: 'ugc', label: 'UGC kreatörü', desc: 'Markalara özel içerik' },
+  { value: 'both', label: 'Her ikisi', desc: 'Hem kitle hem üretim' },
+]
 
 export interface InfluencerFormState {
   fullName: string
@@ -139,206 +147,99 @@ export default function InfluencerForm({ form, onChange }: InfluencerFormProps) 
         }
       }
 
+  const usernameHint =
+    validationErrors.username ? undefined
+      : usernameStatus === 'checking' ? 'Kontrol ediliyor…'
+        : usernameStatus === 'available' ? 'Kullanılabilir'
+          : undefined
+  const usernameError = validationErrors.username || (usernameStatus === 'taken' ? 'Bu kullanıcı adı alınmış' : undefined)
+
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <label htmlFor="fullName" className="text-sm text-gray-300">
-            Ad Soyad
-          </label>
-          <input
-            id="fullName"
-            value={form.fullName}
-            onChange={handleInput('fullName')}
-            placeholder="Adınız Soyadınız"
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
-          />
-        </div>
-        <div>
-          <label htmlFor="username" className="text-sm text-gray-300">
-            Kullanıcı Adı
-          </label>
-          <input
-            id="username"
-            value={form.username}
-            onChange={handleInput('username')}
-            placeholder="kullaniciadi"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.username || usernameStatus === 'taken'
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : usernameStatus === 'available'
-                ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.username && (
-            <p className="mt-1 text-xs text-red-400">{validationErrors.username}</p>
+    <div className="grid gap-5">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Ad soyad">
+          {(props) => <Input {...props} value={form.fullName} onChange={handleInput('fullName')} placeholder="Adınız soyadınız" autoComplete="name" />}
+        </Field>
+        <Field label="Kullanıcı adı" error={usernameError} hint={usernameHint}>
+          {(props) => (
+            <Input
+              {...props}
+              value={form.username}
+              onChange={handleInput('username')}
+              placeholder="kullaniciadi"
+              autoComplete="username"
+              className={usernameStatus === 'available' && !usernameError ? 'border-success/50' : undefined}
+            />
           )}
-          {!validationErrors.username && usernameStatus === 'checking' && (
-            <p className="mt-1 text-xs text-gray-400">Kontrol ediliyor...</p>
-          )}
-          {!validationErrors.username && usernameStatus === 'available' && (
-            <p className="mt-1 text-xs text-emerald-400">Kullanılabilir</p>
-          )}
-          {!validationErrors.username && usernameStatus === 'taken' && (
-            <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı alınmış</p>
-          )}
+        </Field>
+      </div>
+
+      <Field label="Biyografi">
+        {(props) => <Textarea {...props} value={form.bio} onChange={handleInput('bio')} rows={4} placeholder="Kendinden kısaca bahset…" />}
+      </Field>
+
+      <div className="grid gap-1.5">
+        <span className="text-[12.5px] font-medium text-ink-muted" id="creator-type-label">İçerik üretici türü</span>
+        <div role="radiogroup" aria-labelledby="creator-type-label" className="grid grid-cols-3 gap-2">
+          {CREATOR_TYPES.map((type) => {
+            const on = form.creatorType === type.value
+            return (
+              <button
+                key={type.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => onChange('creatorType', type.value)}
+                className={cn(
+                  'grid gap-1 rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40',
+                  on ? 'border-gold bg-gold/10' : 'border-line-strong bg-surface-1 hover:border-white/20',
+                )}
+              >
+                <span className="text-[13.5px] font-medium text-ink">{type.label}</span>
+                <span className="text-[11.5px] leading-snug text-ink-faint">{type.desc}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div>
-        <label htmlFor="bio" className="text-sm text-gray-300">
-          Biyografi
-        </label>
-        <textarea
-          id="bio"
-          value={form.bio}
-          onChange={handleInput('bio')}
-          rows={4}
-          placeholder="Kendinizden kısaca bahsedin..."
-          className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm text-gray-300">
-          İçerik Üretici Türü
-        </label>
-        <div className="mt-2 grid grid-cols-3 gap-4">
-          {[
-            { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
-            { value: 'ugc', label: 'UGC Kreatörü', desc: 'Markalara özel' },
-            { value: 'both', label: 'Her İkisi De', desc: 'Hem kitle hem üretim' }
-          ].map((type) => (
-            <button
-              key={type.value}
-              type="button"
-              onClick={() => onChange('creatorType', type.value as any)}
-              className={`flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all duration-300 ${
-                form.creatorType === type.value
-                  ? 'border-soft-gold bg-soft-gold/10 text-white shadow-glow-sm'
-                  : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <span className="text-sm font-bold">{type.label}</span>
-              <span className="text-[10px] opacity-70 mt-1">{type.desc}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <label htmlFor="category" className="text-sm text-gray-300">
-            Kategori
-          </label>
-          <select
-            id="category"
-            value={form.category}
-            onChange={handleInput('category')}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
-          >
-            {INFLUENCER_CATEGORY_KEYS.map((key) => (
-              <option key={key} value={key}>
-                {INFLUENCER_CATEGORIES[key]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="city" className="text-sm text-gray-300">
-            Şehir
-          </label>
-          <select
-            id="city"
-            value={form.city}
-            onChange={handleInput('city')}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
-          >
-            <option value="">Şehir Seçin</option>
-            {TURKISH_CITIES.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        <div>
-          <label htmlFor="instagram" className="text-sm text-gray-300">
-            Instagram
-          </label>
-          <input
-            id="instagram"
-            type="text"
-            value={form.instagram}
-            onChange={handleInput('instagram')}
-            placeholder="Kullanıcı adı veya link"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.instagram
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.instagram && (
-            <p className="mt-1 text-xs text-red-300">{validationErrors.instagram}</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Kategori">
+          {(props) => (
+            <Select {...props} value={form.category} onChange={handleInput('category')}>
+              {INFLUENCER_CATEGORY_KEYS.map((key) => (
+                <option key={key} value={key}>{INFLUENCER_CATEGORIES[key]}</option>
+              ))}
+            </Select>
           )}
-        </div>
-        <div>
-          <label htmlFor="tiktok" className="text-sm text-gray-300">
-            TikTok
-          </label>
-          <input
-            id="tiktok"
-            type="text"
-            value={form.tiktok}
-            onChange={handleInput('tiktok')}
-            placeholder="Kullanıcı adı veya link"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.tiktok
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.tiktok && (
-            <p className="mt-1 text-xs text-red-300">{validationErrors.tiktok}</p>
+        </Field>
+        <Field label="Şehir">
+          {(props) => (
+            <Select {...props} value={form.city} onChange={handleInput('city')}>
+              <option value="">Şehir seçin</option>
+              {TURKISH_CITIES.map((city) => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </Select>
           )}
-        </div>
-        <div>
-          <label htmlFor="youtube" className="text-sm text-gray-300">
-            YouTube
-          </label>
-          <input
-            id="youtube"
-            type="text"
-            value={form.youtube}
-            onChange={handleInput('youtube')}
-            placeholder="Kanal adı veya link"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.youtube
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.youtube && (
-            <p className="mt-1 text-xs text-red-300">{validationErrors.youtube}</p>
-          )}
-        </div>
+        </Field>
       </div>
 
-      <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="text-sm text-yellow-200/80">
-            <p className="font-semibold text-yellow-200">Önemli Bilgilendirme</p>
-            <p className="mt-1">
-              Onay sürecinizin tamamlanabilmesi için en az 1 adet aktif sosyal medya hesabınızı (Instagram, TikTok veya YouTube) doğru bir şekilde girmeniz zorunludur. Hatalı veya eksik bilgi girilmesi durumunda hesabınız doğrulanamayabilir.
-            </p>
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Field label="Instagram" error={validationErrors.instagram}>
+          {(props) => <Input {...props} value={form.instagram} onChange={handleInput('instagram')} placeholder="Kullanıcı adı veya bağlantı" />}
+        </Field>
+        <Field label="TikTok" error={validationErrors.tiktok}>
+          {(props) => <Input {...props} value={form.tiktok} onChange={handleInput('tiktok')} placeholder="Kullanıcı adı veya bağlantı" />}
+        </Field>
+        <Field label="YouTube" error={validationErrors.youtube}>
+          {(props) => <Input {...props} value={form.youtube} onChange={handleInput('youtube')} placeholder="Kanal adı veya bağlantı" />}
+        </Field>
       </div>
+
+      <Notice tone="warning" title="Önemli.">
+        Onay için en az bir aktif sosyal medya hesabını doğru girmen gerekiyor; sonraki adımda Instagram veya TikTok hesabını doğrulayacaksın.
+      </Notice>
     </div>
   )
 }
