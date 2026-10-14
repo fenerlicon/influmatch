@@ -4,7 +4,9 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { submitFeedback } from './actions'
-import { X, Upload, Loader2 } from 'lucide-react'
+import { X, Upload } from 'lucide-react'
+import LandingHeader from '@/components/landing/LandingHeader'
+import { Button, Card, CardBody, Eyebrow, Field, Notice, Textarea } from '@/components/ui'
 
 export default function FeedbackPage() {
   const router = useRouter()
@@ -102,96 +104,62 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
-      <div className="mx-auto max-w-2xl">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-glow">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-white">Geri Bildirim Gönder</h1>
-            <p className="mt-2 text-sm text-gray-300">
-              Bu bir MVP sürümüdür. Hata ve geribildirimlerinizi bizimle paylaşın.
-            </p>
-          </div>
+    <div className="min-h-screen bg-background text-ink">
+      <LandingHeader />
+      <main className="mx-auto max-w-[640px] px-4 py-10 sm:px-6 md:py-14">
+        <Eyebrow>Geri bildirim</Eyebrow>
+        <h1 className="mb-2 mt-3 font-display text-[36px] font-normal leading-[1.1]">Hata ve önerilerini paylaş</h1>
+        <p className="mb-6 text-ink-muted">Bu bir MVP sürümü. Karşılaştığın hataları ve önerilerini ekiple paylaş.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
-                Geri Bildiriminiz <span className="text-red-400">*</span>
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={6}
-                required
-                placeholder="Hata, öneri veya geri bildiriminizi buraya yazın..."
-                className="w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white placeholder:text-gray-500 outline-none transition focus:border-soft-gold resize-none"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="image" className="block text-sm font-medium text-gray-300 mb-2">
-                Ekran Görüntüsü (Opsiyonel)
-              </label>
-              {imagePreview ? (
-                <div className="relative rounded-2xl border border-white/10 bg-[#11121A] p-4">
-                  <img src={imagePreview} alt="Preview" className="max-h-64 w-full rounded-xl object-contain" />
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute right-2 top-2 rounded-full border border-white/20 bg-black/60 p-2 text-white transition hover:bg-black/80"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/10 bg-[#11121A] p-8 transition hover:border-soft-gold/40">
-                  <Upload className="mb-2 h-8 w-8 text-gray-400" />
-                  <span className="text-sm text-gray-400">Görsel yüklemek için tıklayın</span>
-                  <span className="mt-1 text-xs text-gray-500">PNG, JPG, WEBP (Max 5MB)</span>
-                  <input
-                    type="file"
-                    id="image"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageSelect}
+        <Card>
+          <CardBody>
+            <form onSubmit={handleSubmit} className="grid gap-5">
+              <Field label="Geri bildirimin">
+                {(props) => (
+                  <Textarea
+                    {...props}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={6}
+                    required
+                    placeholder="Hata, öneri veya geri bildirimini buraya yaz…"
                   />
-                </label>
-              )}
-            </div>
-
-            {error && (
-              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
-                {error}
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="flex-1 rounded-2xl border border-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30"
-              >
-                İptal
-              </button>
-              <button
-                type="submit"
-                disabled={isPending || isUploading}
-                className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isPending || isUploading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {isUploading ? 'Yükleniyor...' : 'Gönderiliyor...'}
-                  </span>
-                ) : (
-                  'Gönder'
                 )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+              </Field>
+
+              <div className="grid gap-1.5">
+                <span className="text-[12.5px] font-medium text-ink-muted">Ekran görüntüsü (isteğe bağlı)</span>
+                {imagePreview ? (
+                  <div className="relative rounded-xl border border-line bg-surface-2 p-3">
+                    {/* Yerel önizleme (data URL); görsel optimizasyonundan geçirilmez. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="Seçilen ekran görüntüsü" className="max-h-64 w-full rounded-lg object-contain" />
+                    <Button size="sm" variant="secondary" iconOnly aria-label="Görseli kaldır" onClick={handleRemoveImage} className="absolute right-2 top-2">
+                      <X />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line-strong bg-surface-2 p-8 text-center transition-colors hover:border-gold/40">
+                    <Upload className="mb-2 h-6 w-6 text-ink-faint" aria-hidden />
+                    <span className="text-[13px] text-ink-muted">Görsel yüklemek için tıkla</span>
+                    <span className="mt-1 text-xs text-ink-faint">PNG, JPG, WEBP (en fazla 5 MB)</span>
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleImageSelect} />
+                  </label>
+                )}
+              </div>
+
+              {error && <Notice tone="danger">{error}</Notice>}
+
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => router.back()}>Vazgeç</Button>
+                <Button type="submit" variant="primary" loading={isPending || isUploading}>
+                  {isUploading ? 'Yükleniyor…' : 'Gönder'}
+                </Button>
+              </div>
+            </form>
+          </CardBody>
+        </Card>
+      </main>
     </div>
   )
 }
-

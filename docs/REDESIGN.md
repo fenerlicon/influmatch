@@ -132,6 +132,11 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      Profil formu (influencer/marka), fotoğraf yükleyici ve hesap doğrulama adımı yeni bileşenlerde; form mantığı, taslak saklama ve
      kayıt aynı. Açık iş: `components/dashboard/InstagramConnect` / `TikTokConnect` hâlâ eski görünümde (profil "Bağlı hesaplar"da da
      kullanılıyor; profil sayfasıyla birlikte taşınacak).
+   - ✅ Yasal, geri bildirim, çerez bandı (2026-10-14): `/legal` ve `/feedback` (+ teşekkür) tanıtım üst çubuğuyla, sekmeler/kart yeni
+     bileşenlerde; yasal metinlerin ve çerez bandı metninin **içeriğine dokunulmadı** (yalnızca renk sınıfları tokenlara çevrildi).
+     Not (kullanıcıya iletildi): Kullanıcı Sözleşmesi madde 5 "komisyon talep edebilir / ödemeler Platform'un ödeme altyapısıyla" diyor;
+     ana sayfa ve S.S.S. "komisyonsuz, ödeme aranızda" diyor. Avukat metni gelince düzelir (kuyruğun sonu).
+     4. aşama bitti.
      Kayıt bağlantıları `/signup` (rol formda). Eski 10 tanıtım bileşeni silindi.
    - ✅ Giriş / kayıt / şifre (2026-10-14): ortak `components/auth/AuthShell.tsx` (solda tanıtım paneli, sağda form) +
      `PasswordInput`. Kayıtta hesap türü formun içinde: Marka · Influencer · UGC (UGC = influencer rolü, `creator_type: 'ugc'`;

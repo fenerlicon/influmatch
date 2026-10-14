@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { CheckCircle, Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
+import LandingHeader from '@/components/landing/LandingHeader'
+import { Button } from '@/components/ui'
 
 export default function ThankYouPage() {
   const router = useRouter()
@@ -52,37 +54,29 @@ export default function ThankYouPage() {
   }, [router, supabase])
 
   return (
-    <div className="min-h-screen bg-background px-4 py-10 text-white sm:px-8 lg:px-20">
-      <div className="mx-auto max-w-2xl">
-        <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-12 text-center shadow-glow">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border-2 border-emerald-500/60 bg-emerald-500/20">
-            <CheckCircle className="h-10 w-10 text-emerald-400" />
-          </div>
-          <h1 className="text-3xl font-semibold text-white">Teşekkürler!</h1>
-          <p className="mt-4 text-gray-300">
-            Geri bildiriminiz başarıyla gönderildi. Değerli görüşleriniz için teşekkür ederiz.
-          </p>
-          <p className="mt-2 text-sm text-gray-400">
-            {isLoading ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Yönlendiriliyor...
-              </span>
-            ) : (
-              '3 saniye içinde dashboard\'unuza yönlendirileceksiniz...'
-            )}
-          </p>
-          {dashboardPath && (
-            <button
-              onClick={() => router.push(dashboardPath)}
-              className="mt-6 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30"
-            >
-              Dashboard'a Dön
-            </button>
-          )}
+    <div className="min-h-screen bg-background text-ink">
+      <LandingHeader />
+      <main className="mx-auto max-w-[560px] px-4 py-16 text-center sm:px-6">
+        <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-success/10 text-success">
+          <CheckCircle2 className="h-7 w-7" aria-hidden />
         </div>
-      </div>
+        <h1 className="font-display text-[38px] font-normal leading-[1.1]">Teşekkürler</h1>
+        <p className="mt-3 text-ink-muted">Geri bildirimin ekibe ulaştı. Değerli görüşlerin için teşekkür ederiz.</p>
+        <p className="mt-2 text-[13px] text-ink-faint">
+          {isLoading ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Yönlendiriliyor…
+            </span>
+          ) : (
+            '3 saniye içinde paneline dönüyorsun.'
+          )}
+        </p>
+        {dashboardPath && (
+          <Button className="mt-6" onClick={() => router.push(dashboardPath)}>
+            Panele dön
+          </Button>
+        )}
+      </main>
     </div>
   )
 }
-

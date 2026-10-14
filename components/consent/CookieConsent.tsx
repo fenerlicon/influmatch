@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { buttonClasses } from '@/components/ui'
 
 // Çerez tercihi (yalnızca web). Tercih birinci taraf çerezde 12 ay saklanır.
 // Zorunlu olmayan araçlar (şu an yalnızca Vercel Speed Insights) yalnızca "Tümünü kabul et" sonrası yüklenir.
@@ -46,11 +47,11 @@ export default function CookieConsent() {
           aria-label="Çerez tercihi"
           className="fixed inset-x-0 bottom-0 z-[100] p-4 sm:p-6"
         >
-          <div className="mx-auto flex max-w-3xl flex-col gap-4 rounded-2xl border border-white/10 bg-[#0B0F19]/95 p-5 shadow-2xl backdrop-blur sm:flex-row sm:items-center">
-            <p className="flex-1 text-sm leading-relaxed text-gray-300">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4 rounded-2xl border border-line-strong bg-surface-1 p-5 shadow-2xl sm:flex-row sm:items-center">
+            <p className="flex-1 text-[13.5px] leading-relaxed text-ink-muted">
               Sitenin çalışması için zorunlu çerezler kullanılır. İsterseniz site performansını ölçen isteğe bağlı araçlara da
               izin verebilirsiniz.{' '}
-              <Link href="/legal?tab=cookies" className="text-soft-gold underline underline-offset-2 hover:text-white">
+              <Link href="/legal?tab=cookies" className="text-ink underline underline-offset-2 hover:text-gold">
                 Çerez Politikası
               </Link>
             </p>
@@ -58,14 +59,14 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={() => choose('essential')}
-                className="rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:border-white/30 hover:bg-white/5"
+                className={buttonClasses({ variant: 'secondary' })}
               >
                 Yalnızca zorunlu
               </button>
               <button
                 type="button"
                 onClick={() => choose('all')}
-                className="rounded-xl bg-soft-gold px-4 py-2 text-sm font-semibold text-[#0B0F19] transition hover:bg-[#e0bd4a]"
+                className={buttonClasses({ variant: 'primary' })}
               >
                 Tümünü kabul et
               </button>
