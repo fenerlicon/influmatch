@@ -2,12 +2,13 @@
 
 import { ticketCode } from '@/lib/support-ticket'
 import { useState, useEffect, useTransition } from 'react'
-import Image from 'next/image'
+import { toast } from 'sonner'
 import { getAttachmentUrl } from '@/app/admin/attachments/actions'
-import Link from 'next/link'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { updateSupportTicketStatus, addAdminResponse } from '@/app/admin/support/actions'
-import { ArrowLeft, AlertCircle, Clock, FileText, User, Calendar, Send, X, Eye } from 'lucide-react'
+import { FileText, LifeBuoy, Paperclip, Send, X } from 'lucide-react'
+import { Avatar, Button, Card, CardBody, CardHeader, Chip, EmptyState, Eyebrow, Field, PageHeader, Segmented, Tabs, Textarea, type ChipTone } from '@/components/ui'
+import { cn } from '@/utils/cn'
 
 interface SupportTicket {
   id: string
@@ -43,23 +44,20 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]['key']
 
-const priorityColors = {
-  Düşük: 'border-blue-500/30 bg-blue-500/10 text-blue-300',
-  Orta: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
-  Acil: 'border-red-500/30 bg-red-500/10 text-red-300',
+const PRIORITY_TONES: Record<SupportTicket['priority'], ChipTone> = {
+  Düşük: 'neutral',
+  Orta: 'warning',
+  Acil: 'danger',
 }
 
-const statusColors = {
-  open: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300',
-  in_progress: 'border-blue-500/30 bg-blue-500/10 text-blue-300',
-  closed: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+const STATUS: Record<SupportTicket['status'], { label: string; tone: ChipTone }> = {
+  open: { label: 'Açık', tone: 'warning' },
+  in_progress: { label: 'İşlemde', tone: 'info' },
+  closed: { label: 'Kapatıldı', tone: 'success' },
 }
 
-const statusLabels = {
-  open: 'Açık',
-  in_progress: 'İşlemde',
-  closed: 'Kapatılmış',
-}
+const formatDate = (dateString: string) =>
+  new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(dateString))
 
 export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPanelProps) {
   const supabase = useSupabaseClient()
@@ -68,6 +66,7 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
   const [adminResponse, setAdminResponse] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [sending, setSending] = useState(false)
 
   // Reset admin response when ticket changes
   useEffect(() => {
@@ -154,13 +153,13 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
   const handleStatusChange = (ticketId: string, newStatus: 'open' | 'in_progress' | 'closed') => {
     startTransition(async () => {
       const result = await updateSupportTicketStatus(ticketId, newStatus)
-      if (result.success) {
-        setTickets((prev) =>
-          prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, status: newStatus } : ticket)),
-        )
-        if (selectedTicket?.id === ticketId) {
-          setSelectedTicket((prev) => (prev ? { ...prev, status: newStatus } : null))
-        }
+      if (!result.success) {
+        toast.error(result.error || 'Durum güncellenemedi.')
+        return
+      }
+      setTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, status: newStatus } : ticket)))
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket((prev) => (prev ? { ...prev, status: newStatus } : null))
       }
     })
   }
@@ -168,323 +167,174 @@ export default function SupportTicketsPanel({ initialTickets }: SupportTicketsPa
   const handleSendResponse = (ticketId: string) => {
     if (!adminResponse.trim()) return
 
+    setSending(true)
     startTransition(async () => {
       const result = await addAdminResponse(ticketId, adminResponse.trim())
-      if (result.success) {
-        setTickets((prev) =>
-          prev.map((ticket) =>
-            ticket.id === ticketId ? { ...ticket, admin_response: adminResponse.trim() } : ticket,
-          ),
-        )
-        if (selectedTicket?.id === ticketId) {
-          setSelectedTicket((prev) => (prev ? { ...prev, admin_response: adminResponse.trim() } : null))
-        }
-        setAdminResponse('')
+      setSending(false)
+      if (!result.success) {
+        toast.error(result.error || 'Yanıt kaydedilemedi.')
+        return
       }
+      toast.success('Yanıt gönderildi.')
+      const response = adminResponse.trim()
+      setTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, admin_response: response } : ticket)))
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket((prev) => (prev ? { ...prev, admin_response: response } : null))
+      }
+      setAdminResponse('')
     })
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat('tr-TR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date)
+  const openAttachment = async (fileUrl: string) => {
+    // Ek özel kovada; kısa süreli imzalı bağlantı istenir. Sekme tıklama anında açılır
+    // (açılır pencere engelleyicisine takılmaması için), adres sonra verilir.
+    const tab = window.open('', '_blank')
+    const result = await getAttachmentUrl(fileUrl)
+    if (result.url && tab) tab.location.href = result.url
+    else {
+      tab?.close()
+      toast.error(result.error ?? 'Dosya açılamadı.')
+    }
   }
 
-  const getTicketNumber = (ticket: SupportTicket) => ticketCode(ticket.id)
+  const count = (key: TabKey) => (key === 'all' ? tickets.length : tickets.filter((t) => t.status === key).length)
+  const t = selectedTicket
 
   return (
-    <main className="min-h-screen bg-background px-6 py-24 md:px-12 lg:px-24">
-      <div className="mx-auto max-w-7xl">
-        <div className="glass-panel rounded-[32px] p-10">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Admin Paneli</p>
-              <h1 className="mt-4 text-3xl font-semibold text-white">Destek Talepleri</h1>
-              <p className="mt-2 text-gray-300">Kullanıcıların gönderdiği destek taleplerini inceleyin ve yönetin.</p>
-            </div>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2 text-sm text-gray-200 transition hover:border-soft-gold hover:text-soft-gold"
-            >
-              <ArrowLeft className="h-4 w-4" /> Hesap Yönetimi
-            </Link>
-          </div>
+    <div>
+      <PageHeader title="Destek talepleri" description="Kullanıcıların gönderdiği talepleri inceleyin, yanıtlayın ve durumunu güncelleyin." />
 
-          {/* Tabs */}
-          <div className="flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-[#0c0d13] p-1">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.key
-              const count =
-                tab.key === 'all'
-                  ? tickets.length
-                  : tickets.filter((t) => t.status === tab.key).length
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
-                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                    : 'text-gray-400 hover:text-white'
-                    }`}
-                >
-                  <span>{tab.label}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">{count}</span>
-                </button>
-              )
-            })}
-          </div>
+      <Tabs
+        className="mb-4"
+        label="Talep durumu"
+        value={activeTab}
+        onSelect={(value) => setActiveTab(value as TabKey)}
+        items={tabs.map((tab) => ({ value: tab.key, label: tab.label, count: count(tab.key) }))}
+      />
 
-          {/* Tickets List */}
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            {/* Left: Tickets List */}
-            <div className="lg:col-span-1 space-y-4 max-h-[600px] overflow-y-auto">
-              {filteredTickets.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-400">
-                  <AlertCircle className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>Destek talebi bulunamadı.</p>
-                </div>
-              ) : (
-                filteredTickets.map((ticket) => {
-                  const ticketNumber = getTicketNumber(ticket)
-                  const isSelected = selectedTicket?.id === ticket.id
-                  return (
-                    <button
-                      key={ticket.id}
-                      type="button"
-                      onClick={() => setSelectedTicket(ticket)}
-                      className={`w-full rounded-2xl border p-4 text-left transition ${isSelected
-                        ? 'border-soft-gold/60 bg-soft-gold/10 shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                        : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
-                        }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-semibold text-soft-gold">#{ticketNumber}</span>
-                            <span
-                              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${priorityColors[ticket.priority]
-                                }`}
-                            >
-                              {ticket.priority}
-                            </span>
-                            <span
-                              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${statusColors[ticket.status]
-                                }`}
-                            >
-                              {statusLabels[ticket.status]}
-                            </span>
-                          </div>
-                          <p className="text-sm font-semibold text-white line-clamp-1">{ticket.subject}</p>
-                          <p className="mt-1 text-xs text-gray-400 line-clamp-1">{ticket.message}</p>
-                          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                            <User className="h-3 w-3" />
-                            <span className="truncate">
-                              {ticket.users?.full_name ?? ticket.users?.email ?? 'Kullanıcı'}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-xs text-gray-500">{formatDate(ticket.created_at)}</p>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })
-              )}
-            </div>
-
-            {/* Right: Ticket Detail */}
-            <div className="lg:col-span-2">
-              {selectedTicket ? (
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                  <div className="mb-6 flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-lg font-semibold text-soft-gold">#{getTicketNumber(selectedTicket)}</span>
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${priorityColors[selectedTicket.priority]
-                            }`}
-                        >
-                          {selectedTicket.priority}
-                        </span>
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-medium uppercase ${statusColors[selectedTicket.status]
-                            }`}
-                        >
-                          {statusLabels[selectedTicket.status]}
-                        </span>
-                      </div>
-                      <h2 className="text-2xl font-semibold text-white">{selectedTicket.subject}</h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedTicket(null)}
-                      className="rounded-lg border border-white/20 bg-black/60 p-2 text-gray-400 transition hover:border-white/40 hover:text-white"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* User Info */}
-                  <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="flex items-center gap-3">
-                      {selectedTicket.users?.avatar_url ? (
-                        <Image
-                          src={selectedTicket.users.avatar_url}
-                          alt={selectedTicket.users.full_name ?? 'Kullanıcı'}
-                          width={48}
-                          height={48}
-                          className="rounded-xl border border-white/10"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg font-semibold text-soft-gold">
-                          {(selectedTicket.users?.full_name?.[0] ?? selectedTicket.users?.email?.[0] ?? 'U').toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-white">
-                          {selectedTicket.users?.full_name ?? 'Kullanıcı'}
-                        </p>
-                        <p className="text-xs text-gray-400">{selectedTicket.users?.email}</p>
-                        {selectedTicket.users?.username && (
-                          <p className="text-xs text-gray-500">@{selectedTicket.users.username}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Message */}
-                  <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="mb-2 text-xs uppercase tracking-[0.2em] text-soft-gold">Mesaj</p>
-                    <p className="whitespace-pre-wrap text-sm text-gray-200">{selectedTicket.message}</p>
-                  </div>
-
-                  {/* File */}
-                  {selectedTicket.file_url && (
-                    <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="mb-3 text-xs uppercase tracking-[0.2em] text-soft-gold">Ekli Dosya</p>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          // Ek özel kovada; kısa süreli imzalı bağlantı istenir. Sekme tıklama anında açılır
-                          // (açılır pencere engelleyicisine takılmaması için), adres sonra verilir.
-                          const tab = window.open('', '_blank')
-                          const result = await getAttachmentUrl(selectedTicket.file_url as string)
-                          if (result.url && tab) tab.location.href = result.url
-                          else {
-                            tab?.close()
-                            alert(result.error ?? 'Dosya açılamadı.')
-                          }
-                        }}
-                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-300 transition hover:border-soft-gold/50 hover:text-soft-gold"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Görüntüyü Aç
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Admin Response */}
-                  {selectedTicket.admin_response && (
-                    <div className="mb-6 rounded-2xl border border-soft-gold/30 bg-soft-gold/10 p-4">
-                      <p className="mb-2 text-xs uppercase tracking-[0.2em] text-soft-gold">Admin Yanıtı</p>
-                      <p className="whitespace-pre-wrap text-sm text-gray-200">{selectedTicket.admin_response}</p>
-                    </div>
-                  )}
-
-                  {/* Admin Response Form */}
-                  <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <label htmlFor="adminResponse" className="mb-2 block text-xs uppercase tracking-[0.2em] text-soft-gold">
-                      Yanıt Ekle / Güncelle
-                    </label>
-                    <textarea
-                      id="adminResponse"
-                      value={adminResponse}
-                      onChange={(e) => setAdminResponse(e.target.value)}
-                      disabled={isPending}
-                      rows={4}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 transition focus:border-soft-gold/50 focus:outline-none focus:ring-2 focus:ring-soft-gold/20 disabled:opacity-50 resize-none"
-                      placeholder="Kullanıcıya yanıt yazın..."
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleSendResponse(selectedTicket.id)}
-                      disabled={isPending || !adminResponse.trim()}
-                      className="mt-3 flex items-center gap-2 rounded-xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:opacity-50"
-                    >
-                      <Send className="h-4 w-4" />
-                      Yanıtı Kaydet
-                    </button>
-                  </div>
-
-                  {/* Status Actions */}
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange(selectedTicket.id, 'open')}
-                      disabled={isPending || selectedTicket.status === 'open'}
-                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${selectedTicket.status === 'open'
-                        ? 'border-yellow-500/60 bg-yellow-500/20 text-yellow-300'
-                        : 'border-white/10 bg-white/5 text-white hover:border-white/20'
-                        }`}
-                    >
-                      Açık
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange(selectedTicket.id, 'in_progress')}
-                      disabled={isPending || selectedTicket.status === 'in_progress'}
-                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${selectedTicket.status === 'in_progress'
-                        ? 'border-blue-500/60 bg-blue-500/20 text-blue-300'
-                        : 'border-white/10 bg-white/5 text-white hover:border-white/20'
-                        }`}
-                    >
-                      İşlemde
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange(selectedTicket.id, 'closed')}
-                      disabled={isPending || selectedTicket.status === 'closed'}
-                      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${selectedTicket.status === 'closed'
-                        ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300'
-                        : 'border-white/10 bg-white/5 text-white hover:border-white/20'
-                        }`}
-                    >
-                      Kapat
-                    </button>
-                  </div>
-
-                  {/* Timestamps */}
-                  <div className="mt-6 flex gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3" />
-                      <span>Oluşturulma: {formatDate(selectedTicket.created_at)}</span>
-                    </div>
-                    {selectedTicket.updated_at !== selectedTicket.created_at && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        <span>Güncelleme: {formatDate(selectedTicket.updated_at)}</span>
-                      </div>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        {/* Liste */}
+        <Card className="overflow-hidden">
+          {filteredTickets.length === 0 ? (
+            <EmptyState icon={LifeBuoy} title="Talep yok" description="Bu durumda destek talebi bulunmuyor." />
+          ) : (
+            <div className="max-h-[70vh] overflow-y-auto">
+              {filteredTickets.map((ticket) => {
+                const selected = t?.id === ticket.id
+                return (
+                  <button
+                    key={ticket.id}
+                    type="button"
+                    onClick={() => setSelectedTicket(ticket)}
+                    aria-current={selected || undefined}
+                    className={cn(
+                      'block w-full border-b border-l-2 border-b-line border-l-transparent px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-2',
+                      selected && 'border-l-gold bg-surface-2',
                     )}
-                  </div>
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs font-semibold tabular-nums text-gold">#{ticketCode(ticket.id)}</span>
+                      <Chip tone={PRIORITY_TONES[ticket.priority]}>{ticket.priority}</Chip>
+                      <Chip tone={STATUS[ticket.status].tone} dot>{STATUS[ticket.status].label}</Chip>
+                    </div>
+                    <p className="mt-1.5 line-clamp-1 text-[13.5px] font-medium text-ink">{ticket.subject}</p>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-ink-muted">{ticket.message}</p>
+                    <p className="mt-1 truncate text-xs text-ink-faint">
+                      {ticket.users?.full_name ?? ticket.users?.email ?? 'Kullanıcı'} · {formatDate(ticket.created_at)}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Ayrıntı */}
+        {t ? (
+          <Card>
+            <CardHeader
+              title={t.subject}
+              description={`#${ticketCode(t.id)} · Oluşturulma ${formatDate(t.created_at)}${t.updated_at !== t.created_at ? ` · Güncelleme ${formatDate(t.updated_at)}` : ''}`}
+              action={
+                <Button size="sm" variant="ghost" iconOnly aria-label="Kapat" onClick={() => setSelectedTicket(null)}>
+                  <X />
+                </Button>
+              }
+            />
+            <CardBody className="grid gap-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Chip tone={PRIORITY_TONES[t.priority]}>{t.priority}</Chip>
+                <Chip tone={STATUS[t.status].tone} dot>{STATUS[t.status].label}</Chip>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Avatar name={t.users?.full_name ?? t.users?.email ?? '?'} src={t.users?.avatar_url ?? undefined} />
+                <div className="min-w-0">
+                  <p className="truncate text-[13.5px] font-medium text-ink">{t.users?.full_name ?? 'Kullanıcı'}</p>
+                  <p className="truncate text-xs text-ink-faint">
+                    {[t.users?.email, t.users?.username ? `@${t.users.username}` : null].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
-              ) : (
-                <div className="flex h-full min-h-[400px] items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
-                  <div>
-                    <FileText className="mx-auto h-12 w-12 mb-4 text-gray-400 opacity-50" />
-                    <p className="text-gray-400">Bir destek talebi seçin</p>
-                  </div>
+              </div>
+
+              <div>
+                <Eyebrow className="mb-1.5">Mesaj</Eyebrow>
+                <p className="whitespace-pre-wrap text-[13.5px] text-ink">{t.message}</p>
+              </div>
+
+              {t.file_url && (
+                <div>
+                  <Button size="sm" onClick={() => openAttachment(t.file_url as string)} leftIcon={<Paperclip />}>
+                    Ekli dosyayı aç
+                  </Button>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
+
+              {t.admin_response && (
+                <div className="rounded-xl border border-gold/30 bg-gold/5 p-3.5">
+                  <p className="text-xs font-medium text-gold">Gönderilen yanıt</p>
+                  <p className="mt-1 whitespace-pre-wrap text-[13px] text-ink-muted">{t.admin_response}</p>
+                </div>
+              )}
+
+              <Field label={t.admin_response ? 'Yanıtı güncelle' : 'Yanıt yaz'} hint="Kullanıcıya bildirim gider; e-posta tercihine göre e-posta da.">
+                {(props) => (
+                  <Textarea
+                    {...props}
+                    value={adminResponse}
+                    onChange={(e) => setAdminResponse(e.target.value)}
+                    disabled={isPending}
+                    rows={4}
+                    placeholder="Kullanıcıya yanıt yazın…"
+                  />
+                )}
+              </Field>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                <Segmented
+                  label="Talep durumu"
+                  value={t.status}
+                  onSelect={(value) => value !== t.status && handleStatusChange(t.id, value as SupportTicket['status'])}
+                  items={(['open', 'in_progress', 'closed'] as const).map((s) => ({ value: s, label: STATUS[s].label }))}
+                />
+                <Button
+                  variant="primary"
+                  onClick={() => handleSendResponse(t.id)}
+                  loading={isPending && sending}
+                  disabled={isPending || !adminResponse.trim()}
+                  leftIcon={<Send />}
+                >
+                  Yanıtı gönder
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        ) : (
+          <Card className="hidden lg:block">
+            <EmptyState icon={FileText} title="Bir talep seçin" description="Ayrıntılar, yanıt ve durum burada görünür." />
+          </Card>
+        )}
       </div>
-    </main>
+    </div>
   )
 }
-

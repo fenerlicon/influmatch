@@ -1,101 +1,83 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
+import { Link2 } from 'lucide-react'
 import { adminManualConnectInstagram } from '@/app/admin/actions'
+import { Button, Card, CardBody, Field, Input, Notice, PageHeader } from '@/components/ui'
+
+type Outcome = { ok: true; message: string; posts: string[] } | { ok: false; message: string }
 
 export default function ManualConnectPage() {
-    const [identifier, setIdentifier] = useState('')
-    const [username, setUsername] = useState('')
-    const [status, setStatus] = useState('')
-    const [resultData, setResultData] = useState<any>(null)
-    const [loading, setLoading] = useState(false)
+  const [identifier, setIdentifier] = useState('')
+  const [username, setUsername] = useState('')
+  const [outcome, setOutcome] = useState<Outcome | null>(null)
+  const [loading, setLoading] = useState(false)
 
-    const handleConnect = async () => {
-        if (!identifier || !username) {
-            setStatus('Lütfen tüm alanları doldurun.')
-            return
-        }
-
-        setLoading(true)
-        setStatus('İşleniyor...')
-
-        try {
-            const result = await adminManualConnectInstagram(identifier, username)
-            if (result.success) {
-                setStatus(`✅ BAŞARILI: ${result.message}`)
-                setResultData(result.analyzed_posts)
-            } else {
-                setStatus(`❌ HATA: ${result.error}`)
-            }
-        } catch (e: any) {
-            setStatus(`Kritik Hata: ${e.message}`)
-        } finally {
-            setLoading(false)
-        }
+  const handleConnect = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!identifier.trim() || !username.trim()) {
+      setOutcome({ ok: false, message: 'Lütfen iki alanı da doldurun.' })
+      return
     }
+    setLoading(true)
+    setOutcome(null)
+    try {
+      const result = await adminManualConnectInstagram(identifier.trim(), username.trim())
+      if (result.success) {
+        setOutcome({ ok: true, message: result.message ?? 'Hesap bağlandı.', posts: (result.analyzed_posts as string[] | undefined) ?? [] })
+      } else {
+        setOutcome({ ok: false, message: result.error ?? 'Bağlanamadı.' })
+      }
+    } catch (e) {
+      setOutcome({ ok: false, message: e instanceof Error ? e.message : 'Beklenmeyen bir hata oluştu.' })
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    return (
-        <div className="min-h-screen bg-black text-white p-8">
-            <div className="max-w-md mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-2xl">
-                <h1 className="text-xl font-bold mb-1 text-soft-gold">Manuel Instagram Bağlama</h1>
-                <p className="text-xs text-gray-500 mb-6">Problemli hesapları admin yetkisiyle zorla bağlar.</p>
+  return (
+    <div className="max-w-xl">
+      <PageHeader title="Manuel Instagram bağlama" description="Sorunlu hesapları admin yetkisiyle bağlar; profil verisi ve son gönderiler analiz edilir." />
 
-                <div className="flex flex-col gap-4">
-                    <div>
-                        <label className="block text-xs text-gray-400 mb-1">Kullanıcı ID (UUID) veya Email</label>
-                        <input
-                            className="w-full bg-black/50 border border-zinc-700 p-3 rounded-lg text-sm focus:border-soft-gold outline-none transition"
-                            placeholder="9e8250fc-..."
-                            value={identifier}
-                            onChange={e => setIdentifier(e.target.value)}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs text-gray-400 mb-1">Instagram Kullanıcı Adı</label>
-                        <input
-                            className="w-full bg-black/50 border border-zinc-700 p-3 rounded-lg text-sm focus:border-soft-gold outline-none transition"
-                            placeholder="arzuuerguu"
-                            value={username}
-                            onChange={e => setUsername(e.target.value)}
-                        />
-                    </div>
-
-                    <button
-                        onClick={handleConnect}
-                        disabled={loading}
-                        className="mt-2 w-full bg-soft-gold text-black font-semibold p-3 rounded-lg hover:bg-yellow-500 disabled:opacity-50 transition flex justify-center items-center"
-                    >
-                        {loading ? (
-                            <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin"></span>
-                        ) : (
-                            'Bağla ve Onayla'
-                        )}
-                    </button>
-
-                    {status && (
-                        <div className={`mt-4 p-3 rounded-lg text-xs font-mono break-words ${status.startsWith('❌') ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
-                            {status}
-                            {resultData && (
-                                <div className="mt-3 pt-3 border-t border-white/10">
-                                    <strong className="block mb-2 text-soft-gold">Analiz Edilen Son 6 Gönderi:</strong>
-                                    <ul className="list-decimal pl-4 space-y-1">
-                                        {resultData.map((url: string, i: number) => (
-                                            <li key={i}>
-                                                <a href={url} target="_blank" rel="noopener noreferrer" className="underline hover:text-white break-all">{url}</a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <div className="mt-6 pt-4 border-t border-zinc-800">
-                        <a href="/admin" className="text-xs text-gray-500 hover:text-white transition">← Admin Paneline Dön</a>
-                    </div>
-                </div>
+      <Card>
+        <CardBody>
+          <form onSubmit={handleConnect} className="grid gap-4">
+            <Field label="Kullanıcı ID (UUID) veya e-posta">
+              {(props) => <Input {...props} placeholder="9e8250fc-…" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="off" />}
+            </Field>
+            <Field label="Instagram kullanıcı adı">
+              {(props) => <Input {...props} placeholder="kullaniciadi" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" />}
+            </Field>
+            <div>
+              <Button type="submit" variant="primary" loading={loading} leftIcon={<Link2 />}>
+                Bağla ve onayla
+              </Button>
             </div>
+          </form>
+        </CardBody>
+      </Card>
+
+      {outcome && (
+        <div className="mt-4 grid gap-3">
+          <Notice tone={outcome.ok ? 'success' : 'danger'} title={outcome.ok ? 'Bağlandı.' : 'Hata.'}>
+            {outcome.message}
+          </Notice>
+          {outcome.ok && outcome.posts.length > 0 && (
+            <Card padded>
+              <p className="mb-2 text-[13px] font-medium text-ink">Analiz edilen son gönderiler</p>
+              <ol className="list-decimal space-y-1 pl-5 text-[13px]">
+                {outcome.posts.map((url) => (
+                  <li key={url}>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="break-all text-gold hover:underline">
+                      {url}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
         </div>
-    )
+      )}
+    </div>
+  )
 }

@@ -115,6 +115,12 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      BrandVerificationCard); "İlk adımları gizle" çerezi kalktı (kart tamamlanınca kendiliğinden kısalır).
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding.
 5. **Admin paneli.**
+   - ✅ Kabuk ve alt paneller (2026-10-14): `app/admin/layout.tsx` admin sayfalarını `AppShell`'de açar; menü (`nav-config` ADMIN):
+     Kullanıcılar · Destek (talepler, geri bildirimler, raporlanan mesajlar, mesajlar) · Sistem (marka sınırları, API anahtarları,
+     manuel Instagram bağlama). Ana paneldeki kısayol düğmeleri kalktı. Destek talepleri (liste + ayrıntı), geri bildirimler,
+     raporlanan mesajlar, marka sınırları, API anahtarları + Resend kartı, manuel bağlama yeni bileşenlerde; `alert`/`confirm`
+     yerine toast ve onay penceresi; destek panelinde başarısız kayıt artık hata gösteriyor.
+   - Sırada: kullanıcı/onay paneli (`AdminPanel.tsx`, `design/redesign/admin.html`: tablo + sağda inceleme), bildirim paneli.
 
 Her aşama mevcut akışla: dal → PR → Vercel önizlemesi READY → birleştir.
 

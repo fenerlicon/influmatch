@@ -2,13 +2,13 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import Link from 'next/link'
-import { ArrowLeft, Eye, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Eye, CheckCircle, XCircle, Trash2, Flag, ImageIcon } from 'lucide-react'
 import { updateReportStatus, deleteMessage } from '@/app/admin/messages/actions'
 import { getAttachmentUrl } from '@/app/admin/attachments/actions'
 import { parseChatImageUrl } from '@/lib/chat-image'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { Avatar, Button, Card, Chip, ConfirmDialog, EmptyState, Eyebrow, PageHeader, Tabs, type ChipTone } from '@/components/ui'
 
 interface MessageReport {
   id: string
@@ -65,11 +65,11 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]['key']
 
-const STATUS_STYLES: Record<MessageReport['status'], string> = {
-  pending: 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200',
-  reviewed: 'border-blue-400/40 bg-blue-400/10 text-blue-200',
-  resolved: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
-  dismissed: 'border-red-400/40 bg-red-400/10 text-red-200',
+const STATUS: Record<MessageReport['status'], { label: string; tone: ChipTone }> = {
+  pending: { label: 'Beklemede', tone: 'warning' },
+  reviewed: { label: 'İncelendi', tone: 'info' },
+  resolved: { label: 'Çözüldü', tone: 'success' },
+  dismissed: { label: 'Reddedildi', tone: 'neutral' },
 }
 
 const REASON_LABELS: Record<MessageReport['reason'], string> = {
@@ -80,13 +80,31 @@ const REASON_LABELS: Record<MessageReport['reason'], string> = {
   other: 'Diğer',
 }
 
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+function Party({ label, user }: { label: string; user: MessageReport['reporter'] }) {
+  return (
+    <div>
+      <Eyebrow className="mb-2">{label}</Eyebrow>
+      <div className="flex items-center gap-2.5">
+        <Avatar name={user?.full_name ?? '?'} src={user?.avatar_url ?? undefined} size="sm" />
+        <div className="min-w-0">
+          <p className="truncate text-[13.5px] font-medium text-ink">{user?.full_name ?? 'Bilinmeyen'}</p>
+          {user?.email && <p className="truncate text-xs text-ink-faint">{user.email}</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function MessageReportsPanel({ initialReports }: MessageReportsPanelProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabKey>('pending')
   const [reports, setReports] = useState<MessageReport[]>(initialReports)
   const [isPending, startTransition] = useTransition()
-  const [toast, setToast] = useState<string | null>(null)
+  const [toRemove, setToRemove] = useState<string | null>(null)
   const [selectedReport, setSelectedReport] = useState<MessageReport | null>(null)
 
   useEffect(() => {
@@ -122,11 +140,9 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
     startTransition(async () => {
       const result = await updateReportStatus(reportId, newStatus)
       if (result?.error) {
-        setToast(result.error)
-        setTimeout(() => setToast(null), 3000)
+        toast.error(result.error)
       } else {
-        setToast('Rapor durumu güncellendi.')
-        setTimeout(() => setToast(null), 3000)
+        toast.success('Rapor durumu güncellendi.')
         setReports((prev) =>
           prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r)),
         )
@@ -138,18 +154,13 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
   }
 
   const handleDeleteMessage = (messageId: string) => {
-    if (!confirm('Bu mesaj sohbetten kaldırılacak; orijinal içerik şikayet kaydında saklanır. Devam edilsin mi?')) {
-      return
-    }
-
     startTransition(async () => {
       const result = await deleteMessage(messageId)
+      setToRemove(null)
       if (result?.error) {
-        setToast(result.error)
-        setTimeout(() => setToast(null), 3000)
+        toast.error(result.error)
       } else {
-        setToast('Mesaj kaldırıldı.')
-        setTimeout(() => setToast(null), 3000)
+        toast.success('Mesaj kaldırıldı.')
         const removedAt = 'removedAt' in result ? result.removedAt : new Date().toISOString()
         setReports((prev) =>
           prev.map((r) =>
@@ -167,246 +178,114 @@ export default function MessageReportsPanel({ initialReports }: MessageReportsPa
     })
   }
 
+  const openImage = async (content: string) => {
+    const stored = parseChatImageUrl(content)
+    if (!stored) return
+    const result = await getAttachmentUrl(stored)
+    if (result.url) window.open(result.url, '_blank', 'noopener,noreferrer')
+    else toast.error(result.error ?? 'Fotoğraf açılamadı.')
+  }
+
   return (
-    <main className="min-h-screen bg-background px-6 py-24 md:px-12 lg:px-24">
-      <div className="mx-auto max-w-7xl">
-        <div className="glass-panel rounded-[32px] p-10">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">Admin Paneli</p>
-              <h1 className="mt-4 text-3xl font-semibold text-white">Raporlanan Mesajlar</h1>
-              <p className="mt-2 text-gray-300">Kullanıcılar tarafından raporlanan mesajları inceleyin ve yönetin.</p>
-            </div>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2 text-sm text-gray-200 transition hover:border-soft-gold hover:text-soft-gold"
-            >
-              <ArrowLeft className="h-4 w-4" /> Hesap Yönetimi
-            </Link>
-          </div>
+    <div className="max-w-5xl">
+      <PageHeader title="Raporlanan mesajlar" description="Kullanıcıların şikâyet ettiği mesajları inceleyin; gerekirse mesajı sohbetten kaldırın." />
 
-          {/* Tabs */}
-          <div className="mt-8 flex gap-2 rounded-2xl border border-white/10 bg-[#0c0d13] p-1">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.key
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
-                    ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                    : 'text-gray-400 hover:text-white'
-                    }`}
-                >
-                  {tab.label} ({reports.filter(r => tab.key === 'all' ? true : r.status === tab.key).length})
-                </button>
-              )
-            })}
-          </div>
+      <Tabs
+        className="mb-4"
+        label="Rapor durumu"
+        value={activeTab}
+        onSelect={(value) => setActiveTab(value as TabKey)}
+        items={tabs.map((tab) => ({
+          value: tab.key,
+          label: tab.label,
+          count: reports.filter((r) => (tab.key === 'all' ? true : r.status === tab.key)).length,
+        }))}
+      />
 
-          {/* Reports List */}
-          <div className="mt-8 space-y-4">
-            {filteredReports.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-gray-400">
-                {activeTab === 'pending' && 'Bekleyen rapor bulunmuyor.'}
-                {activeTab === 'all' && 'Rapor bulunmuyor.'}
-                {activeTab === 'reviewed' && 'İncelenen rapor bulunmuyor.'}
-                {activeTab === 'resolved' && 'Çözülen rapor bulunmuyor.'}
-                {activeTab === 'dismissed' && 'Reddedilen rapor bulunmuyor.'}
-              </div>
-            ) : (
-              filteredReports.map((report) => (
-                <div
-                  key={report.id}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-6 transition hover:border-soft-gold/40"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-4">
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[report.status]
-                            }`}
-                        >
-                          {report.status === 'pending'
-                            ? 'Beklemede'
-                            : report.status === 'reviewed'
-                              ? 'İncelendi'
-                              : report.status === 'resolved'
-                                ? 'Çözüldü'
-                                : 'Reddedildi'}
-                        </span>
-                        <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs text-gray-300">
-                          {REASON_LABELS[report.reason]}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(report.created_at).toLocaleDateString('tr-TR', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
+      {filteredReports.length === 0 ? (
+        <Card>
+          <EmptyState icon={Flag} title="Rapor yok" description="Bu durumda bekleyen rapor bulunmuyor." />
+        </Card>
+      ) : (
+        <div className="grid gap-3">
+          {filteredReports.map((report) => {
+            const status = STATUS[report.status]
+            const content = report.message ? report.message_snapshot ?? report.message.content : null
+            return (
+              <Card key={report.id} padded className="grid gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Chip tone={status.tone} dot>{status.label}</Chip>
+                  <Chip>{REASON_LABELS[report.reason]}</Chip>
+                  <span className="text-xs text-ink-faint">{formatDate(report.created_at)}</span>
+                </div>
 
-                      <div className="grid gap-4 md:grid-cols-2 mb-4">
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Raporlayan</p>
-                          <div className="flex items-center gap-2">
-                            {report.reporter?.avatar_url ? (
-                              <Image
-                                src={report.reporter.avatar_url}
-                                alt={report.reporter.full_name ?? 'Kullanıcı'}
-                                width={32}
-                                height={32}
-                                className="rounded-full"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-soft-gold">
-                                {report.reporter?.full_name?.[0] ?? 'R'}
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm font-semibold text-white">
-                                {report.reporter?.full_name ?? 'Bilinmeyen'}
-                              </p>
-                              <p className="text-xs text-gray-400">{report.reporter?.email}</p>
-                            </div>
-                          </div>
-                        </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Party label="Raporlayan" user={report.reporter} />
+                  <Party label="Raporlanan" user={report.reported} />
+                </div>
 
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Raporlanan</p>
-                          <div className="flex items-center gap-2">
-                            {report.reported?.avatar_url ? (
-                              <Image
-                                src={report.reported.avatar_url}
-                                alt={report.reported.full_name ?? 'Kullanıcı'}
-                                width={32}
-                                height={32}
-                                className="rounded-full"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-soft-gold">
-                                {report.reported?.full_name?.[0] ?? 'R'}
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm font-semibold text-white">
-                                {report.reported?.full_name ?? 'Bilinmeyen'}
-                              </p>
-                              <p className="text-xs text-gray-400">{report.reported?.email}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {report.message && (
-                        <div className="mb-4">
-                          <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Raporlanan Mesaj</p>
-                          <div className="rounded-xl border border-white/10 bg-[#0F1014] p-4">
-                            {parseChatImageUrl(report.message_snapshot ?? report.message.content) ? (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  const stored = parseChatImageUrl(report.message_snapshot ?? report.message!.content)
-                                  if (!stored) return
-                                  const result = await getAttachmentUrl(stored)
-                                  if (result.url) window.open(result.url, '_blank', 'noopener,noreferrer')
-                                  else alert(result.error ?? 'Fotoğraf açılamadı.')
-                                }}
-                                className="text-sm font-semibold text-soft-gold underline hover:text-white"
-                              >
-                                📷 Fotoğrafı aç (10 dk geçerli bağlantı)
-                              </button>
-                            ) : (
-                              <p className="text-sm text-gray-300 whitespace-pre-wrap">
-                                {report.message_snapshot ?? report.message.content}
-                              </p>
-                            )}
-                            {report.message_removed_at && (
-                              <p className="mt-2 text-xs font-semibold text-red-400">Sohbetten kaldırıldı</p>
-                            )}
-                            <p className="text-xs text-gray-500 mt-2">
-                              {new Date(report.message.created_at).toLocaleDateString('tr-TR', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
-                          </div>
-                        </div>
+                {report.message && content !== null && (
+                  <div>
+                    <Eyebrow className="mb-2">Raporlanan mesaj</Eyebrow>
+                    <div className="rounded-xl border border-line bg-surface-2 p-3.5">
+                      {parseChatImageUrl(content) ? (
+                        <Button size="sm" variant="ghost" onClick={() => openImage(content)} leftIcon={<ImageIcon />}>
+                          Fotoğrafı aç (10 dk geçerli bağlantı)
+                        </Button>
+                      ) : (
+                        <p className="whitespace-pre-wrap text-[13.5px] text-ink">{content}</p>
                       )}
-
-                      {report.description && (
-                        <div className="mb-4">
-                          <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Açıklama</p>
-                          <p className="text-sm text-gray-300">{report.description}</p>
-                        </div>
-                      )}
+                      {report.message_removed_at && <p className="mt-2 text-xs font-medium text-danger">Sohbetten kaldırıldı</p>}
+                      <p className="mt-2 text-xs text-ink-faint">{formatDate(report.message.created_at)}</p>
                     </div>
                   </div>
+                )}
 
-                  <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-white/10">
+                {report.description && (
+                  <div>
+                    <Eyebrow className="mb-2">Açıklama</Eyebrow>
+                    <p className="text-[13.5px] text-ink-muted">{report.description}</p>
+                  </div>
+                )}
+
+                {(report.status === 'pending' || (report.message && !report.message_removed_at)) && (
+                  <div className="flex flex-wrap gap-2 border-t border-line pt-4">
                     {report.status === 'pending' && (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(report.id, 'reviewed')}
-                          disabled={isPending}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-blue-500/60 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-400 transition hover:border-blue-500 hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <Eye className="h-4 w-4" />
-                          İncele
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(report.id, 'resolved')}
-                          disabled={isPending}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-400 transition hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <CheckCircle className="h-4 w-4" />
+                        <Button size="sm" onClick={() => handleStatusChange(report.id, 'reviewed')} disabled={isPending} leftIcon={<Eye />}>
+                          İncelendi
+                        </Button>
+                        <Button size="sm" onClick={() => handleStatusChange(report.id, 'resolved')} disabled={isPending} leftIcon={<CheckCircle />}>
                           Çözüldü
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(report.id, 'dismissed')}
-                          disabled={isPending}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <XCircle className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(report.id, 'dismissed')} disabled={isPending} leftIcon={<XCircle />}>
                           Reddet
-                        </button>
+                        </Button>
                       </>
                     )}
                     {report.message && !report.message_removed_at && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteMessage(report.message_id)}
-                        disabled={isPending}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Mesajı Kaldır
-                      </button>
+                      <Button size="sm" variant="danger" onClick={() => setToRemove(report.message_id)} disabled={isPending} leftIcon={<Trash2 />}>
+                        Mesajı kaldır
+                      </Button>
                     )}
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {toast && (
-        <div className="fixed right-6 bottom-6 z-50 rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-sm text-soft-gold shadow-glow">
-          {toast}
+                )}
+              </Card>
+            )
+          })}
         </div>
       )}
-    </main>
+
+      <ConfirmDialog
+        open={!!toRemove}
+        onClose={() => setToRemove(null)}
+        onConfirm={() => toRemove && handleDeleteMessage(toRemove)}
+        loading={isPending && !!toRemove}
+        tone="danger"
+        title="Mesaj kaldırılsın mı?"
+        description="Mesaj sohbetten kaldırılır; orijinal içerik şikâyet kaydında saklanır."
+        confirmLabel="Kaldır"
+      />
+    </div>
   )
 }
-
