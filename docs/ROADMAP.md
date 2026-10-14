@@ -92,6 +92,8 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
   - **Teklif:** ücretsiz markada **günde 3, ayda 15**. Spotlight Basic daha yüksek, Pro sınırsız (değerler paket içeriğiyle).
   - **İlan:** ücretsiz markada **1 aktif ilan**. Spotlight'ta daha fazla.
   - **Favoriler ve listeler (Inflist):** ücretsiz markada yok, yalnızca Spotlight (Basic/Pro). Kayıtlı olanlar silinmez, Spotlight ile geri gelir.
+  - **Satış başlarken (bayrak `free_brand_limits_enabled` açıldığı anda) yapılacaklar:** "Kampanya sihirbazı ve toplu davet" Marka Pro paket
+    listesine eklenir (`lib/spotlight-plans.ts` + mobil `constants/spotlightPlans.js`, SSS; 2026-10-14 kararı, SYSTEM_MAP 3.19-N8).
 - **Teklif şablonu:** marka bir teklifi şablon olarak kaydeder / son teklifini kopyalayıp başka influencer'a gönderir.
 - **Kaydedilen ilanlar + ilan alarmı:** influencer ilanı kaydeder; kategori/bütçe/platform alarmı kurar, yeni uygun ilan çıkınca
   bildirim (+ e-posta tercihine göre).
@@ -101,11 +103,13 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 - **Ödeme teyidi + teslim kilidi + marka güvenilirliği, davet kodu (Spotlight günü), admin metrik paneli:** kabul edildi (önceki tur).
 - **İlk adımlar kontrol listesi:** kabul edildi 2026-10-10 (web + mobil panelde yapıldı, SYSTEM_MAP 3.16).
 - **Spotlight paketleri:** karşılığı olmayan maddeler kaldırıldı (PR #50). Boşalan yerler **yalnızca çalışan özelliklerle** doldurulur;
-  bir özellik canlıya çıkınca `lib/spotlight-plans.ts`'teki listeye eklenir. Önerilen dağılım (sayılar kullanıcı onayıyla):
+  bir özellik canlıya çıkınca `lib/spotlight-plans.ts`'teki listeye eklenir. Önerilen dağılım (sayılar kullanıcı onayıyla).
+  2026-10-14: influencer "uyum skoru analizi" ve "profil koçu" çalışmadığı için paketlerden çıktı (SYSTEM_MAP 4.3-S6); bugün influencer
+  Basic ve Pro listesi aynı (rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri; 4.3-S7):
 
 | | Basic | Pro |
 |---|---|---|
-| Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, uyum skoru, **anlık ilan alarmı** | Basic + profil koçu, **portföyde sonuç raporları**, haftalık özette detaylı istatistik |
+| Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, **anlık ilan alarmı** | Basic + **portföyde sonuç raporları**, haftalık özette detaylı istatistik, (ileride, çalışınca) profil koçu |
 | Marka | **Keşif çarkı yok (herkesi görür)**, daha yüksek teklif ve ilan sınırı, akıllı eşleştirme, uyum skoru, benzer profil keşfi, öne çıkan ilanlar | Basic + **sınırsız teklif/ilan**, **kampanya sihirbazı + toplu davet**, **sonuç raporları**, **haftalık eşleşme e-postası**, (ileride) **ekip hesabı** |
 
 ### Güncel iş sırası (Aralık sonuna kadar)
