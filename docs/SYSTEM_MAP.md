@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-14 (3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-14 (3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -684,6 +684,53 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     açıldığı anda Marka Pro listesine (web + mobil + SSS) eklenir; o zamana kadar açık kalır (ROADMAP "satış başlarken yapılacaklar").
   - ✅ ~~**3.19-N9 [KARAR]**~~ (2026-10-14, kullanıcı kararı: silme yok, yalnızca arşiv; kod değişikliği yok) Kampanya silme yok (arşiv var); bağlı teklif / ilan silinince bağ `ON DELETE SET NULL`.
 
+### 3.20 Sonuç raporu (yol haritası özellik 3'ün rapor kısmı; 2026-10-14, R2 gerektirmez)
+- **Dosyalar:** `lib/post-metrics.ts` (takip, Apify ölçümü, saatlik iş, elle güncelleme, okuma, kampanya sonuçları), `lib/post-metrics-shared.ts`
+  (etiketler, etkileşim hesabı, tipler), `lib/collaboration-workspace.ts` (yayında takip satırı açılır; `DeliverableView.metrics`), `app/api/cron/hourly/route.ts`
+  (`processDueMetrics`), web `components/dashboard/DeliverableMetricsPanel.tsx`, `app/dashboard/collaborations/[id]/actions.ts` (`refreshMetricsAction`),
+  `app/dashboard/brand/campaigns/[id]/{page,report/page,export/route}.ts(x)`, `components/campaigns/{CampaignResultsTable,CampaignResultsLockedCard,PrintButton}.tsx`,
+  `lib/campaigns.ts` (`campaignFeaturesFor().results`, CSV ölçüm sütunları), mobil `/api/mobile/collaborations/[id]/metrics`, `/api/mobile/campaigns/[id]` (`results`),
+  `mobile-app/components/{DeliverableMetrics,CampaignResults}.js`, `constants/postMetrics.js`; migration `20261014000070_deliverable_metrics.sql` (canlıda).
+- **Veri:** `deliverable_metric_tracking` (teslimat başına: platform, gönderi linki, durum ölçülüyor / tamamlandı / ulaşılamıyor / ölçülmüyor, sıradaki ölçüm 1 / 7 / 30. gün
+  ve zamanı, yayın anındaki takipçi (UGC videoda boş), art arda hata sayısı, son elle güncelleme), `deliverable_metric_snapshots` (beğeni, yorum, izlenme, paylaşım,
+  ölçüm anı, aşama `d1`/`d7`/`d30`/`manual`). İkisi de RLS'li, istemciye yalnızca SELECT ve yalnızca iş birliğinin tarafları + admin (`is_collaboration_party`);
+  yazımlar service role. Canlıda rollback'li denemeyle doğrulandı: marka ve influencer görür, taraf olmayan marka / influencer 0 satır, istemci INSERT / UPDATE / DELETE
+  reddedilir, anon SELECT reddedilir.
+- **Ölçüm:** Apify anahtar havuzu (`runApifyActor`; yalnızca herkese açık gönderi linki gider, kişisel veri yok). Instagram gönderi / Reels: `apify~instagram-scraper`
+  (`directUrls`, `resultsType: details`; beğeni gizliyse boş), TikTok: `clockworks~tiktok-scraper` (`postURLs`). Story (24 saatte kaybolur) ve YouTube (havuzda anahtar /
+  ucuz aktör yok) "ölçülmüyor". Saatlik görevde istatistik yenilemesiyle paralel: tek platform, tek koşu, en fazla 10 gönderi, en eski önce, koşu en geç 10. saniyede başlar;
+  seçilen satırlar 1 saat "kiralanır" (üst üste binen tur aynı gönderiyi ölçmez). Gecikmeli turda geçmiş en son aşama tek ölçümle alınır. Gönderiye ulaşılamazsa 6 saat
+  sonra tekrar, art arda 3 hatada "ulaşılamıyor" ve durur; servis / kredi kesintisi gönderiye sayılmaz (bir sonraki saat). Eksik takip satırları (son 31 gün) her turda
+  tamamlanır.
+- **Maddeler:**
+  - ✅ ~~**3.20-N1 [ÖZELLİK]**~~ (2026-10-14, ölçüm altyapısı: yukarıdaki tablolar + saatlik iş + Apify; yayından ~1, 7, 30 gün sonra, sonra durur) Yayın linkinden beğeni /
+    yorum / izlenme.
+  - ✅ ~~**3.20-N2 [ÖZELLİK]**~~ (2026-10-14, iş birliği detayında (web + mobil) teslimat başına son ölçüm, ölçüm geçmişi (son 10), etkileşim ve ölçütü: izlenme varsa
+    (beğeni + yorum) / izlenme, yoksa yayın anındaki takipçiye göre (etikette yazar). İki taraf da görür (influencer kendi gönderilerini, ücretsiz). Marka "Şimdi güncelle"
+    teslimat başına 6 saatte bir (koşullu güncellemeyle DB kilidi; servis hatasında kilit geri bırakılır); sayfa ve mobil uçta `maxDuration = 60`) Taraflara ölçümler.
+  - ✅ ~~**3.20-N3 [ÖZELLİK]**~~ (2026-10-14, kampanya sonuçları: web kampanya panosunda "Sonuçlar" (yayındaki gönderi, toplam izlenme, beğeni / yorum, etkileşim, 1000 izlenme
+    başı ve etkileşim başı maliyet; profil satırları), mobil kampanya ekranında aynı; maliyet yalnızca anlaşma özetindeki nakit ve 0'dan büyük ücretten, 1000 izlenme başı
+    yalnızca bütün ölçülen gönderilerinde izlenme olan profilde; etiketlerde yazar. Kıyas / ortalama yok. Yazdırılabilir rapor `/dashboard/brand/campaigns/[id]/report`
+    (yazdırma CSS'i; tarayıcıdan "PDF olarak kaydet", dış servis yok). CSV'ye ölçüm sütunları) Kampanya raporu.
+  - ✅ ~~**3.20-N4 [ÖZELLİK]**~~ (2026-10-14, kapı: `free_brand_limits_enabled` açıkken kampanya düzeyindeki rapor (panodaki Sonuçlar, rapor sayfası, CSV ölçüm sütunları,
+    mobil `results`) yalnızca Spotlight Pro (`campaignFeaturesFor().results`, sunucuda); kilit kartı `CampaignResultsLockedCard` (fiyat yok). İş birliği başına ölçüm her
+    zaman iki tarafa açık. Bayrak kapalıyken (bugün) herkes görür) Ücretsiz / ücretli ayrımı.
+- **Sorunlar / notlar:**
+  - **3.20-S1 [ORTA]** (yeni bulgu) Apify aktörlerinin gönderi bağlantısıyla girdi / çıktı alanları bu oturumda canlı denenemedi (oturumdan api.apify.com'a erişim yok;
+    toplu deneme yapılmadı). Alanlar savunmacı okunuyor (eşleşmeyen sonuç "ulaşılamadı" sayılır, 3 hatada durur). İlk gerçek yayından sonra `deliverable_metric_snapshots`
+    ve saatlik görev çıktısındaki `postMetrics` kontrol edilmeli.
+  - **3.20-S2 [DÜŞÜK]** (yeni bulgu) Teslimatsız eski iş birliklerinin tek yayın linki (`collaborations.publish_url`) ölçülmüyor; yalnızca teslimat linkleri. Canlıda bu tür
+    kayıt yok (2026-10-14).
+  - **3.20-S3 [DÜŞÜK]** (yeni bulgu) Saatlik görevde eşzamanlı Apify koşusu 3'ten 4'e çıktı (istatistik 3 + ölçüm 1). Bellek sınırına takılırsa anahtar 1 dk "hız limiti"
+    alır ve sıradaki tur dener; `/admin/api-keys`'ten izlenir.
+  - **3.20-S4 [DÜŞÜK]** (yeni bulgu) "Yayın anındaki takipçi" hesabın son istatistik yenilemesinden (en fazla ~3 gün eski) alınır; UGC videosunda tutulmaz (gönderi
+    çoğu zaman markanın hesabında).
+  - **3.20-S5 [DÜŞÜK]** (yeni bulgu) YouTube linkleri ölçülmüyor ("Bu bağlantı için ölçüm yok"). Havuzda YouTube Data API anahtarı yok; eklenirse ya da ucuz aktör
+    seçilirse `fetchPostMetrics`'e eklenir.
+  - **3.20-N5 [KARAR]** Spotlight paket listesi: "Kampanya sonuç raporu" Marka Pro'ya eklenmedi (dosya başka dalda düzenleniyor). 3.19-N8 ile aynı: bayrak açıldığında
+    Marka Pro listesine (web `lib/spotlight-plans.ts` + mobil `constants/spotlightPlans.js` + SSS) eklenir. Önerilen satır: "Kampanya sonuç raporu (izlenme, etkileşim,
+    maliyet; yazdırılabilir)".
+
 ---
 
 ## 4. Ortak: rozetler, Spotlight, profil
@@ -730,6 +777,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **4.3-S7 [KARAR]** (yeni bulgu, 2026-10-14) 4.3-S6 sonrası Influencer Basic (99 ₺) ve Pro (199 ₺) listeleri aynı (rozet/çerçeve, öncelikli listeleme,
     profil görüntülenmeleri); kodda da `ipro`'nun ek bir karşılığı kalmadı. Pro'ya çalışan bir özellik eklenene kadar (ör. yol haritasındaki sonuç raporları)
     fiyat/paket kararı kullanıcıda. Uydurma madde eklenmedi.
+    **Karar (2026-10-14):** Influencer Pro'ya sonuç raporunun (3.20) üstüne gerçek özellikler gelecek: önce **"portföyde sonuç raporları"** (tamamlanan iş birliklerinin
+    ölçümleri influencer profilinde; okuma `lib/post-metrics.ts` `listDeliverableMetrics` ile, görünürlük kuralı sunucuda), sonra **"haftalık özette detaylı istatistik"**
+    (Resend ücretli plan gerekir). Henüz yapılmadı; madde açık, 3.20 birleştikten sonraki adım (ROADMAP).
   - ✅ ~~**4.3-S3 [DÜŞÜK]**~~ (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. 2026-10-10, kullanıcı kararı: ajans sayfası ve Spotlight seçimindeki "Agency Edition" kartı kaldırıldı; ajans paketi gelince eklenir) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller
@@ -926,6 +976,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `saved_adverts` / `advert_alerts` | kaydedilen ilanlar, ilan alarmları (3.15) | sahibi okur; yazma yalnızca sunucu |
 | `advert_alert_runs` | alarm eşleştirmesi yapılan ilanlar (3.15) | yalnızca service role |
 | `campaigns` | marka kampanyaları: brief, hedef, bütçe, varsayılan teslimatlar (3.19) | sahibi marka ve admin okur; yazma yalnızca sunucu; davetli influencer brief'i sunucudan |
+| `deliverable_metric_tracking` / `deliverable_metric_snapshots` | sonuç raporu: gönderi ölçüm takvimi ve ölçümler (3.20) | iş birliğinin tarafları ve admin okur; yazma yalnızca sunucu |
 
 ### 7.3 `users` koruma katmanı
 - RLS: authenticated herkes okur; anon için SELECT politikası **yok**. Kolon bazlı gizlilik: email, phone, tax_id, tax_office, tax_office_city,
@@ -1024,6 +1075,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.2 Zamanlanmış işler
 - **Vercel cron** (`vercel.json`): `refresh-stats` her gün 09:00 UTC.
 - **Supabase pg_cron** (`supabase/cron/hourly_jobs.sql`): her saat `/api/cron/hourly`, gizli anahtar Vault'ta.
+  Saatlik görev 2026-10-14'ten beri gönderi ölçümlerini de alır (3.20, istatistik yenilemesiyle paralel, tek Apify koşusu, en fazla 10 gönderi).
 - **Sorunlar:**
   - ✅ ~~**8.2-S2 [ORTA]**~~ (2026-10-09, yeni bulgu) Saatlik ve günlük cron yeni Apify koşusunu 25. saniyeye kadar başlatıyordu; koşu 45 sn sürebildiği için görev 60 sn sınırını aşıyor, pg_net zaman aşımı alıyordu (8 Ekim 06:00 ve 09:00). Yeni koşu en geç 10. saniyede başlıyor.
   - ✅ ~~**8.2-S1 [YÜKSEK]**~~ (Spotlight kısmı) Süresi dolan Spotlight'ı kapatan bir iş yok (4.3-S1); `refresh-stats` zaman aşımı (2.2-S2).

@@ -74,6 +74,12 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
      "Ödeme alamadım" bildirimi, marka güvenilirliği satırı. Taslak dosyası yükleme ve teslim kilidi R2 ile (Kasım).
 3. **UGC portföyü + sonuç raporu** (Kasım sonu; R2'ye bağlı)
    - Profilde örnek videolar (R2, imzalı bağlantı). Yayın linkinden Apify ile beğeni/izlenme/yorum → markaya kampanya raporu.
+   - ✅ **Sonuç raporu** 2026-10-14 yapıldı (R2 gerekmedi; SYSTEM_MAP 3.20, `claude/results-report`): yayınlanan teslimatların herkese açık beğeni / yorum / izlenme
+     ölçümü (Apify, yayından ~1, 7, 30 gün sonra; marka 6 saatte bir elle günceller), iş birliği detayında iki tarafa (web + mobil), kampanya panosunda toplamlar +
+     profil satırları + nakit ücrete göre 1000 izlenme / etkileşim başı maliyet, yazdırılabilir rapor (tarayıcıdan PDF) ve CSV sütunları. Kampanya düzeyindeki rapor
+     bayrak açıkken yalnızca Marka Pro. **UGC portföyü (örnek videolar) R2'yi bekliyor.**
+   - **Sıradaki adım (karar 2026-10-14, 4.3-S7):** sonuç raporu birleşince Influencer Pro'ya **"portföyde sonuç raporları"** (tamamlanan iş birliklerinin ölçümleri
+     influencer profilinde; `lib/post-metrics.ts` `listDeliverableMetrics`), ardından **"haftalık özette detaylı istatistik"** (Resend ücretli plan gerekir).
 4. **Kampanya sihirbazı + müsaitlik** (Aralık başı)
    - Marka kısa brief → uygun profiller (`lib/category-map.ts` + fiyat kartı + müsaitlik) → toplu davet.
    - Influencer "iş alıyorum / dolu" durumu; doluyken keşifte alt sırada, teklif butonu uyarı gösterir.
@@ -118,6 +124,6 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır); aynı bayrakla ücretsiz markada favori ve liste yok, yalnızca Spotlight (3.17-N5)
 4. ✅ İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + marka güvenilirliği (SYSTEM_MAP 3.18, `claude/collab-workspace`). **Teslim kilidi bekliyor** (R2 ile Kasım'da; veri modeli hazır, 3.18-N4)
 5. Akademi + R2 "Drive" (Kasım)
-6. UGC portföyü + sonuç raporu
+6. ✅ Sonuç raporu (2026-10-14, SYSTEM_MAP 3.20). Sıradaki: Influencer Pro "portföyde sonuç raporları" (4.3-S7), sonra haftalık özette detaylı istatistik (Resend ücretli). UGC portföyü (örnek videolar) R2 ile
 7. ✅ Kampanya sihirbazı + müsaitlik (2026-10-14, öne çekildi, SYSTEM_MAP 3.19); kalan: davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
 8. Ekip hesabı / ajans yapısı (yayından sonra da olabilir)

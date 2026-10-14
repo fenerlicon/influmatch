@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-14 (geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-14 (sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -83,8 +83,16 @@
   denemeyle doğrulandı). Reddedilen teklifin odası bilerek açık kalır. Influencer Spotlight paketlerinden çalışmayan "Uyum skoru analizi" / "Profil koçu"
   çıktı, düğmeleri ve analiz modülleri kaldırıldı; "Kampanya ROI" yalnızca profilin kendi ölçümleri; web + mobilde kaynaksız iddialar temizlendi (4.3-S6).
   Karar bekleyen yeni bulgu: 4.3-S7 (Influencer Basic ile Pro listesi artık aynı).
+- **Yol haritası özellik 3'ün rapor kısmı (`claude/results-report`, SYSTEM_MAP 3.20; R2 gerekmedi):** yayın linki girilen her teslimat için gönderi ölçümü
+  (`lib/post-metrics.ts`): saatlik görevde Apify ile herkese açık beğeni / yorum / izlenme, yayından ~1, 7, 30 gün sonra, sonra durur; marka "Şimdi güncelle"
+  ile teslimat başına 6 saatte bir. Gönderiye 3 kez ulaşılamazsa "ulaşılamıyor" ve durur. Story ve YouTube ölçülmüyor. İş birliği detayında (web + mobil) iki taraf
+  son ölçümü, geçmişi ve etkileşimi (izlenmeye ya da yayın anındaki takipçiye göre, etikette yazar) görür. Kampanya panosunda "Sonuçlar" (toplamlar, profil satırları,
+  nakit ücrete göre 1000 izlenme / etkileşim başı maliyet), yazdırılabilir rapor `/dashboard/brand/campaigns/[id]/report` (tarayıcıdan PDF), CSV ölçüm sütunları,
+  mobil kampanya ekranında aynı. Kampanya düzeyi rapor bayrak açıkken yalnızca Marka Pro (`campaignFeaturesFor().results`). Migration `20261014000070` canlıda,
+  rollback'li RLS denemesiyle doğrulandı. **Apify aktörleri bu oturumda canlı denenemedi (3.20-S1):** ilk gerçek yayından sonra ölçüm kontrol edilmeli.
+  Karar (2026-10-14, 4.3-S7): sıradaki adım Influencer Pro "portföyde sonuç raporları", sonra haftalık özette detaylı istatistik (Resend ücretli).
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı), `20261014000070` (sonuç raporu ölçüm tabloları) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -229,6 +237,11 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Okunmamış mesaj sayısı:** `components/dashboard/useUnreadMessageCount.ts` içinde tek kanaldan izleniyor. Okundu bilgisi `room_reads`
   tablosunda (`lib/room-reads.ts`; `markRoomsRead` tarayıcıda `influmatch:room-read` olayı yayınlar, sayaç onunla yenilenir).
 - **Dış çağrılar:** `lib/api-keys.ts` `fetchExternal` 50 sn zaman aşımıyla çalışıyor. Apify çağrıları `?timeout=45`, Resend 15 sn.
+- **Apify aktörleri ve maliyet:** profil istatistiği `apify~instagram-profile-scraper` (yedek `apify~instagram-scraper`) ve `clockworks~tiktok-profile-scraper`;
+  sonuç raporu (3.20) gönderi ölçümü `apify~instagram-scraper` (`directUrls` + `resultsType: details`) ve `clockworks~tiktok-scraper` (`postURLs`). İkisi de sonuç
+  başına ücretli (Apify mağaza fiyatı, kabaca 1000 sonuç başına 2–4 $ civarı; kesin fiyat Apify panelinde): bir teslimat 3 otomatik ölçüm + en fazla 6 saatte bir elle
+  ölçüm. Saatlik görevde ölçüm tek koşu (en fazla 10 gönderi, tek platform) ve istatistik yenilemesiyle paralel başlar; eşzamanlı koşu 3 → en fazla 4 (3.20-S3).
+  Kullanım `/admin/api-keys` kredi satırlarından izlenir.
 - **Hesap silme:** `lib/account-deletion.ts` `deleteAccountCompletely` storage dosyalarını da siliyor. Kullanıcıdan şifre tekrar isteniyor.
 - **Avatar/logo adresi:** sunucuda `lib/avatar-url.ts` ile doğrulanıyor. Yalnızca `avatars/{uid}/` altındaki ya da zaten kayıtlı olan adres kabul ediliyor.
 - **Ortak sunucu kodu deseni:** `lib/offers.ts`, `lib/messages.ts`, `lib/adverts.ts`, `lib/brand-verification.ts` fonksiyonları

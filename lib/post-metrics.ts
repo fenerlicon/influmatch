@@ -224,7 +224,8 @@ export async function startDeliverableTracking(
     const platform = platformOfUrl(d.url)
     const measurable = isMeasurable(platform, d.url, d.kind)
     let followers: number | null = null
-    if (measurable) {
+    // UGC videosu çoğu zaman markanın hesabında yayınlanır: influencer'ın takipçisi ölçüt olamaz (etkileşim yalnızca izlenmeye göre).
+    if (measurable && d.kind !== 'ugc_video') {
       const { data } = await admin
         .from('social_accounts')
         .select('follower_count')
