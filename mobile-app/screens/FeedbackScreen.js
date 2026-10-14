@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, MessageSquare, Send } from 'lucide-react-native';
+import { View, Alert, Pressable } from 'react-native';
+import { MessageSquare, Send } from 'lucide-react-native';
 import { apiRequest } from '../lib/api';
+import { Screen, StackHeader, BottomBar, Text, Button, TextField, IconBox } from '../components/ui';
 
-const { width } = Dimensions.get('window');
-
+// Uygulama geri bildirimi. Web ile aynı sunucu kodu (lib/feedback.ts): admin panelindeki geri bildirim listesine düşer.
 export default function FeedbackScreen({ navigation }) {
     const [message, setMessage] = useState('');
     const [rating, setRating] = useState(5);
@@ -15,92 +12,59 @@ export default function FeedbackScreen({ navigation }) {
 
     const handleSubmit = async () => {
         if (!message.trim()) {
-            Alert.alert('Hata', 'Lütfen bir mesaj yazın.');
+            Alert.alert('Mesaj boş', 'Lütfen bir mesaj yazın.');
             return;
         }
-
-        // Web ile aynı sunucu kodu (lib/feedback.ts): admin panelindeki geri bildirim listesine düşer.
         setLoading(true);
         const description = rating ? `[Mobil · ${rating}/5] ${message.trim()}` : `[Mobil] ${message.trim()}`;
         const result = await apiRequest('feedback', { method: 'POST', body: { description } });
         setLoading(false);
         if (!result.success) {
-            Alert.alert('Hata', result.error || 'Geri bildirim gönderilemedi. Lütfen tekrar deneyin.');
+            Alert.alert('Gönderilemedi', result.error || 'Geri bildirim gönderilemedi. Lütfen tekrar deneyin.');
             return;
         }
-        Alert.alert('Teşekkürler', 'Geri bildiriminiz başarıyla gönderildi.');
+        Alert.alert('Teşekkürler', 'Geri bildiriminiz gönderildi.');
         navigation.goBack();
     };
 
     return (
-        <View className="flex-1 bg-[#020617]">
-            <StatusBar style="light" />
-            <LinearGradient colors={['#1e1b4b', '#020617', '#020617']} className="absolute inset-0" />
+        <Screen
+            scroll
+            keyboard
+            header={<StackHeader title="Geri bildirim" onBack={() => navigation.goBack()} />}
+            footer={
+                <BottomBar>
+                    <View className="flex-1"><Button title="Gönder" icon={Send} onPress={handleSubmit} loading={loading} disabled={!message.trim()} block /></View>
+                </BottomBar>
+            }
+        >
+            <View className="flex-row items-center" style={{ gap: 12 }}>
+                <IconBox icon={MessageSquare} tone="info" size={44} />
+                <Text tone="fg2" style={{ flex: 1 }}>Hata bildirebilir ya da uygulamayı geliştirmemiz için öneride bulunabilirsin.</Text>
+            </View>
 
-            <SafeAreaView className="flex-1" edges={['top']}>
-                <View className="px-6 py-4 flex-row items-center justify-between">
-                    <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-white/5 rounded-xl items-center justify-center border border-white/10">
-                        <ChevronLeft color="white" size={24} />
-                    </TouchableOpacity>
-                    <Text className="text-white text-xl font-bold">Geri Bildirim</Text>
-                    <View className="w-10" />
+            <TextField label="Mesajın" multiline height={150} value={message} onChangeText={setMessage} placeholder="Neyi geliştirebiliriz?" />
+
+            <View style={{ gap: 7 }}>
+                <Text variant="small" weight="medium" tone="fg2">Puanın</Text>
+                <View className="flex-row" style={{ gap: 8 }}>
+                    {[1, 2, 3, 4, 5].map((star) => {
+                        const on = rating >= star;
+                        return (
+                            <Pressable
+                                key={star}
+                                onPress={() => setRating(star)}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${star} puan`}
+                                accessibilityState={{ selected: rating === star }}
+                                className={`flex-1 h-12 rounded-xl items-center justify-center border ${on ? 'bg-gold-soft border-gold-line' : 'bg-s1 border-line'}`}
+                            >
+                                <Text weight="semibold" tone={on ? 'gold' : 'fg3'} style={{ fontSize: 16 }}>{star}</Text>
+                            </Pressable>
+                        );
+                    })}
                 </View>
-
-                <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
-
-                    <View className="items-center mb-8">
-                        <View className="w-20 h-20 bg-blue-500/20 rounded-full items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
-                            <MessageSquare color="#60a5fa" size={40} />
-                        </View>
-                        <Text className="text-white font-bold text-2xl text-center mb-2">Fikirlerinizi Önemsiyoruz</Text>
-                        <Text className="text-gray-400 text-center text-sm leading-6">
-                            Uygulamayı geliştirmemize yardımcı olmak için hata bildirebilir veya öneride bulunabilirsiniz.
-                        </Text>
-                    </View>
-
-                    <View className="bg-[#15171e] p-6 rounded-[24px] border border-white/10 mb-6">
-                        <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4">MESAJINIZ</Text>
-                        <TextInput
-                            className="bg-black/20 text-white p-4 rounded-xl border border-white/5 h-40 mb-4"
-                            placeholder="Neyi geliştirebiliriz?"
-                            placeholderTextColor="#4B5563"
-                            multiline
-                            textAlignVertical="top"
-                            value={message}
-                            onChangeText={setMessage}
-                        />
-
-                        <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4">PUANINIZ</Text>
-                        <View className="flex-row justify-between mb-2">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <TouchableOpacity
-                                    key={star}
-                                    onPress={() => setRating(star)}
-                                    className={`w-12 h-12 rounded-xl items-center justify-center border ${rating >= star ? 'bg-soft-gold/20 border-soft-gold' : 'bg-white/5 border-white/10'}`}
-                                >
-                                    <Text className={`font-bold text-lg ${rating >= star ? 'text-soft-gold' : 'text-gray-500'}`}>{star}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={handleSubmit}
-                        disabled={loading}
-                        className="w-full bg-soft-gold h-14 rounded-2xl items-center justify-center flex-row shadow-lg shadow-soft-gold/20"
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#000" />
-                        ) : (
-                            <>
-                                <Text className="text-black font-bold text-base mr-2">GÖNDER</Text>
-                                <Send color="black" size={18} />
-                            </>
-                        )}
-                    </TouchableOpacity>
-
-                </ScrollView>
-            </SafeAreaView>
-        </View>
+            </View>
+        </Screen>
     );
 }
