@@ -19,6 +19,8 @@ import { availabilityOf, getProfileForViewer } from '@/lib/profile-reads'
 import { availabilityText, busyOfferWarning } from '@/lib/availability-shared'
 import { listOpenCampaignOptionsAs } from '@/lib/campaigns'
 import { getOfferQuota, offerQuotaSummary } from '@/lib/brand-limits'
+import { getPortfolioForProfile } from '@/lib/portfolio-results'
+import PortfolioResults from '@/components/profile/PortfolioResults'
 
 interface ProfilePageProps {
   params: { username: string }
@@ -176,6 +178,9 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
   // Marka güvenilirliği (3.18): tamamlanan iş birliği ve influencer'ın ödemeyi teyit ettiği sayı (sunucuda, yalnızca sayılar).
   const reliability = isBrand ? (await brandReliability(supabase, [profile.id])).get(profile.id) ?? { completed: 0, confirmed: 0 } : null
   const isOwnProfile = viewer?.id === profile.id
+  // Portföyde iş birliği sonuçları (4.3-S7): başkalarına yalnızca profil sahibi Influencer Pro ise; sahibi her zaman görür
+  // (gizle / göster + Pro değilse kilit notu). Kurallar sunucuda (lib/portfolio-results.ts).
+  const portfolio = isInfluencer ? await getPortfolioForProfile(viewer.id, profile) : null
 
   // Get all badge IDs for this user (only pass IDs, not badge objects)
   const badgeIds = userBadges?.map((ub) => ub.badge_id).filter((id): id is string => typeof id === 'string') ?? []
@@ -312,6 +317,8 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
                 </p>
               </div>
             )}
+
+            {portfolio && <PortfolioResults view={portfolio} />}
 
             {badgeIds.length > 0 && (
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6">

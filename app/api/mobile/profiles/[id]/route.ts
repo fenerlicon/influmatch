@@ -1,5 +1,6 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { availabilityOf, getProfileForViewer } from '@/lib/profile-reads'
+import { getPortfolioForProfile } from '@/lib/portfolio-results'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,5 +32,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     profile: access.profile,
     socialAccounts: access.socialAccounts,
     availability: access.profile.role === 'influencer' ? availabilityOf(access.profile) : null,
+    // Portföyde iş birliği sonuçları (4.3-S7): web profil sayfasıyla aynı kural; Pro değilse ya da kayıt yoksa null.
+    portfolio: await getPortfolioForProfile(ctx.user.id, access.profile),
   })
 }

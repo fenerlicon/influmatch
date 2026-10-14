@@ -10,6 +10,7 @@ import { apiRequest } from '../lib/api';
 import { signOutAndClearPush } from '../utils/notifications';
 import SupportTicketForm from '../components/SupportTicketForm';
 import { AVAILABILITY_NOTE_MAX, availabilityText } from '../constants/availability';
+import { BRAND_PORTFOLIO_SETTING_HELP, BRAND_PORTFOLIO_SETTING_LABEL } from '../constants/portfolio';
 import {
     Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, colors, ICON_STROKE,
 } from '../components/ui';
@@ -120,6 +121,8 @@ export default function SettingsScreen({ navigation }) {
     const [supportOpen, setSupportOpen] = useState(false);
     const [availability, setAvailability] = useState(null);
     const [availabilityOpen, setAvailabilityOpen] = useState(false);
+    // Marka: portföylerde marka adı (4.3-S7; varsayılan kapalı, /api/mobile/portfolio).
+    const [showBrandName, setShowBrandName] = useState(null);
 
     useFocusEffect(useCallback(() => {
         (async () => {
@@ -134,6 +137,10 @@ export default function SettingsScreen({ navigation }) {
             if (data?.role === 'influencer') {
                 const av = await apiRequest('availability');
                 if (av?.availability) setAvailability(av.availability);
+            }
+            if (data?.role === 'brand') {
+                const pf = await apiRequest('portfolio');
+                if (typeof pf?.showBrandName === 'boolean') setShowBrandName(pf.showBrandName);
             }
         })();
     }, []));
@@ -158,6 +165,16 @@ export default function SettingsScreen({ navigation }) {
         const result = await apiRequest('availability', { method: 'POST', body: { status: 'open' } });
         if (result.error) {
             setAvailability(before);
+            Alert.alert('Kaydedilemedi', result.error);
+        }
+    };
+
+    const toggleBrandName = async (value) => {
+        const before = showBrandName;
+        setShowBrandName(value);
+        const result = await apiRequest('portfolio', { method: 'POST', body: { showBrandName: value } });
+        if (result.error) {
+            setShowBrandName(before);
             Alert.alert('Kaydedilemedi', result.error);
         }
     };
@@ -235,6 +252,21 @@ export default function SettingsScreen({ navigation }) {
                                 chevron
                             />
                         ) : null}
+                    </ListGroup>
+                </>
+            ) : null}
+
+            {isBrand ? (
+                <>
+                    <GroupLabel>Portföylerde marka adı</GroupLabel>
+                    <ListGroup>
+                        <ToggleRow
+                            title={BRAND_PORTFOLIO_SETTING_LABEL}
+                            subtitle={BRAND_PORTFOLIO_SETTING_HELP}
+                            value={!!showBrandName}
+                            disabled={showBrandName === null}
+                            onValueChange={toggleBrandName}
+                        />
                     </ListGroup>
                 </>
             ) : null}

@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { Settings } from 'lucide-react'
 import SettingsTabs from '@/components/settings/SettingsTabs'
+import BrandPortfolioSetting from '@/components/settings/BrandPortfolioSetting'
+import { getBrandPortfolioSettingAs } from '@/lib/portfolio-results'
 
 export default async function BrandSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -32,6 +34,9 @@ export default async function BrandSettingsPage() {
 
   const emailSettings = (profile?.email_notifications as typeof defaultSettings | null) ?? defaultSettings
 
+  // Portföylerde marka adı tercihi (4.3-S7; varsayılan kapalı).
+  const portfolioSetting = await getBrandPortfolioSettingAs(supabase, user.id)
+
   // Fetch user's support tickets
   const { data: supportTickets } = await supabase
     .from('support_tickets')
@@ -55,6 +60,8 @@ export default async function BrandSettingsPage() {
           Bildirim tercihlerini ve hesap ayarlarını buradan yönetebilirsin.
         </p>
       </header>
+
+      {'showBrandName' in portfolioSetting && <BrandPortfolioSetting initial={portfolioSetting.showBrandName} />}
 
       {/* Settings Tabs */}
       <SettingsTabs
