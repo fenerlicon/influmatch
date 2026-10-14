@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { MessageSquare, Send, X } from 'lucide-react'
+import { MessageSquare, Pencil, Send, Undo2, X } from 'lucide-react'
 import { dismissInfluencer } from '@/app/dashboard/brand/offers/dismiss/actions'
+import { editOffer, withdrawOffer } from '@/app/dashboard/brand/offers/actions'
 import type { BrandOfferItem } from '@/lib/works'
 import { countUnreadInRoom } from '@/lib/unread-messages'
-import { OFFER_EXPIRY_DAYS, effectiveOfferStatus } from '@/lib/offer-shared'
-import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, ListRow, Modal, VerifiedTick, type ChipTone } from '@/components/ui'
+import { OFFER_CAMPAIGN_TYPES, OFFER_EXPIRY_DAYS, effectiveOfferStatus } from '@/lib/offer-shared'
+import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, Field, Input, ListRow, Modal, Select, Textarea, VerifiedTick, type ChipTone } from '@/components/ui'
 
 interface BrandOffersListProps {
   initialOffers: BrandOfferItem[]
@@ -24,6 +25,7 @@ const STATUS_LABELS: Record<string, string> = {
   accepted: 'Kabul edildi',
   rejected: 'Reddedildi',
   expired: 'Süresi doldu',
+  withdrawn: 'Geri çekildi',
 }
 
 const STATUS_TONES: Record<string, ChipTone> = {
@@ -31,7 +33,24 @@ const STATUS_TONES: Record<string, ChipTone> = {
   accepted: 'success',
   rejected: 'danger',
   expired: 'neutral',
+  withdrawn: 'neutral',
 }
+
+interface EditForm {
+  campaignName: string
+  campaignType: string
+  paymentType: 'cash' | 'barter'
+  budget: string
+  message: string
+}
+
+const editFormOf = (offer: BrandOfferItem): EditForm => ({
+  campaignName: offer.campaign_name ?? '',
+  campaignType: offer.campaign_type ?? '',
+  paymentType: offer.payment_type === 'barter' ? 'barter' : 'cash',
+  budget: offer.budget === null || offer.budget === undefined ? '' : String(offer.budget),
+  message: offer.message ?? '',
+})
 
 const daysLeft = (createdAt: string) => Math.max(0, OFFER_EXPIRY_DAYS - Math.floor((Date.now() - Date.parse(createdAt)) / 86_400_000))
 
@@ -76,16 +95,81 @@ export default function BrandOffersList({
   const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map())
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set(dismissedReceiverIds))
-  const [selectedGroup, setSelectedGroup] = useState<{
-    receiver: BrandOfferItem['receiver']
-    offers: BrandOfferItem[]
-    latestOffer: BrandOfferItem
-    hasAccepted: boolean
-    totalUnread: number
-  } | null>(null)
+  // Ayrıntı penceresi kişi kimliğiyle tutulur; teklif düzenlenince / geri çekilince pencere güncel listeyi gösterir.
+  const [selectedReceiverId, setSelectedReceiverId] = useState<string | null>(null)
 
   const [isDismissing, startDismissTransition] = useTransition()
   const [dismissTarget, setDismissTarget] = useState<string | null>(null)
+
+  // Bekleyen teklifi düzenleme / geri çekme (lib/offers.ts; süre yeniden başlamaz, kota iade edilmez).
+  const [isSaving, startSaveTransition] = useTransition()
+  const [editing, setEditing] = useState<BrandOfferItem | null>(null)
+  const [editForm, setEditForm] = useState<EditForm | null>(null)
+  const [withdrawTarget, setWithdrawTarget] = useState<BrandOfferItem | null>(null)
+
+  const applyOfferPatch = useCallback((offerId: string, patch: Partial<BrandOfferItem>) => {
+    setOffers((prev) => prev.map((offer) => (offer.id === offerId ? { ...offer, ...patch } : offer)))
+  }, [])
+
+  const openEdit = (offer: BrandOfferItem) => {
+    setEditing(offer)
+    setEditForm(editFormOf(offer))
+  }
+
+  const closeEdit = () => {
+    if (isSaving) return
+    setEditing(null)
+    setEditForm(null)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editing || !editForm) return
+    const offerId = editing.id
+    startSaveTransition(async () => {
+      const result = await editOffer(offerId, {
+        campaignName: editForm.campaignName,
+        campaignType: editForm.campaignType || null,
+        paymentType: editForm.paymentType,
+        budget: editForm.budget,
+        message: editForm.message,
+      })
+      if ('error' in result) {
+        toast.error(result.error)
+        return
+      }
+      if (result.changed) {
+        const budget = editForm.budget.trim() ? Number(editForm.budget) : null
+        applyOfferPatch(offerId, {
+          campaign_name: editForm.campaignName.trim(),
+          campaign_type: editForm.campaignType.trim() || null,
+          payment_type: editForm.paymentType,
+          budget,
+          message: editForm.message.trim() || null,
+          edited_at: new Date().toISOString(),
+        })
+        toast.success('Teklif güncellendi; influencer bilgilendirildi.')
+      } else {
+        toast('Değişiklik yok.')
+      }
+      setEditing(null)
+      setEditForm(null)
+    })
+  }
+
+  const handleWithdraw = () => {
+    if (!withdrawTarget) return
+    const offerId = withdrawTarget.id
+    startSaveTransition(async () => {
+      const result = await withdrawOffer(offerId)
+      setWithdrawTarget(null)
+      if ('error' in result) {
+        toast.error(result.error)
+        return
+      }
+      applyOfferPatch(offerId, { status: 'withdrawn' })
+      toast.success('Teklif geri çekildi; influencer bilgilendirildi.')
+    })
+  }
 
   const handleDismiss = useCallback(
     (receiverId: string) => {
@@ -150,6 +234,12 @@ export default function BrandOffersList({
     )
   }, [offers, unreadCounts, dismissedIds])
 
+  const selectedGroup = useMemo(
+    () => (selectedReceiverId ? groupedOffers.find((group) => group.receiver?.id === selectedReceiverId) ?? null : null),
+    [groupedOffers, selectedReceiverId],
+  )
+  const setSelectedGroup = (group: { receiver: BrandOfferItem['receiver'] } | null) => setSelectedReceiverId(group?.receiver?.id ?? null)
+
 
   // Calculate unread count for a specific room (only messages from other party that current user hasn't seen)
   const calculateUnreadCount = useCallback(
@@ -172,7 +262,7 @@ export default function BrandOffersList({
       const { data: offer } = await supabase
         .from('offers')
         .select(
-          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
+          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at,
           receiver:receiver_user_id(id, full_name, avatar_url, username, displayed_badges)`,
         )
         .eq('id', offerId)
@@ -488,9 +578,27 @@ export default function BrandOffersList({
                     <dt className="text-ink-faint">Tarih</dt>
                     <dd className="text-ink">
                       {new Date(offer.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {offer.edited_at && <span className="text-ink-faint"> · düzenlendi</span>}
                     </dd>
                   </dl>
                   {offer.message && <p className="mt-2 whitespace-pre-wrap text-[13px] text-ink-muted">{offer.message}</p>}
+                  {status === 'pending' && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                      <span className="mr-auto text-xs text-ink-faint">{daysLeft(offer.created_at)} gün içinde yanıtlanmazsa düşer; düzenleme süreyi uzatmaz.</span>
+                      <Button size="sm" variant="ghost" leftIcon={<Undo2 />} disabled={isSaving} onClick={() => {
+                          setSelectedReceiverId(null)
+                          setWithdrawTarget(offer)
+                        }}>
+                        Geri çek
+                      </Button>
+                      <Button size="sm" leftIcon={<Pencil />} disabled={isSaving} onClick={() => {
+                          setSelectedReceiverId(null)
+                          openEdit(offer)
+                        }}>
+                        Düzenle
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -507,6 +615,100 @@ export default function BrandOffersList({
         tone="danger"
         loading={isDismissing}
       />
+
+      <ConfirmDialog
+        open={withdrawTarget !== null}
+        onClose={() => !isSaving && setWithdrawTarget(null)}
+        onConfirm={handleWithdraw}
+        title="Teklifi geri çek"
+        description="Influencer bilgilendirilir ve teklif artık yanıtlanamaz. Geri çekilen teklif bu ayki teklif hakkından düşmez."
+        confirmLabel="Geri çek"
+        tone="danger"
+        loading={isSaving}
+      />
+
+      <Modal
+        open={editing !== null && editForm !== null}
+        onClose={closeEdit}
+        dismissible={!isSaving}
+        title="Teklifi düzenle"
+        description="Influencer bilgilendirilir. Yanıt süresi yeniden başlamaz."
+        footer={
+          <>
+            <Button variant="ghost" size="sm" disabled={isSaving} onClick={closeEdit}>
+              Vazgeç
+            </Button>
+            <Button variant="primary" size="sm" loading={isSaving} onClick={handleSaveEdit}>
+              Kaydet
+            </Button>
+          </>
+        }
+      >
+        {editForm && (
+          <div className="grid gap-3">
+            <Field label="Kampanya adı">
+              {(props) => (
+                <Input
+                  {...props}
+                  maxLength={120}
+                  value={editForm.campaignName}
+                  onChange={(e) => setEditForm({ ...editForm, campaignName: e.target.value })}
+                />
+              )}
+            </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Kampanya türü">
+                {(props) => (
+                  <Select {...props} value={editForm.campaignType} onChange={(e) => setEditForm({ ...editForm, campaignType: e.target.value })}>
+                    {/* Mobilden serbest metinle gönderilen tür de listede kalır. */}
+                    {[...OFFER_CAMPAIGN_TYPES, ...(editForm.campaignType && !(OFFER_CAMPAIGN_TYPES as readonly string[]).includes(editForm.campaignType) ? [editForm.campaignType] : [])].map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                    {!editForm.campaignType && <option value="">Belirtilmedi</option>}
+                  </Select>
+                )}
+              </Field>
+              <Field label="Ödeme türü">
+                {(props) => (
+                  <Select
+                    {...props}
+                    value={editForm.paymentType}
+                    onChange={(e) => setEditForm({ ...editForm, paymentType: e.target.value === 'barter' ? 'barter' : 'cash' })}
+                  >
+                    <option value="cash">Nakit (Para)</option>
+                    <option value="barter">Barter (Ürün)</option>
+                  </Select>
+                )}
+              </Field>
+            </div>
+            <Field label={editForm.paymentType === 'barter' ? 'Ürün piyasa değeri (₺)' : 'Bütçe (₺)'} hint="Boş bırakılırsa “Belirlenmedi” görünür.">
+              {(props) => (
+                <Input
+                  {...props}
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={editForm.budget}
+                  onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="Mesaj">
+              {(props) => (
+                <Textarea
+                  {...props}
+                  rows={5}
+                  maxLength={2000}
+                  value={editForm.message}
+                  onChange={(e) => setEditForm({ ...editForm, message: e.target.value })}
+                />
+              )}
+            </Field>
+          </div>
+        )}
+      </Modal>
     </>
   )
 }

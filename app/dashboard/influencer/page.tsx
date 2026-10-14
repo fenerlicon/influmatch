@@ -163,13 +163,14 @@ export default async function InfluencerDashboardPage() {
                       <div className="text-xs text-ink-faint">
                         {offer.campaign_type ? `${offer.campaign_type} · ` : ''}
                         {offer.payment_type === 'barter' ? 'Barter' : tl(offer.budget)}
+                        {offer.edited_at ? ' · düzenlendi' : ''}
                       </div>
                     </div>
                     <Chip tone={left <= 2 ? 'warning' : 'neutral'} dot>
                       {left} gün kaldı
                     </Chip>
                     <div className="ml-auto">
-                      <OfferActionButtons offerId={offer.id} />
+                      <OfferActionButtons offerId={offer.id} editedAt={offer.edited_at ?? null} />
                     </div>
                   </ListRow>
                 )

@@ -7,7 +7,11 @@ export const OFFER_EXPIRY_MS = OFFER_EXPIRY_DAYS * 24 * 60 * 60 * 1000
 /** Marka başına en fazla teklif şablonu. */
 export const OFFER_TEMPLATE_LIMIT = 20
 
-export type OfferStatus = 'pending' | 'accepted' | 'rejected' | 'expired'
+/** 'withdrawn': marka bekleyen teklifi geri çekti (2026-10-14). */
+export type OfferStatus = 'pending' | 'accepted' | 'rejected' | 'expired' | 'withdrawn'
+
+/** Web teklif penceresi ve teklif düzenleme penceresindeki kampanya türleri (mobilde serbest metin). */
+export const OFFER_CAMPAIGN_TYPES = ['Story', 'Reel', 'Post', 'YouTube'] as const
 
 /**
  * Ekranda gösterilecek durum. Saatlik görev henüz çalışmadıysa 7 günü geçen bekleyen teklif de

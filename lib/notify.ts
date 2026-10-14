@@ -45,6 +45,8 @@ export type NotificationEvent =
   | 'collab_payment'
   | 'collab_nonpayment'
   | 'offer_expired'
+  | 'offer_withdrawn'
+  | 'offer_edited'
   | 'advert_alert'
   | 'account_status'
 
@@ -78,6 +80,9 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   collab_nonpayment: { preference: 'offers', email: true },
   // Yanıtlanmadan süresi dolan teklif markaya bildirilir.
   offer_expired: { preference: 'offers', email: true },
+  // Marka bekleyen teklifi geri çekti / düzenledi (2026-10-14): yalnızca site içi + push.
+  offer_withdrawn: { preference: 'offers', email: false },
+  offer_edited: { preference: 'offers', email: false },
   // İlan alarmı: influencer'ın kurduğu alarma uyan yeni ilan ("İlan Başvuruları" e-posta tercihi).
   advert_alert: { preference: 'advert_applications', email: true },
   // Hesap onayı / reddi (admin kararı): önemli olay, "Platform Güncellemeleri" tercihine bağlı.

@@ -27,6 +27,19 @@ const ADV_STATUS_CFG = {
     draft: { label: 'Taslak', tone: 'neutral' },
 };
 
+// İlan formu web ile aynı alanları taşır (components/adverts/AdvertForm.tsx); kurallar sunucuda (lib/adverts.ts saveAdvertAs).
+const MAX_QUESTIONS = 5;
+const EMPTY_FORM = {
+    title: '', summary: '', category: '', location: 'Uzaktan', platforms: '', deliverables: '',
+    paymentType: 'cash', currency: 'TRY', budgetMin: '', budgetMax: '', deadline: '', status: 'open', questions: [],
+};
+const PAYMENT_OPTIONS = [{ key: 'cash', label: 'Nakit' }, { key: 'barter', label: 'Barter' }, { key: 'other', label: 'Diğer' }];
+const QUESTION_TYPES = [{ key: 'text', label: 'Metin' }, { key: 'single_select', label: 'Tek seçim' }, { key: 'multiple_choice', label: 'Çoklu' }];
+const STATUS_OPTIONS = [{ key: 'open', label: 'Yayında' }, { key: 'paused', label: 'Duraklat' }, { key: 'closed', label: 'Kapat' }];
+const parseList = (value) => value.split(',').map((item) => item.trim()).filter(Boolean);
+const newQuestionId = () => `q${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+const onlyDigits = (v) => v.replace(/[^0-9]/g, '');
+
 export default function BrandAdvertsScreen({ navigation, route }) {
     const [activeTab, setActiveTab] = useState('İlanlarım');
     const [appFilter, setAppFilter] = useState('pending');
@@ -54,7 +67,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
     const [createVisible, setCreateVisible] = useState(false);
     const [editMode, setEditMode] = useState(false);      // true = editing existing
     const [editId, setEditId] = useState(null);           // id of project being edited
-    const [form, setForm] = useState({ title: '', description: '', budget: '', category: '', deadline: '' });
+    const [form, setForm] = useState(EMPTY_FORM);
     const [heroImage, setHeroImage] = useState(null);
     const [heroImageUrl, setHeroImageUrl] = useState(null);
     const [uploadingHero, setUploadingHero] = useState(false);
@@ -254,7 +267,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
         setCreateVisible(false);
         setEditMode(false);
         setEditId(null);
-        setForm({ title: '', description: '', budget: '', category: '', deadline: '' });
+        setForm(EMPTY_FORM);
         setHeroImage(null);
         setHeroImageUrl(null);
     };
@@ -265,10 +278,23 @@ export default function BrandAdvertsScreen({ navigation, route }) {
         setEditId(proj.id);
         setForm({
             title: proj.title || '',
-            description: proj.summary || proj.description || '',
-            budget: proj.budget_min ? String(proj.budget_min) : '',
+            summary: proj.summary || proj.description || '',
             category: proj.category || '',
-            deadline: proj.deadline || '',
+            location: proj.location || 'Uzaktan',
+            platforms: (proj.platforms || []).join(', '),
+            deliverables: (proj.deliverables || []).join(', '),
+            paymentType: ['barter', 'other'].includes(proj.payment_type) ? proj.payment_type : 'cash',
+            currency: proj.budget_currency || 'TRY',
+            budgetMin: proj.budget_min != null ? String(Math.round(Number(proj.budget_min))) : '',
+            budgetMax: proj.budget_max != null ? String(Math.round(Number(proj.budget_max))) : '',
+            deadline: proj.deadline ? String(proj.deadline).slice(0, 10) : '',
+            status: ['open', 'paused', 'closed'].includes(proj.status) ? proj.status : 'open',
+            questions: (Array.isArray(proj.custom_questions) ? proj.custom_questions : []).map((q) => ({
+                id: q.id || newQuestionId(),
+                type: q.type || 'text',
+                question: q.question || '',
+                options: (q.options || []).join('\n'),
+            })),
         });
         // Show existing banner as preview (remote URL, not base64)
         if (proj.hero_image) {
@@ -311,33 +337,64 @@ export default function BrandAdvertsScreen({ navigation, route }) {
         );
     };
 
+    const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+    const setQuestion = (index, patch) => setForm((f) => ({ ...f, questions: f.questions.map((q, i) => (i === index ? { ...q, ...patch } : q)) }));
+    const addQuestion = () => setForm((f) => (f.questions.length >= MAX_QUESTIONS ? f : { ...f, questions: [...f.questions, { id: newQuestionId(), type: 'text', question: '', options: '' }] }));
+    const removeQuestion = (index) => setForm((f) => ({ ...f, questions: f.questions.filter((_, i) => i !== index) }));
+
     const createProject = async () => {
-        if (!form.title.trim() || !form.description.trim()) {
-            return Alert.alert('Hata', 'Başlık ve açıklama alanları zorunlu.');
+        if (!form.title.trim() || !form.summary.trim()) {
+            return Alert.alert('Eksik bilgi', 'Başlık ve açıklama alanları zorunlu.');
+        }
+        if (!heroImageUrl) return Alert.alert('Eksik bilgi', 'Kapak görseli yüklemelisin.');
+        if (form.deadline.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(form.deadline.trim())) {
+            return Alert.alert('Tarih', 'Son başvuru tarihini YYYY-AA-GG biçiminde yaz (ör. 2026-11-30).');
         }
         setSaving(true);
         try {
-            // Rol, onay, kapak görseli ve bütçe kuralları sunucuda (lib/adverts.ts) web ile aynı uygulanır.
-            // Uzun açıklama yalnızca yeni ilanda yazılır; düzenlemede web'de girilmiş açıklama ezilmez.
+            // Rol, onay, kapak görseli, bütçe, soru ve aktif ilan kuralları sunucuda (lib/adverts.ts) web ile aynı uygulanır.
+            const cash = form.paymentType === 'cash';
             const body = {
                 title: form.title.trim(),
-                summary: form.description.trim(),
-                budget_min: form.budget ? parseFloat(form.budget) : null,
-                category: form.category.trim() || null,
+                summary: form.summary.trim(),
+                category: form.category.trim() || 'Genel',
+                location: form.location.trim() || 'Uzaktan',
+                platforms: parseList(form.platforms),
+                deliverables: parseList(form.deliverables),
+                payment_type: form.paymentType,
+                budget_currency: form.currency,
+                budget_min: cash && form.budgetMin ? Number(form.budgetMin) : null,
+                budget_max: cash && form.budgetMax ? Number(form.budgetMax) : null,
                 deadline: form.deadline.trim() || null,
-                hero_image: heroImageUrl || null,
+                hero_image: heroImageUrl,
+                custom_questions: form.questions
+                    .filter((q) => q.question.trim())
+                    .map((q) => ({
+                        id: q.id,
+                        type: q.type,
+                        question: q.question.trim(),
+                        options: q.type === 'text' ? [] : q.options.split('\n').map((o) => o.trim()).filter(Boolean),
+                    })),
             };
-            if (editMode && editId) body.id = editId;
-            else body.description = form.description.trim();
+            // Uzun açıklama yalnızca yeni ilanda yazılır; düzenlemede (web ile aynı) mevcut açıklama ezilmez.
+            if (editMode && editId) {
+                body.id = editId;
+                body.status = form.status;
+            } else {
+                body.description = form.summary.trim();
+            }
 
             const result = await apiRequest('adverts', { method: 'POST', body });
             if (result.error) throw new Error(result.error);
 
+            if (editMode && selectedProject?.id === editId) {
+                setSelectedProject((p) => (p ? { ...p, title: body.title, status: body.status || p.status } : p));
+            }
             closeModal();
             fetchMyProjects(currentUserId);
             setActiveTab('İlanlarım');
         } catch (e) {
-            Alert.alert('Hata', e.message || 'İşlem başarısız.');
+            Alert.alert('Kaydedilemedi', e.message || 'İşlem başarısız.');
         } finally {
             setSaving(false);
         }
@@ -437,11 +494,66 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                         )}
                         {uploadingHero ? <View className="absolute inset-0 bg-black/50 items-center justify-center"><ActivityIndicator color={colors.gold} /></View> : null}
                     </Pressable>
-                    <TextField label="İlan başlığı" value={form.title} onChangeText={(v) => setForm((f) => ({ ...f, title: v }))} placeholder="ör. Sonbahar UGC serisi" />
-                    <TextField label="Açıklama" multiline value={form.description} onChangeText={(v) => setForm((f) => ({ ...f, description: v }))} placeholder="Ne istiyorsun, hangi teslimatlar, ne zaman?" />
+                    <TextField label="İlan başlığı" value={form.title} maxLength={120} onChangeText={(v) => setField('title', v)} placeholder="ör. Kış içecekleri tanıtımı" />
+                    <TextField label="Açıklama" multiline value={form.summary} onChangeText={(v) => setField('summary', v)} placeholder="Ne istiyorsun, kimden, hangi tonda?" />
                     <View className="flex-row" style={{ gap: 10 }}>
-                        <View className="flex-1"><TextField label="Bütçe" prefix="₺" keyboardType="number-pad" value={form.budget} onChangeText={(v) => setForm((f) => ({ ...f, budget: v.replace(/[^0-9]/g, '') }))} placeholder="0" /></View>
-                        <View className="flex-1"><TextField label="Kategori" value={form.category} onChangeText={(v) => setForm((f) => ({ ...f, category: v }))} placeholder="ör. Güzellik" /></View>
+                        <View className="flex-1"><TextField label="Kategori" maxLength={60} value={form.category} onChangeText={(v) => setField('category', v)} placeholder="ör. Yeme & İçme" /></View>
+                        <View className="flex-1"><TextField label="Konum" maxLength={80} value={form.location} onChangeText={(v) => setField('location', v)} placeholder="Uzaktan" /></View>
+                    </View>
+                    <TextField label="Platformlar" hint="Virgülle ayır" value={form.platforms} onChangeText={(v) => setField('platforms', v)} placeholder="Instagram, TikTok" />
+                    <TextField label="Teslimatlar" hint="Virgülle ayır" value={form.deliverables} onChangeText={(v) => setField('deliverables', v)} placeholder="1 Reels, 3 Story" />
+                    <View style={{ gap: 7 }}>
+                        <Text variant="small" weight="medium" tone="fg2">Ödeme</Text>
+                        <Segment options={PAYMENT_OPTIONS} value={form.paymentType} onChange={(v) => setField('paymentType', v)} />
+                    </View>
+                    {form.paymentType === 'cash' ? (
+                        <>
+                            <View style={{ gap: 7 }}>
+                                <Text variant="small" weight="medium" tone="fg2">Para birimi</Text>
+                                <Segment
+                                    options={Array.from(new Set(['TRY', 'USD', 'EUR', form.currency])).map((c) => ({ key: c, label: c }))}
+                                    value={form.currency}
+                                    onChange={(v) => setField('currency', v)}
+                                />
+                            </View>
+                            <View className="flex-row" style={{ gap: 10 }}>
+                                <View className="flex-1"><TextField label="En az" keyboardType="number-pad" value={form.budgetMin} onChangeText={(v) => setField('budgetMin', onlyDigits(v))} placeholder="0" /></View>
+                                <View className="flex-1"><TextField label="En çok" keyboardType="number-pad" value={form.budgetMax} onChangeText={(v) => setField('budgetMax', onlyDigits(v))} placeholder="0" /></View>
+                            </View>
+                        </>
+                    ) : null}
+                    <TextField
+                        label="Son başvuru (isteğe bağlı)"
+                        hint="YYYY-AA-GG, ör. 2026-11-30"
+                        keyboardType="numbers-and-punctuation"
+                        maxLength={10}
+                        value={form.deadline}
+                        onChangeText={(v) => setField('deadline', v.replace(/[^0-9-]/g, ''))}
+                        placeholder="2026-11-30"
+                    />
+                    {editMode ? (
+                        <View style={{ gap: 7 }}>
+                            <Text variant="small" weight="medium" tone="fg2">Durum</Text>
+                            <Segment options={STATUS_OPTIONS} value={form.status} onChange={(v) => setField('status', v)} />
+                        </View>
+                    ) : null}
+                    <View style={{ gap: 10 }}>
+                        <View className="flex-row items-center justify-between">
+                            <Text variant="small" weight="medium" tone="fg2">Başvuranlara sorular ({form.questions.length}/{MAX_QUESTIONS})</Text>
+                            <Button title="Soru ekle" icon={Plus} variant="ghost" size="md" onPress={addQuestion} disabled={form.questions.length >= MAX_QUESTIONS} />
+                        </View>
+                        {form.questions.map((q, i) => (
+                            <Card key={q.id} style={{ gap: 10 }}>
+                                <View className="flex-row items-end" style={{ gap: 8 }}>
+                                    <View className="flex-1"><TextField label={`${i + 1}. soru`} maxLength={300} value={q.question} onChangeText={(v) => setQuestion(i, { question: v })} placeholder="ör. Daha önce hangi markalarla çalıştın?" /></View>
+                                    <IconButton icon={Trash2} onPress={() => removeQuestion(i)} accessibilityLabel="Soruyu sil" />
+                                </View>
+                                <Segment options={QUESTION_TYPES} value={q.type} onChange={(v) => setQuestion(i, { type: v })} />
+                                {q.type !== 'text' ? (
+                                    <TextField label="Seçenekler" hint="Her satıra bir seçenek (en az 2)" multiline value={q.options} onChangeText={(v) => setQuestion(i, { options: v })} placeholder={'Evet\nHayır'} />
+                                ) : null}
+                            </Card>
+                        ))}
                     </View>
                     <Button title={editMode ? 'Kaydet' : 'İlanı yayınla'} onPress={createProject} loading={saving} disabled={uploadingHero} block />
                 </Sheet>
