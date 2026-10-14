@@ -13,7 +13,7 @@ export interface Participant {
 export interface Conversation {
   roomId: string
   otherParticipant: Participant | null
-  lastMessage: { content: string; createdAt: string; senderId: string } | null
+  lastMessage: { content: string; createdAt: string; senderId: string; isSystem?: boolean } | null
   unreadCount: number
   job?: ConversationJob | null
 }
@@ -23,6 +23,9 @@ export interface ChatMessage {
   sender_id: string
   content: string
   created_at: string
+  /** Sunucunun yazdığı sistem mesajı (ör. teklif geri çekildi, 3.6-S8); ortada ayrı gösterilir. */
+  is_system?: boolean
+  room_id?: string
 }
 
 /** Karşı tarafın tiki: yönetici / onaylı marka altın, mavi tik mavi. */

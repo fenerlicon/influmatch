@@ -61,7 +61,7 @@ export default async function DashboardMessagesPage({
   // almak PostgREST'in 1000 satır sınırına takılıyor, son mesajlar ve sayılar kesiliyordu.
   const roomIds = rooms?.map((r) => r.id) ?? []
   const lastReadMap = await getLastReadMap(supabase, user.id, roomIds)
-  const lastMessageMap = new Map<string, { id: string; room_id: string; sender_id: string; content: string; created_at: string }>()
+  const lastMessageMap = new Map<string, { id: string; room_id: string; sender_id: string; content: string; created_at: string; is_system: boolean | null }>()
   const unreadCounts = new Map<string, number>()
 
   const ROOM_BATCH = 20
@@ -79,7 +79,7 @@ export default async function DashboardMessagesPage({
         const [lastResult, unreadResult] = await Promise.all([
           supabase
             .from('messages')
-            .select('id, room_id, sender_id, content, created_at')
+            .select('id, room_id, sender_id, content, created_at, is_system')
             .eq('room_id', roomId)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -117,6 +117,7 @@ export default async function DashboardMessagesPage({
       content: string
       createdAt: string
       senderId: string
+      isSystem?: boolean
     } | null
     unreadCount: number
     lastMessageTime: Date
@@ -156,6 +157,7 @@ export default async function DashboardMessagesPage({
             content: lastMessage.content,
             createdAt: lastMessage.created_at,
             senderId: lastMessage.sender_id,
+            isSystem: !!lastMessage.is_system,
           }
           : null,
         unreadCount: existing ? existing.unreadCount + unreadCount : unreadCount,

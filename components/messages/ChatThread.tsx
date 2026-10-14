@@ -21,6 +21,8 @@ interface Props {
   roomId: string
   /** Aynı kişiyle olan bütün odalar (birleşik gösterilir). */
   roomIds: string[]
+  /** Aynı kişiyle olan bütün odalar kapalıysa nedeni (salt okunur sohbet, 3.6-S8). */
+  closedNotice?: string | null
   currentUserId: string
   currentUserRole: 'influencer' | 'brand' | 'admin'
   isSenderVerified: boolean
@@ -45,7 +47,7 @@ function dayLabel(iso: string) {
 const timeOf = (iso: string) => new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: TZ })
 
 /** Sohbet: başlık, iş satırı, mesajlar (günlere ayrılmış), yazma alanı. */
-export default function ChatThread({ roomId, roomIds, currentUserId, currentUserRole, isSenderVerified, participant, job, initialMessages, onBack }: Props) {
+export default function ChatThread({ roomId, roomIds, closedNotice, currentUserId, currentUserRole, isSenderVerified, participant, job, initialMessages, onBack }: Props) {
   const supabase = useSupabaseClient()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [signed, setSigned] = useState<Record<string, string>>({})
@@ -157,7 +159,9 @@ export default function ChatThread({ roomId, roomIds, currentUserId, currentUser
     }
   }
 
-  const notice = blockedByThem
+  const notice = closedNotice
+    ? closedNotice
+    : blockedByThem
     ? 'Bu kullanıcı seni engellemiş; mesaj gönderemezsin.'
     : blockedByMe
       ? 'Bu kullanıcıyı engelledin. Engeli profil penceresinden kaldırabilirsin.'
@@ -216,6 +220,16 @@ export default function ChatThread({ roomId, roomIds, currentUserId, currentUser
             const stored = parseChatImageUrl(m.content)
             const path = stored ? chatAttachmentPath(stored) : null
             const imageUrl = path ? signed[path] : null
+            if (m.is_system) {
+              return (
+                <Fragment key={m.id}>
+                  {newDay && <div className="my-1.5 self-center text-[11.5px] text-ink-faint">{dayLabel(m.created_at)}</div>}
+                  <div className="my-1 self-center rounded-full border border-line bg-surface-1 px-3 py-1.5 text-center text-[12px] text-ink-muted">
+                    {m.content} <time className="ml-1 text-[11px] text-ink-faint">{timeOf(m.created_at)}</time>
+                  </div>
+                </Fragment>
+              )
+            }
             return (
               <Fragment key={m.id}>
                 {newDay && <div className="my-1.5 self-center text-[11.5px] text-ink-faint">{dayLabel(m.created_at)}</div>}
@@ -265,7 +279,7 @@ export default function ChatThread({ roomId, roomIds, currentUserId, currentUser
       <Composer
         onSend={send}
         onFileSelect={upload}
-        disabled={isSending || blockedByThem || blockedByMe || restricted}
+        disabled={isSending || !!closedNotice || blockedByThem || blockedByMe || restricted}
         notice={notice}
       />
 
