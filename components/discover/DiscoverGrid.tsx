@@ -6,6 +6,8 @@ import { isProPlan } from '@/lib/subscription-tier'
 import { normalizeInfluencerCategory } from '@/lib/category-map'
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey } from '@/utils/categories'
 import { calculateMatchScore } from '@/utils/matching'
+import { TURKISH_CITIES } from '@/utils/turkishCities'
+import { hasActiveFilters, matchesDiscoverFilters, sortDiscoverProfiles, type DiscoverFilters, type FilterableProfile } from '@/lib/discover-filters'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import { Button, Card, EmptyState, Input, Segmented, Select } from '@/components/ui'
 import { cn } from '@/utils/cn'
@@ -38,8 +40,27 @@ function parseStat(val: string | undefined) {
   return parseFloat(clean.replace(/[^0-9.]/g, '')) || 0
 }
 
-const hasStats = (inf: DiscoverInfluencer) =>
-  (inf.platforms_data ?? []).some((p) => (p.follower_count ?? 0) > 0) || (!!inf.stats?.followers && inf.stats.followers !== '0' && inf.stats.followers !== '0%')
+/** Ortak filtre kuralı için profil görünümü (lib/discover-filters.ts; mobil keşifte sunucu aynı kuralı uygular). */
+function filterableOf(inf: DiscoverInfluencer): FilterableProfile {
+  const accounts: FilterableProfile['accounts'] = (inf.platforms_data ?? []).map((p) => ({ platform: p.platform as string, follower_count: p.follower_count, engagement_rate: p.engagement_rate ?? null }))
+  // Hesap listesi gelmeyen kartlarda (eski veri) birincil hesabın metin istatistiği kullanılır.
+  if (accounts.length === 0 && inf.stats) {
+    accounts.push({ platform: inf.platform ?? '', follower_count: parseStat(inf.stats.followers), engagement_rate: parseStat(inf.stats.engagement) })
+  }
+  return { city: inf.city, creator_type: inf.creator_type, displayed_badges: inf.displayed_badges, spotlight_active: inf.spotlight_active, accounts }
+}
+
+const numberInput = (value: string) => value.replace(/[^\d.,]/g, '').slice(0, 13)
+const toNumber = (value: string) => {
+  if (!value.trim()) return null
+  const n = Number(value.replace(/\./g, '').replace(',', '.'))
+  return Number.isFinite(n) && n >= 0 ? n : null
+}
+const toPercent = (value: string) => {
+  if (!value.trim()) return null
+  const n = Number(value.replace(',', '.'))
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 100) : null
+}
 
 /** Keşif ızgarası: filtre çubuğu + profil kartları (24'er sayfa, kullanıcı kararı 2026-10-09). */
 export default function DiscoverGrid({
@@ -62,6 +83,11 @@ export default function DiscoverGrid({
   const [category, setCategory] = useState<'all' | InfluencerCategoryKey>('all')
   const [platform, setPlatform] = useState<'all' | 'instagram' | 'tiktok'>('all')
   const [creatorType, setCreatorType] = useState<'all' | 'influencer' | 'ugc'>('all')
+  const [city, setCity] = useState('')
+  const [minFollowersInput, setMinFollowersInput] = useState('')
+  const [maxFollowersInput, setMaxFollowersInput] = useState('')
+  const [minEngagementInput, setMinEngagementInput] = useState('')
+  const [maxEngagementInput, setMaxEngagementInput] = useState('')
   const [budgetInput, setBudgetInput] = useState('')
   const [withData, setWithData] = useState(false)
   const [blueOnly, setBlueOnly] = useState(false)
@@ -73,16 +99,30 @@ export default function DiscoverGrid({
   const favorites = useMemo(() => new Set(favoritedIds), [favoritedIds])
   const target = (category !== 'all' ? category : defaultCategory) || undefined
 
+  const filters: DiscoverFilters = useMemo(
+    () => ({
+      city: city || null,
+      platform: platform === 'all' ? null : platform,
+      creatorType: creatorType === 'all' ? null : creatorType,
+      minFollowers: toNumber(minFollowersInput),
+      maxFollowers: toNumber(maxFollowersInput),
+      minEngagement: toPercent(minEngagementInput),
+      maxEngagement: toPercent(maxEngagementInput),
+      // Pro filtreleri yalnızca Pro planda (düğmeler de kilitli).
+      withData: isPro && withData,
+      blueTick: isPro && blueOnly,
+      sort: sortBy === 'followers_desc' || sortBy === 'followers_asc' || sortBy === 'engagement_desc' ? sortBy : null,
+    }),
+    [city, platform, creatorType, minFollowersInput, maxFollowersInput, minEngagementInput, maxEngagementInput, isPro, withData, blueOnly, sortBy],
+  )
+
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('tr')
+    const filtering = hasActiveFilters(filters)
     const result = influencers.filter((inf) => {
       if (category !== 'all' && normalizeInfluencerCategory(inf.category) !== category) return false
       if (q && !`${inf.full_name ?? ''} ${inf.username ?? ''}`.toLocaleLowerCase('tr').includes(q)) return false
-      if (withData && !hasStats(inf)) return false
-      if (blueOnly && !inf.displayed_badges?.includes('verified-account')) return false
-      if (platform !== 'all' && !(inf.platforms?.includes(platform) || inf.platform === platform)) return false
-      if (creatorType === 'influencer' && inf.creator_type === 'ugc') return false
-      if (creatorType === 'ugc' && inf.creator_type !== 'ugc' && inf.creator_type !== 'both') return false
+      if (filtering && !matchesDiscoverFilters(filterableOf(inf), filters)) return false
       if (minPrices && budget > 0) {
         const min = minPrices[inf.id]
         if (typeof min !== 'number' || min > budget) return false
@@ -90,28 +130,22 @@ export default function DiscoverGrid({
       return true
     })
     if (sortBy === 'score') return result
-    return result.sort((a, b) => {
-      // Spotlight profiller her sıralamada önde.
-      if (!!a.spotlight_active !== !!b.spotlight_active) return a.spotlight_active ? -1 : 1
-      switch (sortBy) {
-        case 'recommended':
-          return calculateMatchScore(b, { targetCategory: target }) - calculateMatchScore(a, { targetCategory: target })
-        case 'followers_desc':
-          return parseStat(b.stats?.followers) - parseStat(a.stats?.followers)
-        case 'followers_asc':
-          return parseStat(a.stats?.followers) - parseStat(b.stats?.followers)
-        case 'engagement_desc':
-          return parseStat(b.stats?.engagement) - parseStat(a.stats?.engagement)
-        default:
-          return 0
-      }
-    })
-  }, [influencers, query, category, withData, blueOnly, platform, creatorType, minPrices, budget, sortBy, target])
+    if (sortBy === 'recommended') {
+      return result.sort((a, b) => {
+        // Spotlight profiller her sıralamada önde.
+        if (!!a.spotlight_active !== !!b.spotlight_active) return a.spotlight_active ? -1 : 1
+        return calculateMatchScore(b, { targetCategory: target }) - calculateMatchScore(a, { targetCategory: target })
+      })
+    }
+    return sortDiscoverProfiles(result, filters, filterableOf)
+  }, [influencers, query, category, filters, minPrices, budget, sortBy, target])
 
-  useEffect(() => setVisible(PAGE_SIZE), [query, category, withData, blueOnly, platform, creatorType, budget, sortBy])
+  useEffect(() => setVisible(PAGE_SIZE), [query, category, filters, budget, sortBy])
 
   const shown = filtered.slice(0, visible)
-  const activeCount = [category !== 'all', platform !== 'all', creatorType !== 'all', budget > 0, withData, blueOnly].filter(Boolean).length
+  const followerRangeOn = filters.minFollowers != null || filters.maxFollowers != null
+  const engagementRangeOn = filters.minEngagement != null || filters.maxEngagement != null
+  const activeCount = [category !== 'all', platform !== 'all', creatorType !== 'all', !!city, followerRangeOn, engagementRangeOn, budget > 0, filters.withData, filters.blueTick].filter(Boolean).length
 
   if (influencers.length === 0) {
     return (
@@ -162,6 +196,52 @@ export default function DiscoverGrid({
             <option value="instagram">Instagram</option>
             <option value="tiktok">TikTok</option>
           </Select>
+          <Select value={city} onChange={(e) => setCity(e.target.value)} aria-label="Şehir" className="w-auto">
+            <option value="">Tüm şehirler</option>
+            {TURKISH_CITIES.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Select>
+          <div className="flex items-center gap-1" role="group" aria-label="Takipçi aralığı">
+            <Input
+              value={minFollowersInput}
+              inputMode="numeric"
+              onChange={(e) => setMinFollowersInput(numberInput(e.target.value))}
+              placeholder="Takipçi min"
+              aria-label="En az takipçi"
+              className="w-[112px]"
+            />
+            <span className="text-ink-faint">–</span>
+            <Input
+              value={maxFollowersInput}
+              inputMode="numeric"
+              onChange={(e) => setMaxFollowersInput(numberInput(e.target.value))}
+              placeholder="maks"
+              aria-label="En çok takipçi"
+              className="w-[96px]"
+            />
+          </div>
+          <div className="flex items-center gap-1" role="group" aria-label="Etkileşim oranı aralığı (%)">
+            <Input
+              value={minEngagementInput}
+              inputMode="decimal"
+              onChange={(e) => setMinEngagementInput(numberInput(e.target.value).slice(0, 5))}
+              placeholder="Etkileşim % min"
+              aria-label="En az etkileşim oranı (%)"
+              className="w-[132px]"
+            />
+            <span className="text-ink-faint">–</span>
+            <Input
+              value={maxEngagementInput}
+              inputMode="decimal"
+              onChange={(e) => setMaxEngagementInput(numberInput(e.target.value).slice(0, 5))}
+              placeholder="maks"
+              aria-label="En çok etkileşim oranı (%)"
+              className="w-[80px]"
+            />
+          </div>
           {isBrand && minPrices && (
             <Input
               value={budgetInput}
