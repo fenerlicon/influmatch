@@ -1,10 +1,14 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ArrowLeft, Download, Pencil, UserPlus, Users } from 'lucide-react'
+import { ArrowLeft, BarChart3, Download, FileText, Pencil, UserPlus, Users } from 'lucide-react'
 import { Avatar, ButtonLink, Card, CardHeader, Chip, EmptyState, PageHeader, StatCard } from '@/components/ui'
 import CampaignBriefView from '@/components/campaigns/CampaignBriefView'
 import CampaignLinks, { DetachOfferButton } from '@/components/campaigns/CampaignLinks'
 import CampaignProLockedCard from '@/components/campaigns/CampaignProLockedCard'
+import CampaignResultsLockedCard from '@/components/campaigns/CampaignResultsLockedCard'
+import CampaignResultsTable from '@/components/campaigns/CampaignResultsTable'
+import { buildCampaignResults } from '@/lib/post-metrics'
+import { COST_NOTE, METRICS_SOURCE_NOTE } from '@/lib/post-metrics-shared'
 import CampaignStatusControl from '@/components/campaigns/CampaignStatusControl'
 import { CAMPAIGN_OFFER_STATUS_TONES, formatCampaignDate } from '@/components/campaigns/campaign-ui'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
@@ -36,6 +40,8 @@ export default async function CampaignDashboardPage({ params }: { params: { id: 
   }
   const { campaign, rows, summary, adverts } = result.dashboard
   const features = await campaignFeaturesFor(user.id)
+  // Sonuç raporu (3.20): bayrak açıkken yalnızca Spotlight Pro; ölçüm okuma hatası sayfayı bozmaz.
+  const results = features.results ? await buildCampaignResults(supabase, result.dashboard) : null
   const open = CAMPAIGN_OPEN_STATUSES.includes(campaign.status)
   const target = targetSummary(campaign)
   const start = formatCampaignDate(campaign.start_date)
@@ -62,6 +68,11 @@ export default async function CampaignDashboardPage({ params }: { params: { id: 
               <Download className="h-4 w-4" aria-hidden />
               CSV
             </a>
+            {features.results && (
+              <ButtonLink href={`/dashboard/brand/campaigns/${campaign.id}/report`} leftIcon={<FileText />}>
+                Rapor
+              </ButtonLink>
+            )}
             {open && features.suggestions && (
               <ButtonLink href={`/dashboard/brand/campaigns/${campaign.id}/invite`} variant="primary" leftIcon={<UserPlus />}>
                 Profil davet et
@@ -202,6 +213,26 @@ export default async function CampaignDashboardPage({ params }: { params: { id: 
           </div>
         )}
       </Card>
+
+      <section id="sonuclar" className="mb-5">
+        {results ? (
+          <Card>
+            <CardHeader title="Sonuçlar" description={METRICS_SOURCE_NOTE} />
+            <div className="p-5">
+              {results.summary.posts_live === 0 ? (
+                <EmptyState icon={BarChart3} title="Henüz yayınlanan gönderi yok" description="İş birliklerinde yayın linki girildiğinde ölçümler burada toplanır." />
+              ) : (
+                <>
+                  <CampaignResultsTable results={results} />
+                  <p className="mt-3 text-xs text-ink-faint">{COST_NOTE}</p>
+                </>
+              )}
+            </div>
+          </Card>
+        ) : (
+          <CampaignResultsLockedCard />
+        )}
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>

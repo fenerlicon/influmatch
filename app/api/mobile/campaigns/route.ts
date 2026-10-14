@@ -4,7 +4,7 @@ import { campaignFeaturesFor, listCampaignsAs, saveCampaignAs } from '@/lib/camp
 export const dynamic = 'force-dynamic'
 
 /**
- * Markanın kampanyaları (3.19): { campaigns, features: { suggestions, bulkInvite } }. Yalnızca onaylı marka.
+ * Markanın kampanyaları (3.19): { campaigns, features: { suggestions, bulkInvite, results } }. Yalnızca onaylı marka.
  * features: ücretsiz marka sınırları bayrağı açıkken öneriler ve toplu davet yalnızca Spotlight Pro'da.
  */
 export async function GET(request: Request) {
