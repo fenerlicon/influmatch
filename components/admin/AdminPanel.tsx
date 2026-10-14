@@ -1,93 +1,78 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
-import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle } from 'lucide-react'
-import { verifyUser, rejectUser, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, setBlueTickOverride, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
-import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import Link from 'next/link'
-import { getCategoryLabel } from '@/utils/categories'
-import { validateTaxNumber } from '@/lib/tax-id'
-import BadgeCompactList from '@/components/badges/BadgeCompactList'
-import TaxVerificationReview from '@/components/admin/TaxVerificationReview'
-import type { AdminTaxVerification } from '@/lib/tax-verification'
-import NotificationsPanel from '@/components/admin/NotificationsPanel'
 import { toast } from 'sonner'
+import { Check, RefreshCcw, Search, Trash2, Users, X } from 'lucide-react'
+import {
+  adminUpdateInstagramData, deleteUser, forceVerifyEmail, getAdminUserCard, manuallyAwardSpecificBadge, rejectUser, resendVerificationEmail,
+  resetVerifiedBadges, setBlueTickOverride, toggleBlueTick, toggleUserSpotlight, verifyTaxId, verifyUser,
+} from '@/app/admin/actions'
+import { influencerBadges, brandBadges } from '@/app/badges/data'
 import { getLastSeenMap } from '@/app/admin/presence/actions'
-import { formatLastSeen, isOnline } from '@/lib/presence'
-
-interface User {
-  id: string
-  full_name: string | null
-  email: string | null
-  role: 'influencer' | 'brand' | null
-  avatar_url: string | null
-  username: string | null
-  social_links: Record<string, string | null> | null
-  verification_status: 'pending' | 'verified' | 'rejected'
-  admin_notes: string | null
-  created_at: string
-  bio: string | null
-  category: string | null
-  city: string | null
-  tax_id?: string | null
-  company_legal_name?: string | null
-  tax_office?: string | null
-  tax_office_city?: string | null
-  spotlight_active?: boolean | null
-  spotlight_plan?: string | null
-  spotlight_expires_at?: string | null
-  displayed_badges?: string[] | null
-  tax_id_verified?: boolean | null
-  email_verified_at?: string | null
-  blue_tick_override?: 'granted' | 'revoked' | null
-  tax_verification?: AdminTaxVerification | null
-  corporate_email?: string | null
-  corporate_email_verified_at?: string | null
-}
-
-interface Advert {
-  id: string
-  title: string
-  summary: string
-  status: 'open' | 'paused' | 'closed'
-  created_at: string
-  brand_user_id: string
-  brand?: {
-    full_name: string | null
-    email: string | null
-    avatar_url: string | null
-    username: string | null
-  }
-}
+import { isOnline } from '@/lib/presence'
+import {
+  Avatar, Button, Card, Chip, ConfirmDialog, EmptyState, Field, Input, Modal, PageHeader, Select, StatCard, Tabs,
+} from '@/components/ui'
+import { cn } from '@/utils/cn'
+import UserDetail from '@/components/admin/users/UserDetail'
+import { displayName, hasTick, type AdminUser } from '@/components/admin/users/types'
 
 interface AdminPanelProps {
-  pendingUsers: User[]
-  verifiedUsers: User[]
-  rejectedUsers: User[]
+  pendingUsers: AdminUser[]
+  verifiedUsers: AdminUser[]
+  rejectedUsers: AdminUser[]
   totalUsers?: number
   initialLastSeen?: Record<string, string>
   influencerCount?: number
   brandCount?: number
 }
 
-const TAB_KEYS = ['pending', 'verified_influencer', 'verified_brand', 'rejected', 'notifications', 'adverts', 'applications'] as const
-type TabKey = (typeof TAB_KEYS)[number]
+type TabKey = 'pending' | 'verified_influencer' | 'verified_brand' | 'rejected'
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'pending', label: 'Bekleyen' },
+  { key: 'verified_influencer', label: 'Onaylı influencer' },
+  { key: 'verified_brand', label: 'Onaylı marka' },
+  { key: 'rejected', label: 'Reddedilen' },
+]
+
+type SpotlightPlan = 'ibasic' | 'ipro' | 'mbasic' | 'mpro'
+
+interface Ask {
+  title: string
+  description?: ReactNode
+  confirmLabel: string
+  tone?: 'primary' | 'danger'
+  run: () => Promise<void>
+}
+
+type ActionResult = { error?: string | null; message?: string | null; warning?: string | boolean | null } | null | undefined
 
 export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0, initialLastSeen = {} }: AdminPanelProps) {
   const supabase = useSupabaseClient()
+  const [all, setAll] = useState<AdminUser[]>(() => [...pendingUsers, ...verifiedUsers, ...rejectedUsers])
+  const [activeTab, setActiveTab] = useState<TabKey>('pending')
+  const [query, setQuery] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [checked, setChecked] = useState<Set<string>>(new Set())
+  const [ask, setAsk] = useState<Ask | null>(null)
+  const [asking, setAsking] = useState(false)
+  const [spotlight, setSpotlight] = useState<{ user: AdminUser; plan: SpotlightPlan; months: number } | null>(null)
+  const [badge, setBadge] = useState<{ user: AdminUser; badgeId: string } | null>(null)
+  const [isPending, startTransition] = useTransition()
+
   // Çevrimiçi / son görülme: dakikada bir sunucudan tazelenir, göreli süre 30 sn'de bir yeniden hesaplanır.
   const [lastSeen, setLastSeen] = useState<Record<string, string>>(initialLastSeen)
-  const [presenceNow, setPresenceNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    const tick = window.setInterval(() => setPresenceNow(Date.now()), 30_000)
+    const tick = window.setInterval(() => setNow(Date.now()), 30_000)
     const poll = window.setInterval(async () => {
       if (document.visibilityState !== 'visible') return
       const result = await getLastSeenMap().catch(() => null)
       if (result?.lastSeen) {
         setLastSeen(result.lastSeen)
-        setPresenceNow(Date.now())
+        setNow(Date.now())
       }
     }, 60_000)
     return () => {
@@ -95,1817 +80,480 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
       window.clearInterval(poll)
     }
   }, [])
-  const onlineCount = Object.values(lastSeen).filter((iso) => isOnline(iso, presenceNow)).length
-  const [activeTab, setActiveTab] = useState<TabKey>('pending')
-  const [isPending, startTransition] = useTransition()
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
-  const [pendingUsersState, setPendingUsersState] = useState<User[]>(pendingUsers)
-  const [verifiedUsersState, setVerifiedUsersState] = useState<User[]>(verifiedUsers)
-  const [rejectedUsersState, setRejectedUsersState] = useState<User[]>(rejectedUsers)
-  const [badgeModalUserId, setBadgeModalUserId] = useState<string | null>(null)
-  const [selectedBadgeId, setSelectedBadgeId] = useState<string>('')
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
-  const [searchQuery, setSearchQuery] = useState<string>('')
-  const [isResettingBadges, setIsResettingBadges] = useState(false)
-  const [spotlightModalData, setSpotlightModalData] = useState<{ userId: string, role: string } | null>(null)
-  const [spotlightForm, setSpotlightForm] = useState<{ plan: string, duration: number }>({ plan: 'ibasic', duration: 1 })
-  const [advertsState, setAdvertsState] = useState<Advert[]>([])
-  const [isLoadingAdverts, setIsLoadingAdverts] = useState(false)
-  const [applicationsState, setApplicationsState] = useState<any[]>([])
-  const [isLoadingApplications, setIsLoadingApplications] = useState(false)
+  const onlineCount = Object.values(lastSeen).filter((iso) => isOnline(iso, now)).length
 
-  const [users, setUsers] = useState<User[]>(() => {
-    switch (activeTab) {
-      case 'pending':
-        return pendingUsers
-      case 'verified_influencer':
-        return verifiedUsers.filter(u => u.role === 'influencer')
-      case 'verified_brand':
-        return verifiedUsers.filter(u => u.role === 'brand')
-      case 'rejected':
-        return rejectedUsers
-      default:
-        return []
-    }
-  })
-
-  const tabs = [
-    { key: 'pending', label: 'Bekleyen', count: 0 },
-    { key: 'verified_influencer', label: 'Onaylı Influencer', count: 0 },
-    { key: 'verified_brand', label: 'Onaylı Marka', count: 0 },
-    { key: 'rejected', label: 'Reddedilen', count: 0 },
-    { key: 'notifications', label: 'Bildirimler', count: 0 },
-    { key: 'adverts', label: 'İlanlar', count: 0 },
-    { key: 'applications', label: 'Başvurular', count: 0 },
-  ] as const
-
-  const tabsWithCounts = tabs.map((tab) => ({
-    ...tab,
-    count:
-      tab.key === 'pending'
-        ? pendingUsersState.length
-        : tab.key === 'verified_influencer'
-          ? verifiedUsersState.filter(u => u.role === 'influencer').length
-          : tab.key === 'verified_brand'
-            ? verifiedUsersState.filter(u => u.role === 'brand').length
-            : tab.key === 'rejected'
-              ? rejectedUsersState.length
-              : tab.key === 'adverts'
-                ? advertsState.length
-                : tab.key === 'applications'
-                  ? applicationsState.length
-                  : 0,
-  }))
-
-  // Update users when tab changes
+  // Sunucu verisi yenilenirse (router.refresh) listeyi eşitle
   useEffect(() => {
-    switch (activeTab) {
-      case 'pending':
-        setUsers(pendingUsersState)
-        break
-      case 'verified_influencer':
-        setUsers(verifiedUsersState.filter(u => u.role === 'influencer'))
-        break
-      case 'verified_brand':
-        setUsers(verifiedUsersState.filter(u => u.role === 'brand'))
-        break
-      case 'rejected':
-        setUsers(rejectedUsersState)
-        break
-      case 'adverts':
-        if (advertsState.length === 0) fetchAdverts()
-        break
-      case 'applications':
-        if (applicationsState.length === 0) fetchApplications()
-        break
-    }
-    // Clear selection when tab changes
-    setSelectedUserIds(new Set())
-    setSearchQuery('')
-  }, [activeTab, pendingUsersState, verifiedUsersState, rejectedUsersState])
-
-  // Sync with initial data
-  useEffect(() => {
-    setPendingUsersState(pendingUsers)
-    setVerifiedUsersState(verifiedUsers)
-    setRejectedUsersState(rejectedUsers)
+    setAll([...pendingUsers, ...verifiedUsers, ...rejectedUsers])
   }, [pendingUsers, verifiedUsers, rejectedUsers])
 
-  // Realtime subscription for user updates
+  const replaceUser = (user: AdminUser) =>
+    setAll((prev) => (prev.some((u) => u.id === user.id) ? prev.map((u) => (u.id === user.id ? user : u)) : [user, ...prev]))
+  const patchUser = (id: string, patch: Partial<AdminUser>) => setAll((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)))
+  const dropUser = (id: string) => {
+    setAll((prev) => prev.filter((u) => u.id !== id))
+    setChecked((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    setSelectedId((prev) => (prev === id ? null : prev))
+  }
+  // Hassas kolonlar dahil güncel kart (service role, sunucu eylemi)
+  const reloadUser = async (id: string) => {
+    const { user } = await getAdminUserCard(id)
+    if (user) replaceUser(user as AdminUser)
+  }
+
+  // Gerçek zamanlı: durum, rozet vb. değişen kullanıcı kartı sunucudan tazelenir.
   useEffect(() => {
-    // Subscribe to all user updates
     const channel = supabase
       .channel('admin-users-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'users',
-        },
-        async (payload) => {
-          const updatedUserData = payload.new as any
-          const oldUserData = payload.old as any
-          const userId = updatedUserData.id
-          const newStatus = updatedUserData.verification_status
-          const oldStatus = oldUserData?.verification_status
-          const newDisplayedBadges = updatedUserData.displayed_badges
-          const oldDisplayedBadges = oldUserData?.displayed_badges
-
-          // Fetch complete user data to ensure we have all fields
-          const { user: completeUser } = await getAdminUserCard(userId)
-
-          if (!completeUser) return
-
-          const updatedUser = completeUser as User
-
-          // Helper function to update user in all lists
-          const updateUserInAllLists = (user: User) => {
-            setPendingUsersState((prev) =>
-              prev.map((u) => (u.id === userId ? user : u))
-            )
-            setVerifiedUsersState((prev) =>
-              prev.map((u) => (u.id === userId ? user : u))
-            )
-            setRejectedUsersState((prev) =>
-              prev.map((u) => (u.id === userId ? user : u))
-            )
-          }
-
-          // If displayed_badges changed, update user in all lists
-          if (JSON.stringify(newDisplayedBadges) !== JSON.stringify(oldDisplayedBadges)) {
-            updateUserInAllLists(updatedUser)
-          }
-
-          // Update all state lists based on new status
-          if (newStatus === 'verified') {
-            setPendingUsersState((prev) => prev.filter((u) => u.id !== userId))
-            setRejectedUsersState((prev) => prev.filter((u) => u.id !== userId))
-            setVerifiedUsersState((prev) => {
-              const exists = prev.some((u) => u.id === userId)
-              if (exists) {
-                return prev.map((u) => (u.id === userId ? updatedUser : u))
-              }
-              return [updatedUser, ...prev]
-            })
-          } else if (newStatus === 'rejected') {
-            setPendingUsersState((prev) => prev.filter((u) => u.id !== userId))
-            setVerifiedUsersState((prev) => prev.filter((u) => u.id !== userId))
-            setRejectedUsersState((prev) => {
-              const exists = prev.some((u) => u.id === userId)
-              if (exists) {
-                return prev.map((u) => (u.id === userId ? updatedUser : u))
-              }
-              return [updatedUser, ...prev]
-            })
-          } else if (newStatus === 'pending') {
-            setVerifiedUsersState((prev) => prev.filter((u) => u.id !== userId))
-            setRejectedUsersState((prev) => prev.filter((u) => u.id !== userId))
-            setPendingUsersState((prev) => {
-              const exists = prev.some((u) => u.id === userId)
-              if (exists) {
-                return prev.map((u) => (u.id === userId ? updatedUser : u))
-              }
-              return [updatedUser, ...prev]
-            })
-          } else if (oldStatus === newStatus) {
-            // Status didn't change, but other fields might have (like displayed_badges)
-            updateUserInAllLists(updatedUser)
-          }
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, (payload) => {
+        const id = (payload.new as { id?: string })?.id
+        if (id) reloadUser(id)
+      })
       .subscribe()
-
     return () => {
       supabase.removeChannel(channel)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase])
 
-  const fetchApplications = async () => {
-    setIsLoadingApplications(true)
-    try {
-      const { getAllApplications } = await import('@/app/admin/actions')
-      const result = await getAllApplications()
-      if (result.success && result.applications) {
-        setApplicationsState(result.applications)
-      } else if (result.error) {
-        toast.error(result.error)
-      }
-    } catch (error) {
-      console.error('Applications Fetch Error:', error)
-      toast.error('Giriş hatası veya yetki sorunu oluştu.')
-    } finally {
-      setIsLoadingApplications(true) // Actually set to false, wait!
-      setIsLoadingApplications(false)
-    }
+  const inTab = (u: AdminUser, tab: TabKey) =>
+    tab === 'pending'
+      ? u.verification_status === 'pending'
+      : tab === 'rejected'
+        ? u.verification_status === 'rejected'
+        : u.verification_status === 'verified' && u.role === (tab === 'verified_brand' ? 'brand' : 'influencer')
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('tr-TR')
+    return all
+      .filter((u) => inTab(u, activeTab))
+      .filter((u) => !q || [u.full_name, u.email, u.username, u.id].some((v) => v?.toLocaleLowerCase('tr-TR').includes(q)))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  }, [all, activeTab, query])
+
+  const selected = all.find((u) => u.id === selectedId) ?? null
+
+  const changeTab = (tab: TabKey) => {
+    setActiveTab(tab)
+    setChecked(new Set())
+    setSelectedId(null)
   }
 
-  const fetchAdverts = async () => {
-    setIsLoadingAdverts(true)
-    try {
-      const result = await getAllAdverts()
-      if (result.success && result.adverts) {
-        setAdvertsState(result.adverts as Advert[])
-      } else if (result.error) {
-        toast.error(result.error)
-      }
-    } catch (error) {
-      console.error('Fetch Adverts Error:', error)
-      toast.error('İlanlar yüklenirken bir hata oluştu.')
-    } finally {
-      setIsLoadingAdverts(false)
-    }
-  }
-
-  const handleDeleteAdvert = async (advertId: string) => {
-    if (!confirm('Bu ilanı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return
-
-    const loadingToast = toast.loading('İlan siliniyor...')
-
-    try {
-      const result = await deleteAdvertAdmin(advertId)
-      toast.dismiss(loadingToast)
-
-      if (result.error) {
-        toast.error(result.error)
-      } else {
-        toast.success(result.message || 'İlan silindi.')
-        setAdvertsState(prev => prev.filter(a => a.id !== advertId))
-      }
-    } catch (error: any) {
-      console.error('Delete Advert Error:', error)
-      toast.dismiss(loadingToast)
-      toast.error(`Hata: ${error.message}`)
-    }
-  }
-
-  // Filter users based on search query
-  const getFilteredUsers = () => {
-    let filtered = users
-    if (activeTab === 'verified_influencer' || activeTab === 'verified_brand') {
-      if (searchQuery.trim()) {
-        const query = searchQuery.trim().toLowerCase()
-        filtered = filtered.filter((user) => {
-          const fullName = user.full_name?.toLowerCase() || ''
-          const email = user.email?.toLowerCase() || ''
-          const username = user.username?.toLowerCase() || ''
-          return fullName.includes(query) || email.includes(query) || username.includes(query)
-        })
-      }
-    }
-    return filtered
-  }
-
-  const getCurrentUsers = () => getFilteredUsers()
-
-  // Selection handlers
-  const toggleUserSelection = (userId: string) => {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(userId)) {
-        next.delete(userId)
-      } else {
-        next.add(userId)
-      }
-      return next
-    })
-  }
-
-  const selectAllUsers = () => {
-    const currentUsers = getCurrentUsers()
-    setSelectedUserIds(new Set(currentUsers.map((u) => u.id)))
-  }
-
-  const clearSelection = () => {
-    setSelectedUserIds(new Set())
-  }
-
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('DİKKAT: Bu kullanıcıyı ve tüm verilerini (profil, mesajlar, vb.) kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return
-
-    // Show loading state implicitly via transition or toast
-    const loadingToast = toast.loading('Kullanıcı siliniyor...')
-
-    try {
-      const result = await deleteUser(userId)
-      toast.dismiss(loadingToast)
-
-      if (result.error) {
-        toast.error(result.error)
-      } else {
-        toast.success(result.message)
-        // Update local state to remove the deleted user immediately
-        setPendingUsersState(prev => prev.filter(u => u.id !== userId))
-        setVerifiedUsersState(prev => prev.filter(u => u.id !== userId))
-        setRejectedUsersState(prev => prev.filter(u => u.id !== userId))
-      }
-    } catch (error: any) {
-      console.error('Delete User Error:', error)
-      toast.dismiss(loadingToast)
-      toast.error(`Beklenmedik bir hata oluştu: ${error.message || error}`)
-    }
-  }
-
-  // Bulk actions
-  const handleBulkDelete = async () => {
-    if (selectedUserIds.size === 0) return
-    if (!confirm(`DİKKAT: Seçili ${selectedUserIds.size} kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) return
-
-    const loadingToast = toast.loading('Toplu silme işlemi başladı...')
-    const userIds = Array.from(selectedUserIds)
-    let successCount = 0
-    let errorCount = 0
-    let lastErrorMessage = ''
-
-    // Process in batches or sequential to avoid overwhelming the server
-    for (const userId of userIds) {
-      try {
-        const result = await deleteUser(userId)
-        if (result.error) {
-          console.error(`Bulk delete error for ${userId}:`, result.error)
-          lastErrorMessage = result.error
-          errorCount++
-        } else {
-          successCount++
-          // Optimistic update
-          setPendingUsersState(prev => prev.filter(u => u.id !== userId))
-          setVerifiedUsersState(prev => prev.filter(u => u.id !== userId))
-          setRejectedUsersState(prev => prev.filter(u => u.id !== userId))
-        }
-      } catch (err: any) {
-        console.error(`Bulk delete exception for ${userId}:`, err)
-        lastErrorMessage = err.message || 'Bilinmeyen hata'
-        errorCount++
-      }
-    }
-
-    toast.dismiss(loadingToast)
-    if (errorCount > 0) {
-      toast.error(`${successCount} silindi, ${errorCount} hata. Son hata: ${lastErrorMessage}`, { duration: 5000 })
-    } else {
-      toast.success(`${successCount} kullanıcı başarıyla silindi.`)
-    }
-    setSelectedUserIds(new Set())
-  }
-
-  const handleBulkVerify = async () => {
-    if (selectedUserIds.size === 0) return
-    if (!confirm(`${selectedUserIds.size} kullanıcıyı onaylamak istediğinizden emin misiniz?`)) return
-
-    startTransition(async () => {
-      const userIds = Array.from(selectedUserIds)
-      let successCount = 0
-      let errorCount = 0
-
-      for (const userId of userIds) {
-        try {
-          const result = await verifyUser(userId)
-          if (result.error) {
-            errorCount++
-            console.error(`Verify error for ${userId}:`, result.error)
-          } else {
-            successCount++
-          }
-        } catch (error) {
-          errorCount++
-          console.error(`Verify exception for ${userId}:`, error)
-        }
-      }
-
-      alert(`${successCount} kullanıcı onaylandı.${errorCount > 0 ? ` ${errorCount} kullanıcı için hata oluştu.` : ''}`)
-      setSelectedUserIds(new Set())
-    })
-  }
-
-  const handleBulkReject = async () => {
-    if (selectedUserIds.size === 0) return
-    if (!confirm(`${selectedUserIds.size} kullanıcıyı reddetmek istediğinizden emin misiniz?`)) return
-
-    startTransition(async () => {
-      const userIds = Array.from(selectedUserIds)
-      let successCount = 0
-      let errorCount = 0
-
-      for (const userId of userIds) {
-        try {
-          const result = await rejectUser(userId)
-          if (result.error) {
-            errorCount++
-            console.error(`Reject error for ${userId}:`, result.error)
-          } else {
-            successCount++
-          }
-        } catch (error) {
-          errorCount++
-          console.error(`Reject exception for ${userId}:`, error)
-        }
-      }
-
-      alert(`${successCount} kullanıcı reddedildi.${errorCount > 0 ? ` ${errorCount} kullanıcı için hata oluştu.` : ''}`)
-      setSelectedUserIds(new Set())
-    })
-  }
-
-  const toggleCard = (userId: string) => {
-    setExpandedCards((prev) => {
-      const next = new Set(prev)
-      if (next.has(userId)) {
-        next.delete(userId)
-      } else {
-        next.add(userId)
-      }
-      return next
-    })
-  }
-
-  const handleVerify = async (userId: string) => {
-    if (!confirm('Bu kullanıcıyı onaylamak istediğinizden emin misiniz?')) return
-
-    const loadingToast = toast.loading('Kullanıcı onaylanıyor...')
-
-    startTransition(async () => {
-      try {
-        const result = await verifyUser(userId)
-        toast.dismiss(loadingToast)
-
-        if (result.error) {
-          toast.error(result.error)
-          console.error('Verify error:', result.error)
-        } else {
-          toast.success('Kullanıcı başarıyla onaylandı!')
-        }
-      } catch (error) {
-        toast.dismiss(loadingToast)
-        console.error('Verify exception:', error)
-        toast.error('Bir hata oluştu. Lütfen tekrar deneyin.')
-      }
-      // Real-time subscription will automatically update the state
-    })
-  }
-
-  const handleReject = async (userId: string) => {
-    if (!confirm('Bu kullanıcıyı reddetmek istediğinizden emin misiniz?')) {
-      return
-    }
-
-    const loadingToast = toast.loading('İşlem yapılıyor...')
-
-    startTransition(async () => {
-      try {
-        const result = await rejectUser(userId)
-        toast.dismiss(loadingToast)
-
-        if (result.error) {
-          toast.error(result.error)
-          console.error('Reject error:', result.error)
-        } else {
-          toast.success('Kullanıcı reddedildi.')
-        }
-      } catch (error) {
-        toast.dismiss(loadingToast)
-        console.error('Reject exception:', error)
-        toast.error('Bir hata oluştu. Lütfen tekrar deneyin.')
-      }
-      // Real-time subscription will automatically update the state
-    })
-  }
-
-  const handleVerifyTaxId = async (userId: string) => {
-    if (!confirm('Bu markanın vergi numarasını onaylamak istediğinizden emin misiniz? Onaylandıktan sonra "Resmi İşletme" rozeti verilecektir.')) {
-      return
-    }
-
-    startTransition(async () => {
-      try {
-        const result = await verifyTaxId(userId)
-        if (result.error) {
-          alert(result.error)
-          console.error('Tax ID verification error:', result.error)
-        } else {
-          alert(result.message || 'Vergi numarası başarıyla onaylandı.')
-          // Sunucudaki güncel hali (rozetler, levha doğrulama durumu) ile yenile
-          const { user: updatedUser } = await getAdminUserCard(userId)
-          const updateUserInState = (users: User[]) =>
-            users.map((u) => (u.id === userId ? ((updatedUser as User | undefined) ?? { ...u, tax_id_verified: true }) : u))
-
-          setPendingUsersState(updateUserInState)
-          setVerifiedUsersState(updateUserInState)
-          setRejectedUsersState(updateUserInState)
-        }
-      } catch (error) {
-        console.error('Tax ID verification exception:', error)
-        alert('Bir hata oluştu. Lütfen tekrar deneyin.')
-      }
-    })
-  }
-
-  const handleToggleSpotlight = async (userId: string, currentSpotlight: boolean | null, userRole: string | null) => {
-    if (currentSpotlight) {
-      // Deactivate
-      if (!confirm(`Bu kullanıcının spotlight'ını kapatmak istediğinizden emin misiniz?`)) {
-        return
-      }
-
+  // Tek işlem: sonucu bildirir, başarıda kartı tazeler
+  const perform = (fn: () => Promise<ActionResult>, opts: { success?: string; reload?: string; after?: () => void } = {}) =>
+    new Promise<void>((resolve) => {
       startTransition(async () => {
         try {
-          const result = await toggleUserSpotlight(userId, false, null, 0)
-          if (result.error) {
-            alert(result.error)
-            console.error('Spotlight toggle error:', result.error)
+          const result = await fn()
+          if (result?.error) {
+            toast.error(result.error)
+          } else if (typeof result?.warning === 'string') {
+            toast.warning(result.warning)
+          } else if (result?.warning) {
+            toast.warning(result.message ?? 'İşlem uyarıyla tamamlandı.')
           } else {
-            // Update local state immediately
-            const updateUserInState = (users: User[]) =>
-              users.map((u) => (u.id === userId ? { ...u, spotlight_active: false, spotlight_plan: null } : u))
-
-            setPendingUsersState(updateUserInState)
-            setVerifiedUsersState(updateUserInState)
-            setRejectedUsersState(updateUserInState)
-            alert(result.message)
+            toast.success(result?.message || opts.success || 'İşlem tamamlandı.')
+          }
+          if (!result?.error) {
+            opts.after?.()
+            if (opts.reload) await reloadUser(opts.reload)
           }
         } catch (error) {
-          console.error('Spotlight toggle exception:', error)
-          alert('Bir hata oluştu.')
+          console.error('[AdminPanel]', error)
+          toast.error('Bir hata oluştu. Lütfen tekrar deneyin.')
+        } finally {
+          resolve()
         }
       })
-    } else {
-      // Activate - Open Modal
-      const role = userRole || 'influencer'
-      const defaultPlan = role === 'brand' ? 'mbasic' : 'ibasic'
-      setSpotlightForm({ plan: defaultPlan, duration: 1 }) // Default 1 month
-      setSpotlightModalData({ userId, role })
-    }
+    })
+
+  const confirmThen = (a: Ask) => setAsk(a)
+  const runAsk = async () => {
+    if (!ask) return
+    setAsking(true)
+    await ask.run()
+    setAsking(false)
+    setAsk(null)
   }
 
-  const handleSpotlightSubmit = () => {
-    if (!spotlightModalData) return
-
-    startTransition(async () => {
+  // Toplu işlem: sırayla çalışır, sonunda özet bildirir
+  const bulk = async (label: string, fn: (id: string) => Promise<ActionResult>, onSuccess: (id: string) => void) => {
+    const ids = Array.from(checked)
+    let ok = 0
+    let lastError = ''
+    for (const id of ids) {
       try {
-        const result = await toggleUserSpotlight(spotlightModalData.userId, true, spotlightForm.plan as any, spotlightForm.duration)
-        if (result.error) {
-          alert(result.error)
-        } else {
-          // Update local state
-          const updateUserInState = (users: User[]) =>
-            users.map((u) => (u.id === spotlightModalData.userId ? { ...u, spotlight_active: true, spotlight_plan: spotlightForm.plan as any } : u))
-
-          setPendingUsersState(updateUserInState)
-          setVerifiedUsersState(updateUserInState)
-          setRejectedUsersState(updateUserInState)
-
-          alert(result.message)
-          setSpotlightModalData(null)
+        const result = await fn(id)
+        if (result?.error) lastError = result.error
+        else {
+          ok++
+          onSuccess(id)
         }
       } catch (error) {
-        console.error('Spotlight submit error:', error)
-        alert('Bir hata oluştu.')
+        lastError = error instanceof Error ? error.message : 'Bilinmeyen hata'
       }
-    })
-  }
-
-  const handleAwardSpecificBadge = async (userId: string, badgeId: string) => {
-    if (!badgeId) {
-      alert('Lütfen bir rozet seçin.')
-      return
     }
-
-    if (!confirm(`"${badgeId}" rozetini bu kullanıcıya vermek istediğinizden emin misiniz?`)) {
-      return
-    }
-
-    startTransition(async () => {
-      try {
-        const result = await manuallyAwardSpecificBadge(userId, badgeId)
-        if (result.error) {
-          alert(result.error)
-          console.error('Badge awarding error:', result.error)
-        } else {
-          // Fetch updated user data to get the new displayed_badges
-          const { user: updatedUser } = await getAdminUserCard(userId)
-
-          if (updatedUser) {
-            const user = updatedUser as User
-            // Update user in all state lists
-            setPendingUsersState((prev) =>
-              prev.map((u) => (u.id === userId ? user : u))
-            )
-            setVerifiedUsersState((prev) =>
-              prev.map((u) => (u.id === userId ? user : u))
-            )
-            setRejectedUsersState((prev) =>
-              prev.map((u) => (u.id === userId ? user : u))
-            )
-          }
-
-          alert(result.message || 'Rozet başarıyla verildi.')
-          setBadgeModalUserId(null)
-          setSelectedBadgeId('')
-        }
-      } catch (error) {
-        console.error('Badge awarding exception:', error)
-        alert('Bir hata oluştu. Lütfen tekrar deneyin.')
-      }
-    })
+    const failed = ids.length - ok
+    if (failed) toast.error(`${ok} kullanıcı ${label}, ${failed} hata. Son hata: ${lastError}`, { duration: 6000 })
+    else toast.success(`${ok} kullanıcı ${label}.`)
+    setChecked(new Set())
   }
 
-  const handleResendVerificationEmail = async (userId: string) => {
-    if (!confirm('Bu kullanıcıya doğrulama e-postasını tekrar göndermek istediğinizden emin misiniz?')) {
-      return
-    }
-
-    startTransition(async () => {
-      try {
-        const result = await resendVerificationEmail(userId)
-        if (result.error) {
-          alert(result.error)
-          console.error('Resend verification error:', result.error)
-        } else {
-          alert(result.message || 'Doğrulama e-postası tekrar gönderildi.')
-        }
-      } catch (error) {
-        console.error('Resend verification exception:', error)
-        alert('Bir hata oluştu.')
-      }
-    })
-  }
-
-  const handleToggleBlueTick = async (userId: string, hasBlueTick: boolean, isInfluencer: boolean) => {
-    const action = hasBlueTick ? 'kaldırmak' : 'vermek'
-    const question = isInfluencer
-      ? `Mavi tik normalde otomatik kurala göre veriliyor (Spotlight + performans + güven). Bu kullanıcı için elle ${action} kalıcı bir istisna oluşturur. Devam edilsin mi?`
-      : `Bu markaya Sarı Tik (Resmi İşletme) rozetini ${action} istediğinizden emin misiniz?`
-    if (!confirm(question)) {
-      return
-    }
-
-    startTransition(async () => {
-      try {
-        const result = await toggleBlueTick(userId)
-        if (result.error) {
-          alert(result.error)
-        } else {
-          // Optimistic update or wait for realtime
-          alert(result.message)
-
-          // Manually update state to reflect change immediately if needed, 
-          // though realtime subscription should handle it
-          const { user: updatedUser } = await getAdminUserCard(userId)
-
-          if (updatedUser) {
-            const user = updatedUser as User
-            const updateUserInState = (users: User[]) =>
-              users.map((u) => (u.id === userId ? user : u))
-
-            setPendingUsersState(updateUserInState)
-            setVerifiedUsersState(updateUserInState)
-            setRejectedUsersState(updateUserInState)
-          }
-        }
-      } catch (error) {
-        console.error('Toggle blue tick error:', error)
-        alert('İşlem başarısız.')
-      }
-    })
-  }
-
-  const handleClearBlueTickOverride = async (userId: string) => {
-    startTransition(async () => {
-      try {
-        const result = await setBlueTickOverride(userId, null)
-        if (result.error) {
-          alert(result.error)
-          return
-        }
-        toast.success(result.message ?? 'Mavi tik otomatik kurala döndürüldü.')
-        const { user: updatedUser } = await getAdminUserCard(userId)
-        if (updatedUser) {
-          const updateUserInState = (users: User[]) => users.map((u) => (u.id === userId ? (updatedUser as User) : u))
-          setPendingUsersState(updateUserInState)
-          setVerifiedUsersState(updateUserInState)
-          setRejectedUsersState(updateUserInState)
-        }
-      } catch (error) {
-        console.error('Clear blue tick override error:', error)
-        alert('İşlem başarısız.')
-      }
-    })
-  }
-
-  const handleForceVerifyEmail = async (userId: string) => {
-    if (!confirm('DİKKAT: E-posta gönderilmeden kullanıcının e-postası sistemde manuel olarak onaylanacaktır. Devam edilsin mi?')) {
-      return
-    }
-
-    startTransition(async () => {
-      try {
-        const result = await forceVerifyEmail(userId)
-        if (result.error) {
-          alert(result.error)
-          console.error('Force verify error:', result.error)
-        } else {
-          alert(result.message || 'E-posta başarıyla onaylandı.')
-
-          // Update local state
-          const updateUserInState = (users: User[]) =>
-            users.map((u) => (u.id === userId ? { ...u, email_verified_at: new Date().toISOString() } : u))
-
-          setPendingUsersState(updateUserInState)
-          setVerifiedUsersState(updateUserInState)
-          setRejectedUsersState(updateUserInState)
-        }
-      } catch (error) {
-        console.error('Force verify exception:', error)
-        alert('Bir hata oluştu.')
-      }
-    })
-  }
-
-  const handleResetVerifiedBadges = async () => {
-    if (!confirm('Tüm mavi tikler silinecek ve hemen ardından yeni kurala (Spotlight + performans + güven) göre yeniden verilecek. Elle tanımlanan istisnalar korunur. Devam edilsin mi?')) {
-      return
-    }
-
-    setIsResettingBadges(true)
-    startTransition(async () => {
-      try {
-        const result = await resetVerifiedBadges()
-        if (result.error) {
-          alert(result.error)
-        } else {
-          alert(result.message || 'Mavi tikler sıfırlandı.')
-          window.location.reload()
-        }
-      } catch (error) {
-        console.error('Reset badges error:', error)
-        alert('Bir hata oluştu.')
-      } finally {
-        setIsResettingBadges(false)
-      }
-    })
-  }
-
-  const handleUpdateInstagramData = async (userId: string) => {
-    if (!confirm('Bu kullanıcının Instagram verilerini güncellemek istediğinizden emin misiniz?')) return
-
-    const loadingToast = toast.loading('Instagram verileri güncelleniyor...')
-
-    startTransition(async () => {
-      try {
-        const result = await adminUpdateInstagramData(userId)
-        toast.dismiss(loadingToast)
-
-        if (result.error) {
-          toast.error(result.error, { duration: 7000 })
-        } else if ((result as any).warning) {
-          toast((result as any).message, {
-            icon: '⚠️',
-            duration: 8000,
-            style: { background: '#1c1a00', color: '#fbbf24', border: '1px solid #d97706' }
+  const actionsFor = (user: AdminUser) => {
+    const isBrand = user.role === 'brand'
+    const tick = hasTick(user)
+    return {
+      verify: () =>
+        confirmThen({
+          title: 'Kullanıcı onaylansın mı?',
+          description: `${displayName(user)} onaylanır ve panele tam erişim kazanır.`,
+          confirmLabel: 'Onayla',
+          run: () => perform(() => verifyUser(user.id), { success: 'Kullanıcı onaylandı.', reload: user.id }),
+        }),
+      reject: () =>
+        confirmThen({
+          title: 'Kullanıcı reddedilsin mi?',
+          description: `${displayName(user)} reddedilir ve panele giremez.`,
+          confirmLabel: 'Reddet',
+          tone: 'danger',
+          run: () => perform(() => rejectUser(user.id), { success: 'Kullanıcı reddedildi.', reload: user.id }),
+        }),
+      remove: () =>
+        confirmThen({
+          title: 'Hesap kalıcı olarak silinsin mi?',
+          description: 'Kullanıcının profili, mesajları ve tüm verileri silinir. Bu işlem geri alınamaz.',
+          confirmLabel: 'Hesabı sil',
+          tone: 'danger',
+          run: () => perform(() => deleteUser(user.id), { success: 'Kullanıcı silindi.', after: () => dropUser(user.id) }),
+        }),
+      resendEmail: () =>
+        confirmThen({
+          title: 'Doğrulama e-postası gönderilsin mi?',
+          description: user.email ?? undefined,
+          confirmLabel: 'Gönder',
+          run: () => perform(() => resendVerificationEmail(user.id), { success: 'Doğrulama e-postası gönderildi.' }),
+        }),
+      forceVerifyEmail: () =>
+        confirmThen({
+          title: 'E-posta elle onaylansın mı?',
+          description: 'E-posta gönderilmeden kullanıcının e-postası sistemde onaylı sayılır.',
+          confirmLabel: 'Onayla',
+          run: () =>
+            perform(() => forceVerifyEmail(user.id), {
+              success: 'E-posta onaylandı.',
+              after: () => patchUser(user.id, { email_verified_at: new Date().toISOString() }),
+            }),
+        }),
+      toggleTick: () =>
+        confirmThen({
+          title: isBrand ? (tick ? 'Sarı tik kaldırılsın mı?' : 'Sarı tik verilsin mi?') : tick ? 'Mavi tik kaldırılsın mı?' : 'Mavi tik verilsin mi?',
+          description: isBrand
+            ? 'Resmi İşletme rozeti elle değiştirilir.'
+            : 'Mavi tik normalde otomatik kurala göre verilir (Spotlight + performans + güven). Elle değiştirmek kalıcı bir istisna oluşturur.',
+          confirmLabel: tick ? 'Kaldır' : 'Ver',
+          tone: tick ? 'danger' : 'primary',
+          run: () => perform(() => toggleBlueTick(user.id), { reload: user.id }),
+        }),
+      clearTickOverride: () =>
+        perform(() => setBlueTickOverride(user.id, null), { success: 'Mavi tik otomatik kurala döndürüldü.', reload: user.id }),
+      verifyTaxId: () =>
+        confirmThen({
+          title: 'Vergi numarası onaylansın mı?',
+          description: 'Onaylanınca markaya "Resmi İşletme" rozeti verilir.',
+          confirmLabel: 'Onayla',
+          run: () => perform(() => verifyTaxId(user.id), { success: 'Vergi numarası onaylandı.', reload: user.id }),
+        }),
+      spotlight: () => {
+        if (user.spotlight_active) {
+          confirmThen({
+            title: 'Spotlight kapatılsın mı?',
+            confirmLabel: 'Kapat',
+            tone: 'danger',
+            run: () =>
+              perform(() => toggleUserSpotlight(user.id, false, null, 0), {
+                after: () => patchUser(user.id, { spotlight_active: false, spotlight_plan: null }),
+              }),
           })
         } else {
-          toast.success('Instagram verileri başarıyla güncellendi!')
+          setSpotlight({ user, plan: isBrand ? 'mbasic' : 'ibasic', months: 1 })
         }
-      } catch (error) {
-        toast.dismiss(loadingToast)
-        console.error('Update instagram data exception:', error)
-        toast.error('Bir hata oluştu.')
-      }
+      },
+      awardBadge: () => setBadge({ user, badgeId: '' }),
+      updateInstagram: () =>
+        confirmThen({
+          title: 'Instagram verisi güncellensin mi?',
+          description: 'Profil ve son gönderiler yeniden çekilir (API kredisi harcar).',
+          confirmLabel: 'Güncelle',
+          run: () => perform(() => adminUpdateInstagramData(user.id) as Promise<ActionResult>, { success: 'Instagram verileri güncellendi.', reload: user.id }),
+        }),
+    }
+  }
+
+  const resetTicks = () =>
+    confirmThen({
+      title: 'Mavi tikler yeniden değerlendirilsin mi?',
+      description: 'Tüm mavi tikler silinir ve hemen yeni kurala (Spotlight + performans + güven) göre yeniden verilir. Elle tanımlanan istisnalar korunur.',
+      confirmLabel: 'Yeniden değerlendir',
+      tone: 'danger',
+      run: () => perform(() => resetVerifiedBadges(), { success: 'Mavi tikler yeniden değerlendirildi.', after: () => window.location.reload() }),
     })
-  }
 
-  const getAvailableBadges = (userRole: 'influencer' | 'brand' | null) => {
-    if (userRole === 'influencer') {
-      return influencerBadges
-    } else if (userRole === 'brand') {
-      return brandBadges
-    }
-    return [...influencerBadges, ...brandBadges]
-  }
+  const counts = Object.fromEntries(TABS.map((t) => [t.key, all.filter((u) => inTab(u, t.key)).length])) as Record<TabKey, number>
+  const pendingBrands = all.filter((u) => u.role === 'brand' && u.verification_status === 'pending').length
+  const allChecked = rows.length > 0 && rows.every((u) => checked.has(u.id))
+  const toggleAll = () => setChecked(allChecked ? new Set() : new Set(rows.map((u) => u.id)))
+  const toggleOne = (id: string) =>
+    setChecked((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
 
-  const getSocialLink = (user: User, platform: 'instagram' | 'tiktok' | 'youtube' | 'website') => {
-    const socialLinks = user.social_links as Record<string, string | null> | null
-    if (!socialLinks) return null
-    return socialLinks[platform] || null
-  }
-
-  const formatSocialLink = (link: string | null, platform: 'instagram' | 'tiktok' | 'youtube') => {
-    if (!link) return null
-    if (link.startsWith('http')) return link
-    if (platform === 'instagram') return `https://instagram.com/${link.replace('@', '').replace('https://instagram.com/', '')}`
-    if (platform === 'tiktok') return `https://tiktok.com/@${link.replace('@', '').replace('https://tiktok.com/@', '')}`
-    if (platform === 'youtube') return link.startsWith('@') ? `https://youtube.com/${link}` : link
-    return link
-  }
-
-  const getSocialLinksCount = (user: User) => {
-    const socialLinks = user.social_links as Record<string, string | null> | null
-    if (!socialLinks) return 0
-    return Object.values(socialLinks).filter((link) => link && link.trim().length > 0).length
-  }
-
-  const getMissingInfo = (user: User) => {
-    const missing: string[] = []
-    const socialLinksCount = getSocialLinksCount(user)
-
-    if (socialLinksCount === 0) {
-      missing.push('Sosyal medya hesabı yok')
-    }
-    if (!user.bio) {
-      missing.push('Biyografi')
-    }
-    if (!user.category) {
-      missing.push('Kategori')
-    }
-    if (!user.city) {
-      missing.push('Şehir')
-    }
-    if (!user.avatar_url) {
-      missing.push('Profil fotoğrafı')
-    }
-
-    return missing
-  }
-
-  const currentUsers = getCurrentUsers()
+  const badgeOptions = badge ? (badge.user.role === 'brand' ? brandBadges : influencerBadges) : []
 
   return (
-    <div>
-      <div className="mx-auto max-w-7xl">
-        <div className="rounded-2xl border border-line bg-surface-1 p-5 sm:p-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">YÖNETİCİ PANELİ</p>
-              <h1 className="mt-4 text-3xl font-semibold text-white">Kullanıcı Yönetimi</h1>
-              <p className="mt-2 text-gray-300">Platformdaki tüm kullanıcıları buradan yönetebilirsiniz.</p>
-
-              {/* Statistics */}
-              <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">TOPLAM KULLANICI</p>
-                  <p className="mt-2 text-2xl font-semibold text-soft-gold">{totalUsers}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">INFLUENCER</p>
-                  <p className="mt-2 text-2xl font-semibold text-blue-400">{influencerCount}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">MARKA</p>
-                  <p className="mt-2 text-2xl font-semibold text-purple-400">{brandCount}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-gray-400">ŞU AN ÇEVRİMİÇİ</p>
-                  <p className="mt-2 flex items-center gap-2 text-2xl font-semibold text-emerald-400">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                    {onlineCount}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="mt-8 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex flex-1 gap-2 rounded-2xl border border-white/10 bg-[#0c0d13] p-1 w-full md:w-auto">
-              {tabsWithCounts.map((tab) => {
-                const isActive = activeTab === tab.key
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${isActive
-                      ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                      : 'text-gray-400 hover:text-white'
-                      }`}
-                  >
-                    {tab.label} ({tab.count})
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleResetVerifiedBadges}
-                disabled={isResettingBadges || isPending}
-                className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/50 text-red-500 hover:bg-red-500/20 text-xs font-bold transition flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-                title="Tüm mavi tikleri silip yeni kurala göre yeniden verir"
-              >
-                {isResettingBadges ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    DEĞERLENDİRİLİYOR...
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="w-4 h-4" />
-                    SİSTEM: MAVİ TİKLERİ YENİDEN DEĞERLENDİR
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Search bar - Only for verified influencer and brand tabs */}
-          {(activeTab === 'verified_influencer' || activeTab === 'verified_brand') && (
-            <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-1 w-full">
-                <input
-                  type="text"
-                  placeholder="İsim, e-posta veya kullanıcı adı ara..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-sm text-white placeholder-gray-500 focus:border-soft-gold/60 focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
-                />
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Bulk Actions - Only for pending and rejected tabs */}
-          {(activeTab === 'pending' || activeTab === 'rejected') && (
-            <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center gap-4">
-                <button
-                  type="button"
-                  onClick={selectedUserIds.size === getCurrentUsers().length ? clearSelection : selectAllUsers}
-                  className="text-sm font-semibold text-soft-gold hover:text-champagne"
-                >
-                  {selectedUserIds.size === getCurrentUsers().length ? 'Seçimi Kaldır' : 'Tümünü Seç'}
-                </button>
-                <span className="text-sm text-gray-400">
-                  {selectedUserIds.size > 0 ? `${selectedUserIds.size} kullanıcı seçildi` : 'Kullanıcı seçilmedi'}
-                </span>
-              </div>
-              {selectedUserIds.size > 0 && (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleBulkDelete}
-                    disabled={isPending}
-                    className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isPending ? <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 inline h-4 w-4" />}
-                    Seçilenleri Sil
-                  </button>
-                  {activeTab === 'pending' && (
-                    <button
-                      type="button"
-                      onClick={handleBulkVerify}
-                      disabled={isPending}
-                      className="rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isPending ? (
-                        <>
-                          <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                          Onaylanıyor...
-                        </>
-                      ) : (
-                        `${selectedUserIds.size} Kullanıcıyı Onayla`
-                      )}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleBulkReject}
-                    disabled={isPending}
-                    className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                        Reddediliyor...
-                      </>
-                    ) : (
-                      `${selectedUserIds.size} Kullanıcıyı Reddet`
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'applications' ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-white">Platform Genelindeki Tüm Başvurular</h3>
-                <button
-                  onClick={fetchApplications}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-400 hover:text-white"
-                >
-                  Yenile
-                </button>
-              </div>
-
-              {isLoadingApplications ? (
-                <div className="flex flex-col items-center justify-center p-20 text-gray-500">
-                  <Loader2 className="h-10 w-10 animate-spin mb-4" />
-                  Başvurular yükleniyor...
-                </div>
-              ) : applicationsState.length === 0 ? (
-                <div className="rounded-3xl border border-white/5 bg-white/2 p-20 text-center text-gray-500">
-                  Henüz hiç başvuru bulunamadı.
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {applicationsState.map((app) => (
-                    <div key={app.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="flex items-start gap-3">
-                          <div className="h-12 w-12 overflow-hidden rounded-xl border border-white/10">
-                            {app.influencer?.avatar_url ? (
-                              <Image src={app.influencer.avatar_url} alt="" width={48} height={48} className="object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-white/5 text-gray-500 uppercase">
-                                {app.influencer?.full_name?.charAt(0) || '?'}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-white">{app.influencer?.full_name || 'Bilinmeyen Influencer'}</h4>
-                            <p className="text-sm text-gray-400">@{app.influencer?.username || 'user'}</p>
-                            <div className="mt-1 flex items-center gap-2 text-xs text-soft-gold">
-                              <span>Başvurduğu İlan:</span>
-                              <span className="font-medium text-white">{app.advert?.title || 'İlan Silinmiş'}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="inline-block rounded-full border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 shadow-glow">
-                            {app.status}
-                          </div>
-                          <p className="mt-2 text-xs text-gray-500">
-                            {new Date(app.created_at).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-4 rounded-xl bg-black/40 p-3 text-sm text-gray-300">
-                        <p className="font-semibold text-xs uppercase text-gray-500 mb-1">Niyet Mesajı:</p>
-                        {app.cover_letter || 'Mesaj yok.'}
-                      </div>
-                      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-                        <span>İlan ID: <code className="text-[10px] text-gray-400">{app.advert_id}</code></span>
-                        <span>Influencer ID: <code className="text-[10px] text-gray-400">{app.influencer_id}</code></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : activeTab === 'notifications' ? (
-            <div className="mt-8">
-              <NotificationsPanel users={[...pendingUsers, ...verifiedUsers, ...rejectedUsers]} />
-            </div>
-          ) : activeTab === 'adverts' ? (
-            <div className="mt-8">
-              {isLoadingAdverts ? (
-                <div className="flex items-center justify-center p-20">
-                  <Loader2 className="h-10 w-10 animate-spin text-soft-gold" />
-                </div>
-              ) : advertsState.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-20 text-center text-gray-400">
-                  Yayınlanmış ilan bulunmamaktadır.
-                </div>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {advertsState.map((advert) => (
-                    <div
-                      key={advert.id}
-                      className="group rounded-3xl border border-white/10 bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${advert.status === 'open' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
-                          {advert.status === 'open' ? 'AÇIK' : advert.status === 'paused' ? 'DURDURULDU' : 'KAPALI'}
-                        </span>
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/discover/advert/${advert.id}`}
-                            target="_blank"
-                            className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white transition"
-                            title="İlanı Görüntüle"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteAdvert(advert.id)}
-                            className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
-                            title="İlanı Sil"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1">{advert.title}</h3>
-                      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{advert.summary}</p>
-
-                      <div className="mt-auto pt-4 border-t border-white/10 space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                          <div className="relative h-6 w-6 rounded-lg overflow-hidden border border-white/10 bg-white/5">
-                            {advert.brand?.avatar_url ? (
-                              <Image src={advert.brand.avatar_url} alt="" fill className="object-cover" />
-                            ) : (
-                              <div className="flex items-center justify-center h-full w-full bg-soft-gold/20 text-soft-gold font-bold">
-                                {advert.brand?.full_name?.[0] || 'B'}
-                              </div>
-                            )}
-                          </div>
-                          <span className="truncate">{advert.brand?.full_name || 'Marka Adı Yok'}</span>
-                          {advert.brand?.username && <span className="text-gray-600">(@{advert.brand.username})</span>}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                          <Calendar className="h-3 w-3" />
-                          <span>
-                            {new Date(advert.created_at).toLocaleDateString('tr-TR', {
-                              day: '2-digit',
-                              month: 'long',
-                              year: 'numeric'
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            /* User Grid */
-            <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {currentUsers.length === 0 ? (
-                <div className="col-span-full rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-gray-400">
-                  {activeTab === 'pending' && 'Bekleyen kullanıcı bulunmamaktadır.'}
-                  {activeTab === 'verified_influencer' && 'Onaylı influencer bulunmamaktadır.'}
-                  {activeTab === 'verified_brand' && 'Onaylı marka bulunmamaktadır.'}
-                  {activeTab === 'rejected' && 'Reddedilen kullanıcı bulunmamaktadır.'}
-                </div>
-              ) : (
-                currentUsers.map((user) => {
-                  const isExpanded = expandedCards.has(user.id)
-                  const isInfluencer = user.role === 'influencer'
-                  const instagramLink = formatSocialLink(getSocialLink(user, 'instagram'), 'instagram')
-                  const tiktokLink = formatSocialLink(getSocialLink(user, 'tiktok'), 'tiktok')
-                  const youtubeLink = formatSocialLink(getSocialLink(user, 'youtube'), 'youtube')
-                  const websiteLink = getSocialLink(user, 'website')
-
-                  return (
-                    <div
-                      key={user.id}
-                      className={`group rounded-3xl border bg-gradient-to-br from-[#0B0C10] to-[#0F1014] p-6 transition hover:border-soft-gold/40 hover:shadow-glow ${selectedUserIds.has(user.id)
-                        ? 'border-soft-gold/60 bg-soft-gold/5'
-                        : 'border-white/10'
-                        }`}
-                    >
-                      {/* Checkbox - Only for pending and rejected tabs */}
-                      {(activeTab === 'pending' || activeTab === 'rejected') && (
-                        <div className="mb-4 flex items-center justify-end">
-                          <input
-                            type="checkbox"
-                            checked={selectedUserIds.has(user.id)}
-                            onChange={() => toggleUserSelection(user.id)}
-                            className="h-4 w-4 rounded border-white/20 bg-white/5 text-soft-gold focus:ring-soft-gold/50"
-                          />
-                        </div>
-                      )}
-
-                      {/* User ID */}
-                      <div className="mb-2 flex items-center gap-2">
-                        <span className="text-xs text-gray-500">ID:</span>
-                        <span className="text-xs font-mono text-gray-400">{user.id}</span>
-                      </div>
-
-                      {/* Header: Avatar, Name, Role, Status */}
-                      <div className="flex items-start gap-4">
-                        <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-white/5">
-                          {user.avatar_url ? (
-                            <Image
-                              src={user.avatar_url}
-                              alt={user.full_name ?? 'İsimsiz'}
-                              fill
-                              sizes="64px"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xl font-semibold text-soft-gold">
-                              {user.full_name?.[0] ?? user.email?.[0] ?? 'U'}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-white truncate">{user.full_name ?? 'İsimsiz'}</h3>
-                          {user.username && (
-                            <p className="text-sm text-gray-400 truncate">@{user.username}</p>
-                          )}
-                          <div className="mt-1 flex flex-wrap items-center gap-2">
-                            {isOnline(lastSeen[user.id], presenceNow) ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                                Çevrimiçi
-                              </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-white/5 px-1.5 py-0.5 rounded"
-                                title={lastSeen[user.id] ? new Date(lastSeen[user.id]).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) : undefined}
-                              >
-                                <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
-                                Son görülme: {formatLastSeen(lastSeen[user.id], presenceNow)}
-                              </span>
-                            )}
-
-                            {user.email_verified_at ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
-                                <CheckCircle className="h-3 w-3" />
-                                E-posta Onaylı
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
-                                <XCircle className="h-3 w-3" />
-                                E-posta Onaysız
-                              </span>
-                            )}
-                            {isInfluencer ? (
-                              user.displayed_badges?.includes('verified-account') ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
-                                  <BadgeCheck className="h-3 w-3" />
-                                  Mavi Tik: Var
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
-                                  <XCircle className="h-3 w-3" />
-                                  Mavi Tik: Yok
-                                </span>
-                              )
-                            ) : (
-                              user.displayed_badges?.includes('official-business') ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-soft-gold bg-soft-gold/10 px-1.5 py-0.5 rounded">
-                                  <BadgeCheck className="h-3 w-3" />
-                                  Sarı Tik: Var
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-400/10 px-1.5 py-0.5 rounded">
-                                  <XCircle className="h-3 w-3" />
-                                  Sarı Tik: Yok
-                                </span>
-                              )
-                            )}
-
-                            <button
-                              onClick={() => handleResendVerificationEmail(user.id)}
-                              className="inline-flex items-center gap-1 rounded-full border border-soft-gold/40 bg-soft-gold/10 px-2 py-0.5 text-[10px] font-medium text-soft-gold hover:bg-soft-gold/20"
-                            >
-                              <Mail className="h-3 w-3" />
-                              Tekrar Gönder
-                            </button>
-
-                            {!user.email_verified_at && (
-                              <button
-                                onClick={() => handleForceVerifyEmail(user.id)}
-                                className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500/20"
-                                title="E-posta gönderilmeden sistemde doğrudan onaylanır"
-                              >
-                                <CheckCircle className="h-3 w-3" />
-                                Manuel Onayla
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => handleToggleBlueTick(user.id, isInfluencer ? (user.displayed_badges?.includes('verified-account') ?? false) : (user.displayed_badges?.includes('official-business') ?? false), isInfluencer)}
-                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${isInfluencer
-                                ? (user.displayed_badges?.includes('verified-account')
-                                  ? 'border-blue-500/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                                  : 'border-gray-500/40 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300')
-                                : (user.displayed_badges?.includes('official-business')
-                                  ? 'border-soft-gold/40 bg-soft-gold/10 text-soft-gold hover:bg-soft-gold/20'
-                                  : 'border-gray-500/40 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300')
-                                }`}
-                            >
-                              <BadgeCheck className="h-3 w-3" />
-                              {isInfluencer
-                                ? (user.displayed_badges?.includes('verified-account') ? 'Mavi Tik Kaldır' : 'Mavi Tik Ekle')
-                                : (user.displayed_badges?.includes('official-business') ? 'Sarı Tik Kaldır' : 'Sarı Tik Ekle')
-                              }
-                            </button>
-                            {isInfluencer && user.blue_tick_override && (
-                              <button
-                                onClick={() => handleClearBlueTickOverride(user.id)}
-                                title="Mavi tik bu kullanıcı için elle ayarlandı; otomatik kurala döndürmek için tıklayın."
-                                className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-300 hover:bg-sky-500/20"
-                              >
-                                {user.blue_tick_override === 'granted' ? 'Elle verildi' : 'Elle kaldırıldı'} · Otomatiğe döndür
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400 hover:bg-red-500/20"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              Sil
-                            </button>
-                          </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${isInfluencer
-                                ? 'border-purple-500/40 bg-purple-500/10 text-purple-300'
-                                : 'border-soft-gold/40 bg-soft-gold/10 text-soft-gold'
-                                }`}
-                            >
-                              {isInfluencer ? 'Influencer' : 'Marka'}
-                            </span>
-                            <span
-                              className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${user.verification_status === 'pending'
-                                ? 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200'
-                                : user.verification_status === 'verified'
-                                  ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-                                  : 'border-red-400/40 bg-red-400/10 text-red-200'
-                                }`}
-                            >
-                              {user.verification_status === 'pending'
-                                ? 'Bekliyor'
-                                : user.verification_status === 'verified'
-                                  ? 'Onaylı'
-                                  : 'Reddedildi'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tax ID Pending Notice - Only for brands */}
-                      {
-                        !isInfluencer && user.tax_id && !user.tax_id_verified && (
-                          <div className="mt-4 rounded-2xl border-2 border-yellow-500/50 bg-yellow-500/15 p-3 shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                            <div className="flex items-center gap-2 text-xs font-semibold text-yellow-300 mb-1">
-                              <AlertCircle className="h-3.5 w-3.5" />
-                              ⚠️ Vergi No Onayı Bekliyor
-                            </div>
-                            <p className="text-xs text-yellow-200/90">
-                              {user.tax_verification?.status === 'needs_review'
-                                ? 'Vergi levhası yüklendi; otomatik kontrol bazı noktalarda takıldı, incelemeniz gerekiyor.'
-                                : 'Bu marka vergi numarasını girdi ancak henüz onaylanmadı.'}
-                            </p>
-                          </div>
-                        )
-                      }
-
-                      {/* Profile Completeness Info */}
-                      {
-                        activeTab === 'pending' && (
-                          <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3">
-                            <div className="flex items-center gap-2 text-xs font-semibold text-blue-300 mb-2">
-                              <Info className="h-3.5 w-3.5" />
-                              Profil Durumu
-                            </div>
-                            <div className="space-y-1.5 text-xs">
-                              <div className="flex items-center justify-between">
-                                <span className="text-gray-300">Sosyal Hesaplar:</span>
-                                <span className={`font-semibold ${getSocialLinksCount(user) >= 1 ? 'text-emerald-300' : 'text-red-300'}`}>
-                                  {getSocialLinksCount(user)} / En az 1 gerekli
-                                </span>
-                              </div>
-                              {getMissingInfo(user).length > 0 && (
-                                <div className="mt-2 pt-2 border-t border-white/10">
-                                  <p className="text-gray-400 mb-1">Eksik Bilgiler:</p>
-                                  <ul className="list-disc list-inside space-y-0.5 text-gray-400">
-                                    {getMissingInfo(user).slice(0, 3).map((info, idx) => (
-                                      <li key={idx}>{info}</li>
-                                    ))}
-                                    {getMissingInfo(user).length > 3 && (
-                                      <li className="text-gray-500">+{getMissingInfo(user).length - 3} daha</li>
-                                    )}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      }
-
-                      {/* Contact Info */}
-                      <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-300">
-                          <Mail className="h-4 w-4 text-gray-500" />
-                          <span className="truncate">{user.email}</span>
-                        </div>
-                        {user.city && (
-                          <div className="flex items-center gap-2 text-sm text-gray-300">
-                            <MapPin className="h-4 w-4 text-gray-500" />
-                            <span>{user.city}</span>
-                          </div>
-                        )}
-                        {user.category && (
-                          <div className="flex items-center gap-2 text-sm text-gray-300">
-                            <Briefcase className="h-4 w-4 text-gray-500" />
-                            <span>{getCategoryLabel(user.category)}</span>
-                          </div>
-                        )}
-                        {/* Brand Verification Info - Only for brands */}
-                      </div>
-                      {
-                        !isInfluencer && (
-                          <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
-                              <Award className="h-3.5 w-3.5" />
-                              Şirket Doğrulama Bilgileri
-                            </div>
-
-                            {/* Tax ID */}
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs text-gray-400">Vergi No:</span>
-                                {user.tax_id ? (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-mono text-white">{user.tax_id}</span>
-                                    {user.tax_id_verified ? (
-                                      <div className="flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1">
-                                        <CheckCircle className="h-3 w-3 text-emerald-300" />
-                                        <span className="text-xs font-semibold text-emerald-300">Onaylı</span>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleVerifyTaxId(user.id)}
-                                        disabled={isPending}
-                                        className="rounded-lg border border-soft-gold/40 bg-soft-gold/10 px-3 py-1 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                      >
-                                        {isPending ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
-                                        ) : (
-                                          'Vergi Numarasını Onayla'
-                                        )}
-                                      </button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-gray-500">Girilmedi</span>
-                                )}
-                              </div>
-                              {user.tax_id && (() => {
-                                const taxCheck = validateTaxNumber(user.tax_id)
-                                return taxCheck.isValid ? (
-                                  <p className="text-xs text-emerald-300/80">
-                                    {taxCheck.type === 'vkn' ? 'VKN (şirket)' : 'T.C. kimlik no (şahıs şirketi)'}: algoritma kontrolü geçti
-                                  </p>
-                                ) : (
-                                  <p className="text-xs text-red-300">⚠️ Algoritma kontrolünden geçmiyor: geçersiz numara</p>
-                                )
-                              })()}
-                              {user.tax_verification ? (
-                                <TaxVerificationReview key={user.tax_verification.id} verification={user.tax_verification} />
-                              ) : (
-                                user.tax_id && !user.tax_id_verified && (
-                                  <p className="text-xs text-gray-500">Vergi levhası henüz yüklenmedi.</p>
-                                )
-                              )}
-                            </div>
-
-                            {/* Kurumsal e-posta (sarı tik için zorunlu) */}
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-xs text-gray-400">Kurumsal E-posta:</span>
-                              {user.corporate_email ? (
-                                <span className="flex items-center gap-2 text-sm text-white">
-                                  {user.corporate_email}
-                                  {user.corporate_email_verified_at ? (
-                                    <span className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">Doğrulandı</span>
-                                  ) : (
-                                    <span className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-semibold text-yellow-300">Doğrulanmadı</span>
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-gray-500">Girilmedi (sarı tik verilemez)</span>
-                              )}
-                            </div>
-
-                            {/* Company Legal Name */}
-                            {user.company_legal_name && (
-                              <div className="space-y-1">
-                                <span className="text-xs text-gray-400">Yasal Şirket Adı:</span>
-                                <p className="text-sm text-white">{user.company_legal_name}</p>
-                              </div>
-                            )}
-
-                            {/* Tax Office & City */}
-                            {(user.tax_office || user.tax_office_city) && (
-                              <div className="grid grid-cols-2 gap-4 mt-2">
-                                {user.tax_office && (
-                                  <div className="space-y-1">
-                                    <span className="text-xs text-gray-400">Vergi Dairesi:</span>
-                                    <p className="text-sm text-white">{user.tax_office}</p>
-                                  </div>
-                                )}
-                                {user.tax_office_city && (
-                                  <div className="space-y-1">
-                                    <span className="text-xs text-gray-400">Bağlı Olduğu İl:</span>
-                                    <p className="text-sm text-white">{user.tax_office_city}</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Email Domain Check */}
-                            {user.email && websiteLink && (() => {
-                              const emailDomain = user.email.split('@')[1]?.toLowerCase()
-                              const websiteDomain = websiteLink
-                                .replace(/^https?:\/\//, '')
-                                .replace(/^www\./, '')
-                                .split('/')[0]
-                                .toLowerCase()
-
-                              const domainsMatch = emailDomain && websiteDomain && emailDomain === websiteDomain
-
-                              return domainsMatch ? (
-                                <div className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3">
-                                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
-                                    <CheckCircle className="h-4 w-4" />
-                                    Güvenilir Hesap
-                                  </div>
-                                  <p className="mt-1 text-xs text-gray-400">
-                                    E-posta domaini ({emailDomain}) ile web sitesi ({websiteDomain}) eşleşiyor.
-                                  </p>
-                                </div>
-                              ) : null
-                            })()}
-                          </div>
-                        )
-                      }
-
-                      {/* Social Media Links */}
-                      {
-                        (instagramLink || tiktokLink || youtubeLink || websiteLink) && (
-                          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
-                            {instagramLink && (
-                              <div className="flex items-center gap-1">
-                                <a
-                                  href={instagramLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 rounded-xl border border-pink-500/40 bg-pink-500/10 px-3 py-1.5 text-xs font-semibold text-pink-300 transition hover:border-pink-500 hover:bg-pink-500/20"
-                                  title="Instagram'ı Kontrol Et"
-                                >
-                                  <Instagram className="h-3.5 w-3.5" />
-                                  Instagram
-                                </a>
-                                {activeTab !== 'rejected' && isInfluencer && (
-                                  <button
-                                    onClick={() => handleUpdateInstagramData(user.id)}
-                                    disabled={isPending}
-                                    className="inline-flex items-center gap-1.5 rounded-xl border border-soft-gold/40 bg-soft-gold/10 px-3 py-1.5 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-                                    title="Verileri Güncelle"
-                                  >
-                                    <Database className="h-3.5 w-3.5" />
-                                    Güncelle
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                            {tiktokLink && (
-                              <a
-                                href={tiktokLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-xl border border-black/40 bg-black/20 px-3 py-1.5 text-xs font-semibold text-gray-300 transition hover:border-gray-500 hover:bg-black/30"
-                              >
-                                <span className="text-[10px] font-bold">TT</span>
-                                TikTok
-                              </a>
-                            )}
-                            {youtubeLink && (
-                              <a
-                                href={youtubeLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20"
-                              >
-                                <Youtube className="h-3.5 w-3.5" />
-                                YouTube
-                              </a>
-                            )}
-                            {websiteLink && (
-                              <a
-                                href={websiteLink.startsWith('http') ? websiteLink : `https://${websiteLink}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 transition hover:border-blue-500 hover:bg-blue-500/20"
-                              >
-                                <Globe className="h-3.5 w-3.5" />
-                                Siteye Git
-                              </a>
-                            )}
-                          </div>
-                        )
-                      }
-
-                      {/* Bio */}
-                      {
-                        user.bio && (
-                          <div className="mt-4 border-t border-white/10 pt-4">
-                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-soft-gold mb-2">
-                              <FileText className="h-3.5 w-3.5" />
-                              BİYOGRAFİ
-                            </div>
-                            <p className={`text-sm text-gray-300 ${!isExpanded ? 'line-clamp-3' : ''}`}>
-                              {user.bio}
-                            </p>
-                            {user.bio.length > 150 && (
-                              <button
-                                type="button"
-                                onClick={() => toggleCard(user.id)}
-                                className="mt-2 text-xs text-soft-gold hover:underline"
-                              >
-                                {isExpanded ? 'Daha az göster' : 'Devamını oku'}
-                              </button>
-                            )}
-                          </div>
-                        )
-                      }
-
-                      {/* Created Date */}
-                      <div className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-gray-500">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>
-                          {new Date(user.created_at).toLocaleDateString('tr-TR', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      </div>
-
-                      {/* Admin Notes */}
-                      {
-                        user.admin_notes && (
-                          <div className="mt-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-3">
-                            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-yellow-300 mb-1">
-                              <AlertCircle className="h-3.5 w-3.5" />
-                              YÖNETİCİ NOTU
-                            </div>
-                            <p className="text-xs text-yellow-200/90">{user.admin_notes}</p>
-                          </div>
-                        )
-                      }
-
-                      {/* User Badges - Only for verified users */}
-                      {
-                        (activeTab === 'verified_influencer' || activeTab === 'verified_brand') && user.displayed_badges && Array.isArray(user.displayed_badges) && user.displayed_badges.length > 0 && (() => {
-                          const badgeIds = user.displayed_badges.filter((id): id is string => typeof id === 'string' && id.length > 0)
-                          const availableBadges = getAvailableBadges(user.role)
-                          const userBadges = badgeIds
-                            .map((badgeId) => availableBadges.find((b) => b.id === badgeId))
-                            .filter((badge): badge is Badge => badge !== undefined)
-
-                          if (userBadges.length === 0) return null
-
-                          return (
-                            <div className="mt-4 border-t border-white/10 pt-4">
-                              <BadgeCompactList badges={userBadges} userRole={user.role ?? 'influencer'} />
-                            </div>
-                          )
-                        })()
-                      }
-
-                      {/* Action Buttons */}
-                      <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-4">
-                        {activeTab === 'pending' && (
-                          <>
-                            {instagramLink && (
-                              <div className="mb-2 flex items-center gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
-                                <AlertCircle className="h-3.5 w-3.5 text-yellow-300" />
-                                <span className="text-xs text-yellow-200">Instagram'ı Kontrol Et</span>
-                              </div>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleVerify(user.id)}
-                              disabled={isPending}
-                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <CheckCircle className="h-4 w-4" />
-                              )}
-                              Onayla
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleReject(user.id)}
-                              disabled={isPending}
-                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <XCircle className="h-4 w-4" />
-                              )}
-                              Reddet
-                            </button>
-                          </>
-                        )}
-                        {(activeTab === 'verified_influencer' || activeTab === 'verified_brand') && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setBadgeModalUserId(user.id)
-                                setSelectedBadgeId('')
-                              }}
-                              disabled={isPending}
-                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-500/60 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-300 transition hover:border-blue-500 hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              <Award className="h-4 w-4" />
-                              Rozet Ver
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSpotlight(user.id, user.spotlight_active ?? false, user.role)}
-                              disabled={isPending}
-                              className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${user.spotlight_active
-                                ? 'border-purple-500/60 bg-purple-500/10 text-purple-300 hover:border-purple-500 hover:bg-purple-500/20'
-                                : 'border-gray-500/60 bg-gray-500/10 text-gray-300 hover:border-gray-500 hover:bg-gray-500/20'
-                                }`}
-                            >
-                              {isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Star className={`h-4 w-4 ${user.spotlight_active ? 'fill-purple-300 text-purple-300' : ''}`} />
-                              )}
-                              {user.spotlight_active ? 'Spotlight Aktif' : 'Spotlight Pasif'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleReject(user.id)}
-                              disabled={isPending}
-                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:border-red-500 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <XCircle className="h-4 w-4" />
-                              )}
-                              Reddet
-                            </button>
-                          </>
-                        )}
-                        {activeTab === 'rejected' && (
-                          <button
-                            type="button"
-                            onClick={() => handleVerify(user.id)}
-                            disabled={isPending}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="h-4 w-4" />
-                            )}
-                            Onayla
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          )}
-        </div>
+    <div className="max-w-[1320px]">
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Toplam kullanıcı" value={totalUsers} detail={`${influencerCount} influencer · ${brandCount} marka`} />
+        <StatCard
+          label="Şu an çevrimiçi"
+          value={<span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-success" aria-hidden />{onlineCount}</span>}
+          detail="Son 5 dakika"
+        />
+        <StatCard label="Onay bekleyen" value={counts.pending} detail={`${pendingBrands} marka`} />
+        <StatCard label="Reddedilen" value={counts.rejected} />
       </div>
-      {/* Spotlight Modal */}
-      {spotlightModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Spotlight'ı Aktifleştir</h3>
-              <button
-                type="button"
-                onClick={() => setSpotlightModalData(null)}
-                className="rounded-lg p-1 text-gray-400 transition hover:bg-white/10 hover:text-white"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="mb-4 space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Paket Seçimi ({spotlightModalData.role === 'brand' ? 'Marka' : 'Influencer'})
-                </label>
-                <select
-                  value={spotlightForm.plan}
-                  onChange={(e) => setSpotlightForm(prev => ({ ...prev, plan: e.target.value }))}
-                  className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
-                >
-                  {spotlightModalData.role === 'brand' ? (
+      <PageHeader
+        title="Kullanıcılar"
+        description="Onay bekleyen hesapları inceleyin; onaylı ve reddedilen hesapları yönetin."
+        actions={
+          <Button variant="danger" size="sm" onClick={resetTicks} disabled={isPending} leftIcon={<RefreshCcw />}>
+            Mavi tikleri yeniden değerlendir
+          </Button>
+        }
+      />
+
+      <Tabs
+        className="mb-4"
+        label="Kullanıcı durumu"
+        value={activeTab}
+        onSelect={(value) => changeTab(value as TabKey)}
+        items={TABS.map((t) => ({ value: t.key, label: t.label, count: counts[t.key] }))}
+      />
+
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" aria-hidden />
+          <Input aria-label="Kullanıcı ara" className="pl-9" placeholder="İsim, e-posta, kullanıcı adı veya ID ara" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        {checked.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12.5px] text-ink-muted">{checked.size} seçili</span>
+            {activeTab !== 'verified_influencer' && activeTab !== 'verified_brand' && (
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={isPending}
+                leftIcon={<Check />}
+                onClick={() =>
+                  confirmThen({
+                    title: `${checked.size} kullanıcı onaylansın mı?`,
+                    confirmLabel: 'Onayla',
+                    run: () => bulk('onaylandı', (id) => verifyUser(id), (id) => reloadUser(id)),
+                  })
+                }
+              >
+                Onayla
+              </Button>
+            )}
+            {activeTab !== 'rejected' && (
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={isPending}
+                leftIcon={<X />}
+                onClick={() =>
+                  confirmThen({
+                    title: `${checked.size} kullanıcı reddedilsin mi?`,
+                    confirmLabel: 'Reddet',
+                    tone: 'danger',
+                    run: () => bulk('reddedildi', (id) => rejectUser(id), (id) => reloadUser(id)),
+                  })
+                }
+              >
+                Reddet
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="danger"
+              disabled={isPending}
+              leftIcon={<Trash2 />}
+              onClick={() =>
+                confirmThen({
+                  title: `${checked.size} hesap kalıcı olarak silinsin mi?`,
+                  description: 'Seçili kullanıcıların tüm verileri silinir. Bu işlem geri alınamaz.',
+                  confirmLabel: 'Sil',
+                  tone: 'danger',
+                  run: () => bulk('silindi', (id) => deleteUser(id), dropUser),
+                })
+              }
+            >
+              Sil
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setChecked(new Set())}>Seçimi kaldır</Button>
+          </div>
+        )}
+      </div>
+
+      <div className={cn('grid items-start gap-4', selected && 'lg:grid-cols-[minmax(0,1fr)_420px]')}>
+        <Card className={cn('overflow-hidden', selected && 'order-2 lg:order-none')}>
+          {rows.length === 0 ? (
+            <EmptyState icon={Users} title="Kullanıcı yok" description={query ? 'Aramanla eşleşen kullanıcı bulunamadı.' : 'Bu durumda kullanıcı bulunmuyor.'} />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="border-b border-line text-left text-[11.5px] uppercase tracking-[0.06em] text-ink-faint">
+                    <th className="w-10 px-4 py-2.5">
+                      <input type="checkbox" aria-label="Tümünü seç" checked={allChecked} onChange={toggleAll} className="h-4 w-4 accent-gold" />
+                    </th>
+                    <th className="px-2 py-2.5 font-medium">Kullanıcı</th>
+                    <th className="hidden px-3 py-2.5 font-medium md:table-cell">Rol</th>
+                    <th className="hidden px-3 py-2.5 font-medium sm:table-cell">E-posta</th>
+                    <th className="hidden px-3 py-2.5 font-medium xl:table-cell">Belge / profil</th>
+                    <th className="hidden px-4 py-2.5 font-medium md:table-cell">Kayıt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((u) => {
+                    const isBrand = u.role === 'brand'
+                    const sel = u.id === selectedId
+                    const tax = u.tax_verification?.status
+                    return (
+                      <tr
+                        key={u.id}
+                        onClick={() => setSelectedId(sel ? null : u.id)}
+                        aria-selected={sel}
+                        className={cn('cursor-pointer border-b border-line last:border-b-0 hover:bg-surface-2', sel && 'bg-surface-2 [&>td:first-child]:shadow-[inset_2px_0_0_theme(colors.gold.DEFAULT)]')}
+                      >
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" aria-label={`${displayName(u)} seç`} checked={checked.has(u.id)} onChange={() => toggleOne(u.id)} className="h-4 w-4 accent-gold" />
+                        </td>
+                        <td className="px-2 py-3">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="relative">
+                              <Avatar name={displayName(u)} src={u.avatar_url ?? undefined} size="sm" square={isBrand} />
+                              {isOnline(lastSeen[u.id], now) && (
+                                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface-1 bg-success" aria-label="Çevrimiçi" />
+                              )}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium text-ink">{displayName(u)}</div>
+                              <div className="truncate text-xs text-ink-faint">{u.username ? `@${u.username}` : u.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="hidden px-3 py-3 md:table-cell">
+                          <Chip tone={isBrand ? 'gold' : 'info'}>{isBrand ? 'Marka' : 'Influencer'}</Chip>
+                        </td>
+                        <td className="hidden px-3 py-3 sm:table-cell">
+                          <Chip tone={u.email_verified_at ? 'success' : 'warning'}>{u.email_verified_at ? 'Doğrulandı' : 'Bekliyor'}</Chip>
+                        </td>
+                        <td className="hidden px-3 py-3 xl:table-cell">
+                          {isBrand ? (
+                            u.tax_id_verified ? <Chip tone="success">Vergi no onaylı</Chip>
+                              : tax === 'needs_review' ? <Chip tone="warning">İnceleme gerekli</Chip>
+                                : tax === 'auto_approved' ? <Chip tone="success">Kontroller geçti</Chip>
+                                  : tax === 'rejected' ? <Chip tone="danger">Levha reddedildi</Chip>
+                                    : <Chip>Levha yok</Chip>
+                          ) : (
+                            <Chip tone={Object.values(u.social_links ?? {}).some(Boolean) ? 'neutral' : 'warning'}>
+                              {Object.values(u.social_links ?? {}).filter(Boolean).length} sosyal hesap
+                            </Chip>
+                          )}
+                        </td>
+                        <td className="hidden whitespace-nowrap px-4 py-3 text-ink-faint md:table-cell">
+                          {new Date(u.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {selected && (
+          <div className="order-1 lg:order-none">
+            <UserDetail
+              key={selected.id}
+              user={selected}
+              lastSeen={lastSeen[selected.id]}
+              now={now}
+              busy={isPending}
+              actions={actionsFor(selected)}
+              onClose={() => setSelectedId(null)}
+            />
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={!!ask}
+        onClose={() => !asking && setAsk(null)}
+        onConfirm={runAsk}
+        loading={asking}
+        tone={ask?.tone ?? 'primary'}
+        title={ask?.title ?? ''}
+        description={ask?.description}
+        confirmLabel={ask?.confirmLabel}
+      />
+
+      <Modal
+        open={!!spotlight}
+        onClose={() => setSpotlight(null)}
+        title="Spotlight'ı aç"
+        description={spotlight ? displayName(spotlight.user) : undefined}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setSpotlight(null)}>Vazgeç</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={isPending}
+              onClick={() =>
+                spotlight &&
+                perform(() => toggleUserSpotlight(spotlight.user.id, true, spotlight.plan, spotlight.months), {
+                  after: () => {
+                    patchUser(spotlight.user.id, { spotlight_active: true, spotlight_plan: spotlight.plan })
+                    setSpotlight(null)
+                  },
+                })
+              }
+            >
+              Aç
+            </Button>
+          </>
+        }
+      >
+        {spotlight && (
+          <div className="grid gap-4">
+            <Field label="Paket">
+              {(props) => (
+                <Select {...props} value={spotlight.plan} onChange={(e) => setSpotlight({ ...spotlight, plan: e.target.value as SpotlightPlan })}>
+                  {spotlight.user.role === 'brand' ? (
                     <>
-                      <option value="mbasic">Brand Basic</option>
-                      <option value="mpro">Brand Pro</option>
+                      <option value="mbasic">Marka Basic</option>
+                      <option value="mpro">Marka Pro</option>
                     </>
                   ) : (
                     <>
@@ -1913,122 +561,68 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                       <option value="ipro">Influencer Pro</option>
                     </>
                   )}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Süre (Ay)
-                </label>
-                <input
+                </Select>
+              )}
+            </Field>
+            <Field label="Süre (ay)" hint="1–24">
+              {(props) => (
+                <Input
+                  {...props}
                   type="number"
-                  min="1"
-                  max="24"
-                  value={spotlightForm.duration}
-                  onChange={(e) => setSpotlightForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))}
-                  className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
+                  min={1}
+                  max={24}
+                  value={spotlight.months}
+                  onChange={(e) => setSpotlight({ ...spotlight, months: Math.min(24, Math.max(1, parseInt(e.target.value) || 1)) })}
                 />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setSpotlightModalData(null)}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
-              >
-                İptal
-              </button>
-              <button
-                type="button"
-                onClick={handleSpotlightSubmit}
-                disabled={isPending}
-                className="flex-1 rounded-2xl border border-purple-500/60 bg-purple-500/10 px-4 py-3 text-sm font-semibold text-purple-300 transition hover:border-purple-500 hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                    İşleniyor...
-                  </>
-                ) : (
-                  'Aktifleştir'
-                )}
-              </button>
-            </div>
+              )}
+            </Field>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
-      {/* Badge Award Modal */}
-      {
-        badgeModalUserId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-            <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0F1014] p-6 shadow-glow">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Rozet Ver</h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBadgeModalUserId(null)
-                    setSelectedBadgeId('')
-                  }}
-                  className="rounded-lg p-1 text-gray-400 transition hover:bg-white/10 hover:text-white"
-                >
-                  <XCircle className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="mb-4">
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Verilecek Rozeti Seçin
-                </label>
-                <select
-                  value={selectedBadgeId}
-                  onChange={(e) => setSelectedBadgeId(e.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-[#1A1B23] px-4 py-3 text-sm text-white focus:border-soft-gold focus:outline-none focus:ring-2 focus:ring-soft-gold/20"
-                >
-                  <option value="">Rozet seçin...</option>
-                  {getAvailableBadges(
-                    users.find((u) => u.id === badgeModalUserId)?.role ?? 'influencer'
-                  ).map((badge) => (
-                    <option key={badge.id} value={badge.id}>
-                      {badge.name} - {badge.description}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBadgeModalUserId(null)
-                    setSelectedBadgeId('')
-                  }}
-                  className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
-                >
-                  İptal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAwardSpecificBadge(badgeModalUserId, selectedBadgeId)}
-                  disabled={!selectedBadgeId || isPending}
-                  className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                      Veriliyor...
-                    </>
-                  ) : (
-                    'Rozeti Ver'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
+      <Modal
+        open={!!badge}
+        onClose={() => setBadge(null)}
+        title="Rozet ver"
+        description={badge ? displayName(badge.user) : undefined}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setBadge(null)}>Vazgeç</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={isPending}
+              disabled={!badge?.badgeId}
+              onClick={() =>
+                badge &&
+                perform(() => manuallyAwardSpecificBadge(badge.user.id, badge.badgeId), {
+                  success: 'Rozet verildi.',
+                  reload: badge.user.id,
+                  after: () => setBadge(null),
+                })
+              }
+            >
+              Rozeti ver
+            </Button>
+          </>
+        }
+      >
+        {badge && (
+          <Field label="Rozet">
+            {(props) => (
+              <Select {...props} value={badge.badgeId} onChange={(e) => setBadge({ ...badge, badgeId: e.target.value })}>
+                <option value="">Rozet seçin…</option>
+                {badgeOptions.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} — {b.description}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -1,297 +1,167 @@
 'use client'
 
-import { useState, useTransition, useRef, useEffect } from 'react'
-import { Send, Users, Search, CheckCircle, AlertTriangle, Info, Bell } from 'lucide-react'
+import { useMemo, useState, useTransition, type FormEvent } from 'react'
+import { Send, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { sendNotification, type NotificationType } from '@/app/actions/notifications'
+import { Button, Card, CardBody, Field, Input, PageHeader, Segmented, Textarea } from '@/components/ui'
+import { cn } from '@/utils/cn'
 
 interface User {
-    id: string
-    full_name: string | null
-    email: string | null
-    role: 'influencer' | 'brand' | null
-    username: string | null
+  id: string
+  full_name: string | null
+  email: string | null
+  role: 'influencer' | 'brand' | 'admin' | null
+  username: string | null
 }
 
-interface NotificationsPanelProps {
-    users: User[]
-}
+const TYPES: { value: NotificationType; label: string }[] = [
+  { value: 'info', label: 'Bilgi' },
+  { value: 'success', label: 'Başarılı' },
+  { value: 'warning', label: 'Uyarı' },
+  { value: 'system', label: 'Sistem' },
+]
 
-export default function NotificationsPanel({ users }: NotificationsPanelProps) {
-    const [isPending, startTransition] = useTransition()
-    const [targetType, setTargetType] = useState<'all' | 'specific'>('all')
-    const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
-    const [searchQuery, setSearchQuery] = useState('')
-    const searchContainerRef = useRef<HTMLDivElement>(null)
-    const [formData, setFormData] = useState({
-        title: '',
-        message: '',
-        type: 'info' as NotificationType,
-        link: '',
-    })
-    const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+const EMPTY = { title: '', message: '', type: 'info' as NotificationType, link: '' }
 
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-                setSearchQuery('')
-            }
-        }
+/** Site içi bildirim gönderme (tüm kullanıcılara ya da seçilenlere). */
+export default function NotificationsPanel({ users }: { users: User[] }) {
+  const [isPending, startTransition] = useTransition()
+  const [target, setTarget] = useState<'all' | 'specific'>('all')
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [query, setQuery] = useState('')
+  const [form, setForm] = useState(EMPTY)
 
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-        }
-    }, [])
+  const matches = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('tr-TR')
+    if (!q) return []
+    return users
+      .filter((u) => [u.full_name, u.email, u.username].some((v) => v?.toLocaleLowerCase('tr-TR').includes(q)))
+      .slice(0, 30)
+  }, [users, query])
 
-    const filteredUsers = users.filter((user) => {
-        if (!searchQuery) return false
-        const query = searchQuery.toLowerCase()
-        return (
-            user.full_name?.toLowerCase().includes(query) ||
-            user.email?.toLowerCase().includes(query) ||
-            user.username?.toLowerCase().includes(query)
-        )
+  const toggle = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
     })
 
-    const handleUserSelect = (userId: string) => {
-        setSelectedUserIds((prev) => {
-            const next = new Set(prev)
-            if (next.has(userId)) {
-                next.delete(userId)
-            } else {
-                next.add(userId)
-            }
-            return next
-        })
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    if (target === 'specific' && picked.size === 0) {
+      toast.error('En az bir kullanıcı seçin.')
+      return
     }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setStatus(null)
-
-        if (targetType === 'specific' && selectedUserIds.size === 0) {
-            setStatus({ type: 'error', message: 'Lütfen en az bir kullanıcı seçin.' })
-            return
-        }
-
-        if (!formData.title.trim() || !formData.message.trim()) {
-            setStatus({ type: 'error', message: 'Başlık ve mesaj alanları zorunludur.' })
-            return
-        }
-
-        startTransition(async () => {
-            const targetUserIds = targetType === 'all' ? users.map((u) => u.id) : Array.from(selectedUserIds)
-
-            const result = await sendNotification(
-                targetUserIds,
-                formData.title,
-                formData.message,
-                formData.type,
-                formData.link || undefined
-            )
-
-            if (result.success) {
-                setStatus({ type: 'success', message: `Bildirim ${targetUserIds.length} kullanıcıya başarıyla gönderildi.` })
-                setFormData({ title: '', message: '', type: 'info', link: '' })
-                setSelectedUserIds(new Set())
-                setTargetType('all')
-            } else {
-                setStatus({ type: 'error', message: result.error || 'Bildirim gönderilirken bir hata oluştu.' })
-            }
-        })
+    if (!form.title.trim() || !form.message.trim()) {
+      toast.error('Başlık ve mesaj zorunlu.')
+      return
     }
+    startTransition(async () => {
+      const ids = target === 'all' ? users.map((u) => u.id) : Array.from(picked)
+      const result = await sendNotification(ids, form.title, form.message, form.type, form.link || undefined)
+      if (!result.success) {
+        toast.error(result.error || 'Bildirim gönderilemedi.')
+        return
+      }
+      toast.success(`Bildirim ${ids.length} kullanıcıya gönderildi.`)
+      setForm(EMPTY)
+      setPicked(new Set())
+      setTarget('all')
+    })
+  }
 
-    return (
-        <div className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-[#0c0d13] p-6">
-                <h2 className="mb-6 text-xl font-semibold text-white flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-soft-gold" />
-                    Yeni Bildirim Gönder
-                </h2>
+  return (
+    <div className="max-w-3xl">
+      <PageHeader title="Bildirim gönder" description="Kullanıcıların panelindeki bildirimlere düşer." />
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Target Selection */}
-                    <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-300">Hedef Kitle</label>
-                        <div className="flex gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setTargetType('all')}
-                                className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${targetType === 'all'
-                                    ? 'border-soft-gold bg-soft-gold/10 text-soft-gold'
-                                    : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
-                                    }`}
-                            >
-                                <Users className="h-4 w-4" />
-                                Tüm Kullanıcılar ({users.length})
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setTargetType('specific')}
-                                className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${targetType === 'specific'
-                                    ? 'border-soft-gold bg-soft-gold/10 text-soft-gold'
-                                    : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
-                                    }`}
-                            >
-                                <Search className="h-4 w-4" />
-                                Belirli Kullanıcılar {selectedUserIds.size > 0 && `(${selectedUserIds.size})`}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* User Search (if specific) */}
-                    {targetType === 'specific' && (
-                        <div ref={searchContainerRef} className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                                <input
-                                    type="text"
-                                    placeholder="Kullanıcı ara (İsim, E-posta, Kullanıcı Adı)..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-10 pr-4 text-sm text-white placeholder:text-gray-500 focus:border-soft-gold/50 focus:outline-none"
-                                />
-                            </div>
-
-                            {searchQuery && (
-                                <div className="max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-black/40">
-                                    {filteredUsers.length === 0 ? (
-                                        <div className="p-4 text-center text-sm text-gray-500">Kullanıcı bulunamadı</div>
-                                    ) : (
-                                        filteredUsers.map((user) => (
-                                            <button
-                                                key={user.id}
-                                                type="button"
-                                                onClick={() => handleUserSelect(user.id)}
-                                                className="flex w-full items-center justify-between border-b border-white/5 px-4 py-3 text-left transition hover:bg-white/5 last:border-0"
-                                            >
-                                                <div>
-                                                    <p className="text-sm font-medium text-white">{user.full_name || user.username || 'İsimsiz'}</p>
-                                                    <p className="text-xs text-gray-400">{user.email}</p>
-                                                </div>
-                                                {selectedUserIds.has(user.id) && (
-                                                    <CheckCircle className="h-4 w-4 text-soft-gold" />
-                                                )}
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-
-                            {selectedUserIds.size > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {Array.from(selectedUserIds).map(id => {
-                                        const user = users.find(u => u.id === id)
-                                        if (!user) return null
-                                        return (
-                                            <span key={id} className="inline-flex items-center gap-1 rounded-lg bg-soft-gold/10 px-2 py-1 text-xs text-soft-gold border border-soft-gold/20">
-                                                {user.full_name || user.username}
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleUserSelect(id)
-                                                    }}
-                                                    className="ml-1 hover:text-white"
-                                                >
-                                                    ×
-                                                </button>
-                                            </span>
-                                        )
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Message Details */}
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-3">
-                            <label className="text-sm font-medium text-gray-300">Bildirim Tipi</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                {[
-                                    { value: 'info', label: 'Bilgi', icon: Info },
-                                    { value: 'success', label: 'Başarılı', icon: CheckCircle },
-                                    { value: 'warning', label: 'Uyarı', icon: AlertTriangle },
-                                    { value: 'system', label: 'Sistem', icon: Bell },
-                                ].map((type) => (
-                                    <button
-                                        key={type.value}
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, type: type.value as NotificationType })}
-                                        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${formData.type === type.value
-                                            ? 'border-soft-gold bg-soft-gold/10 text-soft-gold'
-                                            : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
-                                            }`}
-                                    >
-                                        <type.icon className="h-4 w-4" />
-                                        {type.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <label className="text-sm font-medium text-gray-300">Yönlendirme Linki (Opsiyonel)</label>
-                            <input
-                                type="text"
-                                placeholder="/dashboard/..."
-                                value={formData.link}
-                                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-soft-gold/50 focus:outline-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-300">Başlık</label>
-                        <input
-                            type="text"
-                            placeholder="Bildirim başlığı..."
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-gray-500 focus:border-soft-gold/50 focus:outline-none"
-                        />
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-300">Mesaj</label>
-                        <textarea
-                            rows={4}
-                            placeholder="Bildirim içeriği..."
-                            value={formData.message}
-                            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-gray-500 focus:border-soft-gold/50 focus:outline-none"
-                        />
-                    </div>
-
-                    {status && (
-                        <div className={`rounded-xl border p-4 ${status.type === 'success'
-                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
-                            : 'border-red-500/20 bg-red-500/10 text-red-400'
-                            }`}>
-                            {status.message}
-                        </div>
-                    )}
-
-                    <div className="flex justify-end pt-4">
-                        <button
-                            type="submit"
-                            disabled={isPending}
-                            className="flex items-center gap-2 rounded-xl bg-soft-gold px-8 py-3 font-semibold text-black transition hover:bg-soft-gold/90 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {isPending ? (
-                                'Gönderiliyor...'
-                            ) : (
-                                <>
-                                    <Send className="h-4 w-4" />
-                                    Bildirimi Gönder
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="grid gap-5">
+            <div className="grid gap-2">
+              <span className="text-[12.5px] font-medium text-ink-muted">Kime</span>
+              <Segmented
+                label="Hedef"
+                value={target}
+                onSelect={(v) => setTarget(v as 'all' | 'specific')}
+                items={[
+                  { value: 'all', label: `Tüm kullanıcılar (${users.length})` },
+                  { value: 'specific', label: `Seçilenler${picked.size ? ` (${picked.size})` : ''}` },
+                ]}
+              />
             </div>
-        </div>
-    )
+
+            {target === 'specific' && (
+              <div className="grid gap-2">
+                <Input aria-label="Kullanıcı ara" placeholder="İsim, e-posta veya kullanıcı adı ara" value={query} onChange={(e) => setQuery(e.target.value)} />
+                {query.trim() && (
+                  <div className="max-h-60 overflow-y-auto rounded-lg border border-line">
+                    {matches.length === 0 ? (
+                      <p className="px-3 py-3 text-center text-[13px] text-ink-faint">Kullanıcı bulunamadı</p>
+                    ) : (
+                      matches.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => toggle(u.id)}
+                          aria-pressed={picked.has(u.id)}
+                          className={cn('flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2.5 text-left last:border-b-0 hover:bg-surface-2', picked.has(u.id) && 'bg-surface-2')}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-[13px] text-ink">{u.full_name || u.username || 'İsimsiz'}</span>
+                            <span className="block truncate text-xs text-ink-faint">{u.email}</span>
+                          </span>
+                          {picked.has(u.id) && <span className="text-xs text-gold">Seçili</span>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                {picked.size > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from(picked).map((id) => {
+                      const u = users.find((x) => x.id === id)
+                      if (!u) return null
+                      return (
+                        <span key={id} className="inline-flex h-[26px] items-center gap-1 rounded-full border border-gold/30 bg-gold/10 pl-2.5 pr-1 text-xs text-gold">
+                          {u.full_name || u.username}
+                          <button type="button" onClick={() => toggle(id)} aria-label={`${u.full_name || u.username} çıkar`} className="grid h-5 w-5 place-items-center rounded-full hover:bg-gold/20">
+                            <X className="h-3 w-3" aria-hidden />
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <span className="text-[12.5px] font-medium text-ink-muted">Tür</span>
+                <Segmented label="Bildirim türü" value={form.type} onSelect={(v) => setForm({ ...form, type: v as NotificationType })} items={TYPES} />
+              </div>
+              <Field label="Yönlendirme bağlantısı" hint="İsteğe bağlı, ör. /dashboard/works">
+                {(props) => <Input {...props} placeholder="/dashboard/…" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />}
+              </Field>
+            </div>
+
+            <Field label="Başlık">
+              {(props) => <Input {...props} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />}
+            </Field>
+            <Field label="Mesaj">
+              {(props) => <Textarea {...props} rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />}
+            </Field>
+
+            <div className="flex justify-end">
+              <Button type="submit" variant="primary" loading={isPending} leftIcon={<Send />}>
+                Bildirimi gönder
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+    </div>
+  )
 }

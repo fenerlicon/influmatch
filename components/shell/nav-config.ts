@@ -1,5 +1,6 @@
 import {
-  Award, Briefcase, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare, MessagesSquare, SlidersHorizontal, UserRound, Users, type LucideIcon,
+  Award, Bell, Briefcase, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
+  MessagesSquare, SlidersHorizontal, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
 export type ShellRole = 'influencer' | 'brand' | 'admin'
@@ -92,6 +93,13 @@ const ADMIN: NavGroup[] = [
       { id: 'feedback', label: 'Geri Bildirimler', href: '/admin/feedback', icon: MessagesSquare },
       { id: 'reports', label: 'Raporlanan Mesajlar', href: '/admin/messages', icon: Flag },
       { id: 'messages', label: 'Mesajlar', href: '/dashboard/messages', icon: MessageSquare, unread: true },
+    ],
+  },
+  {
+    label: 'İçerik',
+    items: [
+      { id: 'adverts', label: 'İlanlar', href: '/admin/adverts', icon: Megaphone },
+      { id: 'notify', label: 'Bildirim Gönder', href: '/admin/notifications', icon: Bell },
     ],
   },
   {
