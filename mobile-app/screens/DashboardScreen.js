@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Alert, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Bell, Sparkles, Eye, EyeOff, ShieldAlert, Hourglass, Megaphone } from 'lucide-react-native';
+import { Bell, Sparkles, Eye, EyeOff, ShieldAlert, Hourglass, Megaphone, Store } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { OWN_PROFILE_COLUMNS } from '../lib/userColumns';
@@ -148,9 +148,16 @@ export default function DashboardScreen({ navigation }) {
                         chevron
                     />
                     <ListRow
+                        onPress={() => navigation.navigate('Vitrin')}
+                        left={<IconBox icon={Store} />}
+                        title="Vitrine göz at"
+                        subtitle="Diğer influencer'ların vitrini"
+                        chevron
+                    />
+                    <ListRow
                         onPress={toggleShowcase}
                         left={<IconBox icon={profile?.is_showcase_visible ? Eye : EyeOff} tone={profile?.is_showcase_visible ? 'success' : 'neutral'} />}
-                        title="Vitrin"
+                        title="Vitrinde görün"
                         subtitle={profile?.is_showcase_visible ? 'Markalar seni keşfette görebilir' : 'Şu an markalara gizlisin'}
                         right={<Chip label={profile?.is_showcase_visible ? 'Açık' : 'Kapalı'} tone={profile?.is_showcase_visible ? 'success' : 'neutral'} />}
                     />
