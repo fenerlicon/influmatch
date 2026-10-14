@@ -119,6 +119,12 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      TrustScoreCard, BlueTickProgressCard, FirstStepsCard, ProfileViewsCard, SpotlightToggleCard, VerificationWarningCard, BrandPipelineCard,
      BrandVerificationCard); "İlk adımları gizle" çerezi kalktı (kart tamamlanınca kendiliğinden kısalır).
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding.
+   - ✅ Ana sayfa (2026-10-14): `app/page.tsx` + `components/landing/{LandingHeader,LandingFooter,HowItWorks,Faq,FeaturedProfiles}`.
+     Başlık kararı (kullanıcı, 2026-10-14): "Doğru influencer'ı bul. Aracısız çalış." + üstteki etikette "Instagram ve TikTok için
+     influencer ve UGC bulma platformu"; sayfa `<title>`/açıklama (SEO) aynı. Bölümler: hero + ürün önizlemesi, Nasıl çalışır
+     (marka/üretici), Doğrulama, öne çıkan profiller (canlı Spotlight verisi; yoksa gizli), Spotlight (maddeler `lib/spotlight-plans.ts`'ten),
+     S.S.S., son çağrı. S.S.S.: TikTok "yakında" ve Spotlight maddeleri koddaki gerçeğe göre düzeltildi; "kampanya" → "ilan".
+     Kayıt bağlantıları `/signup` (rol formda). Eski 10 tanıtım bileşeni silindi.
 5. **Admin paneli.**
    - ✅ Kabuk ve alt paneller (2026-10-14): `app/admin/layout.tsx` admin sayfalarını `AppShell`'de açar; menü (`nav-config` ADMIN):
      Kullanıcılar · Destek (talepler, geri bildirimler, raporlanan mesajlar, mesajlar) · Sistem (marka sınırları, API anahtarları,
