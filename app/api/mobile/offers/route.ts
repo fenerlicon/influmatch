@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const { data: offers, error } = await supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at,
       sender:sender_user_id(${CARD}), receiver:receiver_user_id(${CARD})`,
     )
     .eq(own, user.id)

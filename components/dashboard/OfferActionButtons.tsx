@@ -8,11 +8,13 @@ import { Button, ConfirmDialog, type ButtonSize } from '@/components/ui'
 
 interface OfferActionButtonsProps {
   offerId: string
+  /** Ekrandaki teklifin edited_at değeri: marka o arada düzenlediyse sunucu kabulü reddeder. */
+  editedAt?: string | null
   onStatusChange?: (offerId: string, status: 'accepted' | 'rejected' | 'hold', meta?: { roomId?: string | null; senderUserId?: string | null }) => void
   size?: ButtonSize
 }
 
-export default function OfferActionButtons({ offerId, onStatusChange, size = 'sm' }: OfferActionButtonsProps) {
+export default function OfferActionButtons({ offerId, editedAt = null, onStatusChange, size = 'sm' }: OfferActionButtonsProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [confirmReject, setConfirmReject] = useState(false)
@@ -20,10 +22,12 @@ export default function OfferActionButtons({ offerId, onStatusChange, size = 'sm
   // "Markayla görüş" (hold): teklif beklemede kalır, pazarlık için sohbet açılır (kullanıcı kararı, 2026-10-09).
   const handleAction = (status: 'accepted' | 'rejected' | 'hold') => {
     startTransition(async () => {
-      const result = await updateOfferStatus(offerId, status)
+      const result = await updateOfferStatus(offerId, status, editedAt)
       setConfirmReject(false)
       if ('error' in result) {
         toast.error(result.error)
+        // Marka teklifi düzenlediyse ya da geri çektiyse ekrandaki teklif yenilenir.
+        router.refresh()
         return
       }
       onStatusChange?.(offerId, status, { roomId: result.roomId, senderUserId: result.senderUserId })

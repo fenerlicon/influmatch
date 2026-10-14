@@ -4,7 +4,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createOffer, deleteOfferTemplate, getLastOfferDraft, listOfferTemplates, saveOfferTemplate } from '@/app/profile/actions'
-import { OFFER_TEMPLATE_LIMIT } from '@/lib/offer-shared'
+import { OFFER_CAMPAIGN_TYPES, OFFER_TEMPLATE_LIMIT } from '@/lib/offer-shared'
 import type { OfferDraft, OfferTemplate } from '@/lib/offer-templates'
 
 interface OfferModalProps {
@@ -17,7 +17,7 @@ interface OfferModalProps {
   defaultOpen?: boolean
 }
 
-const CAMPAIGN_TYPES = ['Story', 'Reel', 'Post', 'YouTube'] as const
+const CAMPAIGN_TYPES = OFFER_CAMPAIGN_TYPES
 
 const initialFormState = {
   campaignName: '',

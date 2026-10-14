@@ -21,6 +21,8 @@ export interface OfferListItem {
   message: string | null
   status: string
   created_at: string
+  /** Marka bekleyen teklifi düzenlediyse (2026-10-14). */
+  edited_at?: string | null
   room_id?: string | null
   sender: {
     id: string
@@ -46,6 +48,7 @@ const STATUS_LABELS: Record<string, string> = {
   accepted: 'Kabul edildi',
   rejected: 'Reddedildi',
   expired: 'Süresi doldu',
+  withdrawn: 'Marka geri çekti',
 }
 
 const STATUS_TONES: Record<string, ChipTone> = {
@@ -53,7 +56,11 @@ const STATUS_TONES: Record<string, ChipTone> = {
   accepted: 'success',
   rejected: 'danger',
   expired: 'neutral',
+  withdrawn: 'neutral',
 }
+
+/** İşlem dışı kalan teklifler: süresi dolan ve markanın geri çektiği ('Düşen' filtresinde görünür). */
+const isClosedOffer = (status: string) => status === 'expired' || status === 'withdrawn'
 
 const daysLeft = (createdAt: string) => Math.max(0, OFFER_EXPIRY_DAYS - Math.floor((Date.now() - Date.parse(createdAt)) / 86_400_000))
 
@@ -93,7 +100,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     })
   }, [initialOffers, dismissedIds])
 
-  // "Tümü" süresi dolan teklifleri göstermez; onlar ayrı filtrede.
+  // "Tümü" süresi dolan ve geri çekilen teklifleri göstermez; onlar "Düşen" filtresinde.
   const filterOptions: Array<{ value: StatusFilter; label: string }> = [
     { value: 'all', label: 'Tümü' },
     { value: 'pending', label: 'Bekleyen' },
@@ -107,7 +114,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
       const { data: offer } = await supabase
         .from('offers')
         .select(
-          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
+          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at,
         sender:sender_user_id(id, full_name, avatar_url, username, social_links, displayed_badges)`,
         )
         .eq('id', offerId)
@@ -255,7 +262,8 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
   const filteredOffers = useMemo(() => {
     // Offers state should already be filtered, but double-check
     const notDismissed = offers.filter((offer) => !dismissedIds.has(offer.id))
-    if (statusFilter === 'all') return notDismissed.filter((offer) => effectiveOfferStatus(offer) !== 'expired')
+    if (statusFilter === 'all') return notDismissed.filter((offer) => !isClosedOffer(effectiveOfferStatus(offer)))
+    if (statusFilter === 'expired') return notDismissed.filter((offer) => isClosedOffer(effectiveOfferStatus(offer)))
     return notDismissed.filter((offer) => effectiveOfferStatus(offer) === statusFilter)
   }, [offers, statusFilter, dismissedIds])
 
@@ -480,6 +488,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               {sender?.full_name ?? 'Marka'}
               {sender?.displayed_badges?.includes('official-business') && <VerifiedTick tone="gold" label="Resmi işletme" />}
               <span>· {new Date(offer.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+              {offer.edited_at && <span>· düzenlendi</span>}
             </div>
           </div>
           <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
@@ -552,6 +561,14 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
             <dd className="tabular-nums text-ink">{formatBudget(selectedOffer.budget)}</dd>
             <dt className="text-ink-faint">Gönderildi</dt>
             <dd className="text-ink">{new Date(selectedOffer.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</dd>
+            {selectedOffer.edited_at && (
+              <>
+                <dt className="text-ink-faint">Düzenlendi</dt>
+                <dd className="text-ink">
+                  {new Date(selectedOffer.edited_at).toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' })}
+                </dd>
+              </>
+            )}
           </dl>
         </div>
 
@@ -584,9 +601,10 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
           )}
         </div>
 
-        {(status === 'pending' || status === 'expired' || canChat) && (
+        {(status === 'pending' || isClosedOffer(status) || canChat) && (
           <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
             {status === 'expired' && <span className="text-xs text-ink-faint">{OFFER_EXPIRY_DAYS} gün içinde yanıtlanmadığı için artık yanıtlanamaz.</span>}
+            {status === 'withdrawn' && <span className="text-xs text-ink-faint">Marka teklifi geri çekti. Bu teklif artık yanıtlanamaz.</span>}
             {canChat && (
               <Button size="sm" leftIcon={<MessageSquare />} onClick={(e) => handleOpenChat(selectedOffer, e)}>
                 Sohbete git
@@ -599,7 +617,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
             )}
             {status === 'pending' && (
               <div className="ml-auto">
-                <OfferActionButtons offerId={selectedOffer.id} onStatusChange={handleStatusChange} />
+                <OfferActionButtons offerId={selectedOffer.id} editedAt={selectedOffer.edited_at ?? null} onStatusChange={handleStatusChange} />
               </div>
             )}
           </div>
