@@ -254,9 +254,9 @@ function generateLocalAnalysis(stats: any, mode: 'brand-view' | 'influencer-view
 
 function getRequiredTierName(type: AnalysisType): string {
     switch (type) {
-        case 'match_score': return 'Spotlight Plus'
-        case 'profile_coach': return 'Spotlight Elite'
-        case 'campaign_analysis': return 'Brand Pro'
+        case 'match_score': return 'Spotlight'
+        case 'profile_coach': return 'Spotlight Pro'
+        case 'campaign_analysis': return 'Spotlight Pro (marka)'
         default: return 'Free'
     }
 }

@@ -6,7 +6,8 @@
 //     (http/https); dosya yükleme ve teslim kilidi R2 ile gelecek (collaboration_submissions.file_key / file_locked).
 //     Revize sayısı anlaşmadaki sınırla karşılaştırılır; sınır dolunca marka yeni revize isteyemez. Bütün teslimatlar yayınlanınca
 //     iş birliği "published" olur ve mevcut 7 günlük marka onayı / otomatik tamamlama işler.
-//   - Ödeme teyidi: marka "Ödeme yapıldı", influencer "Ödeme alındı" işaretler. Tamamlanmadan 14 gün sonra teyit yoksa influencer
+//   - Ödeme teyidi: marka "Ödeme yapıldı", influencer "Ödeme alındı" işaretler. Tamamlanmadan ya da bütün teslimatlar onaylandıktan
+//     (3.18-S5) 14 gün sonra teyit yoksa influencer
 //     "Ödeme alamadım" ile admin'e destek kaydı (Ödeme Sorunu) açar, markaya bildirim gider. Otomatik yaptırım yok.
 //
 // Okumalar oturumdaki kullanıcının RLS'li istemcisiyle (yalnızca taraflar); yazımların hepsi burada, taraf ve rol kontrolünden
@@ -256,16 +257,49 @@ function deliverableActions(d: DeliverableRow, ctx: { isBrand: boolean; active: 
   return actions
 }
 
-function nonpaymentAvailableAt(collab: Pick<CollaborationRow, 'status' | 'completed_at'>) {
-  if (collab.status !== 'completed' || !collab.completed_at) return null
-  return new Date(new Date(collab.completed_at).getTime() + NONPAYMENT_REPORT_DAYS * DAY_MS).toISOString()
+type DeliverableTiming = Pick<DeliverableRow, 'status' | 'approved_at' | 'published_at' | 'reviewed_at' | 'updated_at'>
+
+/** Bütün teslimatlar onaylandıysa (onaylandı / yayınlandı) son onayın zamanı; teslimat yoksa ya da biri bekliyorsa null. */
+function allDeliverablesApprovedAt(deliverables: DeliverableTiming[]): string | null {
+  if (deliverables.length === 0) return null
+  let latest = 0
+  for (const d of deliverables) {
+    if (d.status !== 'approved' && d.status !== 'published') return null
+    const at = d.approved_at ?? d.reviewed_at ?? d.published_at ?? d.updated_at
+    const time = at ? new Date(at).getTime() : NaN
+    if (!Number.isFinite(time)) return null
+    latest = Math.max(latest, time)
+  }
+  return new Date(latest).toISOString()
 }
 
-function buildPermissions(collab: CollaborationRow, isBrand: boolean, agreement: AgreementRow | null, payment: PaymentRow | null) {
+/**
+ * "Ödeme alamadım" düğmesinin açılacağı an: iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan
+ * NONPAYMENT_REPORT_DAYS gün sonra (hangisi önceyse). İkinci yol 3.18-S5: marka teslimatı onaylayıp yayınlamazsa
+ * iş birliği tamamlanmaz; influencer yine de ödeme sorununu bildirebilmeli. İptal edilen iş birliğinde açılmaz.
+ */
+function nonpaymentAvailableAt(collab: Pick<CollaborationRow, 'status' | 'completed_at'>, deliverables: DeliverableTiming[]) {
+  if (collab.status === 'cancelled') return null
+  const starts: number[] = []
+  if (collab.status === 'completed' && collab.completed_at) starts.push(new Date(collab.completed_at).getTime())
+  const approvedAt = allDeliverablesApprovedAt(deliverables)
+  if (approvedAt) starts.push(new Date(approvedAt).getTime())
+  const valid = starts.filter((t) => Number.isFinite(t))
+  if (valid.length === 0) return null
+  return new Date(Math.min(...valid) + NONPAYMENT_REPORT_DAYS * DAY_MS).toISOString()
+}
+
+function buildPermissions(
+  collab: CollaborationRow,
+  isBrand: boolean,
+  agreement: AgreementRow | null,
+  payment: PaymentRow | null,
+  deliverables: DeliverableTiming[],
+) {
   const editable = EDITABLE_STATUSES.includes(collab.status)
   const ownConfirmation = agreement ? (isBrand ? agreement.brand_confirmed_at : agreement.influencer_confirmed_at) : null
   const paymentOpen = PAYMENT_STATUSES.includes(collab.status)
-  const availableAt = nonpaymentAvailableAt(collab)
+  const availableAt = nonpaymentAvailableAt(collab, deliverables)
   return {
     canEditAgreement: editable,
     canConfirmAgreement: editable && !!agreement && !ownConfirmation,
@@ -357,7 +391,7 @@ export async function getCollaborationWorkspace(
       agreementConfirmed: confirmed,
       deliverables,
       payment,
-      permissions: buildPermissions(collaboration, isBrand, agreement, payment),
+      permissions: buildPermissions(collaboration, isBrand, agreement, payment, deliverables),
       brandReliability: reliability.get(collaboration.brand_id) ?? { completed: 0, confirmed: 0 },
     },
   }
@@ -835,10 +869,19 @@ async function reportNonpayment(
   now: string,
 ): Promise<Result<{ message?: string }>> {
   if (isBrand) return { error: 'Bu işlem şu an yapılamaz.' }
-  const availableAt = nonpaymentAvailableAt(collab)
+  const { data: deliverableData, error: deliverableError } = await admin
+    .from('collaboration_deliverables')
+    .select('status, approved_at, published_at, reviewed_at, updated_at')
+    .eq('collaboration_id', collab.id)
+  if (deliverableError) return { error: 'Bildirim gönderilemedi. Lütfen tekrar deneyin.' }
+  const deliverables = (deliverableData ?? []) as DeliverableTiming[]
+  const availableAt = nonpaymentAvailableAt(collab, deliverables)
   if (!availableAt || Date.now() < new Date(availableAt).getTime()) {
-    return { error: `Bu bildirim, iş birliği tamamlandıktan ${NONPAYMENT_REPORT_DAYS} gün sonra açılır.` }
+    return {
+      error: `Bu bildirim, iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan ${NONPAYMENT_REPORT_DAYS} gün sonra açılır.`,
+    }
   }
+  const approvedAt = allDeliverablesApprovedAt(deliverables)
 
   // Tek bildirim: önce satır güvenceye alınır, sonra "bildirildi" işareti yalnızca boşsa yazılır.
   await admin.from('collaboration_payments').upsert({ collaboration_id: collab.id }, { onConflict: 'collaboration_id', ignoreDuplicates: true })
@@ -862,6 +905,7 @@ async function reportNonpayment(
     `İş birliği: "${collab.title}" (${collab.id})`,
     `Marka: ${brandLabel}`,
     `Tamamlanma: ${collab.completed_at?.slice(0, 10) ?? '—'}`,
+    `Teslimatların hepsi onaylandı: ${approvedAt?.slice(0, 10) ?? '—'}`,
     `Anlaşma: ${agreement ? `${formatTry(agreement.fee_amount)} · ${PAYMENT_TYPE_LABELS[agreement.payment_type]}` : 'anlaşma özeti yok'}`,
     paidInfo,
     userNote ? `Influencer notu: ${userNote}` : null,

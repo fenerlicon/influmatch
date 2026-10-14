@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-10 (3.17-N5, 3.18) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-14 (3.2-N1, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -294,6 +294,15 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**3.2-S1 [ORTA]**~~ (favoriler ve liste sayfaları aktif Spotlight planını geçiriyor) Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
   - ✅ ~~**3.2-S2 [ORTA]**~~ (kullanıcı kararı: kota şimdilik yok; keşfet ızgarası 24'er profil, "Daha fazla göster") (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
+  - ✅ ~~**3.2-N1 [ÖZELLİK]**~~ (2026-10-14, kullanıcı onayı: ortak kural `lib/discover-filters.ts` — şehir (`users.city`, il listesi `utils/turkishCities.ts`
+    yazımıyla; canlıda değerler temiz), platform, üretici türü, takipçi aralığı, etkileşim oranı aralığı (aralıklar aynı hesapta sağlanmalı; platform
+    seçiliyse o platformun hesabı), sıralama (takipçi çok/az, etkileşim; Spotlight profiller önde) ve Spotlight Pro filtreleri ("Verisi olanlar",
+    "Mavi tikli"). Mobil liste sunucuda süzülür: `listDiscoverProfiles` (`/api/mobile/discover?city=&platform=&creatorType=&minFollowers=&maxFollowers=&minEngagement=&maxEngagement=&sort=&withData=1&blueTick=1`);
+    şehir ve üretici türü SQL'de, diğerleri doğrulanmış hesaplarla; çark açıkken yalnızca çarktaki profiller içinde (küme genişlemez). Pro filtreleri
+    sunucuda yalnızca aktif Spotlight Pro izleyicide uygulanır (yanıtta `proFilters`). Web ızgarası yetkili listeyi aynı kuralla süzer (şehir seçici,
+    takipçi ve etkileşim min–maks kutuları). Mobil Keşfet web'e eşitlendi: "Filtreler" paneli (platform, üretici türü, şehir, aralıklar, Pro filtreleri
+    kilitli/açık), sıralama çipleri. Cinsiyet filtresi yok (veri yok). Şema değişikliği yok; ~150 satırda indeks gerekmedi) Keşifte şehir, takipçi ve etkileşim
+    filtresi yoktu; mobil Keşfet'te platform, üretici türü ve sıralama yoktu.
 
 ### 3.3 Favoriler
 - **Dosyalar:** `app/dashboard/brand/favorites/page.tsx`, `app/actions/favorites.ts`, ortak `lib/favorites.ts`, mobil `/api/mobile/favorites` (3.17-N5)
@@ -577,7 +586,10 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.18-S3 [DÜŞÜK]** (yeni bulgu) Anlaşma kaydı ile teslimat değişiklikleri tek veritabanı işleminde değil (sürüm kilidi var; teslimat yazımı arada hata verirse liste
     kısmen güncellenebilir, aynı form tekrar kaydedilince düzelir). Gerekirse service role RPC'sine taşınır.
   - **3.18-S4 [DÜŞÜK]** (yeni bulgu) Web teklif listesinde (influencer) marka güvenilirliği satırı yok; marka profili ve iş birliği detayında var, mobilde teklif detayında var.
-  - **3.18-S5 [ORTA]** (yeni bulgu, 3.18-S1 kararından) Marka teslimatı onaylayıp içeriği yayınlamazsa yayın linki girilemez, iş birliği "devam ediyor"da kalır ve
+  - ✅ ~~**3.18-S5 [ORTA]**~~ (2026-10-14, kullanıcı onayı: "Ödeme alamadım" iş birliği tamamlandıktan **ya da** bütün teslimatlar onaylandıktan
+    (onaylandı / yayınlandı; son onay zamanı) 14 gün sonra açılır, hangisi önceyse; iptal edilende açılmaz. Sunucu kontrolü `lib/collaboration-workspace.ts`
+    (`nonpaymentAvailableAt`, izinler ve `reportNonpayment` aynı kural), destek kaydına "Teslimatların hepsi onaylandı" tarihi eklendi; web ve mobil
+    açıklama metni iki yolu söylüyor) Marka teslimatı onaylayıp içeriği yayınlamazsa yayın linki girilemez, iş birliği "devam ediyor"da kalır ve
     tamamlanmadığı için "Ödeme alamadım" düğmesi (tamamlanma + 14 gün) hiç çıkmaz. Çözüm önerisi: tüm teslimatlar onaylandıktan 14 gün sonra da düğme açılsın.
 
 ---
@@ -608,12 +620,26 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     kolon beyaz listede olmadığı için sessizce düşüyor; cron da kapatmıyor. Süresi dolanlar sıralamada önde, +10 güven puanı ve mavi tik hakkı sürüyor.
     Fonksiyon ayrıca istemciden gelen `userId`'ye güveniyor.
   - ✅ ~~**4.3-S2 [ORTA]**~~ (fiyatlar `lib/spotlight-plans.ts`'te tek yerde (değerler değişmedi), seviye eşlemesi 2.9-S2 ile tekleşti; plan sayfaları metadata rolü okumuyor) Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor.
+  - ✅ ~~**4.3-S4 [ORTA]**~~ (2026-10-14, kullanıcı onayı) Marka Pro (`mpro`) paketinde "Profil koçu" yazıyordu ama marka tarafında profil koçu yok
+    (yalnızca influencer görünümünde düğme). Paketten (web `lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`, SSS) kaldırıldı; yerine kodda
+    gerçekten yalnızca Pro'da açık olan keşif filtreleri ("Verisi olanlar", "Mavi tikli") yazıldı (mobilde de sunucuda Pro kontrolüyle, 3.2-N1).
+  - ✅ ~~**4.3-S5 [ORTA]**~~ (2026-10-14, kullanıcı onayı) `resolveSubscriptionTier` her markaya plandan bağımsız `BRAND_PRO` veriyordu. Artık
+    gerçek plan: onaylı + aktif Spotlight değilse FREE, `mbasic` → SPOTLIGHT, `mpro` → BRAND_PRO (influencer'daki ibasic/ipro düzeniyle aynı).
+    Seviye yalnızca profil sayfasındaki analiz düğmelerini (`InfluencerStats`, `generateAIAnalysis`) belirler. **Değişen:** "Kampanya ROI" analizi
+    önceden her markaya açıktı, artık yalnızca Marka Pro'da (diğer markalarda kilit + paket penceresi). "Genel Özet" herkese açık kaldı; "Uyum Skoru"
+    düğmesi zaten "Çok yakında" uyarısı veriyor. Paket listelerine ROI eklenmedi (metinlerinde doğrulanmamış iddialar var, bkz. 4.3-S6).
+  - **4.3-S6 [DÜŞÜK]** (yeni bulgu, 2026-10-14) Influencer paketlerinde "Uyum skoru analizi" (ibasic/ipro) ve "Profil koçu (detaylı analiz)" (ipro)
+    yazıyor ama profil sayfasındaki iki düğme de yalnızca "Çok yakın zamanda!" uyarısı veriyor (analiz çalışmıyor). Ayrıca "Kampanya ROI" kural
+    metinlerinde kaynaksız iddialar var ("sektör ortalamasının 3x üzerinde" vb.). Karar: düğmeler açılsın mı, yoksa maddeler paketlerden çıksın mı;
+    ROI metinleri sadeleştirilsin mi.
   - ✅ ~~**4.3-S3 [DÜŞÜK]**~~ (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. 2026-10-10, kullanıcı kararı: ajans sayfası ve Spotlight seçimindeki "Agency Edition" kartı kaldırıldı; ajans paketi gelince eklenir) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller
 - **Dosyalar:** `app/actions/spotlight.ts` (`getSimilarInfluencers`), `SimilarProfilesModal.tsx`
 - **Sorunlar:** ✅ ~~**4.4-S1 [YÜKSEK]**~~ (doğrulanmış hesaplardan okunuyor, oturum gerekli) Var olmayan `instagram_stats` kolonunu okuyor → takipçi hep 0, filtre neredeyse hiçbir şey döndürmüyor.
   Yetki/Spotlight kontrolü yok, `limit(5)` filtreden önce.
+  - ✅ ~~**4.4-S2 [ORTA]**~~ (2026-10-14) Benzer profil keşfi Spotlight özelliği ama `getSimilarInfluencers` yalnızca oturum, marka onayı ve çarkı
+    kontrol ediyordu (kilit yalnızca arayüzde). Artık aktif Spotlight (admin hariç) sunucuda şart. Mobilde karşılığı yok.
 
 ### 4.5 Herkese açık profil `/profile/[username]`
 - **Dosyalar:** `app/profile/[username]/page.tsx`, `app/profile/actions.ts`
@@ -677,6 +703,12 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.4-S1 [YÜKSEK]**~~ (2026-10-09, kullanıcı kararı: `lib/notify.ts`; yeni teklif, teklif yanıtı / görüşme isteği, yeni başvuru, başvuru sonucu, yeni mesaj (oda başına saatte bir, çevrimiçiyken e-posta yok, içerik e-postaya konmaz), destek yanıtı, sarı tik değişikliği için site içi bildirim; önemli olaylarda e-posta. Mobilden gelen olaylar mobil güncellemesinde) Yeni teklif, teklif durumu, yeni başvuru, başvuru durumu, yeni mesaj, destek yanıtı için hiçbir bildirim ya da e-posta üretilmiyor.
     Tek üreticiler admin paneli ve Spotlight bildirimi.
   - ✅ ~~**5.4-S2 [DÜŞÜK]**~~ (etiket kaldırıldı) Header herkese sabit "PREMIUM" etiketi gösteriyor.
+  - ✅ ~~**5.4-S3 [ORTA]**~~ (2026-10-14, kullanıcı onayı) Admin hesabı onaylayınca / reddedince (`verifyUser`, `rejectUser`) kullanıcıya hiçbir
+    bildirim gitmiyordu. Artık `account_status` olayı: site içi + push + e-posta ("Platform Güncellemeleri" tercihine bağlı, önemli olay sayıldı);
+    marka ve influencer için ayrı metin, yalnızca durum gerçekten değişince.
+  - ✅ ~~**5.4-S4 [DÜŞÜK]**~~ (2026-10-14, kullanıcı onayı) İlana yeni başvuru markaya yalnızca site içi + push gidiyordu. Artık e-posta da gider
+    ("İlan Başvuruları" tercihi); aynı alıcıya aynı bağlantıyla saatte en fazla bir e-posta (`EMAIL_THROTTLED_EVENTS`), arada gelen başvurular
+    site içi + push. Mesajdaki saatlik özet düzeniyle aynı.
 
 ### 5.5 Otomatik mesajlar / hoş geldin mesajı
 - **Dosyalar:** `lib/welcome-message.ts`, `app/actions/automated-messages.ts`

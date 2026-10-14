@@ -21,6 +21,7 @@ import {
   type AgreementPaymentType,
   type DeliverableKind,
   type DeliverableStatus,
+  NONPAYMENT_REPORT_DAYS,
 } from '@/lib/collaboration-workspace-shared'
 import type { CollaborationWorkspace, DeliverableView } from '@/lib/collaboration-workspace'
 
@@ -613,7 +614,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
         </div>
         {!permissions.canReportNonpayment && permissions.nonpaymentAvailableAt && !payment?.nonpayment_reported_at && (
           <p className="mt-3 text-xs text-gray-500">
-            Ödemeyi alamazsanız {formatDate(permissions.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz.
+            Ödemeyi alamazsanız {formatDate(permissions.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan {NONPAYMENT_REPORT_DAYS} gün sonra açılır).
           </p>
         )}
 

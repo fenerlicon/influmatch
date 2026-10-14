@@ -34,7 +34,7 @@ export const SPOTLIGHT_PLAN_FEATURES = {
         { text: 'Kampanya uyum skoru' },
         { text: 'Benzer profil keşfi' },
         { text: 'İlanların topluluk listesinde öne çıkar' },
-        { text: 'Profil koçu (detaylı analiz)', highlight: true },
+        { text: 'Keşifte "Verisi olanlar" ve "Mavi tikli" filtreleri', highlight: true },
     ],
 };
 

@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-14 (marka düzeltmeleri, `claude/brand-fixes-a1`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -55,6 +55,12 @@
   influencer "Ödeme alındı"), tamamlanmadan 14 gün sonra "Ödeme alamadım" → `support_tickets` (Ödeme Sorunu / Acil, admin `/admin/support`) + markaya bildirim.
   Marka güvenilirliği "X iş birliği, Y ödeme teyitli" marka profilinde, iş birliği detayında ve mobil teklif detayında. Tablolar canlıda (`20261010000040`),
   rollback'li RLS denemesiyle doğrulandı. **Teslim kilidi R2 ile Kasım'da** (`collaboration_submissions.file_key/file_locked` hazır). 3.18-S1 kararı (2026-10-11): yayın linki kuralı UGC'de de olduğu gibi kalır; doğan boşluk 3.18-S5.
+- **`claude/brand-fixes-a1` (2026-10-14, marka tarafı düzeltmeleri, şema değişikliği yok):** Marka Pro paketinden karşılığı olmayan "Profil koçu"
+  çıktı, yerine Pro keşif filtreleri (4.3-S4); analiz seviyesi markada da gerçek plana göre — **"Kampanya ROI" artık yalnızca Marka Pro'da** (4.3-S5);
+  benzer profiller sunucuda Spotlight ister (4.4-S2); hesap onayı/reddi bildirimi + e-posta (5.4-S3); yeni başvuru markaya e-posta (saatte en fazla bir, 5.4-S4);
+  "Ödeme alamadım" bütün teslimatlar onaylandıktan 14 gün sonra da açılır (3.18-S5); keşifte şehir, takipçi ve etkileşim aralığı filtreleri, mobil Keşfet
+  web'e eşit (platform, üretici türü, sıralama, Pro filtreleri; sunucuda `lib/discover-filters.ts`, 3.2-N1). Karar bekleyen yeni bulgu: 4.3-S6
+  (influencer paketlerindeki uyum skoru / profil koçu düğmeleri "Çok yakında"; ROI metinlerinde kaynaksız iddialar).
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
   `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda

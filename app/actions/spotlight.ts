@@ -7,6 +7,7 @@ import { syncBlueTick } from '@/lib/blue-tick'
 import { expireSpotlights } from '@/lib/spotlight-expiry'
 import { getViewerInfo, profileReader } from '@/lib/profile-reads'
 import { getWheelState } from '@/lib/discovery-wheel'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
 
 const formatFollowers = (count: number) =>
     count >= 1_000_000 ? `${(count / 1_000_000).toFixed(1)}M` : count >= 1_000 ? `${(count / 1_000).toFixed(1)}K` : String(count)
@@ -33,6 +34,10 @@ export async function getSimilarInfluencers(baseInfluencerId: string): Promise<{
     const viewer = await getViewerInfo(sessionClient, user.id)
     if (!viewer) return { data: [], error: 'Oturum açmanız gerekiyor.' }
     if (viewer.role === 'brand' && viewer.verification_status !== 'verified') return { data: [], error: null }
+    // Benzer profil keşfi Spotlight özelliği (paket listesinde); arayüzdeki kilit yalnızca görsel, kural burada.
+    if (viewer.role !== 'admin' && !hasActiveSpotlight(viewer)) {
+        return { data: [], error: 'Benzer profiller Spotlight üyelerine açık.' }
+    }
     const wheel = viewer.role === 'brand' ? await getWheelState(user.id) : null
     const wheelIds = wheel?.limited ? new Set(wheel.spin?.influencer_ids ?? []) : null
     if (wheelIds && wheelIds.size === 0) return { data: [], error: null }

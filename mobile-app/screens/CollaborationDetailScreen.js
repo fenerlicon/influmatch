@@ -487,7 +487,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                     ) : null}
                     {!perms.canReportNonpayment && perms.nonpaymentAvailableAt && !payment?.nonpayment_reported_at ? (
                         <Text variant="caption" tone="fg3">
-                            Ödemeyi alamazsanız {formatDate(perms.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz.
+                            Ödemeyi alamazsanız {formatDate(perms.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan 14 gün sonra açılır).
                         </Text>
                     ) : null}
                 </Card>
