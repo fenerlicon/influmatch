@@ -125,7 +125,12 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      manuel Instagram bağlama). Ana paneldeki kısayol düğmeleri kalktı. Destek talepleri (liste + ayrıntı), geri bildirimler,
      raporlanan mesajlar, marka sınırları, API anahtarları + Resend kartı, manuel bağlama yeni bileşenlerde; `alert`/`confirm`
      yerine toast ve onay penceresi; destek panelinde başarısız kayıt artık hata gösteriyor.
-   - Sırada: kullanıcı/onay paneli (`AdminPanel.tsx`, `design/redesign/admin.html`: tablo + sağda inceleme), bildirim paneli.
+   - ✅ Kullanıcılar (2026-10-14): `components/admin/AdminPanel.tsx` (durum, gerçek zamanlı güncelleme, toplu işlemler) +
+     `components/admin/users/UserDetail.tsx` (sağdaki inceleme paneli) + `users/types.ts`. Sekmeler: Bekleyen · Onaylı influencer ·
+     Onaylı marka · Reddedilen; arama her sekmede (ad, e-posta, kullanıcı adı, ID). Tablo + seçilince sağda inceleme (dar ekranda üstte).
+     Bütün işlemler aynı sunucu eylemleriyle; `alert`/`confirm`/`prompt` yerine onay penceresi ve toast. Vergi levhası reddi satır içi notla.
+     Ana paneldeki "İlanlar/Başvurular" ve "Bildirimler" sekmeleri kendi sayfalarına çıktı: `/admin/adverts`, `/admin/notifications`
+     (menüde "İçerik"). Sırada: 4. aşama (tanıtım sayfaları + giriş/kayıt/onboarding).
 
 Her aşama mevcut akışla: dal → PR → Vercel önizlemesi READY → birleştir.
 

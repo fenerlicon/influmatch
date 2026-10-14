@@ -1,21 +1,27 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle, ExternalLink, Loader2, XCircle } from 'lucide-react'
+import { CheckCircle2, ExternalLink, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { getTaxDocumentUrl, rejectTaxVerification } from '@/app/admin/actions'
 import type { AdminTaxVerification } from '@/lib/tax-verification'
+import { Button, Chip, Field, Textarea, type ChipTone } from '@/components/ui'
 
-const STATUS: Record<AdminTaxVerification['status'], { label: string; className: string }> = {
-  processing: { label: 'İşleniyor', className: 'border-white/10 bg-white/5 text-gray-300' },
-  needs_review: { label: 'İnceleme bekliyor', className: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300' },
-  auto_approved: { label: 'Otomatik onaylandı', className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' },
-  approved: { label: 'Admin onayladı', className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' },
-  rejected: { label: 'Reddedildi', className: 'border-red-500/40 bg-red-500/10 text-red-300' },
+const STATUS: Record<AdminTaxVerification['status'], { label: string; tone: ChipTone }> = {
+  processing: { label: 'İşleniyor', tone: 'neutral' },
+  needs_review: { label: 'İnceleme gerekli', tone: 'warning' },
+  auto_approved: { label: 'Kontroller geçti', tone: 'success' },
+  approved: { label: 'Admin onayladı', tone: 'success' },
+  rejected: { label: 'Reddedildi', tone: 'danger' },
 }
 
+const DEFAULT_REJECT_NOTE = 'Belge okunaklı değil veya bilgiler eşleşmiyor. Lütfen güncel vergi levhanızı yükleyin.'
+
+/** Vergi levhası otomatik kontrol sonucu + belgeyi açma / levhayı reddetme (admin). */
 export default function TaxVerificationReview({ verification }: { verification: AdminTaxVerification }) {
   const [current, setCurrent] = useState(verification)
+  const [rejecting, setRejecting] = useState(false)
+  const [note, setNote] = useState(DEFAULT_REJECT_NOTE)
   const [isPending, startTransition] = useTransition()
   const status = STATUS[current.status]
   const extracted = current.extracted
@@ -27,9 +33,7 @@ export default function TaxVerificationReview({ verification }: { verification: 
       else window.open(result.url, '_blank', 'noopener,noreferrer')
     })
 
-  const reject = () => {
-    const note = prompt('Markaya gösterilecek ret sebebi:', 'Belge okunaklı değil veya bilgiler eşleşmiyor. Lütfen güncel vergi levhanızı yükleyin.')
-    if (note === null) return
+  const reject = () =>
     startTransition(async () => {
       const result = await rejectTaxVerification(current.id, note)
       if ('error' in result) {
@@ -37,88 +41,86 @@ export default function TaxVerificationReview({ verification }: { verification: 
         return
       }
       toast.success(result.message)
+      setRejecting(false)
       setCurrent((prev) => ({ ...prev, status: 'rejected', reasons: [note || 'Belge admin tarafından kabul edilmedi.'] }))
     })
-  }
 
   const fields: [string, string | number | null | undefined][] = extracted
     ? [
         ['Belgedeki vergi no', extracted.tax_numbers?.join(', ') || null],
         ['En yeni yıl', extracted.year],
-        ['Onay Kodu', extracted.approval_code],
+        ['Onay kodu', extracted.approval_code],
         ['PDF üreticisi', extracted.pdf_producer],
       ]
     : []
 
   return (
-    <div className="mt-3 space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
+    <div className="grid gap-3 rounded-xl border border-line bg-surface-2 p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-gray-300">Vergi Levhası (otomatik kontrol)</span>
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.className}`}>{status.label}</span>
+        <span className="text-[13px] font-medium text-ink">Vergi levhası</span>
+        <Chip tone={status.tone} dot>{status.label}</Chip>
       </div>
-      <p className="text-[10px] text-gray-500">{new Date(current.created_at).toLocaleString('tr-TR')}</p>
+      <p className="-mt-2 text-xs text-ink-faint">{new Date(current.created_at).toLocaleString('tr-TR')}</p>
 
       {fields.length > 0 && (
-        <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
           {fields.map(([label, value]) => (
-            <div key={label} className="flex gap-2">
-              <dt className="shrink-0 text-gray-500">{label}:</dt>
-              <dd className="break-words text-white">{value ?? '—'}</dd>
+            <div key={label} className="contents">
+              <dt className="text-ink-faint">{label}</dt>
+              <dd className="break-words text-ink">{value ?? '—'}</dd>
             </div>
           ))}
         </dl>
       )}
 
-      {current.checks && (
-        <ul className="space-y-1 text-xs">
+      {current.checks ? (
+        <ul className="grid gap-1.5 text-[12.5px]">
           {current.checks.map((check) => (
             <li key={check.key} className="flex items-start gap-2">
               {check.passed ? (
-                <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-label="Geçti" />
               ) : (
-                <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400" />
+                <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-danger" aria-label="Geçmedi" />
               )}
-              <span className={check.passed ? 'text-gray-300' : 'text-red-200'}>
-                {check.label} <span className="text-gray-500">({check.detail})</span>
+              <span className={check.passed ? 'text-ink-muted' : 'text-danger'}>
+                {check.label} <span className="text-ink-faint">({check.detail})</span>
               </span>
             </li>
           ))}
         </ul>
-      )}
-
-      {!current.checks && current.reasons.length > 0 && (
-        <ul className="list-disc pl-5 text-xs text-yellow-200">
+      ) : current.reasons.length > 0 ? (
+        <ul className="list-disc pl-5 text-[12.5px] text-warning">
           {current.reasons.map((reason) => (
             <li key={reason}>{reason}</li>
           ))}
         </ul>
-      )}
+      ) : null}
 
       {extracted?.approval_code && (
-        <p className="text-[10px] text-gray-500">
-          e-Vergi levhası onay kodu GİB Dijital Vergi Dairesi&apos;ndeki &quot;Vergi Levhası Doğrulama&quot; ekranından elle de kontrol edilebilir.
+        <p className="text-xs text-ink-faint">
+          Onay kodu GİB Dijital Vergi Dairesi&apos;ndeki &quot;Vergi Levhası Doğrulama&quot; ekranından elle de kontrol edilebilir.
         </p>
       )}
 
+      {rejecting && (
+        <Field label="Ret sebebi (markaya gösterilir)">
+          {(props) => <Textarea {...props} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />}
+        </Field>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={openDocument}
-          disabled={isPending}
-          className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1 text-xs text-gray-200 transition hover:border-soft-gold hover:text-soft-gold disabled:opacity-50"
-        >
-          {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
-          Belgeyi Gör
-        </button>
-        {(current.status === 'needs_review' || current.status === 'processing') && (
-          <button
-            type="button"
-            onClick={reject}
-            disabled={isPending}
-            className="inline-flex items-center gap-1 rounded-lg border border-red-500/40 px-3 py-1 text-xs text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
-          >
-            <XCircle className="h-3 w-3" /> Reddet
-          </button>
+        {rejecting ? (
+          <>
+            <Button size="sm" variant="danger" onClick={reject} loading={isPending}>Levhayı reddet</Button>
+            <Button size="sm" variant="ghost" onClick={() => setRejecting(false)} disabled={isPending}>Vazgeç</Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" onClick={openDocument} loading={isPending} leftIcon={<ExternalLink />}>Belgeyi gör</Button>
+            {(current.status === 'needs_review' || current.status === 'processing') && (
+              <Button size="sm" variant="danger" onClick={() => setRejecting(true)} leftIcon={<XCircle />}>Reddet</Button>
+            )}
+          </>
         )}
       </div>
     </div>
