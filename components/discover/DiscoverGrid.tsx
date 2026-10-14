@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, BarChart3, Lock, Search, SlidersHorizontal, Users } from 'lucide-react'
+import { BadgeCheck, BarChart3, CalendarCheck, Lock, Search, SlidersHorizontal, Users } from 'lucide-react'
 import { isProPlan } from '@/lib/subscription-tier'
 import { normalizeInfluencerCategory } from '@/lib/category-map'
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, type InfluencerCategoryKey } from '@/utils/categories'
@@ -9,6 +9,7 @@ import { calculateMatchScore } from '@/utils/matching'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { hasActiveFilters, matchesDiscoverFilters, sortDiscoverProfiles, type DiscoverFilters, type FilterableProfile } from '@/lib/discover-filters'
 import type { DiscoverInfluencer } from '@/types/influencer'
+import { busyLast } from '@/lib/availability-shared'
 import { Button, Card, EmptyState, Input, Segmented, Select } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import ProfileCard from './ProfileCard'
@@ -47,7 +48,14 @@ function filterableOf(inf: DiscoverInfluencer): FilterableProfile {
   if (accounts.length === 0 && inf.stats) {
     accounts.push({ platform: inf.platform ?? '', follower_count: parseStat(inf.stats.followers), engagement_rate: parseStat(inf.stats.engagement) })
   }
-  return { city: inf.city, creator_type: inf.creator_type, displayed_badges: inf.displayed_badges, spotlight_active: inf.spotlight_active, accounts }
+  return {
+    city: inf.city,
+    creator_type: inf.creator_type,
+    displayed_badges: inf.displayed_badges,
+    spotlight_active: inf.spotlight_active,
+    availability_status: inf.availability?.status ?? 'open',
+    accounts,
+  }
 }
 
 const numberInput = (value: string) => value.replace(/[^\d.,]/g, '').slice(0, 13)
@@ -91,6 +99,7 @@ export default function DiscoverGrid({
   const [budgetInput, setBudgetInput] = useState('')
   const [withData, setWithData] = useState(false)
   const [blueOnly, setBlueOnly] = useState(false)
+  const [availableOnly, setAvailableOnly] = useState(false)
   const [sortBy, setSortBy] = useState(scored ? 'score' : isSpotlightMember && isBrand ? 'recommended' : 'followers_desc')
   const [visible, setVisible] = useState(PAGE_SIZE)
   // Telefonda arama dışındaki filtreler "Filtreler" düğmesinin arkasında.
@@ -111,9 +120,10 @@ export default function DiscoverGrid({
       // Pro filtreleri yalnızca Pro planda (düğmeler de kilitli).
       withData: isPro && withData,
       blueTick: isPro && blueOnly,
+      availableOnly,
       sort: sortBy === 'followers_desc' || sortBy === 'followers_asc' || sortBy === 'engagement_desc' ? sortBy : null,
     }),
-    [city, platform, creatorType, minFollowersInput, maxFollowersInput, minEngagementInput, maxEngagementInput, isPro, withData, blueOnly, sortBy],
+    [city, platform, creatorType, minFollowersInput, maxFollowersInput, minEngagementInput, maxEngagementInput, isPro, withData, blueOnly, availableOnly, sortBy],
   )
 
   const filtered = useMemo(() => {
@@ -129,13 +139,18 @@ export default function DiscoverGrid({
       }
       return true
     })
-    if (sortBy === 'score') return result
+    // "Şu an dolu" profiller her sıralamada sonda (3.19).
+    const isBusy = (inf: DiscoverInfluencer) => inf.availability?.status === 'busy'
+    if (sortBy === 'score') return busyLast(result, isBusy)
     if (sortBy === 'recommended') {
-      return result.sort((a, b) => {
-        // Spotlight profiller her sıralamada önde.
-        if (!!a.spotlight_active !== !!b.spotlight_active) return a.spotlight_active ? -1 : 1
-        return calculateMatchScore(b, { targetCategory: target }) - calculateMatchScore(a, { targetCategory: target })
-      })
+      return busyLast(
+        result.sort((a, b) => {
+          // Spotlight profiller her sıralamada önde.
+          if (!!a.spotlight_active !== !!b.spotlight_active) return a.spotlight_active ? -1 : 1
+          return calculateMatchScore(b, { targetCategory: target }) - calculateMatchScore(a, { targetCategory: target })
+        }),
+        isBusy,
+      )
     }
     return sortDiscoverProfiles(result, filters, filterableOf)
   }, [influencers, query, category, filters, minPrices, budget, sortBy, target])
@@ -145,7 +160,7 @@ export default function DiscoverGrid({
   const shown = filtered.slice(0, visible)
   const followerRangeOn = filters.minFollowers != null || filters.maxFollowers != null
   const engagementRangeOn = filters.minEngagement != null || filters.maxEngagement != null
-  const activeCount = [category !== 'all', platform !== 'all', creatorType !== 'all', !!city, followerRangeOn, engagementRangeOn, budget > 0, filters.withData, filters.blueTick].filter(Boolean).length
+  const activeCount = [category !== 'all', platform !== 'all', creatorType !== 'all', !!city, followerRangeOn, engagementRangeOn, budget > 0, filters.withData, filters.blueTick, availableOnly].filter(Boolean).length
 
   if (influencers.length === 0) {
     return (
@@ -263,6 +278,21 @@ export default function DiscoverGrid({
               { value: 'ugc', label: 'UGC' },
             ]}
           />
+          {isBrand && (
+            <button
+              type="button"
+              aria-pressed={availableOnly}
+              onClick={() => setAvailableOnly((v) => !v)}
+              title="Şu an dolu olduğunu belirtenleri gizler"
+              className={cn(
+                'inline-flex h-[38px] items-center gap-1.5 rounded-lg border px-3 text-[12.5px] transition-colors',
+                availableOnly ? 'border-gold/30 bg-gold/10 text-ink' : 'border-line-strong bg-surface-1 text-ink-muted hover:text-ink',
+            )}
+          >
+            <CalendarCheck className="h-3.5 w-3.5" />
+            Yalnızca iş alanlar
+          </button>
+          )}
           {proToggle(withData, setWithData, 'Verisi olanlar', BarChart3)}
           {proToggle(blueOnly, setBlueOnly, 'Mavi tikli', BadgeCheck)}
           {!scored && (

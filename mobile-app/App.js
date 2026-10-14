@@ -42,6 +42,8 @@ import BrandDashboardScreen from './screens/brand/BrandDashboardScreen';
 import BrandAdvertsScreen from './screens/brand/BrandAdvertsScreen';
 import BrandProfileScreen from './screens/brand/BrandProfileScreen';
 import BrandVerificationScreen from './screens/brand/BrandVerificationScreen';
+import CampaignsScreen from './screens/brand/CampaignsScreen';
+import CampaignDetailScreen from './screens/brand/CampaignDetailScreen';
 import SocialVerifyGateScreen from './screens/influencer/SocialVerifyGateScreen';
 import { resolveHomeRoute } from './lib/routing';
 
@@ -270,6 +272,9 @@ export default function App() {
           {/* ── Brand Sub-screens ── */}
           <Stack.Screen name="BrandVerification" component={BrandVerificationScreen} />
           <Stack.Screen name="BrandProfile" component={BrandProfileScreen} />
+          {/* Kampanyalar (3.19) */}
+          <Stack.Screen name="Campaigns" component={CampaignsScreen} />
+          <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
 
         </Stack.Navigator>
       </NavigationContainer>

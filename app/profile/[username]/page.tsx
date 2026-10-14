@@ -15,12 +15,14 @@ import { reliabilityText } from '@/lib/collaboration-workspace-shared'
 import { getVisibleRateCard } from '@/lib/rate-card'
 import RateCardView from '@/components/profile/RateCardView'
 import DiscoveryWheelCard from '@/components/dashboard/DiscoveryWheelCard'
-import { getProfileForViewer } from '@/lib/profile-reads'
+import { availabilityOf, getProfileForViewer } from '@/lib/profile-reads'
+import { availabilityText, busyOfferWarning } from '@/lib/availability-shared'
+import { listOpenCampaignOptionsAs } from '@/lib/campaigns'
 import { getOfferQuota, offerQuotaSummary } from '@/lib/brand-limits'
 
 interface ProfilePageProps {
   params: { username: string }
-  searchParams?: { teklif?: string }
+  searchParams?: { teklif?: string; kampanya?: string }
 }
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -161,6 +163,10 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
 
   // Teklif hakkı bilgisi (yalnızca sınır uygulanan markada; bayrak kapalıyken null).
   const offerQuotaText = canSendOffer ? offerQuotaSummary(await getOfferQuota(viewer.id).catch(() => null)) : null
+  // Müsaitlik (3.19): "Şu an dolu" profilde görünür, teklif penceresi uyarır (teklif yine gönderilebilir).
+  const availability = isInfluencer ? availabilityOf(profile) : null
+  // Teklifi kampanyaya bağlama (3.19): markanın taslak / aktif kampanyaları.
+  const campaignOptions = canSendOffer ? await listOpenCampaignOptionsAs(supabase, viewer.id) : []
 
   // Tamamlanan iş birliği sayısı (herkes görür) ve fiyat kartı (RLS: yalnızca sahibi, doğrulanmış marka, admin).
   const [completedCounts, rateCard] = isInfluencer
@@ -253,6 +259,14 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
               )}
 
               <div className="mt-6 flex flex-wrap gap-3 text-sm text-gray-300">
+                {availability && (
+                  <div
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs ${availability.status === 'busy' ? 'bg-amber-500/10 text-amber-200' : 'bg-emerald-500/10 text-emerald-200'}`}
+                  >
+                    <span>{availabilityText(availability)}</span>
+                    {availability.status === 'busy' && availability.note && <span className="text-gray-400">· {availability.note}</span>}
+                  </div>
+                )}
                 {isInfluencer && (
                   <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
                     <span className="font-semibold text-white">{completedCollaborations}</span>
@@ -349,6 +363,9 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
                   isViewerVerified={isViewerVerified}
                   quotaText={offerQuotaText}
                   defaultOpen={searchParams?.teklif === '1'}
+                  busyWarning={availability ? busyOfferWarning(availability, profile.full_name || profile.username) : null}
+                  campaigns={campaignOptions}
+                  defaultCampaignId={typeof searchParams?.kampanya === 'string' ? searchParams.kampanya : null}
                 />
               </div>
             )}

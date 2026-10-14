@@ -25,7 +25,7 @@ import {
 const EMPTY_FILTERS = {
     platform: '', creatorType: '', sort: '', city: '',
     minFollowers: '', maxFollowers: '', minEngagement: '', maxEngagement: '',
-    withData: false, blueTick: false,
+    withData: false, blueTick: false, availableOnly: false,
 };
 const PLATFORM_OPTIONS = [{ key: '', label: 'Tümü' }, { key: 'instagram', label: 'Instagram' }, { key: 'tiktok', label: 'TikTok' }];
 const CREATOR_OPTIONS = [{ key: '', label: 'Tümü' }, { key: 'influencer', label: 'Influencer' }, { key: 'ugc', label: 'UGC' }];
@@ -54,12 +54,13 @@ function discoverPath(f) {
     add('maxEngagement', f.maxEngagement);
     add('withData', f.withData);
     add('blueTick', f.blueTick);
+    add('availableOnly', f.availableOnly);
     return params.length ? `discover?${params.join('&')}` : 'discover';
 }
 
 function activeFilterCount(f) {
     return [
-        f.platform, f.creatorType, f.city, f.minFollowers || f.maxFollowers, f.minEngagement || f.maxEngagement, f.withData, f.blueTick,
+        f.platform, f.creatorType, f.city, f.minFollowers || f.maxFollowers, f.minEngagement || f.maxEngagement, f.withData, f.blueTick, f.availableOnly,
     ].filter(Boolean).length;
 }
 
@@ -75,7 +76,13 @@ const InfluencerCard = memo(({ item, onPress, canFavorite, favoritesLocked, onTo
                 <View className="flex-1 min-w-0" style={{ gap: 2 }}>
                     <NameWithTick name={item.full_name || item.username || 'Influencer'} verified={item.isVerified} />
                     <Text variant="small" tone="fg2" numberOfLines={1}>{[category, item.city].filter(Boolean).join(' · ') || 'Influencer'}</Text>
-                    {item.spotlight_active ? <View className="mt-1"><Chip label="Spotlight" tone="gold" /></View> : null}
+                    {item.spotlight_active || item.availability?.status === 'busy' ? (
+                        <View className="mt-1 flex-row flex-wrap" style={{ gap: 6 }}>
+                            {item.spotlight_active ? <Chip label="Spotlight" tone="gold" /> : null}
+                            {/* Müsaitlik (3.19); sunucu geçerli durumu gönderir */}
+                            {item.availability?.status === 'busy' ? <Chip label="Şu an dolu" tone="warning" dot /> : null}
+                        </View>
+                    ) : null}
                 </View>
                 {canFavorite ? (
                     <Pressable
@@ -249,8 +256,9 @@ export default function DiscoverScreen({ navigation, route }) {
             if (!q) return true;
             return [u.full_name, u.username, influencerCategoryLabel(u.category), u.city].some((v) => (v || '').toLocaleLowerCase('tr-TR').includes(q));
         });
-        // Sıralama seçiliyse sunucunun sırası korunur (Spotlight profiller yine önde); değilse Spotlight önde.
-        return filters.sort ? list : list.sort((a, b) => Number(!!b.spotlight_active) - Number(!!a.spotlight_active));
+        // Sıralama seçiliyse sunucunun sırası korunur (dolu profiller sonda, Spotlight önde); değilse dolu profiller sonda, Spotlight önde.
+        const busy = (u) => Number(u.availability?.status === 'busy');
+        return filters.sort ? list : list.sort((a, b) => busy(a) - busy(b) || Number(!!b.spotlight_active) - Number(!!a.spotlight_active));
     }, [profiles, searchQuery, category, segment, budget, minPrices, isBrand, filters.sort]);
 
     const openProfile = (item) => navigation.navigate('InfluencerDetail', { influencer: item });
@@ -301,6 +309,9 @@ export default function DiscoverScreen({ navigation, route }) {
                             <TextField className="flex-1" placeholder="En çok" keyboardType="decimal-pad" height={44} value={filters.maxEngagement} onChangeText={(v) => setFilter('maxEngagement', v.replace(/[^0-9.,]/g, '').slice(0, 5))} />
                         </View>
                     </View>
+                    {isBrand ? (
+                        <FilterChip label="Yalnızca iş alanlar" selected={filters.availableOnly} onPress={() => setFilter('availableOnly', !filters.availableOnly)} />
+                    ) : null}
                     <ChipRow>
                         <FilterChip icon={proFilters ? BarChart3 : Lock} label="Verisi olanlar" selected={filters.withData} onPress={() => toggleProFilter('withData')} />
                         <FilterChip icon={proFilters ? BadgeCheck : Lock} label="Mavi tikli" selected={filters.blueTick} onPress={() => toggleProFilter('blueTick')} />

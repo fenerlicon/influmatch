@@ -15,10 +15,11 @@ import { canBrandViewInfluencer, getWheelState, type WheelState } from '@/lib/di
 import { hasActiveFilters, matchesDiscoverFilters, sortDiscoverProfiles, type DiscoverFilters } from '@/lib/discover-filters'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { isProPlan } from '@/lib/subscription-tier'
+import { effectiveAvailability, type Availability } from '@/lib/availability-shared'
 
 /** Liste kartı alanları (keşif, öne çıkanlar, çark). */
 export const PROFILE_CARD_COLUMNS =
-  'id, full_name, username, avatar_url, category, city, bio, role, spotlight_active, verification_status, displayed_badges, creator_type, is_showcase_visible'
+  'id, full_name, username, avatar_url, category, city, bio, role, spotlight_active, verification_status, displayed_badges, creator_type, is_showcase_visible, availability_status, availability_note, availability_until'
 
 /** Profil sayfası alanları. */
 export const PROFILE_DETAIL_COLUMNS = `${PROFILE_CARD_COLUMNS}, social_links`
@@ -45,6 +46,9 @@ export type ProfileCard = {
   displayed_badges: string[] | null
   creator_type: string | null
   is_showcase_visible: boolean | null
+  availability_status?: string | null
+  availability_note?: string | null
+  availability_until?: string | null
 }
 
 export type PublicSocialAccount = {
@@ -200,7 +204,12 @@ export async function getWheelProfileCards(state: WheelState): Promise<ProfileCa
   return discoverableCardsByIds(reader, state.spin.influencer_ids)
 }
 
-export type DiscoverProfile = ProfileCard & { social_accounts: PublicSocialAccount[] }
+/** Geçerli müsaitlik (3.19): bitiş tarihi geçmiş "dolu" = "iş alıyorum". */
+export function availabilityOf(card: Pick<ProfileCard, 'availability_status' | 'availability_note' | 'availability_until'>): Availability {
+  return effectiveAvailability(card)
+}
+
+export type DiscoverProfile = ProfileCard & { social_accounts: PublicSocialAccount[]; availability: Availability }
 
 export type DiscoverResult =
   | { locked: true; verificationStatus: ViewerInfo['verification_status']; limited: false; profiles: []; proFilters: false }
@@ -268,9 +277,13 @@ export async function listDiscoverProfiles(
       cards.map((card) => card.id),
       { verifiedOnly: true },
     )
-    const toFilterable = (profile: DiscoverProfile) => ({ ...profile, accounts: profile.social_accounts })
+    const toFilterable = (profile: DiscoverProfile) => ({
+      ...profile,
+      availability_status: profile.availability.status,
+      accounts: profile.social_accounts,
+    })
     const candidates = cards
-      .map((card) => ({ ...card, social_accounts: socials.get(card.id) ?? [] }))
+      .map((card) => ({ ...card, social_accounts: socials.get(card.id) ?? [], availability: availabilityOf(card) }))
       .filter((profile) => profile.social_accounts.length > 0)
       .filter((profile) => !filtering || matchesDiscoverFilters(toFilterable(profile), filters))
     const profiles = sortDiscoverProfiles(candidates, filters, toFilterable).slice(0, limit)

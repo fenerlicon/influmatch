@@ -1,10 +1,11 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { getOfferQuota, offerQuotaError, offerQuotaSummary } from '@/lib/brand-limits'
+import { listOpenCampaignOptionsAs } from '@/lib/campaigns'
 import { deleteOfferTemplateAs, lastOfferDraftAs, listOfferTemplatesAs, saveOfferTemplateAs } from '@/lib/offer-templates'
 
 export const dynamic = 'force-dynamic'
 
-/** Markanın teklif şablonları ve son teklif taslağı: { templates, lastOffer }. Yalnızca marka. */
+/** Markanın teklif şablonları, son teklif taslağı ve açık kampanyaları: { templates, lastOffer, campaigns }. Yalnızca marka. */
 export async function GET(request: Request) {
   const ctx = await getBearerContext(request)
   if (!ctx) return mobileJson({ error: 'Oturum gerekli.' }, 401)
@@ -14,7 +15,10 @@ export async function GET(request: Request) {
   const last = await lastOfferDraftAs(ctx.supabase, ctx.user.id)
   // Teklif formunun yanındaki "Bu ay X teklif hakkın kaldı" (yalnızca sınır uygulanan markada; yoksa null).
   const quota = await getOfferQuota(ctx.user.id).catch(() => null)
+  // Teklifi bağlayabileceği taslak / aktif kampanyalar (3.19).
+  const campaigns = await listOpenCampaignOptionsAs(ctx.supabase, ctx.user.id)
   return mobileJson({
+    campaigns,
     templates: list.templates,
     lastOffer: last.success ? last.draft : null,
     quotaText: offerQuotaSummary(quota),

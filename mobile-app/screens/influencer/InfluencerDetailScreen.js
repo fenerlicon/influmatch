@@ -8,10 +8,11 @@ import { influencerBadges } from '../../constants/badges';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { RATE_CARD_ITEMS, RATE_CARD_SELECT, formatTry } from '../../constants/rateCard';
 import DiscoveryWheelCard from '../../components/DiscoveryWheelCard';
+import { availabilityText, busyOfferWarning } from '../../constants/availability';
 import { formatCount, formatPercent } from '../../lib/format';
 import {
     Screen, StackHeader, BottomBar, Text, Button, Card, ListGroup, ListRow, IconBox, Avatar, NameWithTick, Chip, Segment,
-    UnderlineTabs, ChipRow, StatCard, KeyValue, TextField, Sheet, Notice, EmptyState,
+    UnderlineTabs, ChipRow, StatCard, KeyValue, TextField, Sheet, Notice, EmptyState, FilterChip,
 } from '../../components/ui';
 
 const BADGES_BY_ID = Object.fromEntries(influencerBadges.map((b) => [b.id, b]));
@@ -45,6 +46,10 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     // Ücretsiz marka sınırları açıkken: kalan teklif hakkı ve keşif çarkı erişimi (web ile aynı sunucu kodu).
     const [quotaText, setQuotaText] = useState(null);
     const [wheelBlock, setWheelBlock] = useState(null);
+    // Müsaitlik (3.19, sunucudan) ve teklifi bağlanabilecek kampanyalar (taslak / aktif).
+    const [availability, setAvailability] = useState(route.params.influencer?.availability || null);
+    const [campaigns, setCampaigns] = useState([]);
+    const [campaignId, setCampaignId] = useState(route?.params?.campaignId || '');
 
     const draftToForm = (draft) => ({
         campaignName: draft.campaign_name || '',
@@ -61,6 +66,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
         setTemplates(result.templates || []);
         setLastOffer(result.lastOffer || null);
         setQuotaText(result.quotaText || null);
+        setCampaigns(Array.isArray(result.campaigns) ? result.campaigns : []);
     };
 
     const saveTemplate = async () => {
@@ -109,6 +115,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                     setWheelBlock(access);
                 } else if (access?.status === 'ok' && access.profile) {
                     const accounts = access.socialAccounts || [];
+                    setAvailability(access.availability || null);
                     setDetail({
                         ...access.profile,
                         isVerified: Array.isArray(access.profile.displayed_badges) && access.profile.displayed_badges.includes('verified-account'),
@@ -150,7 +157,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
             return;
         }
         setSending(true);
-        const result = await apiRequest('offers', { method: 'POST', body: { receiverId: influencer.id, ...form } });
+        const result = await apiRequest('offers', { method: 'POST', body: { receiverId: influencer.id, ...form, campaignId: campaignId || null } });
         setSending(false);
         if (result.error) {
             Alert.alert('Teklif gönderilemedi', result.error);
@@ -161,6 +168,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
         if (quotaText) setTemplates(null);
         setLastOffer({ campaign_name: form.campaignName, campaign_type: form.campaignType, payment_type: form.paymentType, budget: form.budget || null, message: form.message });
         setForm({ campaignName: '', campaignType: '', paymentType: 'cash', budget: '', message: '' });
+        setCampaignId('');
         Alert.alert('Teklif gönderildi', 'Influencer yanıt verdiğinde bildirim alacaksınız.', [
             { text: 'Tamam' },
             { text: 'Tekliflerim', onPress: () => navigation.navigate('BrandDashboard', { screen: 'İşler' }) },
@@ -228,9 +236,15 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                 </View>
                 <View className="flex-row flex-wrap justify-center" style={{ gap: 6 }}>
                     {influencer.spotlight_active ? <Chip label="Spotlight" tone="gold" /> : null}
+                    {availability?.status === 'busy' ? <Chip label="Şu an dolu" tone="warning" dot /> : null}
                     {rateCard?.negotiable ? <Chip label="Pazarlığa açık" /> : null}
                     <Chip label={`${completedCount} tamamlanan iş birliği`} />
                 </View>
+                {availability?.status === 'busy' ? (
+                    <Text variant="caption" tone="fg3" style={{ textAlign: 'center' }}>
+                        {availabilityText(availability)}{availability.note ? ` · ${availability.note}` : ''}
+                    </Text>
+                ) : null}
             </View>
 
             <View className="-mx-4"><UnderlineTabs options={tabs} value={tab} onChange={setTab} /></View>
@@ -294,6 +308,27 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                 scroll
             >
                 {quotaText ? <Notice tone="info" icon={Info} text={quotaText} /> : null}
+                {availability?.status === 'busy' ? <Notice tone="warning" text={busyOfferWarning(availability, name)} /> : null}
+                {campaigns.length ? (
+                    <View style={{ gap: 6 }}>
+                        <Text variant="small" weight="medium" tone="fg2">Kampanya (isteğe bağlı)</Text>
+                        <ChipRow>
+                            <FilterChip label="Yok" selected={!campaignId} onPress={() => setCampaignId('')} />
+                            {campaigns.map((c) => (
+                                <FilterChip
+                                    key={c.id}
+                                    label={c.name}
+                                    selected={campaignId === c.id}
+                                    onPress={() => {
+                                        setCampaignId(c.id);
+                                        if (!form.campaignName.trim()) setForm((f) => ({ ...f, campaignName: c.name }));
+                                    }}
+                                />
+                            ))}
+                        </ChipRow>
+                        <Text variant="caption" tone="fg3">Seçersen kampanya brief’i teklifte influencer’a görünür.</Text>
+                    </View>
+                ) : null}
                 {templates?.length ? (
                     <View style={{ gap: 6 }}>
                         <ChipRow>

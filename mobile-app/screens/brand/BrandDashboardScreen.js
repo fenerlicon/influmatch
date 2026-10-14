@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, ScrollView, ActivityIndicator, Pressable } from 'react-native';
-import { Bell, Plus, ShieldAlert, Inbox } from 'lucide-react-native';
+import { Bell, Plus, ShieldAlert, Inbox, Target } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { influencerCategoryLabel } from '../../constants/categories';
@@ -9,7 +9,7 @@ import AccountStatusCard from '../../components/AccountStatusCard';
 import { formatCount, timeAgo } from '../../lib/format';
 import {
     Screen, LargeHeader, Logo, Section, Text, Button, IconButton, Card, ListGroup, ListRow, Avatar, NameWithTick, Chip,
-    StatCard, Notice, EmptyState, colors,
+    StatCard, Notice, EmptyState, IconBox, colors,
 } from '../../components/ui';
 
 // Başvuru durumları (lib/adverts.ts)
@@ -150,6 +150,17 @@ export default function BrandDashboardScreen({ navigation }) {
                 <StatCard label="Kabul" value={String(stats.accepted)} />
             </View>
             <Button title="Yeni ilan" icon={Plus} onPress={() => navigation.navigate('BrandAdverts', { create: true })} block />
+            {verified ? (
+                <ListGroup>
+                    <ListRow
+                        left={<IconBox icon={Target} tone="gold" />}
+                        title="Kampanyalar"
+                        subtitle="Brief, davetler ve kampanya panosu"
+                        onPress={() => navigation.navigate('Campaigns')}
+                        chevron
+                    />
+                </ListGroup>
+            ) : null}
 
             {recommendations.length ? (
                 <Section title="Önerilen influencerlar" action="Keşfet" onAction={() => navigation.navigate('Keşfet')}>

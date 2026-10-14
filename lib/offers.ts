@@ -21,7 +21,14 @@ export interface CreateOfferInput {
   budget?: string | number | null
   message?: string | null
   paymentType?: 'cash' | 'barter' | null
+  /** Kampanya daveti (3.19): markanın kendi taslak / aktif kampanyası. */
+  campaignId?: string | null
 }
+
+/** Teklif oluşturma sonucu. code: 'quota' teklif hakkı doldu (toplu davet bu durumda durur). */
+export type CreateOfferResult = { success: true; offerId: string | null } | { error: string; code?: 'quota' | 'campaign' }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type OfferResponse = 'accepted' | 'rejected' | 'hold'
 
@@ -61,7 +68,7 @@ export async function createOfferAs(
   supabase: SupabaseClient,
   userId: string,
   input: CreateOfferInput,
-): Promise<{ success: true } | { error: string }> {
+): Promise<CreateOfferResult> {
   if ((await fetchAccountRole(supabase, userId)) !== 'brand') {
     return { error: 'Sadece marka hesapları teklif gönderebilir.' }
   }
@@ -79,6 +86,24 @@ export async function createOfferAs(
   if ('error' in fields) return { error: fields.error }
   const { campaignName, campaignType, budgetValue, paymentType, message } = fields
 
+  // Kampanya bağlantısı: yalnızca markanın kendi taslak / aktif kampanyası (RLS'li oturum istemcisi yalnızca kendi
+  // kampanyalarını döndürür; DB'de enforce_campaign_owner tetikleyicisi de yedek kontrol yapar).
+  let campaignId: string | null = null
+  if (input.campaignId) {
+    if (typeof input.campaignId !== 'string' || !UUID_RE.test(input.campaignId)) return { error: 'Kampanya bulunamadı.', code: 'campaign' }
+    const { data: campaign } = await supabase
+      .from('campaigns')
+      .select('id, brand_id, status')
+      .eq('id', input.campaignId)
+      .eq('brand_id', userId)
+      .maybeSingle()
+    if (!campaign) return { error: 'Kampanya bulunamadı.', code: 'campaign' }
+    if (campaign.status !== 'draft' && campaign.status !== 'active') {
+      return { error: 'Tamamlanan ya da arşivlenen kampanyaya davet gönderilemez.', code: 'campaign' }
+    }
+    campaignId = campaign.id as string
+  }
+
   // Ücretsiz marka teklif sınırı (bayrak kapalıyken kota null döner, kontrol yapılmaz). Sayım okunamazsa
   // DB tetikleyicisi (enforce_brand_offer_limits) yedek olarak sınırı yine uygular.
   // Keşif çarkı açıkken ücretsiz marka yalnızca açabildiği profillere (çark / önceki ilişki) teklif gönderir.
@@ -91,25 +116,33 @@ export async function createOfferAs(
       }
     }
     const quotaError = offerQuotaError(await getOfferQuota(userId, limitContext))
-    if (quotaError) return { error: quotaError }
+    if (quotaError) return { error: quotaError, code: 'quota' }
   } catch (quotaReadError) {
     console.error('[createOffer] quota read error:', quotaReadError)
   }
 
-  const { error } = await supabase.from('offers').insert({
-    sender_user_id: userId,
-    receiver_user_id: input.receiverId,
-    campaign_name: campaignName,
-    campaign_type: campaignType,
-    budget: budgetValue,
-    payment_type: paymentType,
-    message,
-    status: 'pending',
-  })
+  const { data: inserted, error } = await supabase
+    .from('offers')
+    .insert({
+      sender_user_id: userId,
+      receiver_user_id: input.receiverId,
+      campaign_name: campaignName,
+      campaign_type: campaignType,
+      budget: budgetValue,
+      payment_type: paymentType,
+      message,
+      status: 'pending',
+      ...(campaignId ? { campaign_id: campaignId } : {}),
+    })
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     console.error('[createOffer] insert error:', error)
-    return { error: brandLimitErrorFromDb(error.message) ?? 'Teklif gönderilemedi. Lütfen tekrar deneyin.' }
+    const limitError = brandLimitErrorFromDb(error.message)
+    if (limitError) return { error: limitError, code: 'quota' }
+    if (error.message?.includes('campaign_owner_mismatch')) return { error: 'Kampanya bulunamadı.', code: 'campaign' }
+    return { error: 'Teklif gönderilemedi. Lütfen tekrar deneyin.' }
   }
 
   const admin = createSupabaseAdminClient()
@@ -125,7 +158,7 @@ export async function createOfferAs(
     admin,
   )
 
-  return { success: true }
+  return { success: true, offerId: (inserted?.id as string | undefined) ?? null }
 }
 
 const sameInstant = (a: string | null | undefined, b: string | null | undefined) =>

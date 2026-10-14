@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { toast } from 'sonner'
 import { Inbox, MessageSquare, X } from 'lucide-react'
 import OfferActionButtons from '@/components/dashboard/OfferActionButtons'
+import OfferCampaignBrief from '@/components/campaigns/OfferCampaignBrief'
 import { dismissOffer } from '@/app/dashboard/influencer/offers/dismiss/actions'
 import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, Eyebrow, Segmented, VerifiedTick, type ChipTone } from '@/components/ui'
 import { cn } from '@/utils/cn'
@@ -23,6 +24,8 @@ export interface OfferListItem {
   created_at: string
   /** Marka bekleyen teklifi düzenlediyse (2026-10-14). */
   edited_at?: string | null
+  /** Kampanya daveti (3.19): brief ayrıntıda sunucudan yüklenir. */
+  campaign_id?: string | null
   room_id?: string | null
   sender: {
     id: string
@@ -114,7 +117,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
       const { data: offer } = await supabase
         .from('offers')
         .select(
-          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at,
+          `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at, campaign_id,
         sender:sender_user_id(id, full_name, avatar_url, username, social_links, displayed_badges)`,
         )
         .eq('id', offerId)
@@ -576,6 +579,12 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
           <Eyebrow>Marka briefi</Eyebrow>
           <p className="mt-2 whitespace-pre-line text-[13.5px] text-ink-muted">{selectedOffer.message || 'Marka bu teklif için ayrıntı paylaşmadı.'}</p>
         </div>
+
+        {selectedOffer.campaign_id && (
+          <div className="border-t border-line p-5">
+            <OfferCampaignBrief key={selectedOffer.id} offerId={selectedOffer.id} />
+          </div>
+        )}
 
         <div className="border-t border-line p-5">
           <Eyebrow>İletişim</Eyebrow>

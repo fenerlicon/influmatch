@@ -77,6 +77,9 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 4. **Kampanya sihirbazı + müsaitlik** (Aralık başı)
    - Marka kısa brief → uygun profiller (`lib/category-map.ts` + fiyat kartı + müsaitlik) → toplu davet.
    - Influencer "iş alıyorum / dolu" durumu; doluyken keşifte alt sırada, teklif butonu uyarı gösterir.
+   - ✅ 2026-10-14 yapıldı, kullanıcı onayıyla Aralık'tan öne çekildi (SYSTEM_MAP 3.19, `claude/campaigns`): kampanya (brief, hedef, bütçe, tarihler, varsayılan
+     teslimatlar), sihirbaz + önerilen profiller + toplu davet (her davet ayrı teklif, kota geçerli), kampanya panosu + CSV, teklif / ilan bağlama, davetliye brief;
+     müsaitlik (ayarlar, keşif sırası ve filtresi, teklif uyarısı). Web + mobil. Sihirbaz önerileri ve toplu davet bayrak açıkken yalnızca Marka Pro (tabloyla aynı).
 
 ## 2026-10-10 (3. tur) kararları
 
@@ -112,5 +115,5 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 4. ✅ İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + marka güvenilirliği (SYSTEM_MAP 3.18, `claude/collab-workspace`). **Teslim kilidi bekliyor** (R2 ile Kasım'da; veri modeli hazır, 3.18-N4)
 5. Akademi + R2 "Drive" (Kasım)
 6. UGC portföyü + sonuç raporu
-7. Kampanya sihirbazı + müsaitlik, davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
+7. ✅ Kampanya sihirbazı + müsaitlik (2026-10-14, öne çekildi, SYSTEM_MAP 3.19); kalan: davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
 8. Ekip hesabı / ajans yapısı (yayından sonra da olabilir)

@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Mail, Handshake, MessageCircle, Bell } from 'lucide-react-native';
 import { apiRequest } from '../lib/api';
 import { reliabilityText } from '../constants/collaborationWorkspace';
+import CampaignBrief from '../components/CampaignBrief';
 import { formatTRY, formatDate, timeAgo } from '../lib/format';
 import {
     Screen, LargeHeader, Text, Button, IconButton, Card, ListGroup, ListRow, Avatar, NameWithTick, Chip, Segment,
@@ -416,6 +417,8 @@ export default function JobsScreen({ navigation, route }) {
                             {sel.edited_at ? <KeyValue label="Düzenlendi" value={formatDate(sel.edited_at)} last /> : null}
                         </Card>
                         {sel.message ? <Text tone="fg2" style={{ fontSize: 14.5 }}>{sel.message}</Text> : null}
+                        {/* Kampanya daveti (3.19): brief salt okunur, sunucudan yalnızca alıcıya gelir */}
+                        {sel.campaign_brief ? <CampaignBrief brief={sel.campaign_brief} /> : null}
                         {sel.status === 'expired' ? (
                             <Text variant="small" tone="fg3">
                                 {isBrand

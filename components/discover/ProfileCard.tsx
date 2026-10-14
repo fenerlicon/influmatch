@@ -9,6 +9,7 @@ import { FAVORITES_LOCKED_ERROR } from '@/lib/favorites-shared'
 import { getCategoryLabel } from '@/utils/categories'
 import { calculateTrustScore } from '@/utils/matching'
 import type { DiscoverInfluencer } from '@/types/influencer'
+import { availabilityText } from '@/lib/availability-shared'
 import { Avatar, Button, ButtonLink, Card, Chip, VerifiedTick } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import AddToListModal from './AddToListModal'
@@ -100,6 +101,11 @@ export default function ProfileCard({
               {influencer.category && <Chip>{getCategoryLabel(influencer.category)}</Chip>}
               {influencer.creator_type && influencer.creator_type !== 'influencer' && <Chip>{CREATOR_LABEL[influencer.creator_type]}</Chip>}
               {influencer.spotlight_active && <Chip tone="gold">Spotlight</Chip>}
+              {influencer.availability?.status === 'busy' && (
+                <Chip tone="warning" dot title={availabilityText(influencer.availability)}>
+                  Şu an dolu
+                </Chip>
+              )}
             </div>
           </div>
         </Link>

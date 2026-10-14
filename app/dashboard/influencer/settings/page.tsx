@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { Settings } from 'lucide-react'
 import SettingsTabs from '@/components/settings/SettingsTabs'
+import AvailabilitySettings from '@/components/settings/AvailabilitySettings'
+import { getOwnAvailability } from '@/lib/availability'
 
 export default async function InfluencerSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -32,6 +34,9 @@ export default async function InfluencerSettingsPage() {
 
   const emailSettings = (profile?.email_notifications as typeof defaultSettings | null) ?? defaultSettings
 
+  // Müsaitlik (3.19): kendi satırı, kolon SELECT yetkisiyle.
+  const availability = await getOwnAvailability(supabase, user.id)
+
   // Fetch user's support tickets
   const { data: supportTickets } = await supabase
     .from('support_tickets')
@@ -55,6 +60,8 @@ export default async function InfluencerSettingsPage() {
           Bildirim tercihlerini ve hesap ayarlarını buradan yönetebilirsin.
         </p>
       </header>
+
+      <AvailabilitySettings initial={availability} />
 
       {/* Settings Tabs */}
       <SettingsTabs

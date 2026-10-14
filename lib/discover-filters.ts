@@ -23,6 +23,8 @@ export interface DiscoverFilters {
   /** Spotlight Pro filtreleri (sunucu Pro olmayan izleyicide yok sayar). */
   withData?: boolean
   blueTick?: boolean
+  /** "Yalnızca iş alanlar": "Şu an dolu" profilleri gizler (3.19). */
+  availableOnly?: boolean
   sort?: DiscoverSort | null
 }
 
@@ -37,6 +39,8 @@ export interface FilterableProfile {
   creator_type?: string | null
   displayed_badges?: string[] | null
   spotlight_active?: boolean | null
+  /** Geçerli müsaitlik (lib/availability-shared.ts effectiveAvailability); yoksa "iş alıyorum" sayılır. */
+  availability_status?: 'open' | 'busy' | null
   accounts: FilterableAccount[]
 }
 
@@ -81,6 +85,7 @@ export function parseDiscoverFilters(params: URLSearchParams): DiscoverFilters {
     maxEngagement: cleanNumber(params.get('maxEngagement'), 100),
     withData: params.get('withData') === '1',
     blueTick: params.get('blueTick') === '1',
+    availableOnly: params.get('availableOnly') === '1',
     sort: sort && SORTS.includes(sort) ? sort : null,
   }
 }
@@ -96,7 +101,8 @@ export function hasActiveFilters(filters: DiscoverFilters): boolean {
       filters.minEngagement != null ||
       filters.maxEngagement != null ||
       filters.withData ||
-      filters.blueTick,
+      filters.blueTick ||
+      filters.availableOnly,
   )
 }
 
@@ -110,6 +116,7 @@ export function matchesDiscoverFilters(profile: FilterableProfile, filters: Disc
   if (filters.creatorType === 'influencer' && profile.creator_type === 'ugc') return false
   if (filters.creatorType === 'ugc' && profile.creator_type !== 'ugc' && profile.creator_type !== 'both') return false
   if (filters.blueTick && !profile.displayed_badges?.includes('verified-account')) return false
+  if (filters.availableOnly && profile.availability_status === 'busy') return false
 
   const accounts = relevantAccounts(profile, filters)
   if (filters.platform && accounts.length === 0) return false
@@ -133,13 +140,18 @@ function bestMetric(profile: FilterableProfile, filters: DiscoverFilters, key: '
   return relevantAccounts(profile, filters).reduce((max, a) => Math.max(max, numberOf(a[key])), 0)
 }
 
-/** Sıralama: Spotlight profiller her sıralamada önde (web ile aynı), sonra seçilen ölçüt. Yeni dizi döner. */
+/**
+ * Sıralama: "Şu an dolu" profiller her zaman sonda (3.19), sonra Spotlight profiller önde (web ile aynı), sonra seçilen ölçüt.
+ * Ölçüt yoksa mevcut sıra korunur, yalnızca dolu profiller sona alınır. Yeni dizi döner.
+ */
 export function sortDiscoverProfiles<T>(items: T[], filters: DiscoverFilters, profileOf: (item: T) => FilterableProfile): T[] {
   const sort = filters.sort
-  if (!sort) return items.slice()
-  return items
-    .map((item) => ({ item, profile: profileOf(item) }))
+  const isBusy = (p: FilterableProfile) => p.availability_status === 'busy'
+  const mapped = items.map((item, index) => ({ item, index, profile: profileOf(item) }))
+  return mapped
     .sort((a, b) => {
+      if (isBusy(a.profile) !== isBusy(b.profile)) return isBusy(a.profile) ? 1 : -1
+      if (!sort) return a.index - b.index
       if (!!a.profile.spotlight_active !== !!b.profile.spotlight_active) return a.profile.spotlight_active ? -1 : 1
       switch (sort) {
         case 'followers_desc':

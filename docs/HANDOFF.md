@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-14 (marka düzeltmeleri, `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-14 (kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -67,8 +67,18 @@
   (`seenEditedAt`). DB yedeği (3.6-S7): istemci `offers`'ta yalnızca `status`'u, yalnızca alıcı influencer olarak `accepted`/`rejected` yapabilir.
   Mobil ilan formu web'e eşit (10.3-S31); `saveAdvertAs` soruları/listeleri doğruluyor, "Diğer" ödeme türü artık korunuyor (3.7-S7/S8).
   Migration `20261014000020` canlıda, rollback'li denemeyle doğrulandı.
+- **Yol haritası özellik 4 (`claude/campaigns`, SYSTEM_MAP 3.19; 2026-10-14 kullanıcı onayıyla Aralık'tan öne çekildi):** marka **kampanyaları**
+  (brief, hedef, toplam bütçe, tarihler, varsayılan teslimatlar, durum taslak / aktif / tamamlandı / arşiv). Web `/dashboard/brand/campaigns` (menüde "Kampanyalar"):
+  sihirbaz brief → hedef → önerilen profiller → **toplu davet** (her profile ayrı teklif, `createOfferAs`; kota / doğrulama / süre / bildirim aynen, teklif hakkı
+  dolunca durur ve kalanları bildirir), kampanya panosu (teklif, iş birliği, teslimat, ücret, ödeme, bütçe özeti, CSV), mevcut teklif / ilan bağlama; profil
+  sayfasındaki teklif penceresinde kampanya seçimi. Davetli influencer brief'i teklifte ve iş birliği detayında salt okunur görür (yalnızca sunucudan); anlaşma
+  formu kampanyanın varsayılan teslimatlarıyla dolar. **Kapı:** bayrak (`free_brand_limits_enabled`) açıkken öneriler ve çoklu davet yalnızca Spotlight Pro; bayrak
+  kapalı (bugün) herkes kullanır. Influencer **müsaitliği** ("İş alıyorum / Şu an dolu", not, bitiş tarihi): ayarlar (web + mobil), keşif kartı ve profil çipi,
+  doluyken keşifte sonda, "Yalnızca iş alanlar" filtresi, teklif penceresinde uyarı. Mobil: Kampanyalar + pano + oluşturma + davet (`/api/mobile/campaigns`),
+  Ayarlar'da müsaitlik (`/api/mobile/availability`). Migration `20261014000030` canlıda, rollback'li RLS denemesiyle doğrulandı. Karar bekleyen: 3.19-N8
+  (Spotlight Pro listesine ekleme, satış başlarken), 3.19-N9 (kampanya silme).
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -231,6 +241,11 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **`offers` güncelleme koruması (2026-10-14):** istemciye yalnızca `UPDATE (status)` yetkisi var; `secure_offers_final` içerik/kimlik/tarih kolonlarını dondurur,
   durumu yalnızca alıcı influencer bekleyen teklifte `accepted`/`rejected` yapar. Geri çekme, düzenleme ve süre dolumu service role ile (`lib/offers.ts`).
   Teklife yeni kolon eklenirse istemci yazmayacaksa ek yetki gerekmez.
+- **Kampanyalar (3.19):** `campaigns` istemciye yalnızca sahibine SELECT; brief davetliye yalnızca `lib/campaigns.ts` (`briefsForOffers`,
+  `campaignBriefForCollaboration`) üzerinden, çağıran tarafın teklif / iş birliği tarafı olduğu RLS'li okumayla doğrulandıktan sonra. `offers.campaign_id` /
+  `advert_projects.campaign_id` yazımlarını `enforce_campaign_owner` tetikleyicisi denetler. `createOfferAs` kota hatasında `code: 'quota'` döner (toplu davet bununla durur).
+- **Müsaitlik (3.19):** `users.availability_*` kolonları `users_before_update_guard` beyaz listesinde **değil**; istemci yazımı sessizce düşer, yazım `lib/availability.ts`
+  (service role). Kolon SELECT yetkisi sahibine verildi; diğer profiller `lib/profile-reads.ts` kart alanlarıyla (`availabilityOf`).
 - **Yeni tablo güvenliği:** Supabase varsayılan yetkileri yeni tabloda anon/authenticated'a tüm yetkileri verir ve RLS kapalı doğar.
   `CREATE TABLE` ile `ENABLE ROW LEVEL SECURITY` + `REVOKE` aynı `execute_sql` çağrısında olmalı (2026-10-10'da çağrı zaman aşımına
   uğrayınca `collaborations` birkaç dakika RLS'siz kaldı; içinde veri yokken kapatıldı). `REVOKE ALL` izin sisteminde reddedilebiliyor;
