@@ -327,25 +327,33 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.6-S4 [DÜŞÜK]**~~ (`rooms` kanalı `brand_id` ile filtreli; `undismissInfluencer` ve `'hold'` daha önce kaldırılmıştı) `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
 
 ### 3.7 İlanlar (advert projects / kampanyalar)
-- **Dosyalar:** `brand/advert/page.tsx`, `components/dashboard/{BrandAdvertTabs,BrandAdvertManager,AdvertProjectsList,AdvertPerformanceChart}.tsx`,
-  `brand/advert/actions.ts`, `app/actions/analytics.ts`
+- **Dosyalar:** `brand/advert/page.tsx`, `influencer/advert/page.tsx`, `components/adverts/*` (yeni görünüm, 2026-10-14), `lib/adverts-shared.ts`,
+  `components/dashboard/AdvertPerformanceChart.tsx`, `brand/advert/actions.ts`, `app/actions/analytics.ts`
 - **Sorunlar:**
   - ✅ ~~**3.7-S1 [YÜKSEK]**~~ (mevcut kapak korunuyor) İlan düzenleme bozuk: düzenlemede `heroImage` boşaltılıyor, kaydetme "Kapak fotoğrafı zorunlu" diye reddediyor.
   - ✅ ~~**3.7-S2 [YÜKSEK]**~~ (payment_type/custom_questions okunuyor, açıklama ezilmiyor) Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
   - ✅ ~~**3.7-S3 [ORTA]**~~ (`getAnalyticsStats` Spotlight kontrolü yapıyor) Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
   - ✅ ~~**3.7-S4 [DÜŞÜK]**~~ (brandIsSpotlight süre kontrollü dolduruluyor; kapak silme yolu adresten çıkarılıyor) Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
-  - **3.7-S5 [DÜŞÜK]** İlan kategorisi serbest metin (`BrandAdvertManager` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
+  - **3.7-S5 [DÜŞÜK]** İlan kategorisi serbest metin (`AdvertForm` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
     (`utils/categories.ts`) yapısal eşleşme yok. Bu yüzden influencer ana sayfasında "kategorine uygun ilanlar" yapılamadı ("Yeni ilanlar"
     gösteriliyor); ilan alarmı anahtar kelimeyle çalışıyor. Öneri: ilan formunda kategori seçici (`INFLUENCER_CATEGORIES`), eski değerler için eşleme. (2026-10-14, yeni görünüm çalışması)
+  - **3.7-S6 [DÜŞÜK]** İlan "özel soruları" (`custom_questions`) yanıtlanamıyor: marka soru ekleyebiliyor ama başvuru formunda (web + mobil) yanıt alanı ve
+    `advert_applications`'ta yanıt kolonu yok. Yeni görünümde sorular ilan ayrıntısında gösteriliyor, influencer'dan yanıtları niyet mesajına eklemesi isteniyor.
+    Kalıcı çözüm SQL ister: `advert_applications.answers jsonb` + `applyToAdvertAs` doğrulaması + marka başvuru satırında gösterim. (2026-10-14)
 
 ### 3.8 Başvuru değerlendirme (marka)
-- **Dosyalar:** `AdvertApplicationsList.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
+- **Dosyalar:** `components/adverts/ApplicationsPanel.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
 - **Sorunlar:**
   - ✅ ~~**3.8-S1 [ORTA]**~~ (okuma ve durum güncelleme oturum istemcisiyle; canlı RLS markaya yalnızca kendi ilanlarının başvurularını açıyor) Okumalar "RLS sorunu için geçici çözüm" olarak service role ile; sahiplik kodda kontrol ediliyor ama RLS devre dışı kalmış.
   - ✅ ~~**3.8-S2 [ORTA]**~~ (yalnızca bu başvurunun odası yeniden kullanılıyor; başvuru durumu artık 'pending'e çekilmiyor) `getOrCreateAdvertApplicationRoom` çift arasındaki herhangi bir odayı yeniden kullanıyor, `rooms` UPDATE politikası olmadığı için
     `advert_application_id` güncellemesi sessizce başarısız; oda açılırken başvuruyu `pending`'e geri çekebiliyor.
   - ✅ ~~**3.8-S4 [YÜKSEK]**~~ (yeni bulundu, canlıda düzeltildi) Canlı CHECK kısıtı `shortlisted` durumunu reddediyordu; "Ön Listeye Al" hiç çalışmamış (canlıda tek bir shortlisted başvuru yok). Kısıt genişletildi, `20261007000011`.
   - ✅ ~~**3.8-S3 [ORTA]**~~ (5.4-S1 ile: ön liste / kabul / red bildirimi + e-posta; marka kanalı filtreli) (marka tarafındaki yeni başvuru kanalı artık kendi ilanlarıyla filtreli; bildirim kısmı 5.4 ile) Başvuru durumu değişince influencer'a bildirim yok; realtime kanal filtresiz ve anon istemciyle farklı join kullanıyor.
+  - ✅ ~~**3.8-S5 [ORTA]**~~ (2026-10-14, yeni görünüm: yeni başvuruda sayfa sunucudan yenileniyor; oda bağları sunucuda okunuyor) Yeni başvuru realtime
+    işleyicisi `advert_applications`'ta olmayan `room_id, has_messages` kolonlarını seçiyordu: sorgu hata verdiği için yeni başvuru sayfaya canlı düşmüyordu.
+    Marka tarafında `room_id` hiç yüklenmediği için başvuru satırındaki okunmamış mesaj sayısı da hiç çalışmamıştı.
+  - ✅ ~~**3.8-N1**~~ (2026-10-14) Web marka başvuru listesinde "Kabul et" ve "Ön liste" düğmesi yoktu (yalnızca Reddet + mesaj; mobilde vardı, sunucu destekliyordu).
+    Kabul (onay penceresiyle, iş birliği başlatır), ön liste / listeden çıkar ve reddi geri alma eklendi.
 
 ### 3.9 Marka profili
 - **Dosyalar:** `brand/profile/page.tsx`, `components/brand/BrandProfileForm.tsx`, `brand/profile/actions.ts`

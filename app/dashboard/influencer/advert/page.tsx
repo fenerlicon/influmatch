@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import { type AdvertProject } from '@/components/dashboard/AdvertProjectsList'
-import { type AdvertApplication } from '@/components/dashboard/AdvertApplicationsList'
-import InfluencerAdvertTabs from '@/components/dashboard/InfluencerAdvertTabs'
+import InfluencerAdverts from '@/components/adverts/InfluencerAdverts'
+import { Notice } from '@/components/ui'
+import type { AdvertApplication, AdvertProject } from '@/lib/adverts-shared'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
@@ -23,7 +23,7 @@ export default async function InfluencerAdvertPage() {
     supabase
       .from('advert_projects')
       .select(
-        `id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, deliverables, platforms, location, hero_image, deadline, status, created_at, brand_user_id`,
+        `id, title, summary, category, brand_name, budget_currency, budget_min, budget_max, deliverables, platforms, location, hero_image, deadline, status, created_at, brand_user_id, payment_type, custom_questions`,
       )
       .eq('status', 'open')
       .order('created_at', { ascending: false }),
@@ -72,7 +72,7 @@ export default async function InfluencerAdvertPage() {
       const brandUser = row.brand_user_id ? brandMap.get(row.brand_user_id) : null
       return {
         id: row.id,
-        title: row.title ?? 'İsimsiz proje',
+        title: row.title ?? 'İsimsiz ilan',
         summary: row.summary ?? '',
         category: row.category ?? 'Genel',
         brandName: row.brand_name ?? brandUser?.full_name ?? 'Marka',
@@ -91,6 +91,8 @@ export default async function InfluencerAdvertPage() {
         status: row.status ?? 'open',
         createdAt: row.created_at,
         brandAvatar: brandUser?.avatar_url ?? null,
+        paymentType: row.payment_type ?? 'cash',
+        customQuestions: Array.isArray(row.custom_questions) ? row.custom_questions : [],
       }
     }) ?? []
 
@@ -212,7 +214,6 @@ export default async function InfluencerAdvertPage() {
   })
 
   const hasError = Boolean(projectsError || applicationsError)
-  const errorMessage = projectsError?.message ?? applicationsError?.message ?? null
 
   if (projectsError) {
     console.error('[InfluencerAdvertPage] projects error', projectsError)
@@ -221,32 +222,21 @@ export default async function InfluencerAdvertPage() {
     console.error('[InfluencerAdvertPage] applications error', applicationsError)
   }
 
-  return (
-    <div className="space-y-8">
-      <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#131421] to-[#090A0F] p-6 text-white shadow-glow">
-        <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Advert</p>
-        <h1 className="mt-3 text-3xl font-semibold">Marka Projeleri</h1>
-        <p className="mt-2 max-w-3xl text-sm text-gray-300">
-          Açık iş birliklerini incele, sana uygun brieflere başvur ve markalarla ilk teması kur. Başvuruların marka panelinde görünür.
-        </p>
-      </header>
+  if (hasError) {
+    return (
+      <Notice tone="danger" title="İlanlar yüklenemedi.">
+        Sayfayı yenilemeyi dene.
+      </Notice>
+    )
+  }
 
-      {hasError ? (
-        <div className="rounded-3xl border border-red-500/30 bg-red-900/20 p-6 text-sm text-red-200">
-          <p>İlanlar yüklenirken bir sorun oluştu. Lütfen sayfayı yenileyin.</p>
-          {errorMessage ? <p className="mt-2 text-xs text-red-300">Hata: {errorMessage}</p> : null}
-        </div>
-      ) : (
-        <InfluencerAdvertTabs
-          openProjects={projects}
-          myApplications={myApplications}
-          initialAppliedIds={appliedAdvertIds}
-          currentUserId={user.id}
-          initialSavedIds={savedAdvertIds}
-          initialAlerts={alertsResult.success ? alertsResult.alerts : []}
-        />
-      )}
-    </div>
+  return (
+    <InfluencerAdverts
+      openProjects={projects}
+      myApplications={myApplications}
+      appliedIds={appliedAdvertIds}
+      savedIds={savedAdvertIds}
+      alerts={alertsResult.success ? alertsResult.alerts : []}
+    />
   )
 }
-

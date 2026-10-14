@@ -91,6 +91,12 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
    - Panel sayfaları giriş gerektirdiği ve yerel sunucu canlı veritabanına bağlı olduğu için kabuk, sahte kullanıcılı geçici bir
      yerel sayfada (commit edilmedi) masaüstü ve 375 px'te denendi.
 3. **Panel sayfaları** (rol rol), İşler birleşmesi, terim temizliği, ölü arayüz temizliği.
+   - ✅ İşler (`/dashboard/works`, PR #71): teklif + iş birliği tek sayfa, eski adresler yönlendiriliyor.
+   - ✅ İki rolün ana sayfası + ortak Hesap durumu kartı (PR #73).
+   - ✅ İlanlar (2026-10-14): `components/adverts/*`. Influencer: liste + sağ panel (telefonda alttan pencere), başvuru formu panelde,
+     sekmeler `?tab=open|saved|applications|alerts`. Marka: ilan kartları + seçili ilanın başvuruları (Yeni / Ön liste / Değerlendirilen),
+     "Kabul et" ve "Ön liste" web'e eklendi; ilan formu pencerede (`?new=1` doğrudan açar), diğer markaların ilanları ayrı sekmede.
+   - Sırada: marka Keşfet, Mesajlar, Profil (+ Rozetler sekmesi, menüden çıkar), Ayarlar; terim ve ölü arayüz temizliği.
    - ✅ **İşler** (2026-10-14): `/dashboard/works` (`app/dashboard/works/page.tsx` veri, `components/dashboard/WorksView.tsx` görünüm,
      `lib/works.ts` teklif yükleme + sayılar). Aşama kartları Teklif → Anlaşıldı → İçerik → Yayında → Tamamlandı (`?stage=`).
      Teklif aşamasında influencer `OffersManager`, marka `BrandOffersList`; diğer aşamalarda `CollaborationsManager` (`stage` prop).
