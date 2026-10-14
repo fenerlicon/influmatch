@@ -6,6 +6,9 @@
 
 ## 1. Şu anki durum (kısa)
 
+- **Yeni görünüm (2026-10-13'ten beri, asıl iş):** durum, sıra ve hangi oturumun neyi yaptığı `docs/REDESIGN.md`'de
+  ("Paralel oturumlar" tablosu + "Aşamalar"). Bu belgenin aşağıdaki kısmı yeni görünümden önceki işleri anlatır.
+
 - **Web:** kararsız yapılabilecek tüm maddeler bitti; 2026-10-09 ürün kararları (bildirimler, doğrudan mesaj, sarı tikler,
   "Markayla görüş", kota, Resend) uygulandı (#37–#40).
 - **Mobil (test aşaması, hedef web ile tam uyum):** 6 parça bitti ve birleşti (#41–#46):
