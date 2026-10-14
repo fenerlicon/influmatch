@@ -128,6 +128,10 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      influencer ve UGC bulma platformu"; sayfa `<title>`/açıklama (SEO) aynı. Bölümler: hero + ürün önizlemesi, Nasıl çalışır
      (marka/üretici), Doğrulama, öne çıkan profiller (canlı Spotlight verisi; yoksa gizli), Spotlight (maddeler `lib/spotlight-plans.ts`'ten),
      S.S.S., son çağrı. S.S.S.: TikTok "yakında" ve Spotlight maddeleri koddaki gerçeğe göre düzeltildi; "kampanya" → "ilan".
+   - ✅ Onboarding (2026-10-14): `components/onboarding/OnboardingShell.tsx` (logo, adım çubuğu: Profil → Hesap doğrulama; marka tek adım).
+     Profil formu (influencer/marka), fotoğraf yükleyici ve hesap doğrulama adımı yeni bileşenlerde; form mantığı, taslak saklama ve
+     kayıt aynı. Açık iş: `components/dashboard/InstagramConnect` / `TikTokConnect` hâlâ eski görünümde (profil "Bağlı hesaplar"da da
+     kullanılıyor; profil sayfasıyla birlikte taşınacak).
      Kayıt bağlantıları `/signup` (rol formda). Eski 10 tanıtım bileşeni silindi.
 5. **Admin paneli.**
    - ✅ Kabuk ve alt paneller (2026-10-14): `app/admin/layout.tsx` admin sayfalarını `AppShell`'de açar; menü (`nav-config` ADMIN):

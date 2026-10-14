@@ -8,6 +8,7 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { validateTaxNumber } from '@/lib/tax-id'
 import { validateCorporateEmail } from '@/lib/corporate-email'
+import { Field, Input, Select } from '@/components/ui'
 
 export interface BrandFormState {
   brandName: string
@@ -157,232 +158,98 @@ export default function BrandForm({ form, onChange }: BrandFormProps) {
   const taxIdValidation = form.taxId?.trim() ? validateTaxNumber(form.taxId) : null
   const taxIdError = taxIdValidation && !taxIdValidation.isValid ? taxIdValidation.error : null
 
+  const usernameHint =
+    validationErrors.username ? undefined
+      : usernameStatus === 'checking' ? 'Kontrol ediliyor…'
+        : usernameStatus === 'available' ? 'Kullanılabilir'
+          : undefined
+  const usernameError = validationErrors.username || (usernameStatus === 'taken' ? 'Bu kullanıcı adı alınmış' : undefined)
+  const required = <span className="text-danger" aria-hidden> *</span>
+
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <label htmlFor="brandName" className="text-sm text-gray-300">
-            Marka Adı
-          </label>
-          <input
-            id="brandName"
-            value={form.brandName}
-            onChange={handleInput('brandName')}
-            placeholder="Markanızın Adı"
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
-          />
-        </div>
-        <div>
-          <label htmlFor="username" className="text-sm text-gray-300">
-            Kullanıcı Adı
-          </label>
-          <input
-            id="username"
-            value={form.username}
-            onChange={handleInput('username')}
-            placeholder="kullaniciadi"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.username || usernameStatus === 'taken'
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : usernameStatus === 'available'
-                ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
-                : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.username && (
-            <p className="mt-1 text-xs text-red-400">{validationErrors.username}</p>
+    <div className="grid gap-5">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Marka adı">
+          {(props) => <Input {...props} value={form.brandName} onChange={handleInput('brandName')} placeholder="Markanızın adı" autoComplete="organization" />}
+        </Field>
+        <Field label="Kullanıcı adı" error={usernameError} hint={usernameHint}>
+          {(props) => (
+            <Input
+              {...props}
+              value={form.username}
+              onChange={handleInput('username')}
+              placeholder="kullaniciadi"
+              autoComplete="username"
+              className={usernameStatus === 'available' && !usernameError ? 'border-success/50' : undefined}
+            />
           )}
-          {!validationErrors.username && usernameStatus === 'checking' && (
-            <p className="mt-1 text-xs text-gray-400">Kontrol ediliyor...</p>
-          )}
-          {!validationErrors.username && usernameStatus === 'available' && (
-            <p className="mt-1 text-xs text-emerald-400">Kullanılabilir</p>
-          )}
-          {!validationErrors.username && usernameStatus === 'taken' && (
-            <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı alınmış</p>
-          )}
-        </div>
+        </Field>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <label htmlFor="city" className="text-sm text-gray-300">
-            Şehir
-          </label>
-          <select
-            id="city"
-            value={form.city}
-            onChange={handleInput('city')}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
-          >
-            <option value="">Şehir Seçin</option>
-            {TURKISH_CITIES.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="website" className="text-sm text-gray-300">
-            Web Sitesi <span className="text-red-400">*</span>
-          </label>
-          <input
-            id="website"
-            type="text"
-            value={form.website}
-            onChange={handleInput('website')}
-            placeholder="https://www.markaniz.com"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.website
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.website && (
-            <p className="mt-1 text-xs text-red-300">{validationErrors.website}</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Şehir">
+          {(props) => (
+            <Select {...props} value={form.city} onChange={handleInput('city')}>
+              <option value="">Şehir seçin</option>
+              {TURKISH_CITIES.map((city) => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </Select>
           )}
-        </div>
+        </Field>
+        <Field label={<>Web sitesi{required}</>} error={validationErrors.website}>
+          {(props) => <Input {...props} value={form.website} onChange={handleInput('website')} placeholder="https://www.markaniz.com" autoComplete="url" />}
+        </Field>
       </div>
 
-      <div>
-        <label htmlFor="corporateEmail" className="text-sm text-gray-300">
-          Kurumsal E-posta <span className="text-red-400">*</span>
-        </label>
-        <input
-          id="corporateEmail"
-          type="email"
-          autoComplete="email"
-          value={form.corporateEmail}
-          onChange={handleInput('corporateEmail')}
-          placeholder="ad@markaniz.com"
-          className={`mt-2 w-full rounded-2xl border bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${corporateEmailError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-soft-gold'}`}
-        />
-        {corporateEmailError ? (
-          <p className="mt-1 text-xs text-red-300">{corporateEmailError}</p>
-        ) : (
-          <p className="mt-1 text-xs text-gray-400">
-            Web sitenizin alan adına ait bir e-posta olmalı (giriş e-postanızdan farklı olabilir). &quot;Resmi İşletme&quot; rozeti
-            için bu adrese gönderilen kodla doğrulanır.
-          </p>
+      <Field
+        label={<>Kurumsal e-posta{required}</>}
+        error={corporateEmailError ?? undefined}
+        hint='Web sitenizin alan adına ait bir e-posta olmalı (giriş e-postanızdan farklı olabilir). "Resmi İşletme" rozeti için bu adrese gönderilen kodla doğrulanır.'
+      >
+        {(props) => (
+          <Input {...props} type="email" autoComplete="email" value={form.corporateEmail} onChange={handleInput('corporateEmail')} placeholder="ad@markaniz.com" />
         )}
-      </div>
+      </Field>
 
-      <div>
-        <label htmlFor="taxId" className="text-sm text-gray-300">
-          Vergi Numarası <span className="text-gray-500 text-xs">(Opsiyonel)</span>
-        </label>
-        <input
-          id="taxId"
-          type="text"
-          inputMode="numeric"
-          maxLength={14}
-          value={form.taxId}
-          onChange={handleInput('taxId')}
-          placeholder="1234567890"
-          className={`mt-2 w-full rounded-2xl border bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${taxIdError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-soft-gold'}`}
-        />
-        {taxIdError ? (
-          <p className="mt-1 text-xs text-red-300">{taxIdError}</p>
-        ) : (
-          <p className="mt-1 text-xs text-gray-400">
-            Şirketler 10 haneli vergi numarasını, şahıs şirketleri 11 haneli T.C. kimlik numarasını girer. Kurumsal fatura için gereklidir.
-          </p>
+      <Field
+        label={<>Vergi numarası <span className="font-normal text-ink-faint">(isteğe bağlı)</span></>}
+        error={taxIdError ?? undefined}
+        hint="Şirketler 10 haneli vergi numarasını, şahıs şirketleri 11 haneli T.C. kimlik numarasını girer. Kurumsal fatura için gereklidir."
+      >
+        {(props) => (
+          <Input {...props} inputMode="numeric" maxLength={14} value={form.taxId} onChange={handleInput('taxId')} placeholder="1234567890" />
         )}
-      </div>
+      </Field>
 
       {form.taxId && form.taxId.trim() && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <div>
-            <label htmlFor="taxOffice" className="text-sm text-gray-300">
-              Vergi Dairesi <span className="text-red-400">*</span>
-            </label>
-            <input
-              id="taxOffice"
-              type="text"
-              value={form.taxOffice || ''}
-              onChange={handleInput('taxOffice')}
-              placeholder="Kadıköy Vergi Dairesi"
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
-            />
-          </div>
-          <div>
-            <label htmlFor="taxOfficeCity" className="text-sm text-gray-300">
-              Şirketin Bağlı Olduğu İl <span className="text-red-400">*</span>
-            </label>
-            <select
-              id="taxOfficeCity"
-              value={form.taxOfficeCity || ''}
-              onChange={handleInput('taxOfficeCity')}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white focus:border-soft-gold focus:outline-none"
-            >
-              <option value="">Şehir Seçin</option>
-              {TURKISH_CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={<>Vergi dairesi{required}</>}>
+            {(props) => <Input {...props} value={form.taxOffice || ''} onChange={handleInput('taxOffice')} placeholder="Kadıköy Vergi Dairesi" />}
+          </Field>
+          <Field label={<>Şirketin bağlı olduğu il{required}</>}>
+            {(props) => (
+              <Select {...props} value={form.taxOfficeCity || ''} onChange={handleInput('taxOfficeCity')}>
+                <option value="">Şehir seçin</option>
+                {TURKISH_CITIES.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </Select>
+            )}
+          </Field>
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div>
-          <label htmlFor="instagram" className="text-sm text-gray-300">
-            Instagram
-          </label>
-          <input
-            id="instagram"
-            type="text"
-            value={form.instagram}
-            onChange={handleInput('instagram')}
-            placeholder="Kullanıcı adı veya link"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.instagram
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.instagram && (
-            <p className="mt-1 text-xs text-red-300">{validationErrors.instagram}</p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="tiktok" className="text-sm text-gray-300">
-            TikTok
-          </label>
-          <input
-            id="tiktok"
-            type="text"
-            value={form.tiktok}
-            onChange={handleInput('tiktok')}
-            placeholder="Kullanıcı adı veya link"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.tiktok
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.tiktok && (
-            <p className="mt-1 text-xs text-red-300">{validationErrors.tiktok}</p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="youtube" className="text-sm text-gray-300">
-            YouTube
-          </label>
-          <input
-            id="youtube"
-            type="text"
-            value={form.youtube}
-            onChange={handleInput('youtube')}
-            placeholder="Kanal adı veya link"
-            className={`mt-2 w-full rounded-2xl border px-5 py-4 text-white placeholder:text-gray-500 focus:outline-none ${validationErrors.youtube
-              ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-              : 'border-white/10 bg-white/5 focus:border-soft-gold'
-              }`}
-          />
-          {validationErrors.youtube && (
-            <p className="mt-1 text-xs text-red-300">{validationErrors.youtube}</p>
-          )}
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Field label="Instagram" error={validationErrors.instagram}>
+          {(props) => <Input {...props} value={form.instagram} onChange={handleInput('instagram')} placeholder="Kullanıcı adı veya bağlantı" />}
+        </Field>
+        <Field label="TikTok" error={validationErrors.tiktok}>
+          {(props) => <Input {...props} value={form.tiktok} onChange={handleInput('tiktok')} placeholder="Kullanıcı adı veya bağlantı" />}
+        </Field>
+        <Field label="YouTube" error={validationErrors.youtube}>
+          {(props) => <Input {...props} value={form.youtube} onChange={handleInput('youtube')} placeholder="Kanal adı veya bağlantı" />}
+        </Field>
       </div>
     </div>
   )

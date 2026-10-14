@@ -2,6 +2,8 @@
 
 import Image from 'next/image'
 import { ChangeEvent } from 'react'
+import { ImagePlus, Loader2 } from 'lucide-react'
+import { buttonClasses } from '@/components/ui'
 
 interface AvatarUploaderProps {
   label: string
@@ -13,25 +15,20 @@ interface AvatarUploaderProps {
 export default function AvatarUploader({ label, imageUrl, isUploading, onFileChange }: AvatarUploaderProps) {
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (file) {
-      onFileChange(file)
-    }
+    if (file) onFileChange(file)
   }
 
   return (
-    <div>
-      <p className="text-sm text-gray-300">{label}</p>
-      <div className="mt-3 flex items-center gap-4">
-        <div className="relative h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-white/5">
-          {imageUrl ? (
-            <Image src={imageUrl} alt="Avatar" fill sizes="80px" className="object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">Yükle</div>
-          )}
-        </div>
-        <label className="cursor-pointer rounded-full border border-white/15 px-6 py-2 text-sm text-white transition hover:border-soft-gold/60 hover:text-soft-gold">
-          {isUploading ? 'Yükleniyor...' : 'Fotoğraf Yükle'}
-          <input type="file" accept="image/*" className="hidden" onChange={handleInputChange} disabled={isUploading} />
+    <div className="flex items-center gap-4">
+      <div className="relative grid h-[72px] w-[72px] flex-none place-items-center overflow-hidden rounded-full border border-line-strong bg-surface-2 text-ink-faint">
+        {imageUrl ? <Image src={imageUrl} alt={label} fill sizes="72px" className="object-cover" /> : <ImagePlus className="h-6 w-6" aria-hidden />}
+      </div>
+      <div className="grid gap-1.5">
+        <span className="text-[12.5px] font-medium text-ink-muted">{label}</span>
+        <label className={buttonClasses({ size: 'sm', className: isUploading ? 'pointer-events-none opacity-60' : 'cursor-pointer' })}>
+          {isUploading ? <Loader2 className="animate-spin" aria-hidden /> : <ImagePlus aria-hidden />}
+          {isUploading ? 'Yükleniyor…' : imageUrl ? 'Değiştir' : 'Fotoğraf yükle'}
+          <input type="file" accept="image/*" className="sr-only" onChange={handleInputChange} disabled={isUploading} />
         </label>
       </div>
     </div>
