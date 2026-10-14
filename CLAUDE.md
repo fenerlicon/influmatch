@@ -5,6 +5,11 @@ Bu dosya Claude Code tarafından her oturumda otomatik okunur. Proje sahibinin v
 listesinin tamamı `docs/SYSTEM_MAP.md`'de. **İşe başlamadan önce üçünü de oku.** Aynı soruları
 kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
 
+**Paralel oturumlar (2026-10-14):** kullanıcı web paneli, admin, tanıtım sayfaları ve mobili aynı anda farklı Claude
+oturumlarında / hesaplarında yürütüyor. Yeni görünüm (redesign) ya da mobil üzerinde çalışacaksan önce
+`docs/REDESIGN.md` → **"Paralel oturumlar"** bölümünü oku: hangi oturumun hangi dosyalara dokunduğu, neyin kilitli olduğu
+ve sıradaki iş orada. Bir işe başlamadan o tabloda kilitle, bitince güncelle; başka oturumun alanındaki dosyaları değiştirme.
+
 ## Proje
 
 - Influencer/UGC ↔ marka eşleştirme platformu. Web: Next.js 14.2.35 (app router, server actions), Tailwind,

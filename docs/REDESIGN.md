@@ -2,6 +2,32 @@
 
 > Tasarım OpenDesign'da hazırlanır, onaydan sonra koda geçer. Kararlar kullanıcıya ait; değişirse burayı güncelle.
 
+## Paralel oturumlar: önce burayı oku (2026-10-14)
+
+Arda bu işi aynı anda birden fazla Claude oturumunda (ve farklı hesaplarda) yürütüyor. Çizelgenin **tek kaynağı bu dosya** (`main`'deki hâli).
+Yeni hesapta / yeni oturumda iş buradan devam eder; kullanıcıya "nerede kaldık" diye sorma.
+
+1. **Başlamadan kilitle:** bir alana ya da sayfaya başlamadan önce aşağıdaki tabloda o satırı "🔒 sürüyor (dal adı)" yap ve bunu küçük bir
+   PR ile hemen `main`'e birleştir. Tabloda başka oturumun kilitlediği işe girme; boşta olan bir işi almak istersen önce kilitle.
+2. **Bitirince yaz:** iş birleşince "Aşamalar" listesine ayrıntıyı (dosyalar, kararlar, bilinçli eksikler) ekle, tablodaki "Sıradaki" sütununu güncelle.
+   Bulgular `docs/SYSTEM_MAP.md`'ye; ürün/metin kararları kullanıcıya sorulur ve "Kararlar"a yazılır.
+3. **Kendi alanında kal:** her oturum yalnızca tablodaki kendi dosyalarına dokunur. Ortak dosya (`components/ui/*`, `components/shell/*`,
+   `tailwind.config.ts`, `lib/*`, `app/api/mobile/*`, `app/layout.tsx`) değişecekse yalnızca **ekleme** yap (mevcut API'yi bozma), PR açıklamasına
+   "ortak dosya" yaz. Başka alanın bileşenini yeniden yazma; gerekirse tabloya not düş.
+4. **Dal ve klasör:** her işe `git fetch` + güncel `origin/main`'den yeni dalla başla. Dal önekleri: web panel `claude/redesign-phase3-*`,
+   tanıtım `claude/redesign-phase4-*`, admin `claude/redesign-admin*`, mobil `claude/mobile-*`. Ana klon `C:\projeler\influmatch`; iki oturum aynı
+   klasörde çalışmaz. Web panel oturumu `C:\projeler\influmatch-web` worktree'sini kullanıyor; yeni oturum kendi worktree'sini açar
+   (`git worktree add ../influmatch-<alan> -b <dal> origin/main`).
+5. **Birleştirme:** dal → PR → kontroller (Vercel READY) → birleştir. Çakışma olursa `main`'i dala alıp yalnızca kendi alanındaki çakışmayı çöz;
+   başka alanın dosyasında çakışma varsa o tarafın değişikliğini koru.
+
+| Alan | Dosyalar | Durum | Sıradaki |
+|---|---|---|---|
+| **Web panel** (3. aşama) | `app/dashboard/**`, `app/profile/**`, `app/spotlight/**`, `app/badges/**`; `components/{adverts,discover,messages,dashboard,profile,settings,badges,spotlight,showcase,brand,influencer}/**` | 🔒 sürüyor (`claude/redesign-phase3-*`). Bitti: İşler, ana sayfalar, İlanlar, Keşfet, Mesajlar | Profil (+ Rozetler sekmesi, menüden çıkar) → Ayarlar → iş birliği detayı (`/dashboard/collaborations/[id]`) → İstatistikler → Spotlight sayfaları → terim ve ölü arayüz temizliği |
+| **Admin** (5. aşama) | `app/admin/**`, `components/admin/**` | ✅ kabuk, destek/sistem panelleri, kullanıcılar, içerik (`/admin/adverts`, `/admin/notifications`) | Kalan yok. 4. aşamaya geçecekse önce aşağıdaki satırı kilitle. |
+| **Tanıtım + giriş** (4. aşama) | `app/page.tsx`, `app/{login,signup,signup-role,forgot-password,onboarding,legal,feedback}/**`, `components/{landing,onboarding,consent}/**` | ⏳ boşta (kimse kilitlemedi) | Ana sayfa ("Komisyonsuz" onaylı; başlık metni kullanıcı onayında), giriş/kayıt (rol seçimi formda, `/signup-role` kalkar), onboarding |
+| **Mobil** | `mobile-app/**`, `design/mobile/**` | 🔒 sürüyor (ayrı oturum, `claude/mobile-*`) | Aşağıdaki "Mobil uygulama" bölümü |
+
 ## Kararlar
 
 | Konu | Karar |
@@ -91,22 +117,7 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
    - Panel sayfaları giriş gerektirdiği ve yerel sunucu canlı veritabanına bağlı olduğu için kabuk, sahte kullanıcılı geçici bir
      yerel sayfada (commit edilmedi) masaüstü ve 375 px'te denendi.
 3. **Panel sayfaları** (rol rol), İşler birleşmesi, terim temizliği, ölü arayüz temizliği.
-   - ✅ İşler (`/dashboard/works`, PR #71): teklif + iş birliği tek sayfa, eski adresler yönlendiriliyor.
-   - ✅ İki rolün ana sayfası + ortak Hesap durumu kartı (PR #73).
-   - ✅ İlanlar (2026-10-14): `components/adverts/*`. Influencer: liste + sağ panel (telefonda alttan pencere), başvuru formu panelde,
-     sekmeler `?tab=open|saved|applications|alerts`. Marka: ilan kartları + seçili ilanın başvuruları (Yeni / Ön liste / Değerlendirilen),
-     "Kabul et" ve "Ön liste" web'e eklendi; ilan formu pencerede (`?new=1` doğrudan açar), diğer markaların ilanları ayrı sekmede.
-   - ✅ Keşfet (2026-10-14): `components/discover/*`. Marka Keşfet sekmeleri Tümü (`/brand/discover`) · Önerilenler (`/brand/ai`, Spotlight
-     değilse açıklama, yönlendirme yok) · Favoriler ve Listeler (`/brand/favorites`); menüdeki ayrı "Favoriler" maddesi kalktı. Yeni profil
-     kartı (takipçi / etkileşim / tamamlanan, başlangıç fiyatı, Profil + Teklif); "Teklif" profili teklif penceresi açık getirir (`?teklif=1`).
-     Uyum puanı yalnızca Önerilenler'de. Güven skoru çubuk yerine kartın alt bilgi satırında ("Güven 82/100", yalnızca marka). Influencer Keşfet aynı kartla;
-     ölü "Vitrinde görünmüyorsun" uyarısı kaldırıldı. Telefonda filtreler "Filtreler" düğmesinin arkasında.
-   - ✅ Mesajlar (2026-10-14): `components/messages/*`. Liste (arama, Tümü / Okunmamış / Süren işler) + sohbet; her sohbetin üstünde
-     bağlı olduğu iş satırı (iş birliği > teklif > ilan başvurusu, `lib/conversation-jobs.ts`) ve "İşe git". Mesajlar günlere ayrılmış;
-     rapor / engelle ve profil penceresi ortak Modal ile, tarayıcı `alert` / `confirm` kalktı. Aynı kişiyle olan odalar yine tek sohbet.
-     Telefonda liste ve sohbet ayrı ekran (geri düğmesi). Tasarımdaki sistem satırları ("Teklif kabul edildi") veride olmadığı için eklenmedi.
-   - Sırada: Profil (+ Rozetler sekmesi, menüden çıkar), Ayarlar; terim ve ölü arayüz temizliği.
-   - ✅ **İşler** (2026-10-14): `/dashboard/works` (`app/dashboard/works/page.tsx` veri, `components/dashboard/WorksView.tsx` görünüm,
+   - ✅ **İşler** (2026-10-14, PR #71): `/dashboard/works` (`app/dashboard/works/page.tsx` veri, `components/dashboard/WorksView.tsx` görünüm,
      `lib/works.ts` teklif yükleme + sayılar). Aşama kartları Teklif → Anlaşıldı → İçerik → Yayında → Tamamlandı (`?stage=`).
      Teklif aşamasında influencer `OffersManager`, marka `BrandOffersList`; diğer aşamalarda `CollaborationsManager` (`stage` prop).
      Üçü yeni bileşenlere geçti; `confirm`/`alert` yerine onay penceresi ve toast; teklif reddi artık onay istiyor; iş iptali pencerede.
@@ -114,7 +125,7 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      yönlenir (gönderilmiş e-posta/bildirim bağlantıları bozulmaz); yeni bildirimler `/dashboard/works?stage=offers`'a gider.
      İş detayı `/dashboard/collaborations/[id]` yerinde (görünümü sonraki adımda). Marka kilidi İşler'de ayrıca uygulanır.
      Menüde Teklifler + İş Birlikleri yerine tek "İşler". Sahte veriyle yerel önizlemede masaüstü/375 px denendi.
-   - ✅ **Ana sayfalar** (2026-10-14): influencer ve marka ana sayfası yeniden yazıldı. Ortak `components/dashboard/AccountStatusCard.tsx`
+   - ✅ **Ana sayfalar** (2026-10-14, PR #73): influencer ve marka ana sayfası yeniden yazıldı. Ortak `components/dashboard/AccountStatusCard.tsx`
      ("Hesap durumu": ilk adımlar + sıradaki adım + güven skoru + mavi tik koşulları penceresi + vitrin anahtarı; isteğe bağlı adım yüzdeye
      katılmaz). Influencer: bekleyen teklifler (satırdan yanıt), süren işler, yeni ilanlar (kategori eşleşmesi yok, 3.7-S5), Spotlight yoksa
      görüntülenme kartı Spotlight'a yönlendirir. Marka: "Senden bekleyenler" (yayın onayı, anlaşma özeti, yeni başvurular), öneriler (Spotlight),
@@ -122,7 +133,20 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      sayfasında "Bağlı hesaplar" (`#hesaplar`) bölümüne taşındı. Kullanılmayan 10 eski kart silindi (OfferActivityCard, ProfileCompletionCard,
      TrustScoreCard, BlueTickProgressCard, FirstStepsCard, ProfileViewsCard, SpotlightToggleCard, VerificationWarningCard, BrandPipelineCard,
      BrandVerificationCard); "İlk adımları gizle" çerezi kalktı (kart tamamlanınca kendiliğinden kısalır).
-4. **Tanıtım sayfaları** + giriş/kayıt/onboarding.
+   - ✅ İlanlar (2026-10-14, PR #75): `components/adverts/*`. Influencer: liste + sağ panel (telefonda alttan pencere), başvuru formu panelde,
+     sekmeler `?tab=open|saved|applications|alerts`. Marka: ilan kartları + seçili ilanın başvuruları (Yeni / Ön liste / Değerlendirilen),
+     "Kabul et" ve "Ön liste" web'e eklendi; ilan formu pencerede (`?new=1` doğrudan açar), diğer markaların ilanları ayrı sekmede.
+   - ✅ Keşfet (2026-10-14, PR #78): `components/discover/*`. Marka Keşfet sekmeleri Tümü (`/brand/discover`) · Önerilenler (`/brand/ai`, Spotlight
+     değilse açıklama, yönlendirme yok) · Favoriler ve Listeler (`/brand/favorites`); menüdeki ayrı "Favoriler" maddesi kalktı. Yeni profil
+     kartı (takipçi / etkileşim / tamamlanan, başlangıç fiyatı, Profil + Teklif); "Teklif" profili teklif penceresi açık getirir (`?teklif=1`).
+     Uyum puanı yalnızca Önerilenler'de. Güven skoru çubuk yerine kartın alt bilgi satırında ("Güven 82/100", yalnızca marka). Influencer Keşfet aynı kartla;
+     ölü "Vitrinde görünmüyorsun" uyarısı kaldırıldı. Telefonda filtreler "Filtreler" düğmesinin arkasında.
+   - ✅ Mesajlar (2026-10-14, PR #80): `components/messages/*`. Liste (arama, Tümü / Okunmamış / Süren işler) + sohbet; her sohbetin üstünde
+     bağlı olduğu iş satırı (iş birliği > teklif > ilan başvurusu, `lib/conversation-jobs.ts`) ve "İşe git". Mesajlar günlere ayrılmış;
+     rapor / engelle ve profil penceresi ortak Modal ile, tarayıcı `alert` / `confirm` kalktı. Aynı kişiyle olan odalar yine tek sohbet.
+     Telefonda liste ve sohbet ayrı ekran (geri düğmesi). Tasarımdaki sistem satırları ("Teklif kabul edildi") veride olmadığı için eklenmedi.
+   - Kalanlar ve sıra: yukarıdaki "Paralel oturumlar" tablosunda (Web panel satırı).
+4. **Tanıtım sayfaları** + giriş/kayıt/onboarding. Henüz başlanmadı; başlayan oturum tabloda kilitler.
 5. **Admin paneli.**
    - ✅ Kabuk ve alt paneller (2026-10-14): `app/admin/layout.tsx` admin sayfalarını `AppShell`'de açar; menü (`nav-config` ADMIN):
      Kullanıcılar · Destek (talepler, geri bildirimler, raporlanan mesajlar, mesajlar) · Sistem (marka sınırları, API anahtarları,
@@ -134,7 +158,7 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      Onaylı marka · Reddedilen; arama her sekmede (ad, e-posta, kullanıcı adı, ID). Tablo + seçilince sağda inceleme (dar ekranda üstte).
      Bütün işlemler aynı sunucu eylemleriyle; `alert`/`confirm`/`prompt` yerine onay penceresi ve toast. Vergi levhası reddi satır içi notla.
      Ana paneldeki "İlanlar/Başvurular" ve "Bildirimler" sekmeleri kendi sayfalarına çıktı: `/admin/adverts`, `/admin/notifications`
-     (menüde "İçerik"). Sırada: 4. aşama (tanıtım sayfaları + giriş/kayıt/onboarding).
+     (menüde "İçerik"). Sonraki iş için "Paralel oturumlar" tablosuna bak.
 
 Her aşama mevcut akışla: dal → PR → Vercel önizlemesi READY → birleştir.
 
