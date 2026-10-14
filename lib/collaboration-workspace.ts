@@ -22,6 +22,8 @@ import { listCollaborationsFor, validatePublishUrl, type CollaborationListItem, 
 import { ticketCode } from '@/lib/support-ticket'
 import { campaignBriefForCollaboration } from '@/lib/campaigns'
 import type { CampaignBrief } from '@/lib/campaigns-shared'
+import { getDeliverableMetricsFor, startDeliverableTracking } from '@/lib/post-metrics'
+import type { DeliverableMetrics } from '@/lib/post-metrics-shared'
 import {
   AGREEMENT_LIMITS,
   DELIVERABLE_KIND_LABELS,
@@ -111,6 +113,8 @@ export interface PaymentRow {
 export interface DeliverableView extends DeliverableRow {
   actions: DeliverableAction[]
   submissions: SubmissionRow[]
+  /** Yayınlanan gönderinin ölçümleri (sonuç raporu, 3.20); iki taraf da görür. */
+  metrics: DeliverableMetrics | null
 }
 
 export interface CollaborationWorkspace {
@@ -356,7 +360,8 @@ export async function getCollaborationWorkspace(
   if (!collaboration) return { error: 'İş birliği bulunamadı.' }
 
   // Taraf olduğu RLS'li okumayla doğrulandı; kampanya brief'i sunucudan (lib/campaigns.ts).
-  const [agreementRes, deliverablesRes, submissionsRes, paymentRes, reliability, campaignBrief] = await Promise.all([
+  const isBrandViewer = collaboration.brand_id === userId
+  const [agreementRes, deliverablesRes, submissionsRes, paymentRes, reliability, campaignBrief, metrics] = await Promise.all([
     supabase.from('collaboration_agreements').select(AGREEMENT_COLUMNS).eq('collaboration_id', collaborationId).maybeSingle(),
     supabase.from('collaboration_deliverables').select(DELIVERABLE_COLUMNS).eq('collaboration_id', collaborationId).order('position').order('created_at'),
     supabase
@@ -368,6 +373,7 @@ export async function getCollaborationWorkspace(
     supabase.from('collaboration_payments').select(PAYMENT_COLUMNS).eq('collaboration_id', collaborationId).maybeSingle(),
     brandReliability(supabase, [collaboration.brand_id]),
     campaignBriefForCollaboration(collaboration).catch(() => null),
+    getDeliverableMetricsFor(supabase, collaborationId, isBrandViewer),
   ])
   if (agreementRes.error || deliverablesRes.error || submissionsRes.error || paymentRes.error) {
     console.error(
@@ -387,6 +393,7 @@ export async function getCollaborationWorkspace(
     ...d,
     actions: deliverableActions(d, { isBrand, active, confirmed, revisionLimit: agreement?.revision_limit ?? 0 }),
     submissions: submissions.filter((s) => s.deliverable_id === d.id),
+    metrics: metrics.get(d.id) ?? null,
   }))
 
   return {
@@ -823,6 +830,15 @@ async function deliverableAction(
       const checked = validatePublishUrl(input.url)
       if ('error' in checked) return { error: checked.error }
       if (!(await transition({ status: 'published', publish_url: checked.url, published_at: now }))) return stale
+      // Sonuç raporu: gönderi ölçümü saatlik görevde başlar (yayından ~1, 7, 30 gün sonra).
+      await startDeliverableTracking(admin, {
+        deliverableId: deliverable.id,
+        collaborationId: collab.id,
+        influencerId: collab.influencer_id,
+        url: checked.url,
+        publishedAt: now,
+        kind: deliverable.kind,
+      })
 
       // Bütün teslimatlar yayınlandıysa iş birliği "yayında" olur; 7 günlük marka onayı / otomatik tamamlama başlar.
       const { data: rest } = await admin.from('collaboration_deliverables').select('status').eq('collaboration_id', collab.id)
