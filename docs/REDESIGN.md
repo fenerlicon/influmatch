@@ -96,7 +96,12 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
    - ✅ İlanlar (2026-10-14): `components/adverts/*`. Influencer: liste + sağ panel (telefonda alttan pencere), başvuru formu panelde,
      sekmeler `?tab=open|saved|applications|alerts`. Marka: ilan kartları + seçili ilanın başvuruları (Yeni / Ön liste / Değerlendirilen),
      "Kabul et" ve "Ön liste" web'e eklendi; ilan formu pencerede (`?new=1` doğrudan açar), diğer markaların ilanları ayrı sekmede.
-   - Sırada: marka Keşfet, Mesajlar, Profil (+ Rozetler sekmesi, menüden çıkar), Ayarlar; terim ve ölü arayüz temizliği.
+   - ✅ Keşfet (2026-10-14): `components/discover/*`. Marka Keşfet sekmeleri Tümü (`/brand/discover`) · Önerilenler (`/brand/ai`, Spotlight
+     değilse açıklama, yönlendirme yok) · Favoriler ve Listeler (`/brand/favorites`); menüdeki ayrı "Favoriler" maddesi kalktı. Yeni profil
+     kartı (takipçi / etkileşim / tamamlanan, başlangıç fiyatı, Profil + Teklif); "Teklif" profili teklif penceresi açık getirir (`?teklif=1`).
+     Uyum puanı yalnızca Önerilenler'de. Güven skoru çubuk yerine kartın alt bilgi satırında ("Güven 82/100", yalnızca marka). Influencer Keşfet aynı kartla;
+     ölü "Vitrinde görünmüyorsun" uyarısı kaldırıldı. Telefonda filtreler "Filtreler" düğmesinin arkasında.
+   - Sırada: Mesajlar, Profil (+ Rozetler sekmesi, menüden çıkar), Ayarlar; terim ve ölü arayüz temizliği.
    - ✅ **İşler** (2026-10-14): `/dashboard/works` (`app/dashboard/works/page.tsx` veri, `components/dashboard/WorksView.tsx` görünüm,
      `lib/works.ts` teklif yükleme + sayılar). Aşama kartları Teklif → Anlaşıldı → İçerik → Yayında → Tamamlandı (`?stage=`).
      Teklif aşamasında influencer `OffersManager`, marka `BrandOffersList`; diğer aşamalarda `CollaborationsManager` (`stage` prop).

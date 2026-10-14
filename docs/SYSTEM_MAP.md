@@ -257,8 +257,9 @@ Rotalar: `/dashboard/influencer` (+ `/profile`, `/discover`, `/advert`, `/stats`
 - **Sorunlar:** ✅ ~~**2.10-S1 [YÜKSEK]**~~  `social_accounts...eq('user_id').single()` platform filtresi yok; IG + TikTok'u olan kullanıcı "Hesap Bulunamadı" görüyor.
 
 ### 2.11 Influencer vitrini (diğer influencer'ları gezme)
-- **Dosyalar:** `app/dashboard/influencer/discover/page.tsx`, `BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`
+- **Dosyalar:** `app/dashboard/influencer/discover/page.tsx`, `components/discover/{DiscoverGrid,ProfileCard}.tsx` (yeni görünüm, 2026-10-14)
 - **Sorunlar:** ✅ ~~**2.11-S1 [ORTA]**~~ (sayfa marka keşfiyle aynı `getEnrichedInfluencers`'ı kullanıyor: yalnızca doğrulanmış hesap istatistikleri; Spotlight süresi `hasActiveSpotlight` ile; "Vitrinde görünmüyorsun" uyarısı doğrulanmış hesaba bakıyor. Sayfalama 3.2-S2 ile birlikte) İstatistik `userAccounts[0]`'dan, doğrulanmamış olabilir; sayfalama yok; Spotlight süresi kontrol edilmiyor.
+  - ✅ ~~**2.11-N1**~~ (2026-10-14, yeni görünüm) "Vitrinde görünmüyorsun" uyarısı kaldırıldı: influencer paneli doğrulanmış sosyal hesabı olmayanı zaten almadığı için hiç görünemiyordu (ölü arayüz, docs/REDESIGN.md).
 
 ### 2.12 İlanlara başvuru
 - **Dosyalar:** `app/dashboard/influencer/advert/{page,actions}.ts(x)`, `components/dashboard/{InfluencerAdvertTabs,AdvertProjectsList,AdvertApplicationsList}.tsx`
@@ -289,7 +290,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.1-S2 [DÜŞÜK]**~~ (users realtime yayınında değil, olay hiç gelmiyordu; sekmeye dönünce durum yeniden okunuyor) `BrandVerificationCard` kolon kısıtlı `users` tablosunu realtime dinliyor; olay sessizce gelmeyebilir (doğrulanmadı).
 
 ### 3.2 Keşfet (influencer ızgarası)
-- **Dosyalar:** `discover/page.tsx`, `components/dashboard/BrandDiscoverGrid.tsx`, `InfluencerGridCard.tsx`, `AddToListModal`, `SimilarProfilesModal`
+- **Dosyalar:** `discover/page.tsx`, `components/discover/{DiscoverGrid,ProfileCard,AddToListModal,SimilarProfilesModal,BrandDiscoverHeader}.tsx`
 - **Sorunlar:**
   - ✅ ~~**3.2-S1 [ORTA]**~~ (favoriler ve liste sayfaları aktif Spotlight planını geçiriyor) Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
   - ✅ ~~**3.2-S2 [ORTA]**~~ (kullanıcı kararı: kota şimdilik yok; keşfet ızgarası 24'er profil, "Daha fazla göster") (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
@@ -301,7 +302,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ### 3.4 Inflist (adlandırılmış listeler)
 - **Karar (7 Ekim):** listeler favoriler sayfasında (`/dashboard/brand/favorites`) favorilerle birlikte yönetilir; marka panelindeki ayrı bölüm kaldırıldı.
-- **Dosyalar:** `components/dashboard/InflistManager.tsx`, `AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`, ortak `lib/favorites.ts` (Spotlight kilidi, 3.17-N5)
+- **Dosyalar:** `components/discover/ListsManager.tsx`, `components/discover/AddToListModal.tsx`, `inflist/[id]/page.tsx`, `app/actions/favoriteLists.ts`, ortak `lib/favorites.ts` (Spotlight kilidi, 3.17-N5)
 - **Sorunlar:**
   - ✅ ~~**3.4-S1 [ORTA]**~~ (karar: listeler şimdilik ücretsiz, kilit kaldırıldı; ileride Spotlight, bkz. 3.13-N5) Spotlight kısıtı yalnızca istemcide (aksiyonlar ve detay sayfası kontrol etmiyor).
   - ✅ ~~**3.4-S3 [ORTA]**~~ (2026-10-09, yeni bulgu) Listeye ekleme penceresinde çöp kutusu silinecek listeyi seçiyor ama onay penceresi hiç çizilmediği için liste silinemiyordu. Onay penceresi bağlandı.
