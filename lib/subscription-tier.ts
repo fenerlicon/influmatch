@@ -1,6 +1,8 @@
 // Analiz özelliklerinin seviyesi (FREE / SPOTLIGHT / SPOTLIGHT_PLUS / BRAND_PRO) tek yerden hesaplanır.
 // Önceden sunucu aksiyonu, dashboard ve profil sayfası farklı kurallar kullanıyordu (süre / onay kontrolü,
-// Pro planın tanınması). Markalar şimdilik plandan bağımsız BRAND_PRO alır (ürün kararı, SYSTEM_MAP 3.13).
+// Pro planın tanınması). Markalar da gerçek planlarına göre (2026-10-14 kararı): onaylı + aktif Spotlight değilse FREE,
+// mbasic → SPOTLIGHT, mpro → BRAND_PRO (influencer'da ibasic → SPOTLIGHT, ipro → SPOTLIGHT_PLUS ile aynı düzen).
+// Önceden her marka plandan bağımsız BRAND_PRO alıyordu; "Kampanya ROI" analizi artık yalnızca Pro markada açık.
 
 import { hasActiveSpotlight, type SpotlightFields } from '@/lib/spotlight-access'
 
@@ -19,7 +21,9 @@ export interface TierFields extends SpotlightFields {
 
 export function resolveSubscriptionTier(user: TierFields | null | undefined): SubscriptionTier {
   if (!user) return 'FREE'
-  if (user.role === 'brand') return 'BRAND_PRO'
+  if (user.role !== 'brand' && user.role !== 'influencer') return 'FREE'
   if (user.verification_status !== 'verified' || !hasActiveSpotlight(user)) return 'FREE'
-  return isProPlan(user.spotlight_plan) ? 'SPOTLIGHT_PLUS' : 'SPOTLIGHT'
+  const pro = isProPlan(user.spotlight_plan)
+  if (user.role === 'brand') return pro ? 'BRAND_PRO' : 'SPOTLIGHT'
+  return pro ? 'SPOTLIGHT_PLUS' : 'SPOTLIGHT'
 }
