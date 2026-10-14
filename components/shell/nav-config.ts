@@ -1,5 +1,5 @@
 import {
-  Award, Bell, Briefcase, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
+  Award, Bell, Briefcase, CalendarDays, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
   MessagesSquare, SlidersHorizontal, Target, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
@@ -102,6 +102,7 @@ const ADMIN: NavGroup[] = [
     items: [
       { id: 'adverts', label: 'İlanlar', href: '/admin/adverts', icon: Megaphone },
       { id: 'notify', label: 'Bildirim Gönder', href: '/admin/notifications', icon: Bell },
+      { id: 'weekly-preview', label: 'Haftalık Özet Önizleme', href: '/admin/weekly-preview', icon: CalendarDays },
     ],
   },
   {
