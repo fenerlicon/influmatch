@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-14 (marka düzeltmeleri, `claude/brand-fixes-a1`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-14 (marka düzeltmeleri, `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -61,8 +61,14 @@
   "Ödeme alamadım" bütün teslimatlar onaylandıktan 14 gün sonra da açılır (3.18-S5); keşifte şehir, takipçi ve etkileşim aralığı filtreleri, mobil Keşfet
   web'e eşit (platform, üretici türü, sıralama, Pro filtreleri; sunucuda `lib/discover-filters.ts`, 3.2-N1). Karar bekleyen yeni bulgu: 4.3-S6
   (influencer paketlerindeki uyum skoru / profil koçu düğmeleri "Çok yakında"; ROI metinlerinde kaynaksız iddialar).
+- **`claude/brand-fixes-a2` (2026-10-14):** marka bekleyen teklifini **geri çekebilir** (`withdrawn`, 3.6-N1) ve **düzenleyebilir** (`edited_at`, "düzenlendi"
+  etiketi, 3.6-N2); ortak kod `lib/offers.ts`, web İşler > teklif ayrıntısı, mobil İşler ekranı (`/api/mobile/offers/[id]`). Influencer'a site içi + push.
+  Düzenleme 7 günlük süreyi uzatmaz, kotaya sayılmaz; geri çekilen teklif kotadan düşmez. Marka düzenledikten sonra eski ekranla gelen kabul reddedilir
+  (`seenEditedAt`). DB yedeği (3.6-S7): istemci `offers`'ta yalnızca `status`'u, yalnızca alıcı influencer olarak `accepted`/`rejected` yapabilir.
+  Mobil ilan formu web'e eşit (10.3-S31); `saveAdvertAs` soruları/listeleri doğruluyor, "Diğer" ödeme türü artık korunuyor (3.7-S7/S8).
+  Migration `20261014000020` canlıda, rollback'li denemeyle doğrulandı.
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
@@ -222,6 +228,9 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   Mobil kategori listesi `mobile-app/constants/categories.js` web `utils/categories.ts` ile aynı tutulmalı.
 - **`users` güncelleme koruması:** `users_before_update_guard` tetikleyicisi istemci güncellemesinde yalnızca beyaz listedeki
   kolonları geçirir (rol, onay, spotlight vb. sessizce düşer); onaylı markanın yasal bilgisi değişirse onay düşer.
+- **`offers` güncelleme koruması (2026-10-14):** istemciye yalnızca `UPDATE (status)` yetkisi var; `secure_offers_final` içerik/kimlik/tarih kolonlarını dondurur,
+  durumu yalnızca alıcı influencer bekleyen teklifte `accepted`/`rejected` yapar. Geri çekme, düzenleme ve süre dolumu service role ile (`lib/offers.ts`).
+  Teklife yeni kolon eklenirse istemci yazmayacaksa ek yetki gerekmez.
 - **Yeni tablo güvenliği:** Supabase varsayılan yetkileri yeni tabloda anon/authenticated'a tüm yetkileri verir ve RLS kapalı doğar.
   `CREATE TABLE` ile `ENABLE ROW LEVEL SECURITY` + `REVOKE` aynı `execute_sql` çağrısında olmalı (2026-10-10'da çağrı zaman aşımına
   uğrayınca `collaborations` birkaç dakika RLS'siz kaldı; içinde veri yokken kapatıldı). `REVOKE ALL` izin sisteminde reddedilebiliyor;

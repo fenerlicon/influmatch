@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-14 (3.2-N1, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-14 (3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -326,7 +326,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ### 3.6 Teklifler (marka → influencer)
 - **Dosyalar:** `components/profile/OfferModal.tsx` → `app/profile/actions.ts` (`createOffer`), `brand/offers/page.tsx`,
-  `components/dashboard/BrandOffersList.tsx`, `brand/offers/dismiss/actions.ts`
+  `components/dashboard/BrandOffersList.tsx`, `brand/offers/dismiss/actions.ts`; geri çekme / düzenleme (2026-10-14): `lib/offers.ts`
+  (`withdrawOfferAs`, `editOfferAs`), `brand/offers/actions.ts`, `/api/mobile/offers/[id]` (PATCH / POST), mobil `JobsScreen`; migration `20261014000020_offer_withdraw_edit.sql`
 - **Sorunlar:**
   - ✅ ~~**3.6-S1 [ORTA]**~~ (rol DB'den, `fetchAccountRole`) `createOffer` rol kontrolünü `user_metadata.role` ile yapıyor (DB politikası asıl korumayı sağlıyor),
     bütçe NaN/negatif kontrolü yok, alıcının influencer olduğu kontrol edilmiyor.
@@ -335,6 +336,27 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.6-S6 [DÜŞÜK]**~~ (kolon canlıda; influencer ve marka teklif ekranlarında "Bütçe (nakit)" / "Barter (ürün değeri)") Teklif listelerinde ödeme türü (nakit / barter) gösterilmiyordu.
   - ✅ ~~**3.6-S3 [ORTA]**~~ (sayımlar paralel ve yalnızca `count` dönüyor; okundu bilgisi 5.3-S1 ile metadata'dan) Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
   - ✅ ~~**3.6-S4 [DÜŞÜK]**~~ (`rooms` kanalı `brand_id` ile filtreli; `undismissInfluencer` ve `'hold'` daha önce kaldırılmıştı) `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
+  - ✅ ~~**3.6-N1 [ÖZELLİK]**~~ (2026-10-14, kullanıcı onayı: teklif geri çekme. Yeni durum `withdrawn` (+ `withdrawn_at`), `offers_status_check` genişletildi.
+    `withdrawOfferAs` (`lib/offers.ts`): yalnızca marka, yalnızca kendi gönderdiği ve hâlâ bekleyen (süresi dolmamış) teklif; kabul / red / süresi dolmuş
+    geri çekilemez. Yazım service role ile, rol + sahiplik kontrolünden sonra ve yalnızca `status = pending` + 7 günü geçmemiş satıra. Influencer'a site içi +
+    push bildirim (`offer_withdrawn`, e-posta yok). Influencer listesinde "Tümü"/işlem listesinden çıkar, "Düşen" filtresinde "Marka geri çekti" (web) /
+    "Süresi dolan / geri çekilen teklifleri göster" (mobil); yanıt sunucuda reddedilir. **Kota:** geri çekilen teklif ücretsiz marka günlük/aylık hakkından
+    düşmez (sayım `lib/brand-limits.ts` ve `enforce_brand_offer_limits` tetikleyicisinde `created_at` ile, durumdan bağımsız). Web: İşler > teklif
+    ayrıntısında "Geri çek" (onay penceresi); mobil: İşler ekranı teklif ayrıntısı, `POST /api/mobile/offers/[id]` `{action:'withdraw'}`) Marka gönderdiği teklifi geri alamıyordu.
+  - ✅ ~~**3.6-N2 [ÖZELLİK]**~~ (2026-10-14, kullanıcı onayı: teklif düzenleme. `editOfferAs`: bekleyen teklifte kampanya adı, tür, bütçe, nakit/barter, mesaj;
+    doğrulama `validateOfferFields` (yeni teklifle aynı). **7 günlük süre yeniden başlamaz** (`created_at` değişmez), kotaya yeni teklif sayılmaz, `edited_at`
+    yazılır, "düzenlendi" etiketi (web influencer listesi/ayrıntısı/ana sayfa, marka ayrıntısı; mobil kart + ayrıntı). Değişiklik yoksa yazım ve bildirim yok.
+    Influencer'a site içi + push (`offer_edited`). Eski koşullarla kabulü önlemek için yanıt ekrandaki `edited_at`'i gönderir (`seenEditedAt`); marka o arada
+    düzenlediyse kabul "Marka bu teklifi az önce düzenledi" hatasıyla reddedilir ve liste yenilenir. Web: İşler > teklif ayrıntısında "Düzenle" penceresi
+    (server action `app/dashboard/brand/offers/actions.ts`); mobil: İşler ekranında "Teklifi düzenle" sayfası, `PATCH /api/mobile/offers/[id]`) Marka teklifini düzeltemiyordu.
+  - ✅ ~~**3.6-S7 [ORTA]**~~ (2026-10-14, yeni bulgu; `20261014000020`, canlıda) `offers` güncelleme koruması (`secure_offers_final`) istemci oturumunun
+    `created_at` (7 günlük süreyi uzatma), `sender_user_id` / `receiver_user_id` (teklifi başkasına taşıma), `campaign_type` ve `payment_type` değiştirmesine
+    izin veriyordu; anon'un da tüm yazma yetkileri vardı. Artık istemci yalnızca `status` kolonunu güncelleyebilir (kolon yetkisi) ve yalnızca alıcı influencer,
+    bekleyen teklifte `accepted` / `rejected` yapabilir; içerik, kimlik ve tarih kolonları donuk; `withdrawn` / `expired` yalnızca sunucudan. Geri çekme ve
+    düzenleme service role ile. Rollback'li denemeyle doğrulandı (influencer `withdrawn`/`expired` yapamaz, bütçe/tarih yazamaz; marka durum ve mesaj
+    değiştiremez; service role geri çeker; geri çekilen teklif kabul edilemez; normal kabul çalışır).
+  - **3.6-S8 [DÜŞÜK]** (yeni bulgu, 2026-10-14) "Markayla görüş" ile açılmış teklif odası teklif geri çekilince açık kalır (sohbet sürer, iş satırı "Geri çekildi" der).
+    Reddedilen teklifin odasıyla aynı davranış; odanın kapanması istenirse ürün kararı.
 
 ### 3.7 İlanlar (advert projects / kampanyalar)
 - **Dosyalar:** `brand/advert/page.tsx`, `influencer/advert/page.tsx`, `components/adverts/*` (yeni görünüm, 2026-10-14), `lib/adverts-shared.ts`,
@@ -350,6 +372,10 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.7-S6 [DÜŞÜK]** İlan "özel soruları" (`custom_questions`) yanıtlanamıyor: marka soru ekleyebiliyor ama başvuru formunda (web + mobil) yanıt alanı ve
     `advert_applications`'ta yanıt kolonu yok. Yeni görünümde sorular ilan ayrıntısında gösteriliyor, influencer'dan yanıtları niyet mesajına eklemesi isteniyor.
     Kalıcı çözüm SQL ister: `advert_applications.answers jsonb` + `applyToAdvertAs` doğrulaması + marka başvuru satırında gösterim. (2026-10-14)
+  - ✅ ~~**3.7-S7 [ORTA]**~~ (2026-10-14, yeni bulgu) Web ilan formundaki "Diğer" ödeme türü `saveAdvertAs`'ta nakde çevriliyordu. Artık `cash` / `barter` / `other` korunuyor.
+  - ✅ ~~**3.7-S8 [ORTA]**~~ (2026-10-14, yeni bulgu) `saveAdvertAs` istemciden gelen `custom_questions` JSON'unu, platform/teslimat listelerini ve son başvuru
+    tarihini olduğu gibi yazıyordu. Artık sorular en fazla 5, bilinen türler (metin / tek seçim / çoklu seçim), seçenekli soruda en az 2 seçenek; listeler
+    yalnızca metin (en fazla 15 öğe, 80 karakter); tarih YYYY-AA-GG; para birimi 3 harf. Web ve mobil aynı kod.
 
 ### 3.8 Başvuru değerlendirme (marka)
 - **Dosyalar:** `components/adverts/ApplicationsPanel.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
@@ -1060,6 +1086,11 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S28 [DÜŞÜK]**~~ (2026-10-14) İlanlar ekranı ilanda platform/teslimat yoksa uydurma değer gösteriyordu ("Instagram", "1x Reels, 2x Story").
 - ✅ ~~**10.3-S29 [DÜŞÜK]**~~ (2026-10-14) Rozetler ekranı web ile aynı olan `constants/badges.js` yerine eski bir listeyi kullanıyordu ("Onaylı Hesap", eski aşamalar ve koşullar); web'deki koşul metinleri de eklendi, kullanılmayan `components/badges/*` silindi.
 - ✅ ~~**10.3-S30 [DÜŞÜK]**~~ (2026-10-14) Profil düzenlemede bağlı hesabın "Yeniden bağla" düğmesi doğrulama yerine doğrudan "Hesap doğrulandı" ekranını açıyordu.
+- ✅ ~~**10.3-S31 [ORTA]**~~ (2026-10-14, kullanıcı onayı: mobil ilan formu web'e eşit) Mobil marka ilan formunda yalnızca başlık, açıklama, tek bütçe, kategori ve kapak
+  vardı (son başvuru alanı state'te olup ekranda yoktu); düzenleme web'de girilen alanları göremiyordu. `BrandAdvertsScreen` formu artık web `AdvertForm` ile aynı alanlar:
+  açıklama (özet), kategori, konum, platformlar, teslimatlar (virgülle), ödeme türü (nakit / barter / diğer), para birimi + en az / en çok bütçe (nakitte), son başvuru
+  (YYYY-AA-GG), düzenlemede durum (yayında / duraklat / kapat) ve en fazla 5 soru (tür + seçenekler). Düzenleme bütün alanları doldurur. Yazım `POST /api/mobile/adverts`
+  → `saveAdvertAs` (web ile aynı kod, 3.7-S8 doğrulaması ve aktif ilan sınırı dahil).
 
 ---
 
