@@ -548,7 +548,7 @@ export default function InfluencerStats({
                             <p className="mb-6 mt-2 text-sm text-gray-400 max-w-sm">
                                 {showPaywall === 'match_score' ? 'Detaylı uyum skorlarını görmek için Spotlight paketine geçin.' :
                                     showPaywall === 'profile_coach' ? 'Profil koçunu aktifleştirmek için Spotlight+ paketine geçin.' :
-                                        'Kampanya ve ROI analizleri için Brand Pro paketi gereklidir.'}
+                                        'Kampanya ROI analizi Spotlight Pro marka paketine dahildir.'}
                             </p>
                             <div className="flex gap-3">
                                 <button

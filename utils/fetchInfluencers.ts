@@ -12,7 +12,7 @@ function chunk<T>(items: T[], size: number): T[][] {
     return out
 }
 
-const USER_COLUMNS = 'id, full_name, avatar_url, category, username, spotlight_active, displayed_badges, verification_status, creator_type, user_badges(badge_id)'
+const USER_COLUMNS = 'id, full_name, avatar_url, category, city, username, spotlight_active, displayed_badges, verification_status, creator_type, user_badges(badge_id)'
 
 // Başka kullanıcıların satırları istemci oturumuyla okunamaz (3.17-S2); bu fonksiyonlar yalnızca sunucuda, çağıran sayfa
 // oturumu ve kuralları (marka onayı, keşif çarkı, Spotlight) uyguladıktan sonra çağrılır. Okuma service role ile
@@ -134,6 +134,7 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
             return {
                 platform: sa.platform as any,
                 follower_count: followersNum,
+                engagement_rate: sa.engagement_rate === null || sa.engagement_rate === undefined ? null : Number(sa.engagement_rate),
                 followers: followersStr,
                 engagement: sa.engagement_rate ? `%${Number(sa.engagement_rate).toFixed(1)}` : '0%'
             }
@@ -156,6 +157,7 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
             full_name: user.full_name,
             username: user.username,
             category: user.category,
+            city: user.city ?? null,
             avatar_url: user.avatar_url,
             spotlight_active: user.spotlight_active,
             displayed_badges: displayedBadges,

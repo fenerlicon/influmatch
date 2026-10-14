@@ -5,6 +5,7 @@ export interface DiscoverInfluencer {
     full_name: string | null
     username: string | null
     category: string | null
+    city?: string | null
     avatar_url: string | null
     spotlight_active: boolean | null
     displayed_badges?: string[] | null
@@ -14,6 +15,8 @@ export interface DiscoverInfluencer {
     platforms_data?: {
         platform: PlatformType
         follower_count: number | null
+        /** Etkileşim oranı (yüzde); keşif filtresi ve sıralaması için. */
+        engagement_rate?: number | null
         followers: string
         engagement: string
     }[]

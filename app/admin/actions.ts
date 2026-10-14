@@ -10,6 +10,39 @@ import { validateTaxNumber } from '@/lib/tax-id'
 import { syncBlueTick, sweepBlueTicks, type BlueTickOverride } from '@/lib/blue-tick'
 import { grantOfficialBusiness, loadLatestTaxVerifications, TAX_DOCUMENTS_BUCKET } from '@/lib/tax-verification'
 import { evaluateOfficialBusiness, syncOfficialBusiness } from '@/lib/official-business'
+import { notifyUser } from '@/lib/notify'
+
+/**
+ * Hesap onayı / reddi bildirimi (site içi + push + e-posta, "Platform Güncellemeleri" tercihine bağlı).
+ * Yalnızca durum gerçekten değiştiyse çağrılır; aynı karar tekrar verilince bildirim gitmez.
+ */
+async function notifyAccountDecision(
+  supabaseAdmin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  userId: string,
+  role: string | null | undefined,
+  decision: 'verified' | 'rejected',
+) {
+  if (role !== 'brand' && role !== 'influencer') return
+  const home = role === 'brand' ? '/dashboard/brand' : '/dashboard/influencer'
+  const approvedMessage =
+    role === 'brand'
+      ? 'Marka hesabınız admin incelemesinden geçti ve onaylandı. Artık profilleri keşfedebilir, teklif gönderebilir ve ilan açabilirsiniz.'
+      : 'Hesabınız admin incelemesinden geçti ve onaylandı. Vitrin görünürlüğünüz açık ve en az bir sosyal hesabınız doğrulanmışsa markalar profilinizi keşifte görür.'
+  await notifyUser(
+    decision === 'verified'
+      ? { userId, event: 'account_status', title: 'Hesabınız onaylandı', message: approvedMessage, link: home, type: 'success' }
+      : {
+          userId,
+          event: 'account_status',
+          title: 'Hesabınız onaylanmadı',
+          message:
+            'Hesabınız admin incelemesinde onaylanmadı. Profil bilgilerinizi kontrol edebilir, sorunuz varsa Ayarlar > Yardım ve Destek bölümünden bize yazabilirsiniz.',
+          link: home,
+          type: 'warning',
+        },
+    supabaseAdmin,
+  )
+}
 
 export async function verifyUser(userId: string) {
   const supabase = createSupabaseServerClient()
@@ -41,6 +74,9 @@ export async function verifyUser(userId: string) {
     return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı (Service Role Key eksik olabilir).' }
   }
 
+  const { data: before } = await supabaseAdmin.from('users').select('role, verification_status').eq('id', userId).maybeSingle()
+  if (!before) return { error: 'Kullanıcı bulunamadı.' }
+
   const { error } = await supabaseAdmin
     .from('users')
     .update({ verification_status: 'verified' })
@@ -49,6 +85,10 @@ export async function verifyUser(userId: string) {
   if (error) {
     console.error('[verifyUser] Supabase error:', error)
     return { error: `Onaylama hatası: ${error.message}` }
+  }
+
+  if (before.verification_status !== 'verified') {
+    await notifyAccountDecision(supabaseAdmin, userId, before.role as string | null, 'verified')
   }
 
   // Award badges for verification - with error handling
@@ -104,6 +144,9 @@ export async function rejectUser(userId: string) {
     return { error: 'Sistem yapılandırma hatası.' }
   }
 
+  const { data: before } = await supabaseAdmin.from('users').select('role, verification_status').eq('id', userId).maybeSingle()
+  if (!before) return { error: 'Kullanıcı bulunamadı.' }
+
   const { error } = await supabaseAdmin
     .from('users')
     .update({ verification_status: 'rejected' })
@@ -112,6 +155,10 @@ export async function rejectUser(userId: string) {
   if (error) {
     console.error('[rejectUser] Supabase error:', error)
     return { error: `Reddetme hatası: ${error.message}` }
+  }
+
+  if (before.verification_status !== 'rejected') {
+    await notifyAccountDecision(supabaseAdmin, userId, before.role as string | null, 'rejected')
   }
 
   revalidatePath('/admin')
