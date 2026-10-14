@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import Image from 'next/image'
-import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle, KeyRound, Link2, SlidersHorizontal } from 'lucide-react'
+import { CheckCircle, XCircle, ExternalLink, Loader2, Instagram, Youtube, Globe, MapPin, Briefcase, Mail, Calendar, FileText, AlertCircle, Info, MessageSquare, AlertTriangle, Award, Star, Search, Database, BadgeCheck, Trash2, MessageCircle } from 'lucide-react'
 import { verifyUser, rejectUser, manuallyAwardSpecificBadge, toggleUserSpotlight, verifyTaxId, resendVerificationEmail, toggleBlueTick, setBlueTickOverride, resetVerifiedBadges, deleteUser, forceVerifyEmail, adminUpdateInstagramData, getAllAdverts, deleteAdvertAdmin, getAdminUserCard } from '@/app/admin/actions'
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -929,9 +929,9 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const currentUsers = getCurrentUsers()
 
   return (
-    <main className="min-h-screen bg-background px-6 py-24 md:px-12 lg:px-24">
+    <div>
       <div className="mx-auto max-w-7xl">
-        <div className="glass-panel rounded-[32px] p-10">
+        <div className="rounded-2xl border border-line bg-surface-1 p-5 sm:p-8">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">YÖNETİCİ PANELİ</p>
@@ -960,57 +960,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/admin/api-keys"
-                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <KeyRound className="h-4 w-4" />
-                API Anahtarları
-              </Link>
-              <Link
-                href="/admin/limits"
-                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Marka Sınırları
-              </Link>
-              <Link
-                href="/admin/feedback"
-                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Geri Bildirimler
-              </Link>
-              <Link
-                href="/admin/messages"
-                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <AlertTriangle className="h-4 w-4" />
-                Raporlanan Mesajlar
-              </Link>
-              <Link
-                href="/admin/support"
-                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <Mail className="h-4 w-4" />
-                Destek Talepleri
-              </Link>
-              <Link
-                href="/admin/manual-connect"
-                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <Link2 className="h-4 w-4" />
-                Manuel Instagram Bağlama
-              </Link>
-              <Link
-                href="/dashboard/messages"
-                className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Mesajlarım
-              </Link>
             </div>
           </div>
 
@@ -2080,6 +2029,6 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           </div>
         )
       }
-    </main >
+    </div>
   )
 }

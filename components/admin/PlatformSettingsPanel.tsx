@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useTransition, type FormEvent } from 'react'
-import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, Loader2, Save } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { updatePlatformSettings } from '@/app/admin/limits/actions'
 import type { PlatformSettings } from '@/lib/platform-settings-shared'
+import { Button, Card, CardBody, CardHeader, Chip, ConfirmDialog, Field, Input, PageHeader, Switch } from '@/components/ui'
 
 type LimitKey =
   | 'free_offers_per_day'
@@ -31,27 +31,20 @@ function toForm(settings: PlatformSettings): FormState {
   return out
 }
 
-const inputClass =
-  'mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-soft-gold/60'
-
 /** Ücretsiz marka sınırları + keşif çarkı ayarları (admin). Boş alan = sınırsız. */
 export default function PlatformSettingsPanel({ initialSettings }: { initialSettings: PlatformSettings }) {
   const [form, setForm] = useState<FormState>(() => toForm(initialSettings))
   const [saved, setSaved] = useState<PlatformSettings>(initialSettings)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const setField = (key: keyof PlatformSettings, value: string | boolean) => setForm((prev) => ({ ...prev, [key]: value }))
+  const flagChanged = form.free_brand_limits_enabled !== saved.free_brand_limits_enabled
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (form.free_brand_limits_enabled !== saved.free_brand_limits_enabled) {
-      const message = form.free_brand_limits_enabled
-        ? 'Ücretsiz marka sınırları ve keşif çarkı AÇILACAK. Spotlight olmayan markalar tüm profilleri göremeyecek, teklif/ilan sınırları başlayacak ve favoriler/listeler kilitlenecek. Devam edilsin mi?'
-        : 'Ücretsiz marka sınırları KAPATILACAK; bütün markalar yeniden tüm profilleri, favorilerini ve listelerini görecek. Devam edilsin mi?'
-      if (!window.confirm(message)) return
-    }
+  const save = () => {
     startTransition(async () => {
       const result = await updatePlatformSettings(form as Record<string, unknown>)
+      setConfirmOpen(false)
       if (!result.success) {
         toast.error(result.error)
         return
@@ -62,121 +55,133 @@ export default function PlatformSettingsPanel({ initialSettings }: { initialSett
     })
   }
 
+  // Ana bayrak değişiyorsa kayıttan önce etkisi onaylatılır
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (flagChanged) setConfirmOpen(true)
+    else save()
+  }
+
   return (
-    <main className="min-h-screen bg-[#0B0C10] px-4 py-10 text-white sm:px-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <Link href="/admin" className="inline-flex items-center gap-2 text-sm text-gray-400 transition hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Admin paneli
-        </Link>
+    <div className="max-w-4xl">
+      <PageHeader
+        title="Marka sınırları"
+        description="Ücretsiz marka sınırları ve keşif çarkı. Karar (2026-10-10): satış başlayana kadar kapalı kalır."
+      />
 
-        <header className="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Platform ayarları</p>
-          <h1 className="mt-2 text-2xl font-semibold">Ücretsiz marka sınırları ve keşif çarkı</h1>
-          <p className="mt-2 text-sm text-gray-400">
-            Karar (2026-10-10): satış başlayana kadar kapalı kalır. Kapalıyken hiçbir sınır uygulanmaz, keşif bugünkü gibidir.
-            Açıkken Spotlight olmayan markalar keşifte yalnızca çarktaki profilleri görür; Basic sınırları aşağıdaki değerlerle
-            (boş = sınırsız), Pro her zaman sınırsızdır. Aynı bayrak ücretsiz markalarda favorileri ve listeleri (Inflist) de kilitler:
-            favori ekleme/çıkarma ve liste işlemleri yapılamaz, kayıtlı favoriler ve listeler silinmez, yalnızca gizlenir ve marka
-            Spotlight alınca geri gelir. Influencer/UGC hesapları sınırlanmaz.
-          </p>
-        </header>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <label className="flex items-center justify-between gap-4">
-              <span>
-                <span className="block font-semibold">Sınırlar, keşif çarkı ve favori/liste kilidi</span>
-                <span className="block text-sm text-gray-400">
-                  Şu an: {saved.free_brand_limits_enabled ? 'AÇIK' : 'KAPALI'}
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                className="h-6 w-6 accent-[#D4AF37]"
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <Card>
+          <CardHeader
+            title="Sınırlar, keşif çarkı ve favori/liste kilidi"
+            description={`Şu an ${saved.free_brand_limits_enabled ? 'açık' : 'kapalı'}`}
+            action={
+              <Switch
                 checked={form.free_brand_limits_enabled === true}
-                onChange={(event) => setField('free_brand_limits_enabled', event.target.checked)}
+                onChange={(checked) => setField('free_brand_limits_enabled', checked)}
+                label="Ücretsiz marka sınırları"
               />
-            </label>
-          </section>
+            }
+          />
+          <CardBody className="grid gap-2 text-[13px] text-ink-muted">
+            <p>Kapalıyken hiçbir sınır uygulanmaz, keşif bugünkü gibidir.</p>
+            <p>
+              Açıkken Spotlight olmayan markalar keşifte yalnızca çarktaki profilleri görür; Basic sınırları aşağıdaki değerlerle
+              (boş = sınırsız), Pro her zaman sınırsızdır. Aynı bayrak ücretsiz markalarda favorileri ve listeleri (Inflist) de
+              kilitler: kayıtlar silinmez, yalnızca gizlenir ve marka Spotlight alınca geri gelir. Influencer/UGC hesapları sınırlanmaz.
+            </p>
+          </CardBody>
+        </Card>
 
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="font-semibold">Keşif çarkı (ücretsiz marka)</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm text-gray-400">
-                Çevirme başına profil (1-50)
-                <input
+        <Card>
+          <CardHeader title="Keşif çarkı (ücretsiz marka)" />
+          <CardBody className="grid gap-4 sm:grid-cols-2">
+            <Field label="Çevirme başına profil" hint="1–50">
+              {(props) => (
+                <Input
+                  {...props}
                   type="number"
                   min={1}
                   max={50}
                   required
-                  className={inputClass}
                   value={String(form.wheel_profiles_per_day)}
                   onChange={(event) => setField('wheel_profiles_per_day', event.target.value)}
                 />
-              </label>
-              <label className="block text-sm text-gray-400">
-                Profillerin açık kaldığı süre / çevirme aralığı (saat, 1-168)
-                <input
+              )}
+            </Field>
+            <Field label="Açık kalma süresi / çevirme aralığı (saat)" hint="1–168">
+              {(props) => (
+                <Input
+                  {...props}
                   type="number"
                   min={1}
                   max={168}
                   required
-                  className={inputClass}
                   value={String(form.wheel_window_hours)}
                   onChange={(event) => setField('wheel_window_hours', event.target.value)}
                 />
-              </label>
-            </div>
-          </section>
+              )}
+            </Field>
+          </CardBody>
+        </Card>
 
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="font-semibold">Teklif ve ilan sınırları</h2>
-            <p className="mt-1 text-sm text-gray-400">Boş bırakılan alan sınırsızdır. 0 = hiç izin yok.</p>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[480px] text-sm">
-                <thead>
-                  <tr className="text-left text-gray-400">
-                    <th className="pb-2 font-medium">Sınır</th>
-                    <th className="pb-2 font-medium">Ücretsiz marka</th>
-                    <th className="pb-2 font-medium">Spotlight Basic</th>
-                    <th className="pb-2 font-medium">Spotlight Pro</th>
+        <Card>
+          <CardHeader title="Teklif ve ilan sınırları" description="Boş bırakılan alan sınırsızdır. 0 = hiç izin yok." />
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-left text-[11.5px] uppercase tracking-[0.06em] text-ink-faint">
+                  <th className="px-5 py-2.5 font-medium">Sınır</th>
+                  <th className="px-3 py-2.5 font-medium">Ücretsiz marka</th>
+                  <th className="px-3 py-2.5 font-medium">Spotlight Basic</th>
+                  <th className="px-5 py-2.5 font-medium">Spotlight Pro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {LIMIT_ROWS.map((row) => (
+                  <tr key={row.label} className="border-b border-line last:border-b-0">
+                    <td className="px-5 py-3 text-ink">{row.label}</td>
+                    {[row.free, row.basic].map((key) => (
+                      <td key={key} className="px-3 py-3">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={10000}
+                          placeholder="Sınırsız"
+                          aria-label={`${row.label} — ${key.startsWith('free') ? 'ücretsiz' : 'Basic'}`}
+                          value={String(form[key])}
+                          onChange={(event) => setField(key, event.target.value)}
+                        />
+                      </td>
+                    ))}
+                    <td className="px-5 py-3"><Chip>Sınırsız</Chip></td>
                   </tr>
-                </thead>
-                <tbody>
-                  {LIMIT_ROWS.map((row) => (
-                    <tr key={row.label} className="border-t border-white/5">
-                      <td className="py-3 pr-3 text-gray-200">{row.label}</td>
-                      {[row.free, row.basic].map((key) => (
-                        <td key={key} className="py-3 pr-3">
-                          <input
-                            type="number"
-                            min={0}
-                            max={10000}
-                            placeholder="Sınırsız"
-                            className={inputClass}
-                            value={String(form[key])}
-                            onChange={(event) => setField(key, event.target.value)}
-                          />
-                        </td>
-                      ))}
-                      <td className="py-3 text-gray-400">Sınırsız</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-5 py-2.5 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:opacity-60"
-          >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        <div>
+          <Button type="submit" variant="primary" loading={isPending && !confirmOpen} leftIcon={<Save />}>
             Kaydet
-          </button>
-        </form>
-      </div>
-    </main>
+          </Button>
+        </div>
+      </form>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={save}
+        loading={isPending}
+        tone={form.free_brand_limits_enabled ? 'danger' : 'primary'}
+        title={form.free_brand_limits_enabled ? 'Sınırlar açılsın mı?' : 'Sınırlar kapatılsın mı?'}
+        description={
+          form.free_brand_limits_enabled
+            ? 'Spotlight olmayan markalar tüm profilleri göremeyecek, teklif/ilan sınırları başlayacak ve favoriler/listeler kilitlenecek.'
+            : 'Bütün markalar yeniden tüm profilleri, favorilerini ve listelerini görecek.'
+        }
+        confirmLabel={form.free_brand_limits_enabled ? 'Aç ve kaydet' : 'Kapat ve kaydet'}
+      />
+    </div>
   )
 }

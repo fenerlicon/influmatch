@@ -1,6 +1,5 @@
 import {
-  Award, Briefcase, Building2, Compass, Home, LayoutDashboard, LifeBuoy, LineChart, Megaphone, MessageSquare,
-  MessagesSquare, UserRound, type LucideIcon,
+  Award, Briefcase, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare, MessagesSquare, SlidersHorizontal, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
 export type ShellRole = 'influencer' | 'brand' | 'admin'
@@ -85,13 +84,22 @@ const BRAND: NavGroup[] = [
 ]
 
 const ADMIN: NavGroup[] = [
-  { items: [{ id: 'admin', label: 'Admin Paneli', href: '/admin', icon: LayoutDashboard, exact: true }] },
+  { items: [{ id: 'admin', label: 'Kullanıcılar', href: '/admin', icon: Users, exact: true }] },
   {
     label: 'Destek',
     items: [
       { id: 'support', label: 'Destek Talepleri', href: '/admin/support', icon: LifeBuoy },
       { id: 'feedback', label: 'Geri Bildirimler', href: '/admin/feedback', icon: MessagesSquare },
+      { id: 'reports', label: 'Raporlanan Mesajlar', href: '/admin/messages', icon: Flag },
       { id: 'messages', label: 'Mesajlar', href: '/dashboard/messages', icon: MessageSquare, unread: true },
+    ],
+  },
+  {
+    label: 'Sistem',
+    items: [
+      { id: 'limits', label: 'Marka Sınırları', href: '/admin/limits', icon: SlidersHorizontal },
+      { id: 'api-keys', label: 'API Anahtarları', href: '/admin/api-keys', icon: KeyRound },
+      { id: 'manual-connect', label: 'Manuel Instagram Bağlama', href: '/admin/manual-connect', icon: Link2 },
     ],
   },
 ]
