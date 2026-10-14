@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
+import CampaignBriefView from '@/components/campaigns/CampaignBriefView'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { workspaceAction } from '@/app/dashboard/collaborations/[id]/actions'
 import { collaborationAction } from '@/app/dashboard/collaborations/actions'
@@ -153,9 +154,12 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
       fee_amount: agreement?.fee_amount != null ? String(agreement.fee_amount) : '',
       revision_limit: String(agreement?.revision_limit ?? 2),
       usage_rights: agreement?.usage_rights ?? '',
+      // Teslimat yoksa kampanyanın varsayılan teslimatlarıyla (3.19) ya da tek Reels satırıyla başlar.
       deliverables: deliverables.length
         ? deliverables.map((d) => ({ id: d.id, kind: d.kind, quantity: String(d.quantity), note: d.note ?? '', due_date: d.due_date ?? '' }))
-        : [{ id: null, kind: 'reel', quantity: '1', note: '', due_date: '' }],
+        : workspace.campaignBrief?.default_deliverables.length
+          ? workspace.campaignBrief.default_deliverables.map((d) => ({ id: null, kind: d.kind, quantity: String(d.quantity), note: '', due_date: '' }))
+          : [{ id: null, kind: 'reel', quantity: '1', note: '', due_date: '' }],
     })
     setEditing(true)
     setMessage(null)
@@ -332,6 +336,13 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
         >
           {message.text}
         </div>
+      )}
+
+      {/* Kampanya brief'i (3.19, salt okunur) */}
+      {workspace.campaignBrief && (
+        <section className="rounded-3xl border border-white/10 bg-[#0F1014] p-6">
+          <CampaignBriefView brief={workspace.campaignBrief} />
+        </section>
       )}
 
       {/* Anlaşma özeti */}

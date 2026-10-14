@@ -3,6 +3,7 @@ import { createOfferAs } from '@/lib/offers'
 import { fetchAccountRole } from '@/lib/viewer-role'
 import { effectiveOfferStatus } from '@/lib/offer-shared'
 import { brandReliability } from '@/lib/collaboration-workspace'
+import { briefsForOffers } from '@/lib/campaigns'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
   const { data: offers, error } = await supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at, campaign_id,
       sender:sender_user_id(${CARD}), receiver:receiver_user_id(${CARD})`,
     )
     .eq(own, user.id)
@@ -54,6 +55,9 @@ export async function GET(request: Request) {
         )
       : new Map<string, { completed: number; confirmed: number }>()
 
+  // Kampanya daveti (3.19): influencer'a kampanya brief'i (salt okunur). Teklifler RLS'li okumayla geldi (alıcı).
+  const briefs = role === 'influencer' ? await briefsForOffers(list as Array<{ id: string; campaign_id: string | null }>) : new Map()
+
   return mobileJson({
     role,
     offers: list
@@ -66,12 +70,13 @@ export async function GET(request: Request) {
           status: effectiveOfferStatus(offer),
           room_id: roomByOffer.get(offer.id) ?? null,
           sender_reliability: role === 'influencer' && senderId ? reliability.get(senderId) ?? { completed: 0, confirmed: 0 } : null,
+          campaign_brief: briefs.get(offer.id) ?? null,
         }
       }),
   })
 }
 
-/** Marka teklif gönderir. Gövde: { receiverId, campaignName, campaignType?, budget?, message?, paymentType? } */
+/** Marka teklif gönderir. Gövde: { receiverId, campaignName, campaignType?, budget?, message?, paymentType?, campaignId? } */
 export async function POST(request: Request) {
   const ctx = await getBearerContext(request)
   if (!ctx) return mobileJson({ error: 'Oturum gerekli.' }, 401)

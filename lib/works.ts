@@ -29,6 +29,8 @@ export interface BrandOfferItem {
   created_at: string
   /** Marka bekleyen teklifi düzenlediyse (2026-10-14). */
   edited_at?: string | null
+  /** Kampanya daveti (3.19). */
+  campaign_id?: string | null
   room_id?: string | null
   receiver: {
     id: string
@@ -63,7 +65,7 @@ export async function loadIncomingOffers(supabase: SupabaseClient, userId: strin
   let query = supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at, campaign_id,
       sender:sender_user_id(id, full_name, avatar_url, username, social_links, verification_status, displayed_badges)`,
     )
     .eq('receiver_user_id', userId)
@@ -86,7 +88,7 @@ export async function loadSentOffers(supabase: SupabaseClient, userId: string, l
   let query = supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at, campaign_id,
       receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status, displayed_badges)`,
     )
     .eq('sender_user_id', userId)

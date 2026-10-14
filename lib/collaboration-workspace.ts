@@ -20,6 +20,8 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
 import { listCollaborationsFor, validatePublishUrl, type CollaborationListItem, type CollaborationRow } from '@/lib/collaborations'
 import { ticketCode } from '@/lib/support-ticket'
+import { campaignBriefForCollaboration } from '@/lib/campaigns'
+import type { CampaignBrief } from '@/lib/campaigns-shared'
 import {
   AGREEMENT_LIMITS,
   DELIVERABLE_KIND_LABELS,
@@ -129,6 +131,8 @@ export interface CollaborationWorkspace {
     nonpaymentAvailableAt: string | null
   }
   brandReliability: { completed: number; confirmed: number }
+  /** Kampanyaya bağlı iş birliğinde brief (salt okunur) ve varsayılan teslimatlar (3.19). */
+  campaignBrief: CampaignBrief | null
 }
 
 const AGREEMENT_COLUMNS =
@@ -351,7 +355,8 @@ export async function getCollaborationWorkspace(
   const collaboration = listed.collaborations[0]
   if (!collaboration) return { error: 'İş birliği bulunamadı.' }
 
-  const [agreementRes, deliverablesRes, submissionsRes, paymentRes, reliability] = await Promise.all([
+  // Taraf olduğu RLS'li okumayla doğrulandı; kampanya brief'i sunucudan (lib/campaigns.ts).
+  const [agreementRes, deliverablesRes, submissionsRes, paymentRes, reliability, campaignBrief] = await Promise.all([
     supabase.from('collaboration_agreements').select(AGREEMENT_COLUMNS).eq('collaboration_id', collaborationId).maybeSingle(),
     supabase.from('collaboration_deliverables').select(DELIVERABLE_COLUMNS).eq('collaboration_id', collaborationId).order('position').order('created_at'),
     supabase
@@ -362,6 +367,7 @@ export async function getCollaborationWorkspace(
       .limit(500),
     supabase.from('collaboration_payments').select(PAYMENT_COLUMNS).eq('collaboration_id', collaborationId).maybeSingle(),
     brandReliability(supabase, [collaboration.brand_id]),
+    campaignBriefForCollaboration(collaboration).catch(() => null),
   ])
   if (agreementRes.error || deliverablesRes.error || submissionsRes.error || paymentRes.error) {
     console.error(
@@ -393,6 +399,7 @@ export async function getCollaborationWorkspace(
       payment,
       permissions: buildPermissions(collaboration, isBrand, agreement, payment, deliverables),
       brandReliability: reliability.get(collaboration.brand_id) ?? { completed: 0, confirmed: 0 },
+      campaignBrief,
     },
   }
 }
