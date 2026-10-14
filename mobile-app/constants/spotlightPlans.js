@@ -14,14 +14,11 @@ export const SPOTLIGHT_PLAN_FEATURES = {
         { text: 'Spotlight rozeti ve çerçevesi', highlight: true },
         { text: 'Keşfette öncelikli listeleme' },
         { text: 'Profil görüntülenme sayıları' },
-        { text: 'Uyum skoru analizi' },
     ],
     ipro: [
         { text: 'Spotlight rozeti ve çerçevesi', highlight: true },
         { text: 'Keşfette öncelikli listeleme', highlight: true },
         { text: 'Profil görüntülenme sayıları' },
-        { text: 'Uyum skoru analizi' },
-        { text: 'Profil koçu (detaylı analiz)', highlight: true },
     ],
     mbasic: [
         { text: 'Akıllı eşleştirme önerileri', highlight: true },

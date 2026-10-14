@@ -43,6 +43,11 @@ function dayLabel(iso) {
     return formatDate(iso);
 }
 
+// Kapalı oda (3.6-S8): marka teklifini geri çekince teklif sohbeti salt okunur olur (web ile aynı metin).
+const ROOM_CLOSED_TEXT = { offer_withdrawn: 'Marka teklifini geri çekti.' };
+const closedNoticeOf = (reason) =>
+    `${ROOM_CLOSED_TEXT[reason] || ROOM_CLOSED_TEXT.offer_withdrawn} Bu sohbet kapandı; mesaj geçmişi görünür, yeni mesaj yazılamaz.`;
+
 const partnerName = (partner, fallback) => partner?.full_name || (partner?.username ? `@${partner.username}` : fallback);
 
 // İş birliği durumu → sohbet etiketinde ve sohbet üstündeki iş kartında görünen metin
@@ -81,6 +86,8 @@ export default function MessagesScreen({ route, navigation }) {
     const [imageUrls, setImageUrls] = useState({});
     const [inputText, setInputText] = useState('');
     const [sending, setSending] = useState(false);
+    // Açık sohbet kapalıysa nedeni (null = yazılabilir)
+    const [closedReason, setClosedReason] = useState(null);
 
     const scrollRef = useRef(null);
     const roomSubRef = useRef(null);
@@ -119,7 +126,7 @@ export default function MessagesScreen({ route, navigation }) {
 
             const { data: rooms, error } = await supabase
                 .from('rooms')
-                .select(`id, brand_id, influencer_id, brand:brand_id(${PUBLIC_CARD_COLUMNS}), influencer:influencer_id(${PUBLIC_CARD_COLUMNS})`)
+                .select(`id, brand_id, influencer_id, closed_at, closed_reason, brand:brand_id(${PUBLIC_CARD_COLUMNS}), influencer:influencer_id(${PUBLIC_CARD_COLUMNS})`)
                 .or(`brand_id.eq.${user.id},influencer_id.eq.${user.id}`);
             if (error) throw error;
 
@@ -141,7 +148,7 @@ export default function MessagesScreen({ route, navigation }) {
                 const [{ data: msgs }, { count }] = await Promise.all([
                     supabase
                         .from('messages')
-                        .select('content, created_at, sender_id')
+                        .select('content, created_at, sender_id, is_system')
                         .eq('room_id', room.id)
                         .order('created_at', { ascending: false })
                         .limit(1),
@@ -152,7 +159,8 @@ export default function MessagesScreen({ route, navigation }) {
                     id: room.id,
                     partner: room.brand_id === user.id ? room.influencer : room.brand,
                     lastMessage: last ? preview(last.content) : null,
-                    lastMine: last?.sender_id === user.id,
+                    lastMine: last?.sender_id === user.id && !last?.is_system,
+                    closedReason: room.closed_at ? (room.closed_reason || 'offer_withdrawn') : null,
                     lastAt: last?.created_at || null,
                     unread: openRoomIdRef.current === room.id ? 0 : (count || 0),
                 };
@@ -172,7 +180,7 @@ export default function MessagesScreen({ route, navigation }) {
                         setConversations((prev) => prev.map((c) => c.id !== nm.room_id ? c : {
                             ...c,
                             lastMessage: preview(nm.content),
-                            lastMine: mine,
+                            lastMine: mine && !nm.is_system,
                             lastAt: nm.created_at,
                             unread: !mine && openRoomIdRef.current !== nm.room_id ? c.unread + 1 : c.unread,
                         }).sort((a, b) => (b.lastAt || '').localeCompare(a.lastAt || '')));
@@ -223,14 +231,20 @@ export default function MessagesScreen({ route, navigation }) {
         setConversations((prev) => prev.map((c) => c.id === conv.id ? { ...c, unread: 0 } : c));
         markRead(conv.id);
         setMessages([]);
+        setClosedReason(conv.closedReason || null);
         setLoadingMessages(true);
         roomSubRef.current?.unsubscribe();
 
-        const { data } = await supabase
-            .from('messages')
-            .select('id, content, sender_id, created_at')
-            .eq('room_id', conv.id)
-            .order('created_at', { ascending: true });
+        const [{ data }, { data: roomRow }] = await Promise.all([
+            supabase
+                .from('messages')
+                .select('id, content, sender_id, created_at, is_system')
+                .eq('room_id', conv.id)
+                .order('created_at', { ascending: true }),
+            supabase.from('rooms').select('closed_at, closed_reason').eq('id', conv.id).maybeSingle(),
+        ]);
+        if (openRoomIdRef.current !== conv.id) return;
+        setClosedReason(roomRow?.closed_at ? (roomRow.closed_reason || 'offer_withdrawn') : null);
         const rows = data || [];
         setMessages(rows);
         setLoadingMessages(false);
@@ -244,12 +258,17 @@ export default function MessagesScreen({ route, navigation }) {
                 signImages([nm]);
                 setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
             })
+            // Sohbet açıkken oda kapanırsa (teklif geri çekildi) yazma alanı hemen kapanır.
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${conv.id}` }, (payload) => {
+                if (payload.new?.closed_at) setClosedReason(payload.new.closed_reason || 'offer_withdrawn');
+            })
             .subscribe();
     };
 
     const closeChat = () => {
         setSelectedChat(null);
         setInputText('');
+        setClosedReason(null);
         openRoomIdRef.current = null;
         roomSubRef.current?.unsubscribe();
         fetchConversations();
@@ -257,7 +276,7 @@ export default function MessagesScreen({ route, navigation }) {
 
     const sendMessage = async () => {
         const text = inputText.trim();
-        if (!text || !selectedChat || sending) return;
+        if (!text || !selectedChat || sending || closedReason) return;
         setSending(true);
         const result = await apiRequest('messages', { method: 'POST', body: { roomId: selectedChat.id, content: text } });
         setSending(false);
@@ -434,6 +453,15 @@ export default function MessagesScreen({ route, navigation }) {
                                     );
                                 }
                                 const msg = item.msg;
+                                if (msg.is_system) {
+                                    return (
+                                        <View key={item.key} className="self-center px-3 py-1.5 rounded-full bg-s1 border border-line my-1">
+                                            <Text variant="caption" tone="fg2" style={{ fontSize: 12, textAlign: 'center' }}>
+                                                {msg.content} · {formatTime(msg.created_at)}
+                                            </Text>
+                                        </View>
+                                    );
+                                }
                                 const mine = msg.sender_id === userIdRef.current;
                                 const path = attachmentPath(msg.content);
                                 return (
@@ -456,7 +484,12 @@ export default function MessagesScreen({ route, navigation }) {
                             })}
                         </ScrollView>
 
-                        {/* Yazma alanı */}
+                        {/* Yazma alanı; kapalı sohbette yerine açıklama */}
+                        {closedReason ? (
+                            <View className="px-4 py-3.5 border-t border-line bg-bg">
+                                <Text variant="small" tone="fg2" style={{ textAlign: 'center' }}>{closedNoticeOf(closedReason)}</Text>
+                            </View>
+                        ) : (
                         <View className="flex-row items-end px-3 py-2.5 border-t border-line bg-bg" style={{ gap: 10 }}>
                             <View className="flex-1 min-h-[44px] max-h-[120px] rounded-[22px] bg-s2 border border-line-strong px-4 justify-center">
                                 <TextInput
@@ -483,6 +516,7 @@ export default function MessagesScreen({ route, navigation }) {
                                     : <ArrowUp size={20} color={inputText.trim() ? colors.goldInk : colors.fg3} strokeWidth={2} />}
                             </Pressable>
                         </View>
+                        )}
                     </KeyboardAvoidingView>
                 </SafeAreaView>
             </Modal>

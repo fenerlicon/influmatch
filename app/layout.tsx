@@ -16,7 +16,7 @@ const display = Instrument_Serif({
 
 export const metadata = {
   title: 'Influmatch | Ücretsiz Influencer Bulma Platformu & Arama Motoru',
-  description: "Türkiye'nin en şeffaf ücretsiz influencer bulma platformu. Markanız için en uygun Instagram ve TikTok içerik üreticilerini, UGC kreatörlerini ücretsiz keşfedin, doğrudan iletişime geçin.",
+  description: "Ücretsiz influencer bulma platformu. Markanız için uygun Instagram ve TikTok içerik üreticilerini, UGC kreatörlerini ücretsiz keşfedin, teklif gönderin.",
   keywords: [
     'influencer bulma platformu',
     'ücretsiz influencer arama',
@@ -44,7 +44,7 @@ const jsonLd = {
   'name': 'Influmatch',
   'url': 'https://influmatch.net',
   'logo': 'https://influmatch.net/icon.png',
-  'description': 'Türkiye\'nin en şeffaf ücretsiz influencer bulma platformu ve arama motoru. Markalar ve influencerlar ajanssız doğrudan buluşur.',
+  'description': 'Ücretsiz influencer bulma platformu ve arama motoru. Markalar ve influencerlar ajanssız doğrudan buluşur.',
   'address': {
     '@type': 'PostalAddress',
     'addressCountry': 'TR'

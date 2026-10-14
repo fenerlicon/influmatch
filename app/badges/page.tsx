@@ -39,9 +39,8 @@ export default function BadgesPage() {
               </span>
             </h1>
             <p className="mx-auto max-w-3xl text-base leading-relaxed text-gray-300 md:text-lg">
-              Rozetler, platformumuzda güveni ve prestiji simgeler. Kimlik doğrulamasından başarı metriklerine kadar,
-              her rozet profilinizin görünürlüğünü artırır ve markaların sizi keşfetmesini kolaylaştırır. Algoritmamız,
-              rozetli profilleri önceliklendirerek daha fazla işbirliği fırsatı sunar.
+              Rozetler, platformumuzda güveni ve prestiji simgeler. Kimlik doğrulamasından başarı metriklerine kadar
+              kazandığın rozetler profilinde ve keşif kartında görünür; markalar seni değerlendirirken bunları görür.
             </p>
           </div>
 

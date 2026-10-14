@@ -135,7 +135,7 @@ export default function InfluencerStats({
 
         if (isTikTok) {
             if (eRate > 6) analyses.push("TikTok üzerinde dikkat çekici derecede yüksek etkileşime sahip.")
-            else if (eRate > 4) analyses.push("Ortalamanın üzerinde TikTok etkileşim oranıyla öne çıkıyor.")
+            else if (eRate > 4) analyses.push("İyi düzeyde bir TikTok etkileşim oranı var.")
             else if (eRate > 0) analyses.push("TikTok algoritmasında stabil ve düzenli bir izleyici etkileşimi var.")
 
             if (fCount > 100000) analyses.push("Geniş kitlelere ulaşan popüler TikTok içerik üreticisi.")
@@ -147,7 +147,7 @@ export default function InfluencerStats({
             }
         } else {
             if (eRate > 5) analyses.push("Yüksek etkileşim oranıyla dikkat çekiyor.")
-            else if (eRate > 3) analyses.push("Ortalamanın üzerinde bir etkileşim oranına sahip.")
+            else if (eRate > 3) analyses.push("İyi düzeyde bir etkileşim oranına sahip.")
             else if (eRate > 0) analyses.push("Gelişmekte olan bir etkileşim grafiği var.")
 
             if (fCount > 100000) analyses.push("Geniş kitlelere ulaşan Macro Influencer.")
@@ -170,16 +170,9 @@ export default function InfluencerStats({
     }, [activePlatform, activeData])
 
     const handleRunAnalysis = (type: AnalysisType) => {
-        if (type === 'match_score' || type === 'profile_coach') {
-            toast('Çok yakın zamanda!')
-            return
-        }
-
         // Tier Check (Simple client-side pre-check)
         const requiredTier = {
             'basic': 'FREE',
-            'match_score': 'SPOTLIGHT',
-            'profile_coach': 'SPOTLIGHT_PLUS',
             'campaign_analysis': 'BRAND_PRO'
         }[type] as SubscriptionTier
 
@@ -482,11 +475,6 @@ export default function InfluencerStats({
                     {/* AI Feature Selector */}
                     <div className="mb-6 flex flex-wrap gap-2">
                         <AnalysisButton type="basic" label="Genel Özet" icon={Sparkles} requiredTier="FREE" />
-                        <AnalysisButton type="match_score" label="Uyum Skoru" icon={Activity} requiredTier="SPOTLIGHT" />
-
-                        {mode === 'influencer-view' && (
-                            <AnalysisButton type="profile_coach" label="Profil Koçu" icon={Zap} requiredTier="SPOTLIGHT_PLUS" />
-                        )}
 
                         {mode === 'brand-view' && viewerRole === 'brand' && (
                             <AnalysisButton type="campaign_analysis" label="Kampanya ROI" icon={TrendingUp} requiredTier="BRAND_PRO" />
@@ -546,9 +534,7 @@ export default function InfluencerStats({
                             <Lock className={`h-12 w-12 mb-4 ${isTikTok ? 'text-[#25F4EE]' : 'text-soft-gold'}`} />
                             <h3 className="text-xl font-bold text-white">Bu Özelliği Aç</h3>
                             <p className="mb-6 mt-2 text-sm text-gray-400 max-w-sm">
-                                {showPaywall === 'match_score' ? 'Detaylı uyum skorlarını görmek için Spotlight paketine geçin.' :
-                                    showPaywall === 'profile_coach' ? 'Profil koçunu aktifleştirmek için Spotlight+ paketine geçin.' :
-                                        'Kampanya ROI analizi Spotlight Pro marka paketine dahildir.'}
+                                Kampanya ROI analizi Spotlight Pro marka paketine dahildir.
                             </p>
                             <div className="flex gap-3">
                                 <button

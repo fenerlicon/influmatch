@@ -13,6 +13,7 @@ import { createCollaborationFor } from '@/lib/collaborations'
 import { OFFER_EXPIRY_DAYS, OFFER_EXPIRY_MS, effectiveOfferStatus } from '@/lib/offer-shared'
 import { brandLimitErrorFromDb, getBrandLimitContext, getOfferQuota, offerQuotaError } from '@/lib/brand-limits'
 import { canBrandViewInfluencer, getWheelState } from '@/lib/discovery-wheel'
+import { closeOfferRoomOnWithdraw } from '@/lib/room-close'
 
 export interface CreateOfferInput {
   receiverId: string
@@ -343,6 +344,7 @@ function updatePendingOffer(admin: SupabaseClient, offerId: string, userId: stri
 /**
  * Marka bekleyen teklifini geri çeker (2026-10-14). Kabul / red / süresi dolmuş teklif geri çekilemez.
  * Geri çekilen teklif kotadan düşmez (sayım durumdan bağımsız, created_at ile). Influencer'a site içi + push bildirim.
+ * Teklifin sohbet odası varsa kapanır (salt okunur, lib/room-close.ts).
  */
 export async function withdrawOfferAs(
   supabase: SupabaseClient,
@@ -364,6 +366,9 @@ export async function withdrawOfferAs(
     return { error: 'Teklif geri çekilemedi. Lütfen tekrar deneyin.' }
   }
   if (!updated?.length) return { error: 'Bu teklif artık geri çekilemez (yanıtlanmış ya da süresi dolmuş olabilir).' }
+
+  // "Markayla görüş" ile açılmış oda kapanır, sistem mesajı yazılır (3.6-S8).
+  await closeOfferRoomOnWithdraw(admin, offer.id, userId)
 
   const brandName = await displayNameOf(admin, userId)
   const campaign = offer.campaign_name ? `"${offer.campaign_name}" teklifini` : 'teklifini'
