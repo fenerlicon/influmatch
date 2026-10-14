@@ -3,12 +3,13 @@ import { View, Alert, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import {
-    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink,
+    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink, CalendarClock,
 } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { signOutAndClearPush } from '../utils/notifications';
 import SupportTicketForm from '../components/SupportTicketForm';
+import { AVAILABILITY_NOTE_MAX, availabilityText } from '../constants/availability';
 import {
     Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, colors, ICON_STROKE,
 } from '../components/ui';
@@ -79,12 +80,46 @@ function PasswordSheet({ visible, onClose }) {
     );
 }
 
+// Müsaitlik "Şu an dolu" ayrıntısı (3.19): isteğe bağlı not ve bitiş tarihi (YYYY-AA-GG); tarih geçince "İş alıyorum"a döner.
+function AvailabilitySheet({ visible, onClose, initial, onSaved }) {
+    const [note, setNote] = useState(initial?.note || '');
+    const [until, setUntil] = useState(initial?.until || '');
+    const [saving, setSaving] = useState(false);
+
+    const save = async () => {
+        setSaving(true);
+        const result = await apiRequest('availability', { method: 'POST', body: { status: 'busy', note, until: until.trim() || null } });
+        setSaving(false);
+        if (result.error) return Alert.alert('Kaydedilemedi', result.error);
+        onSaved(result.availability);
+        onClose();
+    };
+
+    return (
+        <Sheet visible={visible} onClose={onClose} title="Şu an dolu" scroll>
+            <Text variant="small" tone="fg2">Doluyken keşifte alt sırada görünürsün; markalar yine teklif gönderebilir ama teklif penceresinde uyarı görür.</Text>
+            <TextField label="Not (isteğe bağlı)" value={note} onChangeText={setNote} maxLength={AVAILABILITY_NOTE_MAX} placeholder="Örn. Ay sonuna kadar takvimim dolu" />
+            <TextField
+                label="Bitiş tarihi (isteğe bağlı)"
+                hint="YYYY-AA-GG, ör. 2026-11-30. Bu tarihten sonra kendiliğinden İş alıyorum olur."
+                value={until}
+                onChangeText={(v) => setUntil(v.replace(/[^0-9-]/g, '').slice(0, 10))}
+                keyboardType="numbers-and-punctuation"
+                autoCapitalize="none"
+            />
+            <Button title="Kaydet" onPress={save} loading={saving} block />
+        </Sheet>
+    );
+}
+
 export default function SettingsScreen({ navigation }) {
     const [role, setRole] = useState(null);
     const [username, setUsername] = useState('');
     const [prefs, setPrefs] = useState(null);
     const [passwordOpen, setPasswordOpen] = useState(false);
     const [supportOpen, setSupportOpen] = useState(false);
+    const [availability, setAvailability] = useState(null);
+    const [availabilityOpen, setAvailabilityOpen] = useState(false);
 
     useFocusEffect(useCallback(() => {
         (async () => {
@@ -96,6 +131,10 @@ export default function SettingsScreen({ navigation }) {
             ]);
             if (data) { setRole(data.role); setUsername(data.username || ''); }
             if (pref?.preferences) setPrefs(pref.preferences);
+            if (data?.role === 'influencer') {
+                const av = await apiRequest('availability');
+                if (av?.availability) setAvailability(av.availability);
+            }
         })();
     }, []));
 
@@ -108,6 +147,18 @@ export default function SettingsScreen({ navigation }) {
         if (!result.success) {
             setPrefs(before);
             Alert.alert('Kaydedilemedi', result.error || 'Lütfen tekrar deneyin.');
+        }
+    };
+
+    // "İş alıyorum" açık = open; kapatınca not / tarih sayfası açılır, kayıt orada.
+    const toggleAvailability = async (open) => {
+        if (!open) return setAvailabilityOpen(true);
+        const before = availability;
+        setAvailability({ status: 'open', note: null, until: null });
+        const result = await apiRequest('availability', { method: 'POST', body: { status: 'open' } });
+        if (result.error) {
+            setAvailability(before);
+            Alert.alert('Kaydedilemedi', result.error);
         }
     };
 
@@ -164,6 +215,30 @@ export default function SettingsScreen({ navigation }) {
                 />
             </ListGroup>
 
+            {role === 'influencer' ? (
+                <>
+                    <GroupLabel>Müsaitlik</GroupLabel>
+                    <ListGroup>
+                        <ToggleRow
+                            title="İş alıyorum"
+                            subtitle={availability ? availabilityText(availability) : 'Yükleniyor…'}
+                            value={availability ? availability.status !== 'busy' : true}
+                            disabled={!availability}
+                            onValueChange={toggleAvailability}
+                        />
+                        {availability?.status === 'busy' ? (
+                            <ListRow
+                                left={<IconBox icon={CalendarClock} />}
+                                title="Not ve bitiş tarihi"
+                                subtitle={availability.note || 'Not yok'}
+                                onPress={() => setAvailabilityOpen(true)}
+                                chevron
+                            />
+                        ) : null}
+                    </ListGroup>
+                </>
+            ) : null}
+
             <GroupLabel>E-posta bildirimleri</GroupLabel>
             <ListGroup>
                 {EMAIL_PREFS.map((p) => (
@@ -200,6 +275,9 @@ export default function SettingsScreen({ navigation }) {
             <Text variant="caption" tone="fg3" style={{ textAlign: 'center' }}>Influmatch · sürüm {version}</Text>
 
             <PasswordSheet visible={passwordOpen} onClose={() => setPasswordOpen(false)} />
+            {availabilityOpen ? (
+                <AvailabilitySheet visible onClose={() => setAvailabilityOpen(false)} initial={availability} onSaved={setAvailability} />
+            ) : null}
             <Sheet visible={supportOpen} onClose={() => setSupportOpen(false)} title="Destek talebi" scroll>
                 <SupportTicketForm onSent={() => setSupportOpen(false)} />
             </Sheet>
