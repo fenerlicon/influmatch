@@ -2,6 +2,9 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { MailCheck } from 'lucide-react'
+import AuthShell from '@/components/auth/AuthShell'
+import { Button, Field, Input, Notice } from '@/components/ui'
 import { requestPasswordReset } from './actions'
 
 export default function ForgotPasswordPage() {
@@ -26,59 +29,34 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="px-6 py-24 md:px-12 lg:px-24">
-      <div className="mx-auto max-w-3xl">
-        <div className="glass-panel rounded-[32px] p-10">
-          <p className="text-sm uppercase tracking-[0.4em] text-soft-gold">ŞİFRE SIFIRLAMA</p>
-          <h1 className="mt-4 text-3xl font-semibold text-white">Şifrenizi mi unuttunuz?</h1>
-
-          {sent ? (
-            <div className="mt-8 space-y-4 text-gray-300">
-              <p>
-                <span className="font-semibold text-white">{email.trim()}</span> adresi kayıtlıysa şifre sıfırlama
-                bağlantısı gönderildi. Bağlantı 1 saat geçerlidir.
-              </p>
-              <p className="text-sm text-gray-400">
-                Bağlantıyı bu formu doldurduğunuz tarayıcıda açın. E-posta gelmediyse spam klasörünü kontrol edin.
-              </p>
-            </div>
-          ) : (
-            <>
-              <p className="mt-2 text-gray-300">Hesabınızın e-posta adresini girin, size sıfırlama bağlantısı gönderelim.</p>
-              <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-                <div>
-                  <label htmlFor="email" className="text-sm text-gray-300">
-                    E-posta Adresi
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="ornek@mail.com"
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !email.includes('@')}
-                  className="w-full rounded-full bg-soft-gold px-8 py-4 font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Gönderiliyor...' : 'Sıfırlama Bağlantısı Gönder'}
-                </button>
-              </form>
-              {error && <p className="mt-6 text-sm text-red-400">{error}</p>}
-            </>
-          )}
-
-          <p className="mt-8 text-sm text-gray-400">
-            <Link href="/login" className="font-semibold text-soft-gold underline-offset-4 hover:underline">
-              Giriş sayfasına dön
-            </Link>
-          </p>
+    <AuthShell
+      eyebrow="Şifre sıfırlama"
+      title="Şifreni mi unuttun?"
+      description={sent ? undefined : 'Hesabının e-posta adresini gir, sana sıfırlama bağlantısı gönderelim.'}
+    >
+      {sent ? (
+        <div className="grid gap-4">
+          <Notice tone="success" icon={MailCheck}>
+            <span className="text-ink">{email.trim()}</span> kayıtlıysa sıfırlama bağlantısı gönderildi. Bağlantı 1 saat geçerlidir.
+          </Notice>
+          <p className="text-[13px] text-ink-muted">Bağlantıyı bu formu doldurduğun tarayıcıda aç. E-posta gelmediyse spam klasörüne bak.</p>
         </div>
-      </div>
-    </main>
+      ) : (
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <Field label="E-posta">
+            {(props) => (
+              <Input {...props} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@mail.com" required />
+            )}
+          </Field>
+          {error && <Notice tone="danger">{error}</Notice>}
+          <Button type="submit" variant="primary" block className="h-[42px]" loading={isSubmitting} disabled={!email.includes('@')}>
+            Sıfırlama bağlantısı gönder
+          </Button>
+        </form>
+      )}
+      <p className="mt-5 text-center text-[13px] text-ink-muted">
+        <Link href="/login" className="text-gold hover:underline">Giriş sayfasına dön</Link>
+      </p>
+    </AuthShell>
   )
 }
