@@ -14,7 +14,8 @@ import {
     BarChart,
     Bar
 } from 'recharts'
-import { TrendingUp, Users, Heart, Eye, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, TrendingUp } from 'lucide-react'
+import { Card, CardBody, CardHeader, EmptyState, Segmented, StatCard } from '@/components/ui'
 
 interface HistoryRecord {
     id: string
@@ -34,16 +35,21 @@ const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
 }
 
+// Grafik renkleri tasarım token'larıyla aynı (tailwind.config.ts).
+const C = { gold: '#D4AF37', success: '#5BBF8A', info: '#7FA6DB', grid: 'rgba(255,255,255,0.07)', axis: '#6B6F7A' }
+const axisProps = { stroke: C.axis, tick: { fontSize: 11 }, tickLine: false, axisLine: false }
+const compact = (value: number) => (value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value))
+
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="rounded-lg border border-white/10 bg-black/90 p-3 shadow-xl backdrop-blur-md">
-                <p className="mb-2 text-xs font-semibold text-gray-300">{formatDate(label)}</p>
+            <div className="rounded-xl border border-line-strong bg-surface-3 p-3 shadow-xl">
+                <p className="mb-1.5 text-xs text-ink-faint">{formatDate(label)}</p>
                 {payload.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }}></span>
-                        <span className="text-gray-400">{entry.name}:</span>
-                        <span className="font-mono font-medium text-white">
+                    <div key={index} className="flex items-center gap-2 text-[13px]">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                        <span className="text-ink-muted">{entry.name}:</span>
+                        <span className="font-medium tabular-nums text-ink">
                             {entry.value.toLocaleString('tr-TR')}
                             {entry.unit}
                         </span>
@@ -53,6 +59,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         )
     }
     return null
+}
+
+function Change({ value, suffix }: { value: number; suffix: (abs: string) => string }) {
+    const up = value >= 0
+    return (
+        <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${up ? 'text-success' : 'text-danger'}`}>
+            {up ? <ArrowUp className="h-3 w-3" aria-hidden /> : <ArrowDown className="h-3 w-3" aria-hidden />}
+            {suffix(Math.abs(value).toFixed(2))}
+        </span>
+    )
 }
 
 export default function StatsHistory({ history }: StatsHistoryProps) {
@@ -76,18 +92,15 @@ export default function StatsHistory({ history }: StatsHistoryProps) {
         return true
     })
 
-    // Eğer veri yoksa
     if (!history || history.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="mb-4 rounded-full bg-white/5 p-4">
-                    <TrendingUp className="h-8 w-8 text-gray-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">Henüz Geçmiş Veri Yok</h3>
-                <p className="mt-2 max-w-sm text-sm text-gray-400">
-                    Analiz verileriniz biriktikçe burada detaylı gelişim grafikleri göreceksiniz. Profilinizi düzenli güncelleyerek veri birikmesini sağlayın.
-                </p>
-            </div>
+            <Card>
+                <EmptyState
+                    icon={TrendingUp}
+                    title="Henüz geçmiş veri yok"
+                    description="Hesap verilerin biriktikçe gelişim grafiklerin burada görünür."
+                />
+            </Card>
         )
     }
 
@@ -103,202 +116,99 @@ export default function StatsHistory({ history }: StatsHistoryProps) {
     const followerChange = (first && last) ? calculateChange(last.follower_count, first.follower_count) : 0
     const engagementChange = (first && last) ? last.engagement_rate - first.engagement_rate : 0 // Percentage point diff for rate
 
+    const hasRange = filteredHistory.length > 1
+
     return (
-        <div className="space-y-8">
-            {/* Header & Filters */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h2 className="text-xl font-bold text-white">Gelişim Analizleri</h2>
-                    <p className="text-sm text-gray-400">Hesap verilerinizin zaman içindeki değişimi</p>
-                </div>
-                <div className="flex rounded-lg bg-white/5 p-1">
-                    {(['week', 'month', 'all'] as const).map((range) => (
-                        <button
-                            key={range}
-                            onClick={() => setTimeRange(range)}
-                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${timeRange === range
-                                    ? 'bg-soft-gold text-black shadow-sm'
-                                    : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            {range === 'week' ? 'Son 7 Gün' : range === 'month' ? 'Son 30 Gün' : 'Tümü'}
-                        </button>
-                    ))}
-                </div>
+        <div className="grid gap-5">
+            <div className="flex justify-end">
+                <Segmented
+                    label="Zaman aralığı"
+                    value={timeRange}
+                    onSelect={(v) => setTimeRange(v as typeof timeRange)}
+                    items={[
+                        { value: 'week', label: 'Son 7 gün' },
+                        { value: 'month', label: 'Son 30 gün' },
+                        { value: 'all', label: 'Tümü' },
+                    ]}
+                />
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Follower Card */}
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
-                        <Users className="h-4 w-4" />
-                        Takipçi Değişimi
-                    </div>
-                    <div className="flex items-end gap-2">
-                        <span className="text-2xl font-bold text-white">
-                            {last?.follower_count.toLocaleString('tr-TR')}
-                        </span>
-                        {filteredHistory.length > 1 && (
-                            <span className={`mb-1 flex items-center text-xs font-medium ${followerChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {followerChange >= 0 ? <ArrowUp className="mr-0.5 h-3 w-3" /> : <ArrowDown className="mr-0.5 h-3 w-3" />}
-                                %{Math.abs(followerChange).toFixed(2)}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Engagement Card */}
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
-                        <TrendingUp className="h-4 w-4" />
-                        Etkileşim Oranı
-                    </div>
-                    <div className="flex items-end gap-2">
-                        <span className="text-2xl font-bold text-white">
-                            %{last?.engagement_rate}
-                        </span>
-                        {filteredHistory.length > 1 && (
-                            <span className={`mb-1 flex items-center text-xs font-medium ${engagementChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {engagementChange >= 0 ? <ArrowUp className="mr-0.5 h-3 w-3" /> : <ArrowDown className="mr-0.5 h-3 w-3" />}
-                                {Math.abs(engagementChange).toFixed(2)} puan
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Avg Likes */}
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
-                        <Heart className="h-4 w-4" />
-                        Ort. Beğeni
-                    </div>
-                    <div className="flex items-end gap-2">
-                        <span className="text-2xl font-bold text-white">
-                            {last?.avg_likes.toLocaleString('tr-TR')}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Avg Views */}
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
-                        <Eye className="h-4 w-4" />
-                        Ort. İzlenme
-                    </div>
-                    <div className="flex items-end gap-2">
-                        <span className="text-2xl font-bold text-white">
-                            {last?.avg_views.toLocaleString('tr-TR')}
-                        </span>
-                    </div>
-                </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <StatCard
+                    label="Takipçi"
+                    value={last?.follower_count.toLocaleString('tr-TR') ?? '—'}
+                    detail={hasRange ? <Change value={followerChange} suffix={(a) => `%${a}`} /> : undefined}
+                />
+                <StatCard
+                    label="Etkileşim oranı"
+                    value={last ? `%${last.engagement_rate}` : '—'}
+                    detail={hasRange ? <Change value={engagementChange} suffix={(a) => `${a} puan`} /> : undefined}
+                />
+                <StatCard label="Ort. beğeni" value={last?.avg_likes.toLocaleString('tr-TR') ?? '—'} />
+                <StatCard label="Ort. izlenme" value={last?.avg_views.toLocaleString('tr-TR') ?? '—'} />
             </div>
 
-            {/* Charts Grid */}
-            <div className="grid gap-6 lg:grid-cols-2">
-                {/* Follower Growth Chart */}
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                    <h3 className="mb-6 text-sm font-semibold text-gray-300">Takipçi Büyümesi</h3>
-                    <div className="h-[300px] w-full">
+            <div className="grid gap-5 lg:grid-cols-2">
+                <Card>
+                    <CardHeader title="Takipçi büyümesi" />
+                    <CardBody className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={filteredHistory}>
                                 <defs>
                                     <linearGradient id="colorFollower" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
+                                        <stop offset="5%" stopColor={C.gold} stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor={C.gold} stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                                <XAxis
-                                    dataKey="recorded_at"
-                                    tickFormatter={formatDate}
-                                    stroke="#666"
-                                    tick={{ fontSize: 12 }}
-                                    tickLine={false}
-                                    axisLine={false}
-                                />
-                                <YAxis
-                                    stroke="#666"
-                                    tick={{ fontSize: 12 }}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
-                                />
+                                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                                <XAxis dataKey="recorded_at" tickFormatter={formatDate} {...axisProps} />
+                                <YAxis {...axisProps} width={44} tickFormatter={compact} />
                                 <Tooltip content={<CustomTooltip />} />
-                                <Area
-                                    type="monotone"
-                                    dataKey="follower_count"
-                                    name="Takipçi"
-                                    stroke="#82ca9d"
-                                    fillOpacity={1}
-                                    fill="url(#colorFollower)"
-                                    strokeWidth={2}
-                                />
+                                <Area type="monotone" dataKey="follower_count" name="Takipçi" stroke={C.gold} fillOpacity={1} fill="url(#colorFollower)" strokeWidth={2} />
                             </AreaChart>
                         </ResponsiveContainer>
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
 
-                {/* Engagement Rate Chart */}
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                    <h3 className="mb-6 text-sm font-semibold text-gray-300">Etkileşim Oranı (%)</h3>
-                    <div className="h-[300px] w-full">
+                <Card>
+                    <CardHeader title="Etkileşim oranı (%)" />
+                    <CardBody className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={filteredHistory}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                                <XAxis
-                                    dataKey="recorded_at"
-                                    tickFormatter={formatDate}
-                                    stroke="#666"
-                                    tick={{ fontSize: 12 }}
-                                    tickLine={false}
-                                />
-                                <YAxis
-                                    stroke="#666"
-                                    tick={{ fontSize: 12 }}
-                                    tickLine={false}
-                                    domain={['dataMin - 0.5', 'dataMax + 0.5']}
-                                />
+                                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                                <XAxis dataKey="recorded_at" tickFormatter={formatDate} {...axisProps} />
+                                <YAxis {...axisProps} width={44} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Line
                                     type="monotone"
                                     dataKey="engagement_rate"
                                     name="Etkileşim"
-                                    stroke="#ffc658"
-                                    strokeWidth={3}
-                                    dot={{ r: 4, fill: '#ffc658', strokeWidth: 0 }}
-                                    activeDot={{ r: 6 }}
+                                    stroke={C.success}
+                                    strokeWidth={2}
+                                    dot={{ r: 3, fill: C.success, strokeWidth: 0 }}
+                                    activeDot={{ r: 5 }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
 
-                {/* Interactions Bar Chart */}
-                <div className="col-span-full rounded-2xl border border-white/10 bg-white/5 p-6">
-                    <h3 className="mb-6 text-sm font-semibold text-gray-300">Ortalama Etkileşimler (Beğeni, Yorum, İzlenme)</h3>
-                    <div className="h-[300px] w-full">
+                <Card className="lg:col-span-2">
+                    <CardHeader title="Ortalama etkileşimler" description="Beğeni, izlenme ve yorum" />
+                    <CardBody className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={filteredHistory}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                                <XAxis
-                                    dataKey="recorded_at"
-                                    tickFormatter={formatDate}
-                                    stroke="#666"
-                                    tick={{ fontSize: 12 }}
-                                />
-                                <YAxis
-                                    stroke="#666"
-                                    tick={{ fontSize: 12 }}
-                                />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Bar dataKey="avg_likes" name="Ort. Beğeni" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="avg_views" name="Ort. İzlenme" fill="#82ca9d" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="avg_comments" name="Ort. Yorum" fill="#ffc658" radius={[4, 4, 0, 0]} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={C.grid} vertical={false} />
+                                <XAxis dataKey="recorded_at" tickFormatter={formatDate} {...axisProps} />
+                                <YAxis {...axisProps} width={44} tickFormatter={compact} />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                                <Bar dataKey="avg_likes" name="Ort. beğeni" fill={C.gold} radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="avg_views" name="Ort. izlenme" fill={C.info} radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="avg_comments" name="Ort. yorum" fill={C.success} radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
             </div>
         </div>
     )

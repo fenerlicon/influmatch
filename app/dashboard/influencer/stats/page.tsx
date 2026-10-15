@@ -1,46 +1,54 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import StatsHistory from '@/components/dashboard/StatsHistory'
 import { Metadata } from 'next'
+import { Link2 } from 'lucide-react'
+import StatsHistory from '@/components/dashboard/StatsHistory'
+import { ButtonLink, Card, EmptyState, PageHeader } from '@/components/ui'
 
 export const metadata: Metadata = {
-    title: 'Gelişim İstatistikleri | InfluMatch',
+  title: 'İstatistikler | InfluMatch',
 }
 
 export default async function StatsPage() {
-    const supabase = createSupabaseServerClient()
+  const supabase = createSupabaseServerClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-    // Hem Instagram hem TikTok bağlı kullanıcıda .single() hata veriyordu (2.10-S1).
-    // Geçmiş grafiği Instagram'dan beslenir; Instagram yoksa diğer hesap gösterilir.
-    const { data: socialAccounts } = await supabase
-        .from('social_accounts')
-        .select('id, platform')
-        .eq('user_id', user.id)
-    const socialAccount =
-        socialAccounts?.find((account) => account.platform === 'instagram') ?? socialAccounts?.[0] ?? null
+  // Hem Instagram hem TikTok bağlı kullanıcıda .single() hata veriyordu (2.10-S1).
+  // Geçmiş grafiği Instagram'dan beslenir; Instagram yoksa diğer hesap gösterilir.
+  const { data: socialAccounts } = await supabase
+    .from('social_accounts')
+    .select('id, platform')
+    .eq('user_id', user.id)
+  const socialAccount =
+    socialAccounts?.find((account) => account.platform === 'instagram') ?? socialAccounts?.[0] ?? null
 
-    if (!socialAccount) {
-        return (
-            <div className="flex h-[50vh] flex-col items-center justify-center p-8 text-center text-gray-400">
-                <h2 className="mb-2 text-xl font-bold text-white">Sosyal Medya Hesabı Bulunamadı</h2>
-                <p>Gelişim grafiklerini görmek için önce Instagram hesabınızı bağlamanız gerekmektedir.</p>
-            </div>
-        )
-    }
+  const history = socialAccount
+    ? (
+        await supabase
+          .from('social_account_history')
+          .select('*')
+          .eq('social_account_id', socialAccount.id)
+          .order('recorded_at', { ascending: true })
+      ).data
+    : null
 
-    // Get history
-    const { data: history } = await supabase
-        .from('social_account_history')
-        .select('*')
-        .eq('social_account_id', socialAccount.id)
-        .order('recorded_at', { ascending: true })
-
-    return (
-        <div className="container mx-auto max-w-7xl space-y-8 p-6 lg:p-10">
-            <StatsHistory history={history || []} />
-        </div>
-    )
+  return (
+    <div className="grid gap-5">
+      <PageHeader title="İstatistikler" description="Bağlı hesabının zaman içindeki gelişimi. Markalar profilinde güncel değerleri görür." />
+      {socialAccount ? (
+        <StatsHistory history={history || []} />
+      ) : (
+        <Card>
+          <EmptyState
+            icon={Link2}
+            title="Bağlı hesap yok"
+            description="Gelişim grafiklerini görmek için önce Instagram hesabını bağla."
+            action={<ButtonLink href="/dashboard/influencer/profile" variant="primary" size="sm">Hesap bağla</ButtonLink>}
+          />
+        </Card>
+      )}
+    </div>
+  )
 }
