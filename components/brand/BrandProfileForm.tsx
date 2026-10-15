@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { ExternalLink, ImagePlus, Pencil, Upload } from 'lucide-react'
+import { Award, ExternalLink, ImagePlus, Pencil, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, ButtonLink, buttonClasses, Card, CardBody, CardHeader, Field, Input, Notice, PageHeader, Select, Textarea } from '@/components/ui'
 import { updateBrandProfile } from '@/app/dashboard/brand/profile/actions'
@@ -496,6 +496,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         actions={
           !isEditing ? (
             <>
+              <ButtonLink href="/dashboard/brand/badges" leftIcon={<Award />}>Rozetler</ButtonLink>
               {formState.username && (
                 <ButtonLink href={`/profile/${formState.username}`} target="_blank" rel="noopener noreferrer" leftIcon={<ExternalLink />}>
                   Profilimi gör

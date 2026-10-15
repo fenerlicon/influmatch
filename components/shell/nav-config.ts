@@ -1,5 +1,5 @@
 import {
-  Award, Bell, Briefcase, CalendarDays, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
+  Bell, Briefcase, CalendarDays, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
   MessagesSquare, SlidersHorizontal, Target, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
@@ -23,7 +23,7 @@ export interface NavGroup {
   items: NavItem[]
 }
 
-// Menü (docs/REDESIGN.md). Teklifler + iş birlikleri "İşler"de (3. aşama); rozetler profile taşınınca o madde de kalkar.
+// Menü (docs/REDESIGN.md). Teklifler + iş birlikleri "İşler"de (3. aşama); rozetler menüde değil, profil sayfalarından açılır.
 // Eski teklif/iş birliği adresleri (yönlendirme ve iş detayı) İşler'i etkin gösterir.
 const WORKS_ALIASES = ['/dashboard/collaborations', '/dashboard/offers', '/dashboard/brand/offers', '/dashboard/influencer/offers']
 const INFLUENCER: NavGroup[] = [
@@ -45,9 +45,8 @@ const INFLUENCER: NavGroup[] = [
   {
     label: 'Ben',
     items: [
-      { id: 'profile', label: 'Profilim', href: '/dashboard/influencer/profile', icon: UserRound },
+      { id: 'profile', label: 'Profilim', href: '/dashboard/influencer/profile', icon: UserRound, alsoActive: ['/dashboard/influencer/badges'] },
       { id: 'stats', label: 'İstatistikler', href: '/dashboard/influencer/stats', icon: LineChart },
-      { id: 'badges', label: 'Rozetler', href: '/dashboard/influencer/badges', icon: Award },
     ],
   },
 ]
@@ -80,8 +79,7 @@ const BRAND: NavGroup[] = [
   {
     label: 'Marka',
     items: [
-      { id: 'profile', label: 'Profilim', href: '/dashboard/brand/profile', icon: Building2 },
-      { id: 'badges', label: 'Rozetler', href: '/dashboard/brand/badges', icon: Award },
+      { id: 'profile', label: 'Profilim', href: '/dashboard/brand/profile', icon: Building2, alsoActive: ['/dashboard/brand/badges'] },
     ],
   },
 ]

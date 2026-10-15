@@ -335,8 +335,15 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
             ))}
 
           {activeTab === 'rozetler' && (
-            <Card padded>
+            <Card padded className="grid gap-4">
               <BadgeDetailList badgeIds={badgeIds} userRole={isInfluencer ? 'influencer' : 'brand'} />
+              {isOwnProfile && (
+                <div>
+                  <ButtonLink href={isBrand ? '/dashboard/brand/badges' : '/dashboard/influencer/badges'} size="sm" rightIcon={<ArrowRight />}>
+                    Rozet ilerlemen ve tüm rozetler
+                  </ButtonLink>
+                </div>
+              )}
             </Card>
           )}
 
