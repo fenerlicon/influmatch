@@ -23,7 +23,7 @@ Yeni hesapta / yeni oturumda iş buradan devam eder; kullanıcıya "nerede kald�
 
 | Alan | Dosyalar | Durum | Sıradaki |
 |---|---|---|---|
-| **Web panel** (3. aşama) | `app/dashboard/**`, `app/profile/**`, `app/spotlight/**`, `app/badges/**`; `components/{adverts,discover,messages,dashboard,profile,settings,badges,spotlight,showcase,brand,influencer}/**` | 🔒 devralındı (2026-10-15, önceki oturum durdu; `claude/redesign-phase3-*`, `C:\projeler\influmatch-admin`). Bitti: İşler, ana sayfalar, İlanlar, Keşfet, Mesajlar | Profil (+ Rozetler sekmesi, menüden çıkar) → Ayarlar → iş birliği detayı (`/dashboard/collaborations/[id]`) → İstatistikler → Spotlight sayfaları → terim ve ölü arayüz temizliği |
+| **Web panel** (3. aşama) | `app/dashboard/**`, `app/profile/**`, `app/spotlight/**`, `app/badges/**`; `components/{adverts,discover,messages,dashboard,profile,settings,badges,spotlight,showcase,brand,influencer}/**` | 🔒 devralındı (2026-10-15; `claude/redesign-phase3-*`, `C:\projeler\influmatch-admin`). Bitti: İşler, ana sayfalar, İlanlar, Keşfet, Mesajlar, Profil (sayfa + düzenleme), Rozetler | Ayarlar → iş birliği detayı (`/dashboard/collaborations/[id]`) → İstatistikler (`InfluencerStats` dahil) → Spotlight sayfaları → terim ve ölü arayüz temizliği |
 | **Admin** (5. aşama) | `app/admin/**`, `components/admin/**` | ✅ kabuk, destek/sistem panelleri, kullanıcılar, içerik (`/admin/adverts`, `/admin/notifications`) | Kalan yok. |
 | **Tanıtım + giriş** (4. aşama) | `app/page.tsx`, `app/{login,signup,signup-role,forgot-password,onboarding,legal,feedback}/**`, `components/{landing,onboarding,consent}/**` | ✅ bitti (2026-10-15): ana sayfa, giriş/kayıt/şifre, onboarding, yasal, geri bildirim, çerez bandı | Kalan yok (Instagram/TikTok bağlama kutuları web panel Profil işiyle). |
 | **Mobil** | `mobile-app/**`, `design/mobile/**` | ✅ yeni görünüm bitti (#68–#77). Mobil özellik işleri ayrı oturumlarda (`claude/open-*`) | Aşağıdaki "Mobil uygulama" bölümü |
@@ -151,6 +151,12 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      görüntülenme kaydı ve sorgular aynı. `OfferModal` ortak Modal'a geçti (şablon, son teklifi kopyala, kampanya, kota/dolu uyarısı aynı;
      alan adları "Teklif başlığı", "İçerik türü"). `RateCardView`, `PortfolioResults`, `BadgeDetailList` yeni bileşenlerde.
      İstatistikler sekmesindeki `InfluencerStats` henüz eski görünümde (İstatistikler işiyle).
+   - ✅ Profil düzenleme (2026-10-15, #100, #101): influencer (`ProfileForm`, `RateCardForm`, `BadgeSelector`, Instagram/TikTok bağlama kutuları;
+     çalışmayan "Meta API / OAuth ile bağla (Çok Yakında)" düğmeleri kalktı; `updateProfile` hatayı mesaj olarak döndürüyor) ve marka
+     (`BrandProfileForm` dört kart, kurumsal e-posta, vergi levhası; "daha çok tercih edilir" iddiası kalktı).
+   - ✅ Rozetler (2026-10-15): menüden çıktı ("Profilim" rozet sayfasında etkin). `/dashboard/*/badges` ortak `BadgesOverview`
+     (rozet durumun + `BadgeCatalog`); herkese açık `/badges` de `BadgeCatalog` ile. Bağlantılar: profil düzenleme başlığı ve kendi profilinin
+     Rozetler sekmesi. Eski `BadgeCard` / `BadgeToggle` silindi; "her rozet ayrıcalık kazandırır" iddiası kalktı.
    - Kalanlar ve sıra: yukarıdaki "Paralel oturumlar" tablosunda (Web panel satırı).
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding. ✅ Bitti (2026-10-15).
    - ✅ Ana sayfa (2026-10-14): `app/page.tsx` + `components/landing/{LandingHeader,LandingFooter,HowItWorks,Faq,FeaturedProfiles}`.

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { CheckCircle2, Circle, Info } from 'lucide-react'
+import { CheckCircle2, Circle } from 'lucide-react'
+import { Card, CardBody, CardHeader, EmptyState, Progress } from '@/components/ui'
 import type { Badge } from '@/app/badges/data'
 import { influencerBadges, brandBadges } from '@/app/badges/data'
 import { BLUE_TICK_RULES } from '@/lib/blue-tick-rules'
@@ -99,9 +100,9 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
 
   if (isLoading) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-gray-400">
-        Yükleniyor...
-      </div>
+      <Card>
+        <EmptyState title="Yükleniyor…" />
+      </Card>
     )
   }
 
@@ -109,75 +110,48 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
   const unownedMvpBadges = mvpBadges.filter((b) => !userBadgeIds.includes(b.id))
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#151621] to-[#0C0D10] p-6 text-white shadow-glow md:p-8">
-      <div className="mb-6 flex items-start gap-3">
-        <Info className="h-5 w-5 flex-shrink-0 text-soft-gold md:h-6 md:w-6" />
-        <div>
-          <h2 className="text-xl font-semibold text-white md:text-2xl">Rozet Durumu</h2>
-          <p className="mt-1 text-sm text-gray-400">
-            Toplam {mvpBadges.length} başlangıç rozetinden {ownedMvpBadges.length} tanesine sahipsiniz.
-          </p>
-        </div>
-      </div>
-
-      {/* Owned MVP Badges */}
-      {ownedMvpBadges.length > 0 && (
-        <div className="mb-6 space-y-3">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-soft-gold">
-            Sahip Olduğunuz Rozetler ({ownedMvpBadges.length})
-          </h3>
-          <div className="space-y-2">
+    <Card>
+      <CardHeader
+        title="Rozet durumun"
+        description={`${mvpBadges.length} rozetten ${ownedMvpBadges.length} tanesine sahipsin.`}
+        action={<Progress value={mvpBadges.length ? (ownedMvpBadges.length / mvpBadges.length) * 100 : 0} className="w-32" label="Rozet ilerlemesi" />}
+      />
+      <CardBody className="grid gap-5">
+        {ownedMvpBadges.length > 0 && (
+          <div className="grid gap-2">
+            <h3 className="text-[13px] font-medium text-ink-muted">Sahip olduğun rozetler ({ownedMvpBadges.length})</h3>
             {ownedMvpBadges.map((badge) => (
-              <div
-                key={badge.id}
-                className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition-transform hover:scale-[1.01]"
-              >
-                <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-400" />
-                <div className="flex-1">
-                  <p className="font-semibold text-white">{badge.name}</p>
-                  <p className="mt-1 text-sm text-gray-300">{badge.description}</p>
+              <div key={badge.id} className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-3.5">
+                <CheckCircle2 className="h-[18px] w-[18px] flex-shrink-0 text-success" aria-label="Sahipsin" />
+                <div className="min-w-0">
+                  <p className="text-[13.5px] font-medium text-ink">{badge.name}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">{badge.description}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Unowned MVP Badges */}
-      {unownedMvpBadges.length > 0 && (
-        <div className="mb-6 space-y-3">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-amber-300">
-            Kazanabileceğiniz Rozetler ({unownedMvpBadges.length})
-          </h3>
-          <div className="space-y-2">
+        {unownedMvpBadges.length > 0 && (
+          <div className="grid gap-2">
+            <h3 className="text-[13px] font-medium text-ink-muted">Kazanabileceğin rozetler ({unownedMvpBadges.length})</h3>
             {unownedMvpBadges.map((badge) => (
-              <div
-                key={badge.id}
-                className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 transition-transform hover:scale-[1.01]"
-              >
-                <Circle className="h-5 w-5 flex-shrink-0 text-amber-400" />
-                <div className="flex-1">
-                  <p className="font-semibold text-white">{badge.name}</p>
-                  <p className="mt-1 text-sm text-gray-300">{badge.description}</p>
-                  <p className="mt-2 text-xs text-gray-500">{getBadgeRequirement(badge)}</p>
+              <div key={badge.id} className="flex items-start gap-3 rounded-xl border border-line bg-surface-1 p-3.5">
+                <Circle className="h-[18px] w-[18px] flex-shrink-0 text-ink-faint" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-[13.5px] font-medium text-ink">{badge.name}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">{badge.description}</p>
+                  <p className="mt-1.5 text-xs text-ink-faint">{getBadgeRequirement(badge)}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Future Badges Info */}
-      {futureBadges.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-purple-300">
-            Gelecek Rozetler
-          </h3>
-          <p className="text-sm text-gray-300">
-            {futureBadges.length} yeni rozet yakında platforma eklenecek. Takipte kalın!
-          </p>
-        </div>
-      )}
-    </div>
+        {futureBadges.length > 0 && (
+          <p className="text-xs text-ink-faint">{futureBadges.length} rozet sonraki sürümlerde açılacak; aşağıdaki katalogda görebilirsin.</p>
+        )}
+      </CardBody>
+    </Card>
   )
 }

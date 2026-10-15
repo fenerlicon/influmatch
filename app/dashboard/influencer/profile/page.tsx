@@ -7,7 +7,8 @@ import RateCardForm from '@/components/influencer/RateCardForm'
 import { getOwnRateCard } from '@/lib/rate-card'
 import InstagramConnect from '@/components/dashboard/InstagramConnect'
 import TikTokConnect from '@/components/dashboard/TikTokConnect'
-import { Card, CardHeader, PageHeader } from '@/components/ui'
+import { Award } from 'lucide-react'
+import { ButtonLink, Card, CardHeader, PageHeader } from '@/components/ui'
 
 export default async function InfluencerProfileSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -61,7 +62,11 @@ export default async function InfluencerProfileSettingsPage() {
 
   return (
     <div className="grid max-w-5xl gap-5">
-      <PageHeader title="Profilim" description="Profil bilgilerin, fiyat kartın ve bağlı hesapların." />
+      <PageHeader
+        title="Profilim"
+        description="Profil bilgilerin, fiyat kartın ve bağlı hesapların."
+        actions={<ButtonLink href="/dashboard/influencer/badges" leftIcon={<Award />}>Rozetler</ButtonLink>}
+      />
       <ProfileForm 
         initialData={initialData} 
         connectedPlatforms={socialAccounts?.filter(a => a.is_verified).map(a => a.platform) || []} 
