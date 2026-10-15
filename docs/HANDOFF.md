@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -99,7 +99,14 @@
   eklendi. **Haftalık özet:** `lib/weekly-summary.ts` (veri + e-posta HTML/metin) ve admin `/admin/weekly-preview?user=`; **gönderim / cron yok, Resend ücretli plan
   bekleniyor** (o zamana kadar paket listesinde yok). Migration `20261014000090` (iki tablo, istemcilere tamamen kapalı) canlıda, rollback'li denemeyle doğrulandı.
   Canlıda tamamlanmış iş birliği olmadığından gerçek veriyle denenmedi (3.20-S6).
-- **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
+- **`claude/open-collab` (2026-10-15, PR açılmadı):** teklif / başvuru listelerinde iş birliği aşaması + detay bağlantısı (web + mobil, 3.14-S1);
+  web influencer teklif ayrıntısında marka güvenilirliği (3.18-S4); mobil keşif bütçe filtresi sunucuda (`?budget=`, profilde `min_price`, 3.14-S2);
+  çark çevirme `create_discovery_spin` ve teklif / ilan sınırı tetikleyicilerinde marka başına danışma kilidi (3.17-S4); yeniden açılan iş birliği temiz başlar
+  (3.18-S2) ve anlaşma + teslimatlar tek işlemde (3.18-S3); kampanyada kişi başı bütçe / planlanan profil (3.19-S1); mobil uygulama içi tarih seçici
+  `components/ui/DateField.js` (3.19-S2); teslimatsız iş birliğinin yayın linki de ölçülür (3.20-S2); mobil profil analizi `/api/mobile/analysis` (10.3-S25).
+  Migration `20261015000040`: kolonlar, `create_discovery_spin` ve tetikleyici kilitleri canlıda (rollback'li denemeyle doğrulandı).
+- **Canlı SQL:** **bekleyen 1 dosya:** `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
+  sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
   `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı), `20261014000070` (sonuç raporu ölçüm tabloları), `20261014000090` (portföy gizleme + marka adı tercihi) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
@@ -289,6 +296,11 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   önizleme yeşilse `gh pr merge <n> --merge`.
 - **Mobil sözdizimi kontrolü:** `npx tsc --noEmit --allowJs --checkJs false --jsx preserve --noResolve --skipLibCheck <dosyalar>`
   (mobile-app içinde; node_modules kurulu değil).
+- **İş birliği SQL fonksiyonları (2026-10-15):** `reopen_collaboration`, `save_collaboration_agreement`, `create_discovery_spin` yalnızca service role.
+  Kod fonksiyon yok hatasında (`PGRST202`) eski sıralı yola düşer. Gövdesinde DELETE olan fonksiyon MCP `execute_sql`/`apply_migration` ile onay beklerken
+  zaman aşımına uğruyor; bu tür SQL `supabase/manual/` dosyasıyla kullanıcıya verilir. Rollback'li denemeyi DO bloğu sonunda `RAISE EXCEPTION` ile yap
+  (DELETE içeren deneme de onay bekler).
+- **Mobil tarih seçici:** `mobile-app/components/ui/DateField.js` (yerel paket yok, değer YYYY-AA-GG). Yeni tarih alanları bunu kullanır.
 - **Build:** `next build` için `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` gerekli. Route sildikten sonra `rm -rf .next/types` çalıştır.
 
 ## 8. Kuyruğun en sonu (kullanıcı kararı — "ne kaldı" sorulunca hatırlat)

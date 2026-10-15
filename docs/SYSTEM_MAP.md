@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-15 (4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -471,9 +471,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   başlangıç fiyatı bütçeye sığanlar kalır; boşken herkes görünür. Web profil düzenleme + mobil MyProfile'dan düzenlenir.
 - **Geriye dönük:** canlıdaki 1 kabul edilmiş teklif `agreed` olarak aktarıldı (kabul edilmiş başvuru yoktu).
 - **Sorunlar / notlar:**
-  - **3.14-S1 [DÜŞÜK]** (yeni bulgu) Teklif ve başvuru listeleri iş birliği aşamasını göstermiyor (yalnızca "Kabul edildi"); kullanıcı aşamayı
+  - ✅ ~~**3.14-S1 [DÜŞÜK]**~~ (2026-10-15, `claude/open-collab`: kabul edilen teklif / başvuru listelerde iş birliği aşamasını (Anlaşıldı / Devam ediyor / Yayında / Tamamlandı / İptal edildi) ve iş birliği detayına bağlantıyı gösterir: web İşler teklifleri (iki rol, `OffersManager`, `BrandOffersList`; aşama zaten yüklü iş birliklerinden), web ilan başvuruları (`MyApplications`, `ApplicationsPanel`; `collaborationStagesBySource`, RLS'li okuma), mobil İşler, İlanlar (başvurularım) ve marka ilan başvuruları (`constants/collaborations.js`)) (yeni bulgu) Teklif ve başvuru listeleri iş birliği aşamasını göstermiyor (yalnızca "Kabul edildi"); kullanıcı aşamayı
     İş Birlikleri sayfasında görüyor. 2. aşamada (takip alanı) listelere bağlantı/aşama etiketi eklenebilir.
-  - **3.14-S2 [DÜŞÜK]** (yeni bulgu) Mobil keşif bütçe filtresi fiyat kartlarını istemcide süzüyor (en fazla 1000 kart); kart sayısı büyüyünce sunucu ucuna taşınmalı.
+  - ✅ ~~**3.14-S2 [DÜŞÜK]**~~ (2026-10-15: `/api/mobile/discover?budget=`; `listDiscoverProfiles` marka izleyicide her profile `min_price` ekler (fiyat kartı RLS'li okunur) ve bütçe filtresini sunucuda uygular; mobildeki 1000 kartlık istemci okuması kalktı) (yeni bulgu) Mobil keşif bütçe filtresi fiyat kartlarını istemcide süzüyor (en fazla 1000 kart); kart sayısı büyüyünce sunucu ucuna taşınmalı.
   - **3.14-N1** Fiyat kartı bugün tüm doğrulanmış markalara açık; ücretsiz/ücretli marka ayrımı (3.13-N3/N4) gelince burada da ele alınmalı.
   - **3.14-N2** Revize hakkı, teslimat listesi, taslak onayı ve anlaşma özeti yol haritasının 2. aşamasında (ROADMAP "Buluşturmayı kolaylaştıran özellikler" 2).
     ✅ Anlaşma özeti, teslimat takibi (taslak linki, revize sayacı, teslimat başına yayın linki) ve ödeme teyidi yapıldı (2026-10-10, bkz. 3.18).
@@ -574,7 +574,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     admin 309/309; anon `social_accounts` 0).
   - ✅ ~~**3.17-S3 [DÜŞÜK]**~~ (2026-10-10 kararıyla kapandı: bayrak açıkken ücretsiz markada favoriler/listeler gizli, bkz. 3.17-N5) Favoriler / listeler sayfaları ve web marka ana sayfasındaki "son favoriler" ücretsiz markada da kaydedilmiş
     profillerin kartlarını gösterir (profil sayfası çark kuralıyla kapalı). Karar: favoriler çark dışında kalsın mı?
-  - **3.17-S4 [DÜŞÜK]** (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
+  - ✅ ~~**3.17-S4 [DÜŞÜK]**~~ (2026-10-15: çevirme `create_discovery_spin` SQL fonksiyonunda marka başına danışma kilidiyle (aktif çevirme varsa o döner); teklif ve ilan sınırı tetikleyicileri sınır varken marka başına danışma kilidi alır. Rollback'li denemede: iki ardışık çağrı tek satır açtı, ikincisi `already_active`; bayrak açıkken teklif eklemesinde kilit tutuluyor. Gerçek eşzamanlı iki oturumla deneme MCP'den yapılamadı (kilit davranışı Postgres garantisi)) (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
     isteklerde bir fazla geçebilir. Bugünkü kullanıcı sayısında sorun değil.
   - **3.17-S5 [DÜŞÜK]** Fiyat kartı (3.14-N1) ve ilan alarmının anlık sürümü (3.15-S1) ücretsiz/ücretli ayrımına henüz bağlanmadı; satış başlarken kararla.
 
@@ -614,16 +614,19 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     `collaboration_submissions.file_key`, `file_locked` (kontrol kısıtı url veya file_key ister).
   - ✅ ~~**3.18-S1 [DÜŞÜK]**~~ (2026-10-11 kullanıcı kararı: olduğu gibi kalır; UGC'de de teslimat yayın linkiyle tamamlanır, marka onayı tek başına teslim sayılmaz) UGC video teslimatı da yayın linki istiyor (Instagram/TikTok/YouTube); marka içeriği kendi hesabında yayınlıyorsa influencer
     markanın gönderi linkini girmeli. UGC için "onaylandı = teslim edildi" ayrımı istenirse kararla eklenir.
-  - **3.18-S2 [DÜŞÜK]** (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
+  - ✅ ~~**3.18-S2 [DÜŞÜK]**~~ (2026-10-15: yeniden açılışta eski anlaşma özeti, teslimatlar (taslak geçmişi ve ölçümler cascade) ve ödeme kaydı silinir, iş birliği temiz başlar; tek işlemde `reopen_collaboration` (service role). Fonksiyon canlıya uygulanana kadar kod aynı işi sırayla yapar (bkz. 3.18-S6). Mevcut veriye dokunulmadı) (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
     kalır. Bugün yeniden açma yalnızca başvuruda ve nadir; gerekirse yeniden açılışta sıfırlanır.
-  - **3.18-S3 [DÜŞÜK]** (yeni bulgu) Anlaşma kaydı ile teslimat değişiklikleri tek veritabanı işleminde değil (sürüm kilidi var; teslimat yazımı arada hata verirse liste
+  - ✅ ~~**3.18-S3 [DÜŞÜK]**~~ (2026-10-15: anlaşma ve teslimat listesi tek işlemde `save_collaboration_agreement` (service role, sürüm kilidi korunur; yarışta hiçbir şey yazılmaz). Fonksiyon canlıya uygulanana kadar eski sıralı yazım yedek (bkz. 3.18-S6)) (yeni bulgu) Anlaşma kaydı ile teslimat değişiklikleri tek veritabanı işleminde değil (sürüm kilidi var; teslimat yazımı arada hata verirse liste
     kısmen güncellenebilir, aynı form tekrar kaydedilince düzelir). Gerekirse service role RPC'sine taşınır.
-  - **3.18-S4 [DÜŞÜK]** (yeni bulgu) Web teklif listesinde (influencer) marka güvenilirliği satırı yok; marka profili ve iş birliği detayında var, mobilde teklif detayında var.
+  - ✅ ~~**3.18-S4 [DÜŞÜK]**~~ (2026-10-15: web İşler teklif ayrıntısında (influencer) "X iş birliği, Y ödeme teyitli" (`brandReliability`, mobil teklif detayıyla aynı)) (yeni bulgu) Web teklif listesinde (influencer) marka güvenilirliği satırı yok; marka profili ve iş birliği detayında var, mobilde teklif detayında var.
   - ✅ ~~**3.18-S5 [ORTA]**~~ (2026-10-14, kullanıcı onayı: "Ödeme alamadım" iş birliği tamamlandıktan **ya da** bütün teslimatlar onaylandıktan
     (onaylandı / yayınlandı; son onay zamanı) 14 gün sonra açılır, hangisi önceyse; iptal edilende açılmaz. Sunucu kontrolü `lib/collaboration-workspace.ts`
     (`nonpaymentAvailableAt`, izinler ve `reportNonpayment` aynı kural), destek kaydına "Teslimatların hepsi onaylandı" tarihi eklendi; web ve mobil
     açıklama metni iki yolu söylüyor) Marka teslimatı onaylayıp içeriği yayınlamazsa yayın linki girilemez, iş birliği "devam ediyor"da kalır ve
     tamamlanmadığı için "Ödeme alamadım" düğmesi (tamamlanma + 14 gün) hiç çıkmaz. Çözüm önerisi: tüm teslimatlar onaylandıktan 14 gün sonra da düğme açılsın.
+  - **3.18-S6 [DÜŞÜK]** (2026-10-15, yeni bulgu) `reopen_collaboration` ve `save_collaboration_agreement` SQL fonksiyonları canlıya MCP ile
+    uygulanamadı (gövdede DELETE olduğu için onay zaman aşımına uğradı). `supabase/manual/2026-10-15_is_birligi_rpc.sql` SQL Editor'de çalıştırılınca
+    3.18-S2/S3 tek işlemde çalışır; o zamana kadar kod aynı işi eski sıralı yolla yapar (fonksiyon yok hatasında yedek yol). Sıralama önemli değil.
 
 ### 3.19 Kampanyalar (marka) ve müsaitlik (influencer) (yol haritası özellik 4; 2026-10-14 kullanıcı onayıyla Aralık'tan öne çekildi)
 - **Dosyalar:** `lib/campaigns.ts` (bütün kurallar), `lib/campaigns-shared.ts`, `lib/availability.ts`, `lib/availability-shared.ts`, `lib/offers.ts`
@@ -673,9 +676,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     doluyken keşifte her sıralamada sonda, kampanya önerilerinde sonda; keşifte "Yalnızca iş alanlar" filtresi (web + mobil, sunucuda `availableOnly`); teklif penceresi
     (web + mobil) ve toplu davet uyarı gösterir, gönderim serbest) Influencer müsaitliği.
 - **Sorunlar / notlar:**
-  - **3.19-S1 [DÜŞÜK]** (yeni bulgu) Kampanya önerilerindeki "bütçeye sığar" kıyası en düşük başlangıç fiyatıyla toplam kampanya bütçesini karşılaştırır (kişi başı bütçe
+  - ✅ ~~**3.19-S1 [DÜŞÜK]**~~ (2026-10-15: kampanyaya isteğe bağlı "Kişi başı bütçe" ve "Planlanan profil sayısı" (`campaigns.per_creator_budget`, `planned_creators`, canlıda). "Bütçeye sığar" kıyası `campaignBudgetPerCreator`: kişi başı bütçe, yoksa toplam ÷ planlanan profil, yoksa toplam. Web formu + mobil form; davet adımı kişi başı tutarla dolar, etiket kıyas dayanağını yazar) (yeni bulgu) Kampanya önerilerindeki "bütçeye sığar" kıyası en düşük başlangıç fiyatıyla toplam kampanya bütçesini karşılaştırır (kişi başı bütçe
     kavramı yok). Davet adımında kişi başı bütçe × seçilen profil sayısı toplam bütçeyle yan yana gösterilir; sınır uygulanmaz.
-  - **3.19-S2 [DÜŞÜK]** (yeni bulgu) CSV dışa aktarma yalnızca web'de; mobil panoda not var. Mobil tarih alanları (kampanya, müsaitlik bitişi) metin (YYYY-AA-GG);
+  - ✅ ~~**3.19-S2 [DÜŞÜK]**~~ (2026-10-15: mobil kampanya tarihleri ve müsaitlik bitişi uygulama içi takvimle (`components/ui/DateField.js`; yeni yerel paket yok, YYYY-AA-GG sunucuya aynı). CSV yalnızca web'de kalır; mobil not kampanyayı web'de açar) (yeni bulgu) CSV dışa aktarma yalnızca web'de; mobil panoda not var. Mobil tarih alanları (kampanya, müsaitlik bitişi) metin (YYYY-AA-GG);
     tarih seçici eklenebilir.
   - **3.19-S3 [DÜŞÜK]** (yeni bulgu) Toplu davet sırayla gönderilir (25 teklif, her biri bildirim + e-posta + push); sayfa ve mobil uçta `maxDuration = 60`. Resend
     ücretsiz plan kotası (8.4-S1) büyük davetlerde hızla dolabilir (%80'de bildirim e-postaları zaten durur).
@@ -719,11 +722,11 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.20-S1 [ORTA]** (yeni bulgu) Apify aktörlerinin gönderi bağlantısıyla girdi / çıktı alanları bu oturumda canlı denenemedi (oturumdan api.apify.com'a erişim yok;
     toplu deneme yapılmadı). Alanlar savunmacı okunuyor (eşleşmeyen sonuç "ulaşılamadı" sayılır, 3 hatada durur). İlk gerçek yayından sonra `deliverable_metric_snapshots`
     ve saatlik görev çıktısındaki `postMetrics` kontrol edilmeli.
-  - **3.20-S2 [DÜŞÜK]** (yeni bulgu) Teslimatsız eski iş birliklerinin tek yayın linki (`collaborations.publish_url`) ölçülmüyor; yalnızca teslimat linkleri. Canlıda bu tür
+  - ✅ ~~**3.20-S2 [DÜŞÜK]**~~ (2026-10-15: teslimatsız iş birliğinde girilen yayın linki tek "Diğer" teslimatı (yayınlandı) olarak da yazılır ve ölçüm takibi başlar; ölçüm, sonuç raporu ve portföy teslimat üzerinden işler. Anlaşma özeti yokken bu teslimat "Ödeme alamadım" için marka onayı sayılmaz. Canlıda eski kayıt yoktu, geriye dönük işlem gerekmedi) (yeni bulgu) Teslimatsız eski iş birliklerinin tek yayın linki (`collaborations.publish_url`) ölçülmüyor; yalnızca teslimat linkleri. Canlıda bu tür
     kayıt yok (2026-10-14).
-  - **3.20-S3 [DÜŞÜK]** (yeni bulgu) Saatlik görevde eşzamanlı Apify koşusu 3'ten 4'e çıktı (istatistik 3 + ölçüm 1). Bellek sınırına takılırsa anahtar 1 dk "hız limiti"
+  - ✅ ~~**3.20-S3 [DÜŞÜK]**~~ (2026-10-15, varsayılan kabul: güncel ölçekte eşzamanlı 4 Apify koşusu kabul edilebilir; `/admin/api-keys`'ten izlenir) (yeni bulgu) Saatlik görevde eşzamanlı Apify koşusu 3'ten 4'e çıktı (istatistik 3 + ölçüm 1). Bellek sınırına takılırsa anahtar 1 dk "hız limiti"
     alır ve sıradaki tur dener; `/admin/api-keys`'ten izlenir.
-  - **3.20-S4 [DÜŞÜK]** (yeni bulgu) "Yayın anındaki takipçi" hesabın son istatistik yenilemesinden (en fazla ~3 gün eski) alınır; UGC videosunda tutulmaz (gönderi
+  - ✅ ~~**3.20-S4 [DÜŞÜK]**~~ (2026-10-15, varsayılan kabul: yayın anındaki takipçinin son istatistik yenilemesinden alınması yeterli) (yeni bulgu) "Yayın anındaki takipçi" hesabın son istatistik yenilemesinden (en fazla ~3 gün eski) alınır; UGC videosunda tutulmaz (gönderi
     çoğu zaman markanın hesabında).
   - **3.20-S5 [DÜŞÜK]** (yeni bulgu) YouTube linkleri ölçülmüyor ("Bu bağlantı için ölçüm yok"). Havuzda YouTube Data API anahtarı yok; eklenirse ya da ucuz aktör
     seçilirse `fetchPostMetrics`'e eklenir.
@@ -742,7 +745,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     gelen / kabul edilen / bekleyen teklif; Influencer Pro'da ayrıca profil görüntülenme + görüntüleyen marka sayısı ve hafta içinde ölçülen gönderilerin son ölçümü)
     ve `renderWeeklyCreatorEmail` (konu, düz metin, kaçışlı HTML). Admin önizlemesi `/admin/weekly-preview?user=` (menü: "Haftalık Özet Önizleme"; "Pro görünümünü dene").
     **Gönderim ve cron yok:** Resend ücretli plana geçilince eklenecek (e-posta tercihi + %80 kota kuralı uygulanmalı); o zaman Influencer Pro listesine yazılır.
-  - **3.20-N8 [KARAR]** (yeni, 2026-10-14) Portföyde marka izin vermediyse gönderi bağlantısı da gizleniyor (bağlantı markayı açık eder; daha güvenli seçenek).
+  - ✅ ~~**3.20-N8 [KARAR]**~~ (2026-10-15, kullanıcı varsayılanı kabul etti: marka izni yoksa bağlantı gizli kalır) (yeni, 2026-10-14) Portföyde marka izin vermediyse gönderi bağlantısı da gizleniyor (bağlantı markayı açık eder; daha güvenli seçenek).
     Kullanıcı isterse bağlantı her zaman gösterilebilir (`lib/portfolio-results.ts` `showLinks`).
   - **3.20-S6 [DÜŞÜK]** (yeni bulgu) Canlıda tamamlanmış iş birliği yok (2026-10-14); portföy ve haftalık özet gerçek veriyle denenmedi. Toplu testte bir iş birliği
     tamamlanıp ölçüldükten sonra Pro / Pro olmayan profil, gizleme ve marka adı izni kontrol edilmeli.
@@ -1233,7 +1236,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S22 [ORTA]**~~ (2026-10-10, kullanıcı kararı) Profil düzenleme, vitrin modu, destek talebi, geri bildirim ve bildirim okundu işaretleme doğrudan tabloya yazıyordu (web doğrulamaları atlanıyordu, ör. vitrinde bağlı hesap kontrolü, avatar adresi, sosyal link kuralları). Hepsi web ile ortak sunucu koduna taşındı: `/api/mobile/{profile,showcase,support,feedback,notifications}` → `lib/{profile-update,showcase,support,feedback,notification-reads}.ts`. Marka profil alanları web'le aynı (Marka Adı = `full_name`, Şirket Ünvanı, Şehir, İnternet Sitesi; olmayan "Telefon" kaldırıldı). Vitrinden çıkmak artık onaysız hesapta da serbest (web'de de).
 - ✅ ~~**10.3-S23 [ORTA]**~~ (2026-10-10: web ve mobil aynı sunucu kodu `lib/onboarding.ts` `saveOnboarding`; web `saveOnboardingProfile` ve mobil `POST /api/mobile/onboarding` çağırır. Kullanıcı adı, profil fotoğrafı, sosyal linkler (web kuralları + normalize), influencer en az bir hesap, marka web sitesi + kurumsal e-posta + vergi no/daire/il sunucuda doğrulanır; rol istemciden değil kayıttan alınır. Mobil formda ad soyad / marka adı, web sitesi, kurumsal e-posta, vergi dairesi ve ili eklendi; `company_legal_name` ve sahte rozet notu kaldırıldı (resmi unvan marka doğrulama ekranında); `is_onboarded` metadata yazımı kalktı) Mobil onboarding `users`'a doğrudan yazıyor: sosyal linkler web kurallarıyla doğrulanmıyor, marka `tax_id` gönderiyor (beyaz liste düşürüyor) ve `is_onboarded` auth metadata'ya yazılıyor. Web onboarding'in sunucu koduna taşınmalı.
 - ✅ ~~**10.3-S24 [ORTA]**~~ (2026-10-14, yeni bulgu; ekran ve girişleri kaldırıldı) Mobil "Analiz Merkezi" (`AnalysisScreen`) tamamen sahteydi: "Yapay Zeka Önerileri" başlığı altında sabit cümleler ve uydurma oran ("%40 daha fazla erişim"), sabit "skorunuz sabit kaldı", işlevsiz "PDF indir"; skor parametresi hiç gelmediği için hep 0.
-- **10.3-S25 [DÜŞÜK]** (2026-10-14, yeni bulgu) Mobilde gerçek profil analizi yok. Web'deki kural tabanlı analiz (`app/actions/ai-analysis.ts`, Spotlight paketine bağlı) için bir `/api/mobile/...` ucu yazılıp mobil ekran ona bağlanmalı.
+- ✅ ~~**10.3-S25 [DÜŞÜK]**~~ (2026-10-15: kural tabanlı analiz `lib/profile-analysis.ts`'e taşındı (web sunucu aksiyonu aynı); `/api/mobile/analysis?profileId=` aynı seviye kuralı (`resolveSubscriptionTier`) ve profil erişim kuralıyla (`getProfileForViewer`), istatistik sunucudaki hesap kaydından. Mobil profil detayında İstatistik sekmesinde "Profil analizi": Genel Özet herkese, marka izleyicide Kampanya ROI (Marka Pro değilse fiyatsız kilit kartı)) (2026-10-14, yeni bulgu) Mobilde gerçek profil analizi yok. Web'deki kural tabanlı analiz (`app/actions/ai-analysis.ts`, Spotlight paketine bağlı) için bir `/api/mobile/...` ucu yazılıp mobil ekran ona bağlanmalı.
 - ✅ ~~**10.3-S26 [ORTA]**~~ (2026-10-14: web `lib/spotlight-plans.ts` birebir `constants/spotlightPlans.js`'e taşındı; ekran rolün paketlerini gösterir) Mobil Spotlight fiyatları web'den farklıydı (299/599 ₺, web 99/199 ₺), özellik listesi canlıda olmayan maddeler ve "AI destekli istatistik önerileri" içeriyordu, "2 ay bedava" ibaresi vardı.
 - ✅ ~~**10.3-S27 [DÜŞÜK]**~~ (2026-10-14) Hesap doğrulama ekranında uydurma "markaların %85 daha fazla dikkatini çekiyorsunuz" cümlesi ve hesap onayını "Mavi Tik Rozetiniz Aktif" diye gösterme (mavi tik ayrı rozet: Spotlight + 10.000 takipçi + 80 güven skoru); profil menüsünde "Mavi tik için doğrula" yazısı.
 - ✅ ~~**10.3-S28 [DÜŞÜK]**~~ (2026-10-14) İlanlar ekranı ilanda platform/teslimat yoksa uydurma değer gösteriyordu ("Instagram", "1x Reels, 2x Story").
