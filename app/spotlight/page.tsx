@@ -1,151 +1,81 @@
 'use client'
 
 import { useState } from 'react'
-import { BrainCircuit, Crown, Sparkles } from 'lucide-react'
-import Link from 'next/link'
-import PricingCard from '@/components/spotlight/PricingCard'
 import { useRouter } from 'next/navigation'
-import { planFeatures, planPrice } from '@/lib/spotlight-plans'
+import LandingHeader from '@/components/landing/LandingHeader'
+import LandingFooter from '@/components/landing/LandingFooter'
+import PricingCard from '@/components/spotlight/PricingCard'
+import { Eyebrow, Segmented } from '@/components/ui'
+import { planFeatures, planPrice, type BillingInterval, type SpotlightPlanCode } from '@/lib/spotlight-plans'
+
+type Role = 'brand' | 'influencer'
+
+const PLANS: Record<Role, [SpotlightPlanCode, SpotlightPlanCode]> = {
+  influencer: ['ibasic', 'ipro'],
+  brand: ['mbasic', 'mpro'],
+}
 
 export default function PublicSpotlightPage() {
-    const router = useRouter()
-    const [activeTab, setActiveTab] = useState<'brand' | 'influencer'>('brand')
-    const [billingInterval, setBillingInterval] = useState<'mo' | 'yr'>('mo')
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<Role>('influencer')
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('mo')
+  const [basicPlan, proPlan] = PLANS[activeTab]
+  const signup = () => router.push(`/signup?role=${activeTab}`)
 
-    // Since this is a public page, we always direct to signup/login or dashboard if already logged in (checked by middleware usually)
-    // But for this specific request, we simplify and just show "Kayıt Ol & Başla" for everyone
-    const handleAction = (role: 'brand' | 'influencer') => {
-        router.push(`/signup?role=${role}`)
-    }
+  return (
+    <div className="min-h-screen bg-background text-ink">
+      <LandingHeader />
+      <main className="mx-auto max-w-[1000px] px-4 py-10 sm:px-6 md:py-14">
+        <Eyebrow className="text-gold">Spotlight</Eyebrow>
+        <h1 className="mb-2 mt-3 font-display text-[36px] font-normal leading-[1.1] md:text-[44px]">Öne çıkmak isteyenler için</h1>
+        <p className="mb-6 max-w-2xl text-ink-muted">
+          Influencerlar keşifte üst sıralarda listelenir ve profillerini kimin gördüğünü takip eder; markalar akıllı eşleştirme önerilerini
+          ve uyum skorlarını görür. Temel kullanım ücretsizdir.
+        </p>
 
-    return (
-        <main className="min-h-screen bg-[#0B0C10] text-white">
-            {/* Nav (Simple) */}
-            <nav className="absolute left-0 right-0 top-0 z-50 flex items-center justify-between px-6 py-6 md:px-12 lg:px-24">
-                <Link href="/" className="text-2xl font-bold tracking-tighter text-white">
-                    INFLU<span className="text-soft-gold">MATCH</span>
-                </Link>
-                <div className="flex items-center gap-4">
-                    <Link href="/login" className="text-sm font-medium text-gray-300 hover:text-white">Giriş Yap</Link>
-                    <Link href="/signup" className="rounded-full bg-soft-gold px-5 py-2 text-sm font-bold text-[#0B0C10] transition hover:bg-white hover:text-black">Kayıt Ol</Link>
-                </div>
-            </nav>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <Segmented
+            label="Paket türü"
+            value={activeTab}
+            onSelect={(v) => setActiveTab(v as Role)}
+            items={[
+              { value: 'influencer', label: 'Influencerlar için' },
+              { value: 'brand', label: 'Markalar için' },
+            ]}
+          />
+          <Segmented
+            label="Ödeme dönemi"
+            value={billingInterval}
+            onSelect={(v) => setBillingInterval(v as BillingInterval)}
+            items={[
+              { value: 'mo', label: 'Aylık' },
+              { value: 'yr', label: 'Yıllık' },
+            ]}
+          />
+        </div>
 
-            <div className="relative pt-32 pb-20 px-6 md:px-12 lg:px-24">
-                {/* Background Effects */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-gradient-to-b from-blue-900/20 via-purple-900/10 to-transparent blur-3xl -z-10" />
-
-                {/* Hero */}
-                <div className="text-center max-w-4xl mx-auto mb-16">
-                    <div className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 py-1.5 mb-6 backdrop-blur">
-                        <Sparkles className="mr-2 h-4 w-4 text-soft-gold" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-soft-gold">PREMIUM DENEYİM</span>
-                    </div>
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
-                        Potansiyelini <span className="text-transparent bg-clip-text bg-gradient-to-r from-soft-gold to-yellow-200">Keşfet</span>
-                    </h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        İster marka ol, ister influencer. Influencer'lar keşifte üst sıralarda listelenir, markalar akıllı eşleştirme önerilerini görür.
-                    </p>
-
-                    {/* Toggle */}
-                    <div className="mt-10 inline-flex rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md">
-                        <button
-                            onClick={() => setActiveTab('brand')}
-                            className={`flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold transition-all ${activeTab === 'brand'
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                                : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            <BrainCircuit className="h-4 w-4" />
-                            Markalar İçin
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('influencer')}
-                            className={`flex items-center gap-2 rounded-full px-8 py-3 text-sm font-bold transition-all ${activeTab === 'influencer'
-                                ? 'bg-soft-gold text-black shadow-lg shadow-yellow-500/30'
-                                : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            <Crown className="h-4 w-4" />
-                            Influencerlar İçin
-                        </button>
-                    </div>
-                </div>
-
-                {/* Billing Toggle */}
-                <div className="flex justify-center mb-12">
-                    <div className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 p-1 backdrop-blur-sm">
-                        <button
-                            onClick={() => setBillingInterval('mo')}
-                            className={`rounded-lg px-6 py-2 text-sm font-medium transition-all ${billingInterval === 'mo' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            Aylık
-                        </button>
-                        <button
-                            onClick={() => setBillingInterval('yr')}
-                            className={`rounded-lg px-6 py-2 text-sm font-medium transition-all ${billingInterval === 'yr' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            Yıllık
-                        </button>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="max-w-6xl mx-auto">
-                    {activeTab === 'brand' ? (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="grid gap-8 md:grid-cols-2 lg:gap-16">
-                                <PricingCard
-                                    title="Brand Basic"
-                                    price={planPrice('mbasic', billingInterval).price}
-                                    interval={billingInterval}
-                                    features={planFeatures('mbasic')}
-                                    variant="brand"
-                                    buttonText="Kayıt Ol & Başla"
-                                    onSelect={() => handleAction('brand')}
-                                />
-                                <PricingCard
-                                    title="Brand Pro"
-                                    price={planPrice('mpro', billingInterval).price}
-                                    interval={billingInterval}
-                                    features={planFeatures('mpro')}
-                                    recommended
-                                    variant="brand"
-                                    buttonText="Kayıt Ol & Başla"
-                                    onSelect={() => handleAction('brand')}
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="grid gap-8 md:grid-cols-2 lg:gap-16">
-                                <PricingCard
-                                    title="Spotlight Basic"
-                                    price={planPrice('ibasic', billingInterval).price}
-                                    interval={billingInterval}
-                                    features={planFeatures('ibasic')}
-                                    variant="influencer"
-                                    buttonText="Kayıt Ol & Başla"
-                                    onSelect={() => handleAction('influencer')}
-                                />
-                                <PricingCard
-                                    title="Spotlight Pro"
-                                    price={planPrice('ipro', billingInterval).price}
-                                    interval={billingInterval}
-                                    features={planFeatures('ipro')}
-                                    recommended
-                                    variant="influencer"
-                                    buttonText="Kayıt Ol & Başla"
-                                    onSelect={() => handleAction('influencer')}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </main>
-    )
+        <div className="grid gap-4 md:grid-cols-2">
+          <PricingCard
+            title="Spotlight Basic"
+            price={planPrice(basicPlan, billingInterval).price}
+            interval={billingInterval}
+            features={planFeatures(basicPlan)}
+            buttonText="Ücretsiz kayıt ol"
+            onSelect={signup}
+          />
+          <PricingCard
+            title="Spotlight Pro"
+            price={planPrice(proPlan, billingInterval).price}
+            interval={billingInterval}
+            features={planFeatures(proPlan)}
+            recommended
+            buttonText="Ücretsiz kayıt ol"
+            onSelect={signup}
+          />
+        </div>
+        <p className="mt-4 text-[12.5px] text-ink-faint">Yıllık ödemede iki ay ücretsiz. Paket satın alma yakında açılıyor; kayıt ve temel kullanım ücretsiz.</p>
+      </main>
+      <LandingFooter />
+    </div>
+  )
 }
