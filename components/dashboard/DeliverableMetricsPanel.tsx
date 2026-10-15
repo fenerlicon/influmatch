@@ -41,10 +41,10 @@ export default function DeliverableMetricsPanel({ collaborationId, metrics }: { 
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+    <div className="rounded-xl border border-line bg-surface-2 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">Sonuçlar</p>
-        <p className="text-[11px] text-gray-500">
+        <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Sonuçlar</p>
+        <p className="text-[11px] text-ink-faint">
           {metrics.status === 'active' && metrics.next_stage
             ? `Sonraki ölçüm: ${METRIC_STAGE_LABELS[metrics.next_stage]} (${formatDateTime(metrics.next_due_at)})`
             : METRIC_STATUS_LABELS[metrics.status]}
@@ -59,20 +59,20 @@ export default function DeliverableMetricsPanel({ collaborationId, metrics }: { 
             <Metric label="Yorum" value={formatCount(latest.comments)} />
             <Metric label={engagement ? engagementLabel(engagement.basis) : 'Etkileşim'} value={formatPercent(engagement)} />
           </dl>
-          <p className="mt-1 text-[11px] text-gray-500">
+          <p className="mt-1 text-[11px] text-ink-faint">
             Son ölçüm: {formatDateTime(latest.captured_at)} ({METRIC_STAGE_LABELS[latest.stage]})
             {engagement?.basis === 'followers' && metrics.followers_at_publish ? ` · Yayın anındaki takipçi: ${formatCount(metrics.followers_at_publish)}` : ''}
           </p>
         </>
       ) : (
-        <p className="mt-2 text-xs text-gray-400">
+        <p className="mt-2 text-xs text-ink-muted">
           {metrics.status === 'active' ? 'İlk ölçüm yayından yaklaşık 24 saat sonra yapılır.' : 'Ölçüm yok.'}
         </p>
       )}
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {metrics.snapshots.length > 1 && (
-          <button type="button" onClick={() => setHistoryOpen((v) => !v)} className="text-xs text-soft-gold hover:underline">
+          <button type="button" onClick={() => setHistoryOpen((v) => !v)} className="text-xs text-gold hover:underline">
             {historyOpen ? 'Geçmişi gizle' : `Ölçüm geçmişi (${metrics.snapshots.length})`}
           </button>
         )}
@@ -81,19 +81,19 @@ export default function DeliverableMetricsPanel({ collaborationId, metrics }: { 
             type="button"
             disabled={busy || !metrics.manual.allowed}
             onClick={refresh}
-            className="rounded-lg border border-white/10 px-3 py-1 text-xs font-semibold text-gray-200 transition hover:border-soft-gold hover:text-soft-gold disabled:opacity-50"
+            className="rounded-lg border border-line-strong px-3 py-1 text-xs font-medium text-ink transition-colors hover:border-gold/50 hover:text-gold disabled:opacity-50"
             title={`${MANUAL_REFRESH_HOURS} saatte bir güncellenebilir`}
           >
             {busy ? 'Ölçülüyor…' : metrics.manual.allowed ? 'Şimdi güncelle' : `Şimdi güncelle (${formatDateTime(metrics.manual.available_at)})`}
           </button>
         )}
       </div>
-      {message && <p className={`mt-1 text-xs ${message.type === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>{message.text}</p>}
+      {message && <p className={`mt-1 text-xs ${message.type === 'error' ? 'text-danger' : 'text-success'}`}>{message.text}</p>}
 
       {historyOpen && (
         <div className="mt-2 overflow-x-auto">
-          <table className="w-full min-w-[420px] text-left text-xs text-gray-300">
-            <thead className="text-[10px] uppercase tracking-[0.1em] text-gray-500">
+          <table className="w-full min-w-[420px] text-left text-xs text-ink-muted">
+            <thead className="text-[10px] uppercase tracking-[0.1em] text-ink-faint">
               <tr>
                 <th className="py-1 pr-2 font-medium">Ölçüm</th>
                 <th className="py-1 pr-2 font-medium">İzlenme</th>
@@ -104,9 +104,9 @@ export default function DeliverableMetricsPanel({ collaborationId, metrics }: { 
             </thead>
             <tbody>
               {metrics.snapshots.map((s) => (
-                <tr key={s.captured_at} className="border-t border-white/5 tabular-nums">
+                <tr key={s.captured_at} className="border-t border-line tabular-nums">
                   <td className="py-1 pr-2">
-                    {formatDateTime(s.captured_at)} <span className="text-gray-500">· {METRIC_STAGE_LABELS[s.stage]}</span>
+                    {formatDateTime(s.captured_at)} <span className="text-ink-faint">· {METRIC_STAGE_LABELS[s.stage]}</span>
                   </td>
                   <td className="py-1 pr-2">{formatCount(s.views)}</td>
                   <td className="py-1 pr-2">{formatCount(s.likes)}</td>
@@ -125,8 +125,8 @@ export default function DeliverableMetricsPanel({ collaborationId, metrics }: { 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] text-gray-500">{label}</dt>
-      <dd className="font-semibold tabular-nums text-white">{value}</dd>
+      <dt className="text-[11px] text-ink-faint">{label}</dt>
+      <dd className="font-semibold tabular-nums text-ink">{value}</dd>
     </div>
   )
 }

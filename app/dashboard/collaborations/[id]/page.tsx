@@ -1,5 +1,5 @@
 import { ArrowLeft } from 'lucide-react'
-import { ButtonLink } from '@/components/ui'
+import { ButtonLink, Notice } from '@/components/ui'
 import { worksHref } from '@/lib/works'
 import { redirect } from 'next/navigation'
 import CollaborationWorkspaceView from '@/components/dashboard/CollaborationWorkspace'
@@ -25,14 +25,14 @@ export default async function CollaborationDetailPage({ params }: { params: { id
   const result = await getCollaborationWorkspace(supabase, user.id, params.id)
 
   return (
-    <div className="space-y-6">
+    <div className="grid gap-4">
       <ButtonLink href={worksHref('active')} variant="ghost" size="sm" leftIcon={<ArrowLeft />} className="-ml-2">
         İşler'e dön
       </ButtonLink>
       {result.success ? (
         <CollaborationWorkspaceView workspace={result.workspace} currentUserId={user.id} />
       ) : (
-        <div className="rounded-2xl border border-danger/30 bg-danger/10 p-5 text-sm text-danger">{result.error}</div>
+        <Notice tone="danger">{result.error}</Notice>
       )}
     </div>
   )
