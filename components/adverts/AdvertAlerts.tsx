@@ -6,12 +6,16 @@ import { BellRing, Trash2 } from 'lucide-react'
 import { createAdvertAlert, deleteAdvertAlert } from '@/app/dashboard/influencer/advert/actions'
 import { ADVERT_ALERT_LIMIT, ADVERT_ALERT_PLATFORMS, describeAlert } from '@/lib/advert-alerts-shared'
 import type { AdvertAlert } from '@/lib/advert-alerts'
-import { Button, Card, CardBody, CardHeader, EmptyState, Field, Input, ListRow, Select } from '@/components/ui'
+import { Button, Card, CardBody, CardHeader, Chip, EmptyState, Field, Input, ListRow, Select } from '@/components/ui'
+import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '@/utils/categories'
 
-const emptyForm = { category: '', platform: '', minBudget: '' }
+const emptyForm = { categoryKey: '', category: '', platform: '', minBudget: '' }
 
-/** İlan alarmları: yeni açılan ilan alarma uyarsa bildirim (+ e-posta tercihine göre) gelir. */
-export default function AdvertAlerts({ alerts, onChange }: { alerts: AdvertAlert[]; onChange: (alerts: AdvertAlert[]) => void }) {
+/**
+ * İlan alarmları: yeni açılan ilan alarma uyarsa bildirim (+ e-posta tercihine göre) gelir.
+ * instant: Spotlight Basic/Pro'da yayın anında, diğer hesaplarda saatlik kontrolle (sunucu belirler, 3.15-S1).
+ */
+export default function AdvertAlerts({ alerts, instant, onChange }: { alerts: AdvertAlert[]; instant: boolean; onChange: (alerts: AdvertAlert[]) => void }) {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -21,7 +25,7 @@ export default function AdvertAlerts({ alerts, onChange }: { alerts: AdvertAlert
     event.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await createAdvertAlert({ category: form.category, platform: form.platform, minBudget: form.minBudget })
+      const result = await createAdvertAlert({ categoryKey: form.categoryKey, category: form.category, platform: form.platform, minBudget: form.minBudget })
       if ('error' in result && result.error) {
         setError(result.error)
         return
@@ -46,7 +50,11 @@ export default function AdvertAlerts({ alerts, onChange }: { alerts: AdvertAlert
   return (
     <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
       <Card className="overflow-hidden">
-        <CardHeader title="Alarmların" description={`${alerts.length} / ${ADVERT_ALERT_LIMIT}`} />
+        <CardHeader
+          title="Alarmların"
+          description={`${alerts.length} / ${ADVERT_ALERT_LIMIT}`}
+          action={instant ? <Chip tone="gold">Anlık</Chip> : <Chip>Saatte bir</Chip>}
+        />
         {alerts.length === 0 ? (
           <EmptyState icon={BellRing} title="Henüz alarm yok" description="Sağdaki formla ilk alarmını kur." />
         ) : (
@@ -66,8 +74,20 @@ export default function AdvertAlerts({ alerts, onChange }: { alerts: AdvertAlert
         <CardHeader title="Yeni alarm" description="Boş bıraktığın alan “fark etmez” demektir." />
         <CardBody>
           <form onSubmit={create} className="grid gap-3">
-            <Field label="Kategori veya kelime">
-              {(p) => <Input {...p} maxLength={60} value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="Ör. kozmetik" />}
+            <Field label="Kategori" hint="“Genel” ilanlar da uyar.">
+              {(p) => (
+                <Select {...p} value={form.categoryKey} onChange={(e) => setForm((f) => ({ ...f, categoryKey: e.target.value }))}>
+                  <option value="">Fark etmez</option>
+                  {INFLUENCER_CATEGORY_KEYS.map((key) => (
+                    <option key={key} value={key}>
+                      {INFLUENCER_CATEGORIES[key]}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label="Anahtar kelime" hint="İlan başlığında veya kategorisinde aranır.">
+              {(p) => <Input {...p} maxLength={60} value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="Ör. kahve" />}
             </Field>
             <Field label="Platform">
               {(p) => (
@@ -90,6 +110,9 @@ export default function AdvertAlerts({ alerts, onChange }: { alerts: AdvertAlert
               {atLimit ? `En fazla ${ADVERT_ALERT_LIMIT} alarm` : 'Alarm kur'}
             </Button>
             <p className="text-xs text-ink-faint">
+              {instant
+                ? 'Spotlight üyeliğinle uygun ilan yayınlandığı anda haber alırsın. '
+                : 'Uygun yeni ilanlar saatte bir kontrol edilir; Spotlight Basic ve Pro’da alarm ilan yayınlandığı anda gelir. '}
               Bildirim site içinde ve mobilde gelir; e-posta, Ayarlar&apos;daki &quot;İlan başvuruları&quot; tercihine göre gider.
             </p>
           </form>

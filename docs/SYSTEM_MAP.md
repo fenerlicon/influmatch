@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-15 (4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-15 (ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -373,10 +373,19 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.7-S2 [YÜKSEK]**~~ (payment_type/custom_questions okunuyor, açıklama ezilmiyor) Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
   - ✅ ~~**3.7-S3 [ORTA]**~~ (`getAnalyticsStats` Spotlight kontrolü yapıyor) Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
   - ✅ ~~**3.7-S4 [DÜŞÜK]**~~ (brandIsSpotlight süre kontrollü dolduruluyor; kapak silme yolu adresten çıkarılıyor) Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
-  - **3.7-S5 [DÜŞÜK]** İlan kategorisi serbest metin (`AdvertForm` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
+  - ✅ ~~**3.7-S5 [DÜŞÜK]**~~ (2026-10-15, `claude/open-adverts`: ilan formunda (web `AdvertForm`, mobil `BrandAdvertsScreen`) kategori seçici —
+    `INFLUENCER_CATEGORIES` + "Genel (her kategori)"; DB'ye anahtar yazılır (`beauty`, `general`). `saveAdvertAs` listede olmayan değeri reddeder
+    (düzenlemede değiştirilmemiş eski metin korunur). Ekranda `advertCategoryLabel` (web `utils/categories.ts`, mobil `constants/categories.js`).
+    Influencer ana sayfasında (web + mobil) "Kategorine uygun ilanlar": aynı kategori + Genel ilanlar önce, sonra en yeniler. Eski değerlerin eşlemesi
+    (Genel → general, Çanta / Çanta -Cüzdan → fashion, Bakım → beauty; 7 ilan) `20261015000021` dosyasında, **kod yayına girdikten sonra canlıya
+    uygulanacak** (önce uygulanırsa eski sürüm anahtarları gösterir); o zamana kadar kod eski "Genel"i genel sayıyor) İlan kategorisi serbest metin (`AdvertForm` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
     (`utils/categories.ts`) yapısal eşleşme yok. Bu yüzden influencer ana sayfasında "kategorine uygun ilanlar" yapılamadı ("Yeni ilanlar"
     gösteriliyor); ilan alarmı anahtar kelimeyle çalışıyor. Öneri: ilan formunda kategori seçici (`INFLUENCER_CATEGORIES`), eski değerler için eşleme. (2026-10-14, yeni görünüm çalışması)
-  - **3.7-S6 [DÜŞÜK]** İlan "özel soruları" (`custom_questions`) yanıtlanamıyor: marka soru ekleyebiliyor ama başvuru formunda (web + mobil) yanıt alanı ve
+  - ✅ ~~**3.7-S6 [DÜŞÜK]**~~ (2026-10-15, `claude/open-adverts`: başvuru formunda (web `AdvertDetail`, mobil `ProposalsScreen`) her soru için alan —
+    metin, tek seçim, çoklu seçim; soruya "Yanıt zorunlu" seçeneği (varsayılan açık, eski sorular zorunlu sayılır). `applyToAdvertAs` → `validateAnswers`:
+    zorunlu boş olamaz, seçenekler ilandaki listeden, metin en fazla 1000 karakter, ilanda olmayan soru yok sayılır; soru metni yanıtla birlikte
+    `advert_applications.answers` (jsonb, dizi, en fazla 10 öğe / 20 KB CHECK) kolonuna yazılır. Marka başvuru listesinde (web `ApplicationsPanel`,
+    mobil başvuru kartı) ve influencer'ın kendi başvurusunda yanıtlar görünür. Migration `20261015000020` canlıda, rollback'li denemeyle doğrulandı) İlan "özel soruları" (`custom_questions`) yanıtlanamıyor: marka soru ekleyebiliyor ama başvuru formunda (web + mobil) yanıt alanı ve
     `advert_applications`'ta yanıt kolonu yok. Yeni görünümde sorular ilan ayrıntısında gösteriliyor, influencer'dan yanıtları niyet mesajına eklemesi isteniyor.
     Kalıcı çözüm SQL ister: `advert_applications.answers jsonb` + `applyToAdvertAs` doğrulaması + marka başvuru satırında gösterim. (2026-10-14)
   - ✅ ~~**3.7-S7 [ORTA]**~~ (2026-10-14, yeni bulgu) Web ilan formundaki "Diğer" ödeme türü `saveAdvertAs`'ta nakde çevriliyordu. Artık `cash` / `barter` / `other` korunuyor.
@@ -395,6 +404,13 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.8-S5 [ORTA]**~~ (2026-10-14, yeni görünüm: yeni başvuruda sayfa sunucudan yenileniyor; oda bağları sunucuda okunuyor) Yeni başvuru realtime
     işleyicisi `advert_applications`'ta olmayan `room_id, has_messages` kolonlarını seçiyordu: sorgu hata verdiği için yeni başvuru sayfaya canlı düşmüyordu.
     Marka tarafında `room_id` hiç yüklenmediği için başvuru satırındaki okunmamış mesaj sayısı da hiç çalışmamıştı.
+  - ✅ ~~**3.8-S6 [YÜKSEK]**~~ (2026-10-15, yeni bulgu) Mobil marka İlanlar ekranındaki başvuru sorguları (`BrandAdvertsScreen`) `advert_applications`'ta
+    olmayan `payment_type` kolonunu seçiyordu: sorgu hata verdiği için mobilde marka hiçbir başvuruyu görmüyordu (liste ve ilan ayrıntısı boş). Kolon
+    çıkarıldı; teslimat önerisi ve soru yanıtları eklendi.
+  - ✅ ~~**3.8-S7 [ORTA]**~~ (2026-10-15, yeni bulgu; `20261015000020`, canlıda) Marka kendi ilanına gelen başvuruda istemci oturumuyla niyet mesajını,
+    bütçe beklentisini (ve yeni yanıtları) değiştirebiliyordu (tablo düzeyinde UPDATE yetkisi; tetikleyici yalnızca durumu koruyordu); anon'un da tüm
+    yazma yetkileri vardı. Artık istemci yalnızca `status` kolonunu güncelleyebilir; anon yazamaz. Rollback'li denemede marka metin güncellemesi reddedildi,
+    durum güncellemesi çalıştı.
   - ✅ ~~**3.8-N1**~~ (2026-10-14) Web marka başvuru listesinde "Kabul et" ve "Ön liste" düğmesi yoktu (yalnızca Reddet + mesaj; mobilde vardı, sunucu destekliyordu).
     Kabul (onay penceresiyle, iş birliği başlatır), ön liste / listeden çıkar ve reddi geri alma eklendi.
 
@@ -483,7 +499,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `lib/offer-shared.ts`, `lib/offers.ts` (`expireStaleOffers`, `validateOfferFields`), `lib/offer-templates.ts`,
   `lib/advert-alerts.ts`, `lib/advert-alerts-shared.ts`, `components/profile/OfferModal.tsx`, `components/dashboard/{InfluencerAdvertTabs,AdvertAlertsManager,AdvertProjectsList}.tsx`,
   `/api/mobile/{offer-templates,saved-adverts,advert-alerts}`, mobil `OffersScreen`, `InfluencerDetailScreen` (teklif formu), `ProposalsScreen`,
-  `constants/advertAlerts.js`; migration `20261010000010_offer_expiry_templates_advert_alerts.sql` (canlıda).
+  `constants/advertAlerts.js`; migration `20261010000010_offer_expiry_templates_advert_alerts.sql` (canlıda). 2026-10-15: anlık gönderim + gönderim kaydı
+  (`dispatchInstantAdvertAlerts`, `lib/background.ts`, `advert_alert_deliveries`), migration `20261015000020` (canlıda).
 - **Maddeler:**
   - ✅ ~~**3.15-N1**~~ (2026-10-10, cevapsız teklif: `offers.status` CHECK'ine `expired` eklendi; saatlik görev 7 günü geçen `pending` teklifleri
     `expired` yapıyor (turda en fazla 50, süre bütçesiyle) ve markaya site içi + e-posta ("Teklif bildirimleri" tercihi) + push bildirim gönderiyor
@@ -501,11 +518,19 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     ilan başına en fazla 300 alıcı, kullanıcı başına tek bildirim (site içi + e-posta "İlan Başvuruları" tercihi + push). İki tablo yalnızca sahibine
     SELECT, `advert_alert_runs` istemcilere tamamen kapalı) Influencer ilanı kaydedemiyor, yeni uygun ilandan haberdar olamıyordu.
 - **Sorunlar / notlar:**
-  - **3.15-S1 [DÜŞÜK]** (yeni bulgu) İlan alarmı saatlik çalışıyor (anlık değil). ROADMAP "anlık ilan alarmı"nı Spotlight Basic'e koyuyor;
+  - ✅ ~~**3.15-S1 [DÜŞÜK]**~~ (2026-10-15, kullanıcı onayı: anlık ilan alarmı Influencer Spotlight Basic/Pro'da — gerçek kapı, bayrağa bağlı değil.
+    Yeni ilan yayınlanınca (`saveAdvertAs`, web + mobil) `dispatchInstantAdvertAlerts` yanıt beklemeden arka planda çalışır (`lib/background.ts`, Vercel
+    `waitUntil`; bağlam yoksa beklenir), 8 sn bütçeyle yalnızca alarmı uyan onaylı + aktif Spotlight influencer'lara gönderir; kalanları saatlik görev
+    tamamlar. Ücretsiz hesap saatlik. Alarmlar sekmesinde (web + mobil) "Anlık" / "Saatte bir". "Anlık ilan alarmı" Influencer Basic ve Pro listesine
+    (web `lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`, SSS, influencer Spotlight sayfası) eklendi) İlan alarmı saatlik çalışıyor (anlık değil). ROADMAP "anlık ilan alarmı"nı Spotlight Basic'e koyuyor;
     bugün alarmlar herkese açık ve saatlik. Spotlight ayrımı (anlık = yayın anında eşleştirme) satış başlayınca kararla eklenir.
-  - **3.15-S2 [DÜŞÜK]** (yeni bulgu) Web ilan formunda kategori serbest metin ("Çanta -Cüzdan", "Bakım"); alarm bu yüzden anahtar kelimeyle
+  - ✅ ~~**3.15-S2 [DÜŞÜK]**~~ (2026-10-15: ilan kategorisi listeden (3.7-S5); alarma kategori seçimi eklendi (`advert_alerts.category_key`, web + mobil),
+    eşleşme yapısal: aynı kategori ya da "Genel" ilan. Anahtar kelime ayrı alan olarak kaldı (kategori adı + başlıkta arar)) Web ilan formunda kategori serbest metin ("Çanta -Cüzdan", "Bakım"); alarm bu yüzden anahtar kelimeyle
     eşleşiyor (kategori + başlık, büyük/küçük harf ve aksan farkı yok). İlan formuna kategori listesi eklenirse alarm da listeden seçilebilir.
-  - **3.15-S3 [DÜŞÜK]** (yeni bulgu) Bir ilanın alıcıları saatlik görevin süre bütçesine sığmazsa kalanlar o ilan için atlanır (ilan önce
+  - ✅ ~~**3.15-S3 [DÜŞÜK]**~~ (2026-10-15: kime gönderildiği `advert_alert_deliveries` (ilan + kullanıcı birincil anahtar, istemcilere kapalı) tablosunda;
+    her 10'lu grup önce bu tabloya yazılır, yalnızca yazılabilenlere bildirim gider — anlık gönderim, saatlik görev ve eşzamanlı koşular aynı kişiye iki
+    kez göndermez. Süre biterse ilan `advert_alert_runs.completed_at` boş kalır, kalan alıcılar sonraki saatte gönderilir; ilan başına 300 alıcı sınırı
+    kaldırıldı. `completed_at` varsayılanı now(): yayından önceki kodun yazdığı satırlar tamamlanmış sayılır) Bir ilanın alıcıları saatlik görevin süre bütçesine sığmazsa kalanlar o ilan için atlanır (ilan önce
     "işlendi" işaretlenir; çift bildirim yerine eksik bildirim tercih edildi). Bugünkü kullanıcı sayısında sorun değil.
 
 ### 3.16 İlk adımlar kontrol listesi (2026-10-10 kararı)
@@ -577,6 +602,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.17-S4 [DÜŞÜK]** (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
     isteklerde bir fazla geçebilir. Bugünkü kullanıcı sayısında sorun değil.
   - **3.17-S5 [DÜŞÜK]** Fiyat kartı (3.14-N1) ve ilan alarmının anlık sürümü (3.15-S1) ücretsiz/ücretli ayrımına henüz bağlanmadı; satış başlarken kararla.
+    (2026-10-15: anlık ilan alarmı Spotlight Basic/Pro'ya bağlandı, 3.15-S1; fiyat kartı kısmı açık.)
 
 ### 3.18 İş birliği takip alanı, anlaşma özeti ve ödeme teyidi (yol haritası özellik 2, 2026-10-10)
 - **Dosyalar:** `lib/collaboration-workspace.ts` (okuma + bütün yazımlar), `lib/collaboration-workspace-shared.ts`, `lib/collaborations.ts`
@@ -1112,6 +1138,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   - ✅ ~~**8.3-S1 [DÜŞÜK]**~~ (anahtarlar duruma göre sıralanıyor: sağlıklılar önce, kredisi biten/hata verenler sona) `isKeyUsable` bekleme süresi olmayan `exhausted`/`error` anahtarları yine deniyor.
   - ✅ ~~**8.3-S2 [DÜŞÜK]**~~ (içerik üretme fonksiyonu ve tipleri kaldırıldı; yalnızca anahtar sağlık kontrolü kaldı) `generateGeminiContent` ve `@google/generative-ai` paketi kullanılmıyor (vergi kontrolü yerelde).
   - ✅ ~~**8.3-S3 [DÜŞÜK]**~~ (`fetchExternal` 50 sn, Resend 15 sn; Apify `?timeout=45` ile çalıştırmayı da durduruyor) `fetch` çağrılarında zaman aşımı yok.
+  - ✅ ~~**8.3-S4 [KRİTİK]**~~ (2026-10-15 kontrol: Apify aylık limiti Ekim'de sıfırlandı; anahtar aktif, 119 başarılı / 0 hatalı çağrı, bu ay 0,34 $ / 5 $; kullanım /admin/api-keys'ten izleniyor) Apify hesabı aylık kullanım sınırına dayanmıştı (HTTP 403 "Monthly usage hard limit exceeded"); 5 Ekim civarı hesap doğrulamaları ve istatistik yenilemeleri başarısızdı.
 
 ### 8.4 E-posta (Resend)
 - **Dosya:** `lib/email.ts` (`sendEmail`, `sendAdminAlertEmail`). Kullanım: admin uyarıları, kurumsal e-posta kodları.
@@ -1144,7 +1171,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `SUPABASE_DB_URL` | `env.example`'da var, kullanılmıyor |
 
 ### 8.7 Gizli bilgiler ve repo hijyeni
-- **8.7-S1 [KRİTİK]** (kısmen: dosya silindi; anahtarın rocketapi.io panelinde iptali kullanıcıda, iptal edilince ✅ yap) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
+- ✅ ~~**8.7-S1 [KRİTİK]**~~ (2026-10-15 kullanıcı kararı: yok sayıldı. Dosya silindi; RocketAPI kodda hiçbir yerde kullanılmıyor, anahtar yalnızca o rocketapi.io hesabını ilgilendiriyor. Kullanıcı paneli bulamadı; hesap kullanılmıyorsa risk yok) (kısmen: dosya silindi; anahtarın rocketapi.io panelinde iptali kullanıcıda, iptal edilince ✅ yap) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
   dosya silinmeli (git geçmişinde kalacağı için iptal şart).
 - ✅ ~~**8.7-S2 [DÜŞÜK]**~~ (takipten çıkarıldı) `.env.local.txt` `.gitignore`'a rağmen takip ediliyor (yalnızca URL + anon key).
 - ✅ ~~**8.7-S3 [DÜŞÜK]**~~ (başıboş dosyalar silindi) Başıboş dosyalar: `validate_json.js`, `fix_turkish.js`, `crop_icon.py`, boş `types.ts`, `tsc_output.txt`, `tasarim-sistemi-analizi.txt`.
@@ -1244,6 +1271,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   açıklama (özet), kategori, konum, platformlar, teslimatlar (virgülle), ödeme türü (nakit / barter / diğer), para birimi + en az / en çok bütçe (nakitte), son başvuru
   (YYYY-AA-GG), düzenlemede durum (yayında / duraklat / kapat) ve en fazla 5 soru (tür + seçenekler). Düzenleme bütün alanları doldurur. Yazım `POST /api/mobile/adverts`
   → `saveAdvertAs` (web ile aynı kod, 3.7-S8 doğrulaması ve aktif ilan sınırı dahil).
+- ✅ ~~**10.3-S32 [ORTA]**~~ (2026-10-15, yeni bulgu) Mobil influencer ana sayfasındaki ilan sorgusu `advert_projects`'te olmayan `brand_logo` kolonunu
+  seçiyordu; sorgu hata verdiği için "Yeni ilanlar" hep boştu. Artık satırın tamamı okunuyor (ayrıntı ekranı sorular dahil açılır), kategorine uygun ilanlar önce.
 
 ---
 
@@ -1296,7 +1325,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 | Sıra | ID | Konu |
 |---|---|---|
-| 1 | 8.7-S1 | Repodaki RocketAPI anahtarını iptal et, dosyayı sil |
+| 1 | 8.7-S1 | Repodaki RocketAPI anahtarını iptal et, dosyayı sil (yok sayıldı) |
 | 2 | 1.8-S1 | Rolü her yerde DB'den oku; `/dashboard/brand` ve `/dashboard/influencer` için rol koruyan layout |
 | 3 | 2.1-S1, 2.2-S1 | Apify harcamasına sunucu tarafı sınır ve kilit |
 | 4 | 4.3-S1, 8.2-S1 | Süresi dolan Spotlight'ı saatlik işte kapat |

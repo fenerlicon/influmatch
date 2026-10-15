@@ -104,6 +104,7 @@ export async function getBrandApplicationsAdmin(projectIds: string[]) {
       budget_expectation, 
       status, 
       created_at,
+      answers,
       influencer:users!influencer_user_id (
         id,
         full_name,

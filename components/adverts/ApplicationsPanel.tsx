@@ -10,6 +10,7 @@ import { countUnreadInRoom } from '@/lib/unread-messages'
 import { worksHref } from '@/lib/works'
 import { APPLICATION_STATUS, formatExpectation, relativeDay, type AdvertApplication, type ApplicationStatus } from '@/lib/adverts-shared'
 import { Avatar, Button, ButtonLink, Card, CardHeader, Chip, ConfirmDialog, EmptyState, Segmented, VerifiedTick } from '@/components/ui'
+import ApplicationAnswers from './ApplicationAnswers'
 
 type Filter = 'new' | 'shortlisted' | 'reviewed'
 const FILTER_OF: Record<ApplicationStatus, Filter> = { pending: 'new', shortlisted: 'shortlisted', accepted: 'reviewed', rejected: 'reviewed' }
@@ -154,6 +155,7 @@ export default function ApplicationsPanel({ advertTitle, applications, currentUs
                 {app.cover_letter && (
                   <p className="mt-2 whitespace-pre-line rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-[13px] text-ink-muted">{app.cover_letter}</p>
                 )}
+                <ApplicationAnswers answers={app.answers} />
               </div>
               <div className="col-span-2 flex flex-wrap justify-end gap-1.5 md:col-span-1">
                 {inf.username && (

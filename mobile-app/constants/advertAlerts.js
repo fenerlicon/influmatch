@@ -1,4 +1,5 @@
 // İlan alarmı sabitleri. Web karşılığı lib/advert-alerts-shared.ts ile aynı tutulmalı (kurallar sunucuda).
+import { INFLUENCER_CATEGORIES } from './categories';
 
 export const ADVERT_ALERT_LIMIT = 5;
 
@@ -10,6 +11,7 @@ export const ADVERT_ALERT_PLATFORMS = [
 
 export function describeAlert(alert) {
     const parts = [];
+    if (alert.category_key) parts.push(INFLUENCER_CATEGORIES[alert.category_key] || alert.category_key);
     if (alert.category) parts.push(`"${alert.category}"`);
     if (alert.platform) parts.push(ADVERT_ALERT_PLATFORMS.find((p) => p.key === alert.platform)?.label || alert.platform);
     if (alert.min_budget) parts.push(`en az ${Number(alert.min_budget).toLocaleString('tr-TR')} ₺`);

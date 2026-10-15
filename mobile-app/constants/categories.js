@@ -39,4 +39,15 @@ export const INFLUENCER_CATEGORY_KEYS = Object.keys(INFLUENCER_CATEGORIES);
 export const BRAND_CATEGORY_KEYS = Object.keys(BRAND_CATEGORIES);
 
 export const influencerCategoryLabel = (key) => INFLUENCER_CATEGORIES[key] || key || '';
+
+// İlan kategorisi (web utils/categories.ts ile aynı): influencer kategorisi ya da 'general' (Genel).
+export const ADVERT_GENERAL_CATEGORY = 'general';
+export const ADVERT_CATEGORY_OPTIONS = [
+    { value: ADVERT_GENERAL_CATEGORY, label: 'Genel (her kategori)' },
+    ...INFLUENCER_CATEGORY_KEYS.map((key) => ({ value: key, label: INFLUENCER_CATEGORIES[key] })),
+];
+export const isGeneralAdvertCategory = (value) => !value || value === ADVERT_GENERAL_CATEGORY || value === 'Genel';
+export const advertCategoryLabel = (value) => (isGeneralAdvertCategory(value) ? 'Genel' : INFLUENCER_CATEGORIES[value] || value);
+export const advertFitsCategory = (advertCategory, influencerCategory) =>
+    !!influencerCategory && (advertCategory === influencerCategory || isGeneralAdvertCategory(advertCategory));
 export const brandCategoryLabel = (key) => BRAND_CATEGORIES[key] || key || '';

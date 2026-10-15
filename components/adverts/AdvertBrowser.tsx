@@ -6,6 +6,7 @@ import { trackEvent } from '@/app/actions/analytics'
 import { Avatar, Card, Chip, EmptyState, Input, Modal, Select } from '@/components/ui'
 import { formatAdvertBudget, relativeDay, type AdvertProject } from '@/lib/adverts-shared'
 import { normalizeText } from '@/lib/advert-alerts-shared'
+import { advertCategoryLabel } from '@/utils/categories'
 import { cn } from '@/utils/cn'
 import AdvertDetail from './AdvertDetail'
 
@@ -55,7 +56,7 @@ export default function AdvertBrowser({ projects, mode, appliedIds, savedIds, on
         if (platform && !p.platforms.some((name) => normalizeText(name) === platform)) return false
         if (payment && (p.paymentType ?? 'cash') !== payment) return false
         if (!keyword) return true
-        const haystack = normalizeText([p.title, p.summary, p.brandName, p.category, p.location, ...p.platforms, ...p.deliverables].join(' '))
+        const haystack = normalizeText([p.title, p.summary, p.brandName, advertCategoryLabel(p.category), p.location, ...p.platforms, ...p.deliverables].join(' '))
         return haystack.includes(keyword)
       })
       .sort((a, b) => {
@@ -151,7 +152,7 @@ export default function AdvertBrowser({ projects, mode, appliedIds, savedIds, on
                   <div className="min-w-0">
                     <div className="font-semibold text-ink">{p.title}</div>
                     <div className="truncate text-xs text-ink-faint">
-                      {p.brandName} · {p.category} · {relativeDay(p.createdAt)}
+                      {p.brandName} · {advertCategoryLabel(p.category)} · {relativeDay(p.createdAt)}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {p.brandIsSpotlight && (

@@ -29,6 +29,32 @@ export function getCategoryLabel(key: string): string {
 // Get all category keys as array
 export const INFLUENCER_CATEGORY_KEYS = Object.keys(INFLUENCER_CATEGORIES) as InfluencerCategoryKey[]
 
+// İlan kategorisi (3.7-S5): influencer kategorilerinden biri ya da "Genel" (her kategoriye açık).
+// Veritabanına anahtar yazılır (ör. 'beauty', 'general'); eski serbest metin değerler olduğu gibi gösterilir.
+// Mobil kopyası: mobile-app/constants/categories.js.
+export const ADVERT_GENERAL_CATEGORY = 'general'
+
+export function isAdvertCategoryKey(value: unknown): value is InfluencerCategoryKey | typeof ADVERT_GENERAL_CATEGORY {
+  return typeof value === 'string' && (value === ADVERT_GENERAL_CATEGORY || Object.prototype.hasOwnProperty.call(INFLUENCER_CATEGORIES, value))
+}
+
+/** "Genel" ilan (her kategoriye açık). Eşleme uygulanmadan önceki eski 'Genel' metni ve boş değer de sayılır. */
+export function isGeneralAdvertCategory(value: string | null | undefined): boolean {
+  return !value || value === ADVERT_GENERAL_CATEGORY || value === 'Genel'
+}
+
+/** İlan kategorisinin ekrandaki adı ("general" → "Genel", anahtar → etiket, eski metin → kendisi). */
+export function advertCategoryLabel(value: string | null | undefined): string {
+  if (isGeneralAdvertCategory(value)) return 'Genel'
+  return Object.prototype.hasOwnProperty.call(INFLUENCER_CATEGORIES, value as string) ? INFLUENCER_CATEGORIES[value as InfluencerCategoryKey] : (value as string)
+}
+
+/** İlan bu influencer kategorisine uyuyor mu (aynı kategori ya da "Genel"). */
+export function advertFitsCategory(advertCategory: string | null | undefined, influencerCategory: string | null | undefined): boolean {
+  if (!influencerCategory) return false
+  return advertCategory === influencerCategory || isGeneralAdvertCategory(advertCategory)
+}
+
 // Get all category labels as array
 // Brand Categories (can be same or different - keeping separate for flexibility)
 export const BRAND_CATEGORIES = {

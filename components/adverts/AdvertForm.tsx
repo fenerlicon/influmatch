@@ -7,18 +7,22 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { saveBrandAdvert, type AdvertStatus } from '@/app/dashboard/brand/advert/actions'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { Button, Field, Input, Modal, Select, Textarea } from '@/components/ui'
-import type { AdvertProject, AdvertQuestion } from '@/lib/adverts-shared'
+import { isQuestionRequired, type AdvertProject, type AdvertQuestion } from '@/lib/adverts-shared'
+import { ADVERT_GENERAL_CATEGORY, INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, isAdvertCategoryKey, isGeneralAdvertCategory } from '@/utils/categories'
 
 const HERO_IMAGE_BUCKET = 'advert-hero-images'
 const MAX_QUESTIONS = 5
 
-type Question = AdvertQuestion & { options: string[] }
+type Question = AdvertQuestion & { options: string[]; required: boolean }
+
+/** Formdaki kategori: liste anahtarı; eski "Genel" metni → general; listede olmayan eski metin olduğu gibi kalır. */
+const initialCategory = (value?: string | null) => (isGeneralAdvertCategory(value) ? ADVERT_GENERAL_CATEGORY : (value as string))
 
 function initialValues(project?: AdvertProject | null) {
   return {
     title: project?.title ?? '',
     summary: project?.summary ?? '',
-    category: project?.category ?? '',
+    category: initialCategory(project?.category),
     location: project?.location ?? 'Uzaktan',
     platforms: project?.platforms.join(', ') ?? '',
     deliverables: project?.deliverables.join(', ') ?? '',
@@ -29,7 +33,7 @@ function initialValues(project?: AdvertProject | null) {
     deadline: project?.deadline?.slice(0, 10) ?? '',
     status: ((project?.status as AdvertStatus) ?? 'open') as AdvertStatus,
     heroImage: project?.heroImage ?? '',
-    questions: (project?.customQuestions ?? []).map((q) => ({ ...q, options: q.options ?? [] })) as Question[],
+    questions: (project?.customQuestions ?? []).map((q) => ({ ...q, options: q.options ?? [], required: isQuestionRequired(q) })) as Question[],
   }
 }
 
@@ -100,7 +104,7 @@ export default function AdvertForm({ open, onClose, project, onSaved }: Props) {
         id: project?.id,
         title: values.title,
         summary: values.summary,
-        category: values.category.trim() || 'Genel',
+        category: values.category || ADVERT_GENERAL_CATEGORY,
         platforms: parseList(values.platforms),
         deliverables: parseList(values.deliverables),
         budget_currency: values.budgetCurrency,
@@ -151,8 +155,18 @@ export default function AdvertForm({ open, onClose, project, onSaved }: Props) {
           {(p) => <Textarea {...p} required rows={4} value={values.summary} onChange={(e) => set('summary', e.target.value)} placeholder="Ne istiyorsun, kimden, hangi tonda?" />}
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Kategori" hint="Ör. Yeme & İçme">
-            {(p) => <Input {...p} maxLength={60} value={values.category} onChange={(e) => set('category', e.target.value)} />}
+          <Field label="Kategori" hint="Influencer kategorileriyle eşleşir; alarmlar buna göre çalışır.">
+            {(p) => (
+              <Select {...p} value={values.category} onChange={(e) => set('category', e.target.value)}>
+                <option value={ADVERT_GENERAL_CATEGORY}>Genel (her kategori)</option>
+                {INFLUENCER_CATEGORY_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {INFLUENCER_CATEGORIES[key]}
+                  </option>
+                ))}
+                {values.category && !isAdvertCategoryKey(values.category) && <option value={values.category}>{values.category} (eski)</option>}
+              </Select>
+            )}
           </Field>
           <Field label="Konum">
             {(p) => <Input {...p} maxLength={80} value={values.location} onChange={(e) => set('location', e.target.value)} />}
@@ -238,7 +252,7 @@ export default function AdvertForm({ open, onClose, project, onSaved }: Props) {
               variant="ghost"
               leftIcon={<Plus />}
               disabled={values.questions.length >= MAX_QUESTIONS}
-              onClick={() => set('questions', [...values.questions, { id: crypto.randomUUID(), type: 'text', question: '', options: [] }])}
+              onClick={() => set('questions', [...values.questions, { id: crypto.randomUUID(), type: 'text', question: '', options: [], required: true }])}
             >
               Soru ekle
             </Button>
@@ -262,6 +276,10 @@ export default function AdvertForm({ open, onClose, project, onSaved }: Props) {
                   <Trash2 />
                 </Button>
               </div>
+              <label className="flex items-center gap-2 text-[12.5px] text-ink-muted">
+                <input type="checkbox" checked={q.required} onChange={(e) => setQuestion(i, { required: e.target.checked })} className="h-4 w-4 accent-gold" />
+                Yanıt zorunlu
+              </label>
               {q.type !== 'text' && (
                 <Textarea
                   aria-label="Seçenekler"
