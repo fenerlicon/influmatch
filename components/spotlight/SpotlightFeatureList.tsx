@@ -1,47 +1,26 @@
-import { LucideIcon } from 'lucide-react'
-import { cn } from '@/utils/cn'
+import type { LucideIcon } from 'lucide-react'
+import { Card } from '@/components/ui'
 
-interface Feature {
-    icon: LucideIcon
-    title: string
-    description: string
-    comingSoon?: boolean
+export interface SpotlightFeature {
+  icon: LucideIcon
+  title: string
+  description: string
 }
 
-interface SpotlightFeatureListProps {
-    features: Feature[]
-    variant?: 'influencer' | 'brand' | 'agency'
-}
-
-export default function SpotlightFeatureList({ features, variant = 'influencer' }: SpotlightFeatureListProps) {
-    const isInfluencer = variant === 'influencer'
-    const isBrand = variant === 'brand'
-
-    const iconContainerClass = isInfluencer
-        ? "border-soft-gold/40 bg-soft-gold/10 text-soft-gold"
-        : isBrand
-            ? "border-blue-400/40 bg-blue-400/10 text-blue-400"
-            : "border-purple-400/40 bg-purple-400/10 text-purple-400"
-
-    return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, i) => (
-                <div
-                    key={i}
-                    className={cn(
-                        "group flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-6 transition-colors hover:border-white/10 hover:bg-white/[0.07]",
-                        feature.comingSoon && "opacity-50 grayscale"
-                    )}
-                >
-                    <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform group-hover:scale-110", iconContainerClass)}>
-                        <feature.icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-white">{feature.title}</h3>
-                        <p className="mt-2 text-sm text-gray-400 leading-relaxed">{feature.description}</p>
-                    </div>
-                </div>
-            ))}
-        </div>
-    )
+export default function SpotlightFeatureList({ features }: { features: SpotlightFeature[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {features.map((feature) => (
+        <Card key={feature.title} className="flex gap-3.5 p-5">
+          <span className="grid h-10 w-10 flex-none place-items-center rounded-xl border border-gold/30 bg-gold/10 text-gold">
+            <feature.icon className="h-5 w-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-[14.5px] font-medium text-ink">{feature.title}</h3>
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{feature.description}</p>
+          </div>
+        </Card>
+      ))}
+    </div>
+  )
 }

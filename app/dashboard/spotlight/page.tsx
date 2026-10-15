@@ -1,75 +1,60 @@
-import { BadgeDollarSign, Crown, Sparkles } from 'lucide-react'
-import SpotlightSelectionCard from '@/components/spotlight/SpotlightSelectionCard'
-import SpotlightShowcase from '@/components/spotlight/SpotlightShowcase'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { ArrowRight, BrainCircuit, Crown } from 'lucide-react'
 import { redirect } from 'next/navigation'
+import { ButtonLink, Card, PageHeader } from '@/components/ui'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export const metadata = {
-    title: 'Spotlight | Influmatch',
-    description: 'Markalar ve Influencerlar için premium özellikler.',
+  title: 'Spotlight | Influmatch',
+  description: 'Markalar ve influencerlar için Spotlight paketleri.',
 }
 
+const OPTIONS = [
+  {
+    icon: Crown,
+    title: 'Influencer paketleri',
+    description: 'Spotlight rozeti ve çerçevesi, keşifte öncelikli listeleme, profil görüntülenmeleri ve anlık ilan alarmı.',
+    href: '/dashboard/spotlight/influencer',
+  },
+  {
+    icon: BrainCircuit,
+    title: 'Marka paketleri',
+    description: 'Akıllı eşleştirme, uyum skoru, benzer profil keşfi ve öne çıkan ilanlar.',
+    href: '/dashboard/spotlight/brand',
+  },
+]
+
 export default async function SpotlightSelectionPage() {
-    const supabase = createSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+  const supabase = createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-    if (!user) {
-        redirect('/login')
-    }
+  // Rol DB'den (metadata eskiyebilir)
+  const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single()
+  const role = userData?.role || 'influencer'
 
-    // Get user role with a fallback in case metadata is missing, or fetch from DB if needed
-    // However, usually checking metadata or fetching profile is safer.
-    // Let's fetch the role from the 'users' table to be 100% sure as metadata might be stale.
-    const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+  // Rol belliyken ara seçim sayfası gereksiz (docs/REDESIGN.md); admin ikisini de görür.
+  if (role === 'influencer') redirect('/dashboard/spotlight/influencer')
+  if (role === 'brand') redirect('/dashboard/spotlight/brand')
 
-    const role = userData?.role || 'influencer' // Fallback to influencer
-
-    // Rol belliyken iki paketi gösterip birini kilitlemek gereksiz adım (docs/REDESIGN.md); admin ikisini de görür.
-    if (role === 'influencer') redirect('/dashboard/spotlight/influencer')
-    if (role === 'brand') redirect('/dashboard/spotlight/brand')
-
-    return (
-        <div className="min-h-[80vh] space-y-12 py-10">
-            <header className="mx-auto max-w-3xl text-center">
-                <div className="mb-6 inline-flex items-center justify-center rounded-full border border-soft-gold/30 bg-soft-gold/10 px-4 py-1.5 backdrop-blur-sm">
-                    <Sparkles className="mr-2 h-4 w-4 text-soft-gold" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-soft-gold">Premium Experience</span>
-                </div>
-                <h1 className="text-4xl font-bold text-white md:text-6xl lg:text-7xl">
-                    Spotlight <span className="text-soft-gold">Editions</span>
-                </h1>
-                <p className="mt-6 text-lg text-gray-400 md:text-xl">
-                    Hedefine uygun Spotlight paketini seç, platformun tüm gücünü açığa çıkar.
-                </p>
-            </header>
-
-            <div className="grid gap-6 px-4 md:grid-cols-2 lg:gap-8">
-                <SpotlightSelectionCard
-                    title="Influencer Edition"
-                    description="Spotlight rozeti ve çerçevesi, keşifte öncelikli listeleme, profil görüntülenme sayıları ve anlık ilan alarmı."
-                    icon={Crown}
-                    href="/dashboard/spotlight/influencer"
-                    variant="influencer"
-                    disabled={role !== 'influencer' && role !== 'admin'}
-                    disabledReason="Influencer Hesabı Gerekli"
-                />
-
-                <SpotlightSelectionCard
-                    title="Brand Edition"
-                    description="Doğru influencer'la eşleşmek için kişiselleştirilmiş öneriler. Akıllı eşleşme, detaylı filtreler ve kampanya yönetimi."
-                    icon={BadgeDollarSign}
-                    href="/dashboard/spotlight/brand"
-                    variant="brand"
-                    disabled={role !== 'brand' && role !== 'admin'}
-                    disabledReason="Marka Hesabı Gerekli"
-                />
+  return (
+    <div className="grid gap-5">
+      <PageHeader title="Spotlight" description="İki rolün paket sayfaları." />
+      <div className="grid gap-4 md:grid-cols-2">
+        {OPTIONS.map((o) => (
+          <Card key={o.href} padded className="grid content-start gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl border border-gold/30 bg-gold/10 text-gold">
+              <o.icon className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <h2 className="text-[16px] font-semibold text-ink">{o.title}</h2>
+              <p className="mt-1 text-[13px] text-ink-muted">{o.description}</p>
             </div>
-
-            <SpotlightShowcase />
-        </div>
-    )
+            <div>
+              <ButtonLink href={o.href} size="sm" rightIcon={<ArrowRight />}>Paketleri gör</ButtonLink>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
 }
