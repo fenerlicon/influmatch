@@ -134,8 +134,9 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      kullanılıyor; profil sayfasıyla birlikte taşınacak).
    - ✅ Yasal, geri bildirim, çerez bandı (2026-10-14): `/legal` ve `/feedback` (+ teşekkür) tanıtım üst çubuğuyla, sekmeler/kart yeni
      bileşenlerde; yasal metinlerin ve çerez bandı metninin **içeriğine dokunulmadı** (yalnızca renk sınıfları tokenlara çevrildi).
-     Not (kullanıcıya iletildi): Kullanıcı Sözleşmesi madde 5 "komisyon talep edebilir / ödemeler Platform'un ödeme altyapısıyla" diyor;
-     ana sayfa ve S.S.S. "komisyonsuz, ödeme aranızda" diyor. Avukat metni gelince düzelir (kuyruğun sonu).
+     Kullanıcı kararı (2026-10-15, CLAUDE.md): komisyon yok, ödeme taraflar arasında, platform yalnızca bir araya getirir ve süreçlerden /
+     içeriklerden sorumlu değildir. Kullanıcı Sözleşmesi md. 4–5 ve S.S.S. ödeme cevabı buna göre güncellendi; Gizlilik metnindeki ödeme
+     hizmeti satırları avukat metniyle düzelecek.
      4. aşama bitti.
      Kayıt bağlantıları `/signup` (rol formda). Eski 10 tanıtım bileşeni silindi.
    - ✅ Giriş / kayıt / şifre (2026-10-14): ortak `components/auth/AuthShell.tsx` (solda tanıtım paneli, sağda form) +

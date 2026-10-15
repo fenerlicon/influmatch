@@ -147,13 +147,18 @@ function LegalPageContent() {
                   İşbirliklerinin içeriğinden, ürünlerin kalitesinden veya Influencer'ın performansından Platform sorumlu tutulamaz.
                   Taraflar arasındaki ticari ve hukuki ilişki, tarafların kendi sorumluluğundadır.
                 </p>
+                <p className="mt-2">
+                  Platform yalnızca tarafları bir araya getirir; işbirliği süreçlerinin yürütülmesinden ve güvenliğinden, taraflarca
+                  paylaşılan içeriklerden ve bunlardan doğabilecek hukuki uyuşmazlıklardan sorumlu tutulamaz. Marka ve Influencer kendi
+                  haklarını korumakla yükümlüdür.
+                </p>
               </div>
 
               <div>
                 <h3 className="text-lg font-bold text-ink mb-2">5. Ödeme ve Komisyon</h3>
                 <ul className="list-disc pl-6 space-y-1 marker:text-gold">
-                  <li>Platform, sağladığı aracılık hizmeti karşılığında belirli oranlarda hizmet bedeli veya komisyon talep edebilir.</li>
-                  <li>Ödemeler, Platform'un güvenli ödeme altyapısı üzerinden gerçekleştirilir.</li>
+                  <li>Platform, Marka ile Influencer arasındaki işbirliklerinden komisyon veya hizmet bedeli almaz.</li>
+                  <li>İşbirliği bedeli, ödeme yöntemi ve zamanlaması taraflar arasında belirlenir; ödemeler Platform üzerinden yapılmaz. Platform&apos;daki ödeme teyidi yalnızca tarafların kendi beyanlarının kaydıdır.</li>
                 </ul>
               </div>
 

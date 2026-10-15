@@ -20,8 +20,8 @@ const FAQS = [
     a: "Influencer'lar için Spotlight rozeti, keşifte öncelikli listeleme, profil görüntülenme sayıları ve uyum skoru analizi; markalar için akıllı eşleştirme önerileri, kampanya uyum skoru, benzer profil keşfi ve ilanların topluluk listesinde öne çıkması. Pro paketlerde ayrıca Profil koçu (detaylı analiz) vardır.",
   },
   {
-    q: 'Ödemeler ve güvenlik nasıl sağlanıyor?',
-    a: 'Influmatch, markalarla influencer\'ları bir araya getiren bir eşleştirme platformudur. Anlaşma sağladığınızda ödeme koşullarını ve yöntemini kendi aranızda belirlersiniz. Biz aracı olmaz veya komisyon almayız; iki tarafın ödeme teyidi İşler sayfasında kayıt altına alınır.',
+    q: 'Ödemeler nasıl yapılıyor, platform süreçten sorumlu mu?',
+    a: 'Influmatch, markalarla influencer\'ları bir araya getiren bir eşleştirme platformudur. Anlaşma sağladığınızda ödeme koşullarını ve yöntemini kendi aranızda belirlersiniz. Biz aracı olmaz veya komisyon almayız; iki tarafın ödeme teyidi İşler sayfasında yalnızca kayıt olarak tutulur. Influmatch tarafları bir araya getirir; iş birliği sürecinden, paylaşılan içeriklerden ve taraflar arasındaki uyuşmazlıklardan sorumlu değildir, marka ve influencer kendi haklarını korur.',
   },
   {
     q: 'Hangi platformlar destekleniyor?',
