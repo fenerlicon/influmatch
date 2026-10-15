@@ -2,7 +2,6 @@
 
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { updateProfile } from '@/app/dashboard/influencer/profile/actions'
 import { validateInstagram, validateTikTok, validateYouTube, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
@@ -10,6 +9,16 @@ import { validateUsername } from '@/utils/usernameValidation'
 import BadgeSelector from '@/components/badges/BadgeSelector'
 import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '@/utils/categories'
+import { toast } from 'sonner'
+import { ExternalLink, ImagePlus, Pencil, ShieldCheck } from 'lucide-react'
+import { Button, ButtonLink, buttonClasses, Card, CardBody, CardHeader, Chip, Field, Input, Notice, Select, Textarea } from '@/components/ui'
+import { cn } from '@/utils/cn'
+
+const CREATOR_TYPES: { value: 'influencer' | 'ugc' | 'both'; label: string; desc: string }[] = [
+  { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
+  { value: 'ugc', label: 'UGC kreatörü', desc: 'Markalara özel içerik' },
+  { value: 'both', label: 'Her ikisi', desc: 'Hem kitle hem üretim' },
+]
 const AVATAR_BUCKET = 'avatars'
 
 interface ProfileFormProps {
@@ -55,7 +64,6 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
   })
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialData.avatarUrl ?? null)
   const [isUploading, setIsUploading] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [validationErrors, setValidationErrors] = useState<{
@@ -115,10 +123,10 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('success') === 'tiktok_connected') {
-      setToast('TikTok hesabınız başarıyla bağlandı!')
+      toast.success('TikTok hesabın bağlandı.')
       window.history.replaceState({}, '', window.location.pathname)
     } else if (params.get('success') === 'instagram_connected') {
-      setToast('Instagram hesabınız Meta API ile başarıyla bağlandı!')
+      toast.success('Instagram hesabın bağlandı.')
       window.history.replaceState({}, '', window.location.pathname)
     } else if (params.get('error')) {
       const error = params.get('error')
@@ -332,12 +340,12 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
         })
 
         if (result?.success) {
-          setToast('Profil başarıyla güncellendi.')
+          toast.success('Profil güncellendi.')
           setIsEditing(false) // Exit edit mode after successful save
           // Don't refresh - form state is already correct
           // The revalidatePath in the action will handle cache invalidation
         } else {
-          throw new Error('Profil güncellenemedi.')
+          setErrorMsg(result?.error || 'Profil güncellenemedi.')
         }
       } catch (error) {
         console.error('updateProfile failed', error)
@@ -346,407 +354,200 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
     })
   }
 
+  const resetForm = () => {
+    setIsEditing(false)
+    setFormState({
+      fullName: initialData.fullName ?? '',
+      username: initialData.username ?? '',
+      city: initialData.city ?? '',
+      bio: initialData.bio ?? '',
+      category: initialData.category ?? INFLUENCER_CATEGORY_KEYS[0],
+      creatorType: initialData.creatorType ?? 'influencer',
+      instagram: initialData.socialLinks?.instagram ?? '',
+      tiktok: initialData.socialLinks?.tiktok ?? '',
+      youtube: initialData.socialLinks?.youtube ?? '',
+      kick: initialData.socialLinks?.kick ?? '',
+      twitter: initialData.socialLinks?.twitter ?? '',
+      twitch: initialData.socialLinks?.twitch ?? '',
+    })
+    setAvatarUrl(initialData.avatarUrl ?? null)
+    setSelectedBadges(initialData.displayedBadges ?? [])
+    setErrorMsg(null)
+    setValidationErrors({})
+    setUsernameStatus('idle')
+  }
+
+  const usernameLocked = Boolean(initialData.username && initialData.username.trim() !== '')
+  const usernameHint = usernameLocked
+    ? 'Kullanıcı adı bir kez belirlendikten sonra değiştirilemez.'
+    : usernameStatus === 'checking' ? 'Kontrol ediliyor…'
+      : usernameStatus === 'available' ? 'Kullanılabilir'
+        : undefined
+  const usernameError = validationErrors.username || (!usernameLocked && usernameStatus === 'taken' ? 'Bu kullanıcı adı kullanılıyor' : undefined)
+
+  // Sosyal bağlantılar (30 günde bir değiştirilebilir; doğrulanmış hesap kilitli)
+  const daysRemaining = initialData.socialLinksLastUpdated
+    ? 30 - Math.floor((Date.now() - new Date(initialData.socialLinksLastUpdated).getTime()) / 86_400_000)
+    : 0
+  const SOCIALS = [
+    { name: 'instagram', label: 'Instagram', placeholder: '@kullaniciadi veya instagram.com/…' },
+    { name: 'tiktok', label: 'TikTok', placeholder: '@kullaniciadi veya tiktok.com/@…' },
+    { name: 'youtube', label: 'YouTube', placeholder: '@kanal veya youtube.com/@…' },
+    { name: 'kick', label: 'Kick', placeholder: 'kick.com/…' },
+    { name: 'twitter', label: 'Twitter / X', placeholder: '@kullaniciadi' },
+    { name: 'twitch', label: 'Twitch', placeholder: 'twitch.tv/…' },
+  ] as const
+
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Profil Ayarları</p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Bilgilerini güncelle</h1>
-        </div>
-        {!isEditing && (
-          <div className="flex items-center gap-3">
-            {formState.username && (
-              <Link
-                href={`/profile/${formState.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
-              >
-                Kartımı Gör
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="rounded-full border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-            >
-              Profili Düzenle
-            </button>
-          </div>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-8 space-y-8">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative h-32 w-32 overflow-hidden rounded-3xl border border-white/10 bg-[#11121A]">
-              {avatarUrl ? (
-                <Image src={avatarUrl} alt="Avatar" fill sizes="128px" className="object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
-                  Avatar seç
-                </div>
+    <Card>
+      <CardHeader
+        title="Profil bilgileri"
+        description="Markalar seni keşifte ve profilinde bu bilgilerle görür."
+        action={
+          !isEditing ? (
+            <div className="flex flex-wrap gap-2">
+              {formState.username && (
+                <ButtonLink href={`/profile/${formState.username}`} target="_blank" rel="noopener noreferrer" size="sm" leftIcon={<ExternalLink />}>
+                  Profilimi gör
+                </ButtonLink>
               )}
+              <Button size="sm" variant="primary" onClick={() => setIsEditing(true)} leftIcon={<Pencil />}>
+                Düzenle
+              </Button>
             </div>
-            <label className={`inline-flex items-center rounded-2xl border border-white/10 px-4 py-2 text-sm font-medium text-white transition ${isEditing
-              ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
-              : 'cursor-not-allowed opacity-50'
-              }`}>
-              {isUploading ? 'Yükleniyor...' : 'Avatar Yükle'}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={handleAvatarUpload}
-                disabled={isUploading || !isEditing}
-              />
-            </label>
-          </div>
-
-          <div className="flex-1 space-y-5">
-            <div>
-              <label className="text-sm text-gray-300">Ad Soyad</label>
-              <input
-                type="text"
-                name="fullName"
-                value={formState.fullName}
-                onChange={handleChange}
-                disabled={!isEditing}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
-                required
-              />
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label className="text-sm text-gray-300">Kullanıcı Adı</label>
-                <input
-                  type="text"
-                  name="username"
-                  value={formState.username}
-                  onChange={handleChange}
-                  disabled={!isEditing || Boolean(initialData.username && initialData.username.trim() !== '')}
-                  className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.username || usernameStatus === 'taken'
-                    ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                    : usernameStatus === 'available'
-                      ? 'border-emerald-500/60 bg-emerald-500/10 focus:border-emerald-500'
-                      : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                    }`}
-                  required
-                />
-                {initialData.username && initialData.username.trim() !== '' && (
-                  <p className="mt-1 text-xs text-gray-400">Kullanıcı adı bir kez belirlendikten sonra değiştirilemez.</p>
-                )}
-                {validationErrors.username && (
-                  <p className="mt-1 text-xs text-red-400">{validationErrors.username}</p>
-                )}
-                {!validationErrors.username && !initialData.username && usernameStatus === 'checking' && (
-                  <p className="mt-1 text-xs text-gray-400">Kullanıcı adı kontrol ediliyor...</p>
-                )}
-                {!validationErrors.username && !initialData.username && usernameStatus === 'available' && (
-                  <p className="mt-1 text-xs text-emerald-400">Kullanıcı adı müsait</p>
-                )}
-                {!validationErrors.username && !initialData.username && usernameStatus === 'taken' && (
-                  <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı kullanılmakta</p>
-                )}
+          ) : undefined
+        }
+      />
+      <CardBody>
+        <form onSubmit={handleSubmit} className="grid gap-6">
+          <div className="flex flex-col gap-6 lg:flex-row">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative grid h-28 w-28 place-items-center overflow-hidden rounded-2xl border border-line-strong bg-surface-2 text-ink-faint">
+                {avatarUrl ? <Image src={avatarUrl} alt="Profil fotoğrafı" fill sizes="112px" className="object-cover" /> : <ImagePlus className="h-6 w-6" aria-hidden />}
               </div>
-              <div>
-                <label className="text-sm text-gray-300">Şehir</label>
-                <select
-                  name="city"
-                  value={formState.city}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Şehir seçin</option>
-                  {TURKISH_CITIES.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <label className={buttonClasses({ size: 'sm', className: !isEditing || isUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer' })}>
+                {isUploading ? 'Yükleniyor…' : 'Fotoğraf yükle'}
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatarUpload} disabled={isUploading || !isEditing} />
+              </label>
             </div>
-            <div>
-              <label className="text-sm text-gray-300">Kategori</label>
-              <select
-                name="category"
-                value={formState.category}
-                onChange={handleChange}
-                disabled={!isEditing}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {INFLUENCER_CATEGORY_KEYS.map((key) => (
-                  <option key={key} value={key}>
-                    {INFLUENCER_CATEGORIES[key]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
 
-        <div>
-          <label className="text-sm text-gray-300">İçerik Üretici Türü</label>
-          <div className="mt-2 grid grid-cols-3 gap-4">
-            {[
-              { value: 'influencer', label: 'Influencer', desc: 'Kendi kitlem var' },
-              { value: 'ugc', label: 'UGC Kreatörü', desc: 'Markalara özel' },
-              { value: 'both', label: 'Her İkisi De', desc: 'Hem kitle hem üretim' }
-            ].map((type) => (
-              <button
-                key={type.value}
-                type="button"
-                disabled={!isEditing}
-                onClick={() => handleCreatorTypeChange(type.value as any)}
-                className={`flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all duration-300 ${
-                  formState.creatorType === type.value
-                    ? 'border-soft-gold bg-soft-gold/10 text-white shadow-glow-sm'
-                    : 'border-white/10 bg-[#11121A] text-gray-400 hover:bg-white/5 hover:text-white'
-                } disabled:cursor-not-allowed disabled:opacity-50`}
-              >
-                <span className="text-sm font-bold">{type.label}</span>
-                <span className="text-[10px] opacity-70 mt-1">{type.desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-300">Biyografi</label>
-          <textarea
-            name="bio"
-            rows={4}
-            value={formState.bio}
-            onChange={handleChange}
-            disabled={!isEditing}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-[#11121A] px-4 py-3 text-white outline-none transition focus:border-soft-gold disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Kendinden kısaca bahset..."
-          />
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <BadgeSelector
-            userRole="influencer"
-            selectedBadgeIds={selectedBadges}
-            availableBadgeIds={initialData.availableBadgeIds ?? []}
-            onSelectionChange={setSelectedBadges}
-            userId={userId}
-          />
-        </div>
-
-        {initialData.socialLinksLastUpdated && (() => {
-          const lastUpdated = new Date(initialData.socialLinksLastUpdated)
-          const now = new Date()
-          const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
-          const daysRemaining = 30 - daysSinceLastUpdate
-
-          if (daysRemaining > 0) {
-            return (
-              <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 mb-5">
-                <p className="text-sm text-yellow-200">
-                  <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz.
-                  {daysRemaining > 0 && (
-                    <span className="ml-1"> {daysRemaining} gün sonra tekrar değiştirebilirsiniz.</span>
+            <div className="grid flex-1 content-start gap-4">
+              <Field label="Ad soyad">
+                {(props) => <Input {...props} name="fullName" value={formState.fullName} onChange={handleChange} disabled={!isEditing} required />}
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Kullanıcı adı" error={usernameError} hint={usernameError ? undefined : usernameHint}>
+                  {(props) => (
+                    <Input {...props} name="username" value={formState.username} onChange={handleChange} disabled={!isEditing || usernameLocked} required />
                   )}
-                </p>
+                </Field>
+                <Field label="Şehir">
+                  {(props) => (
+                    <Select {...props} name="city" value={formState.city} onChange={handleChange} disabled={!isEditing}>
+                      <option value="">Şehir seçin</option>
+                      {TURKISH_CITIES.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
               </div>
-            )
-          }
-          return null
-        })()}
-
-        <div className="grid gap-5 md:grid-cols-3">
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-300">Instagram</label>
-              {connectedPlatforms.includes('instagram') ? (
-                <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">
-                  <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                  Resmi Bağlı
-                </span>
-              ) : (
-                <span
-                  title="Resmi bağlantı yakında; şimdilik hesap doğrulama ekranından kodla doğrulayabilirsiniz."
-                  className="text-[10px] font-bold uppercase tracking-wider text-gray-500"
-                >
-                  Resmi Bağlantı (Çok Yakında)
-                </span>
-              )}
+              <Field label="Kategori">
+                {(props) => (
+                  <Select {...props} name="category" value={formState.category} onChange={handleChange} disabled={!isEditing}>
+                    {INFLUENCER_CATEGORY_KEYS.map((key) => (
+                      <option key={key} value={key}>{INFLUENCER_CATEGORIES[key]}</option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
             </div>
-            <input
-              type="text"
-              name="instagram"
-              value={formState.instagram}
-              onChange={handleChange}
-              disabled={!isEditing || connectedPlatforms.includes('instagram')}
-              placeholder="@kullaniciadi veya https://instagram.com/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.instagram
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                }`}
-            />
-            {validationErrors.instagram && (
-              <p className="mt-1 text-xs text-red-300">{validationErrors.instagram}</p>
-            )}
           </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-gray-300">TikTok</label>
-              {connectedPlatforms.includes('tiktok') ? (
-                <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">
-                  <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                  Resmi Bağlı
-                </span>
-              ) : (
-                <span
-                  title="Resmi bağlantı yakında; şimdilik hesap doğrulama ekranından kodla doğrulayabilirsiniz."
-                  className="text-[10px] font-bold uppercase tracking-wider text-gray-500"
-                >
-                  Resmi Bağlantı (Çok Yakında)
-                </span>
-              )}
+
+          <div className="grid gap-1.5">
+            <span className="text-[12.5px] font-medium text-ink-muted" id="creator-type">İçerik üretici türü</span>
+            <div role="radiogroup" aria-labelledby="creator-type" className="grid grid-cols-3 gap-2">
+              {CREATOR_TYPES.map((type) => {
+                const on = formState.creatorType === type.value
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    disabled={!isEditing}
+                    onClick={() => handleCreatorTypeChange(type.value)}
+                    className={cn(
+                      'grid gap-1 rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                      on ? 'border-gold bg-gold/10' : 'border-line-strong bg-surface-1 enabled:hover:border-white/20',
+                    )}
+                  >
+                    <span className="text-[13.5px] font-medium text-ink">{type.label}</span>
+                    <span className="text-[11.5px] text-ink-faint">{type.desc}</span>
+                  </button>
+                )
+              })}
             </div>
-            <input
-              type="text"
-              name="tiktok"
-              value={formState.tiktok}
-              onChange={handleChange}
-              disabled={!isEditing || connectedPlatforms.includes('tiktok')}
-              placeholder="@kullaniciadi veya https://tiktok.com/@..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.tiktok
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                }`}
-            />
-            {validationErrors.tiktok && (
-              <p className="mt-1 text-xs text-red-300">{validationErrors.tiktok}</p>
-            )}
           </div>
-          <div>
-            <label className="text-sm text-gray-300">YouTube</label>
-            <input
-              type="text"
-              name="youtube"
-              value={formState.youtube}
-              onChange={handleChange}
-              disabled={!isEditing}
-              placeholder="@kullaniciadi veya https://youtube.com/@..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.youtube
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                }`}
-            />
-            {validationErrors.youtube && (
-              <p className="mt-1 text-xs text-red-300">{validationErrors.youtube}</p>
-            )}
-          </div>
-          <div>
-            <label className="text-sm text-gray-300">Kick</label>
-            <input
-              type="text"
-              name="kick"
-              value={formState.kick}
-              onChange={handleChange}
-              disabled={!isEditing}
-              placeholder="@kullaniciadi veya https://kick.com/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.kick
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                }`}
-            />
-            {validationErrors.kick && (
-              <p className="mt-1 text-xs text-red-300">{validationErrors.kick}</p>
-            )}
-          </div>
-          <div>
-            <label className="text-sm text-gray-300">Twitter/X</label>
-            <input
-              type="text"
-              name="twitter"
-              value={formState.twitter}
-              onChange={handleChange}
-              disabled={!isEditing}
-              placeholder="@kullaniciadi veya https://twitter.com/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.twitter
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                }`}
-            />
-            {validationErrors.twitter && (
-              <p className="mt-1 text-xs text-red-300">{validationErrors.twitter}</p>
-            )}
-          </div>
-          <div>
-            <label className="text-sm text-gray-300">Twitch</label>
-            <input
-              type="text"
-              name="twitch"
-              value={formState.twitch}
-              onChange={handleChange}
-              disabled={!isEditing}
-              placeholder="@kullaniciadi veya https://twitch.tv/..."
-              className={`mt-2 w-full rounded-2xl border px-4 py-3 text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${validationErrors.twitch
-                ? 'border-red-500/60 bg-red-500/10 focus:border-red-500'
-                : 'border-white/10 bg-[#11121A] focus:border-soft-gold'
-                }`}
-            />
-            {validationErrors.twitch && (
-              <p className="mt-1 text-xs text-red-300">{validationErrors.twitch}</p>
-            )}
-          </div>
-        </div>
 
-        {errorMsg ? <p className="text-sm text-red-300">{errorMsg}</p> : null}
+          <Field label="Biyografi">
+            {(props) => <Textarea {...props} name="bio" rows={4} value={formState.bio} onChange={handleChange} disabled={!isEditing} placeholder="Kendinden kısaca bahset…" />}
+          </Field>
 
-        {isEditing && (
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setIsEditing(false)
-                // Reset form to initial data
-                setFormState({
-                  fullName: initialData.fullName ?? '',
-                  username: initialData.username ?? '',
-                  city: initialData.city ?? '',
-                  bio: initialData.bio ?? '',
-                  category: initialData.category ?? INFLUENCER_CATEGORY_KEYS[0],
-                  creatorType: initialData.creatorType ?? 'influencer',
-                  instagram: initialData.socialLinks?.instagram ?? '',
-                  tiktok: initialData.socialLinks?.tiktok ?? '',
-                  youtube: initialData.socialLinks?.youtube ?? '',
-                  kick: initialData.socialLinks?.kick ?? '',
-                  twitter: initialData.socialLinks?.twitter ?? '',
-                  twitch: initialData.socialLinks?.twitch ?? '',
-                })
-                setAvatarUrl(initialData.avatarUrl ?? null)
-                setSelectedBadges(initialData.displayedBadges ?? [])
-                setErrorMsg(null)
-                setValidationErrors({})
-                setUsernameStatus('idle')
-              }}
-              className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10"
-            >
-              İptal
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isPending ? 'Kaydediliyor...' : 'Profili Kaydet'}
-            </button>
+          <div className="rounded-xl border border-line bg-surface-2 p-4">
+            <BadgeSelector
+              userRole="influencer"
+              selectedBadgeIds={selectedBadges}
+              availableBadgeIds={initialData.availableBadgeIds ?? []}
+              onSelectionChange={setSelectedBadges}
+              userId={userId}
+            />
           </div>
-        )}
-      </form>
 
-      {toast ? (
-        <div className="fixed right-6 bottom-6 z-50 rounded-2xl border border-soft-gold/60 bg-soft-gold/15 px-4 py-2 text-sm text-soft-gold shadow-glow">
-          {toast}
-        </div>
-      ) : null}
-    </div>
+          <div className="grid gap-3">
+            <div>
+              <h3 className="text-[15px] font-semibold">Sosyal medya bağlantıları</h3>
+              <p className="text-xs text-ink-faint">Doğrulanmış hesap değiştirilemez; doğrulamayı aşağıdaki "Bağlı hesaplar"dan yaparsın.</p>
+            </div>
+            {daysRemaining > 0 && (
+              <Notice tone="info">Sosyal medya hesaplarını 30 günde bir değiştirebilirsin. {daysRemaining} gün sonra tekrar değiştirebilirsin.</Notice>
+            )}
+            <div className="grid gap-4 md:grid-cols-3">
+              {SOCIALS.map((social) => {
+                const verified = (social.name === 'instagram' || social.name === 'tiktok') && connectedPlatforms.includes(social.name)
+                return (
+                  <Field
+                    key={social.name}
+                    label={social.label}
+                    aside={verified ? <Chip tone="success"><ShieldCheck aria-hidden />Doğrulandı</Chip> : undefined}
+                    error={validationErrors[social.name]}
+                  >
+                    {(props) => (
+                      <Input
+                        {...props}
+                        name={social.name}
+                        value={formState[social.name]}
+                        onChange={handleChange}
+                        disabled={!isEditing || verified}
+                        placeholder={social.placeholder}
+                      />
+                    )}
+                  </Field>
+                )
+              })}
+            </div>
+          </div>
+
+          {errorMsg && <Notice tone="danger">{errorMsg}</Notice>}
+
+          {isEditing && (
+            <div className="flex justify-end gap-2 border-t border-line pt-5">
+              <Button variant="ghost" onClick={resetForm}>Vazgeç</Button>
+              <Button type="submit" variant="primary" loading={isPending}>Kaydet</Button>
+            </div>
+          )}
+        </form>
+      </CardBody>
+    </Card>
   )
 }
-
