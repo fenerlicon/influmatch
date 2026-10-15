@@ -377,8 +377,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     `INFLUENCER_CATEGORIES` + "Genel (her kategori)"; DB'ye anahtar yazılır (`beauty`, `general`). `saveAdvertAs` listede olmayan değeri reddeder
     (düzenlemede değiştirilmemiş eski metin korunur). Ekranda `advertCategoryLabel` (web `utils/categories.ts`, mobil `constants/categories.js`).
     Influencer ana sayfasında (web + mobil) "Kategorine uygun ilanlar": aynı kategori + Genel ilanlar önce, sonra en yeniler. Eski değerlerin eşlemesi
-    (Genel → general, Çanta / Çanta -Cüzdan → fashion, Bakım → beauty; 7 ilan) `20261015000021` dosyasında, **kod yayına girdikten sonra canlıya
-    uygulanacak** (önce uygulanırsa eski sürüm anahtarları gösterir); o zamana kadar kod eski "Genel"i genel sayıyor) İlan kategorisi serbest metin (`AdvertForm` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
+    (Genel → general, Çanta / Çanta -Cüzdan → fashion, Bakım → beauty; 7 ilan) `20261015000021` dosyasında; PR #94 yayına girdikten sonra
+    2026-10-15'te canlıya uygulandı (general 4, fashion 2, beauty 1)) İlan kategorisi serbest metin (`AdvertForm` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
     (`utils/categories.ts`) yapısal eşleşme yok. Bu yüzden influencer ana sayfasında "kategorine uygun ilanlar" yapılamadı ("Yeni ilanlar"
     gösteriliyor); ilan alarmı anahtar kelimeyle çalışıyor. Öneri: ilan formunda kategori seçici (`INFLUENCER_CATEGORIES`), eski değerler için eşleme. (2026-10-14, yeni görünüm çalışması)
   - ✅ ~~**3.7-S6 [DÜŞÜK]**~~ (2026-10-15, `claude/open-adverts`: başvuru formunda (web `AdvertDetail`, mobil `ProposalsScreen`) her soru için alan —

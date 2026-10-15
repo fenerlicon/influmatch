@@ -111,9 +111,10 @@
   planda, `lib/background.ts`), paket listelerine eklendi; ücretsiz hesap saatlik. Saatlik görev artık alıcı başına kayıt tutuyor, yarım kalan ilan sonraki saatte
   tamamlanıyor, çift bildirim yok (3.15-S3, `advert_alert_deliveries`). Yeni bulgular düzeltildi: mobil marka başvuru listesi boştu (3.8-S6), marka başvuru metnini
   değiştirebiliyordu (3.8-S7, kolon yetkisi), mobil influencer ana sayfa ilanları boştu (10.3-S32). Migration `20261015000020` canlıda, rollback'li denemeyle doğrulandı.
-- **Canlı SQL:** bekleyen: (1) `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
-  sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır; (2) `supabase/migrations/20261015000021_advert_category_mapping.sql` (7 ilanın eski kategori metni → anahtar; yalnızca UPDATE)
-  **`claude/open-adverts` yayına girdikten sonra** uygulanmalı. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
+- **Canlı SQL:** bekleyen: `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
+  sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır.
+  `20261015000021_advert_category_mapping.sql` PR #94 yayına girdikten sonra 2026-10-15'te canlıya uygulandı (general 4, fashion 2, beauty 1).
+  `20261015000040` (kampanya kolonları, `create_discovery_spin`, sınır tetikleyicisi kilitleri) canlıda. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
   `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı), `20261014000070` (sonuç raporu ölçüm tabloları), `20261014000090` (portföy gizleme + marka adı tercihi) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
