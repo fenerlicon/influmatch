@@ -2,21 +2,8 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Activity, 
-  TrendingUp, 
-  Users, 
-  MessageCircle, 
-  Heart, 
-  Zap, 
-  Lock, 
-  Sparkles, 
-  AlertCircle, 
-  ArrowUp, 
-  ArrowDown, 
-  Calendar,
-  Instagram
-} from 'lucide-react'
+import { ArrowDown, ArrowUp, ExternalLink, Lock, Sparkles, TrendingUp } from 'lucide-react'
+import { Button, Card, CardBody, CardHeader, Chip, Segmented, StatCard } from '@/components/ui'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
 
@@ -210,35 +197,15 @@ export default function InfluencerStats({
         })
     }
 
-    const AnalysisButton = ({ type, label, icon: Icon, requiredTier }: { type: AnalysisType, label: string, icon: any, requiredTier: SubscriptionTier }) => {
-        const permissionOrder: SubscriptionTier[] = ['FREE', 'SPOTLIGHT', 'SPOTLIGHT_PLUS', 'BRAND_PRO']
-        const isLocked = permissionOrder.indexOf(subscriptionTier) < permissionOrder.indexOf(requiredTier)
-        const isActive = lastAnalysisType === type && !isLocked && !isPending
+    const permissionOrder: SubscriptionTier[] = ['FREE', 'SPOTLIGHT', 'SPOTLIGHT_PLUS', 'BRAND_PRO']
+    const isLockedFor = (requiredTier: SubscriptionTier) => permissionOrder.indexOf(subscriptionTier) < permissionOrder.indexOf(requiredTier)
 
-        let activeClasses = 'border-soft-gold/30 bg-soft-gold/10 text-soft-gold shadow-glow-sm'
-        if (isTikTok) {
-            activeClasses = 'border-[#25F4EE]/40 bg-[#25F4EE]/10 text-[#25F4EE] shadow-[0_0_15px_rgba(37,244,238,0.15)]'
-        }
-
-        return (
-            <button
-                onClick={() => handleRunAnalysis(type)}
-                disabled={isPending}
-                className={`group flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all
-                    ${isActive
-                        ? activeClasses
-                        : 'border-white/5 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'}
-                `}
-            >
-                {isLocked ? <Lock className="h-3 w-3 text-gray-500" /> : <Icon className="h-3 w-3" />}
-                <span>{label}</span>
-                {isLocked && <span className="ml-1 text-[9px] uppercase tracking-wider opacity-50">{requiredTier}</span>}
-                {isPending && lastAnalysisType === type && (
-                    <Sparkles className={`h-3 w-3 animate-pulse ${isTikTok ? 'text-[#25F4EE]' : 'text-soft-gold'}`} />
-                )}
-            </button>
-        )
-    }
+    const analysisOptions: { type: AnalysisType; label: string; requiredTier: SubscriptionTier }[] = [
+        { type: 'basic', label: 'Genel özet', requiredTier: 'FREE' },
+        ...(mode === 'brand-view' && viewerRole === 'brand'
+            ? [{ type: 'campaign_analysis' as AnalysisType, label: 'Kampanya ROI', requiredTier: 'BRAND_PRO' as SubscriptionTier }]
+            : []),
+    ]
 
     const handleUpgrade = () => {
         const isBrand = viewerRole === 'brand' || mode === 'brand-view'
@@ -250,311 +217,138 @@ export default function InfluencerStats({
         if (!value || value === 0) return null
         const isPositive = value > 0
         return (
-            <div className={`mt-1 flex items-center justify-center gap-0.5 text-[10px] font-medium ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                <span>{isPositive ? '+' : ''}{value.toLocaleString('tr-TR')}{isPercent ? '%' : ''}</span>
-            </div>
+            <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isPositive ? 'text-success' : 'text-danger'}`}>
+                {isPositive ? <ArrowUp className="h-3 w-3" aria-hidden /> : <ArrowDown className="h-3 w-3" aria-hidden />}
+                {isPositive ? '+' : ''}{value.toLocaleString('tr-TR')}{isPercent ? '%' : ''}
+            </span>
         )
     }
 
     if (!activeData) return null
 
+    const changes = activeData.statsPayload?.changes
+    const fmt = (n: number) => n.toLocaleString('tr-TR')
+
     return (
-        <div className={`space-y-6 transition-all duration-500 rounded-3xl ${
-            isTikTok 
-            ? 'shadow-[0_0_50px_rgba(37,244,238,0.06)] border border-[#25F4EE]/10 bg-black/20 p-5' 
-            : ''
-        }`}>
-            {/* Platform Selector Tabs */}
+        <div className="grid gap-4">
             {hasInstagram && hasTikTok && (
-                <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-fit">
-                    <button
-                        onClick={() => setActivePlatform('instagram')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-                            activePlatform === 'instagram'
-                                ? 'bg-gradient-to-r from-yellow-500/10 to-red-500/10 border border-red-500/20 text-white shadow-glow-sm'
-                                : 'text-gray-400 hover:text-white'
-                        }`}
-                    >
-                        <Instagram className="h-4 w-4" />
-                        Instagram
-                    </button>
-                    <button
-                        onClick={() => setActivePlatform('tiktok')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-                            activePlatform === 'tiktok'
-                                ? 'bg-gradient-to-r from-[#25F4EE]/10 to-[#FE2C55]/10 border border-[#FE2C55]/20 text-white'
-                                : 'text-gray-400 hover:text-white'
-                        }`}
-                    >
-                        <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.93 3.88-2.82 4.74-1.89.86-4.2.78-6.12-.21-1.92-.99-3.32-3.13-3.34-5.32-.02-2.19 1.34-4.39 3.25-5.46 1.17-.65 2.52-.93 3.86-.81V15c-.82-.12-1.7.07-2.41.52-.71.45-1.22 1.25-1.25 2.09-.03.84.4 1.68 1.05 2.18.65.5 1.53.64 2.34.42 1.4-.38 2.02-1.81 2.02-3.14V.02h.43z"/>
-                        </svg>
-                        TikTok
-                    </button>
-                </div>
+                <Segmented
+                    label="Platform"
+                    value={activePlatform}
+                    onSelect={(v) => setActivePlatform(v as 'instagram' | 'tiktok')}
+                    items={[
+                        { value: 'instagram', label: 'Instagram' },
+                        { value: 'tiktok', label: 'TikTok' },
+                    ]}
+                    className="w-fit"
+                />
             )}
 
-            {/* Identity & Basic Info Row */}
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
-                <div className="flex items-center gap-2 text-gray-300">
-                    <span className="text-xs uppercase tracking-wider text-gray-500">
-                        {isTikTok ? 'TikTok ID:' : 'Instagram ID:'}
-                    </span>
-                    <span className="font-semibold">
-                        @{activeData.username || 'bağlı-hesap'}
-                    </span>
-                </div>
-
-                {safeStats.is_verified && (
-                    <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-400 border border-blue-500/20">
-                        <Zap className="h-3 w-3 fill-current" /> Onaylı Hesap
-                    </span>
-                )}
-
-                {safeStats.category_name && (
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-gray-300 border border-white/10">
-                        {safeStats.category_name}
-                    </span>
-                )}
-
-                {safeStats.external_url && (
-                    <a href={safeStats.external_url} target="_blank" rel="noopener noreferrer" className={`ml-auto flex items-center gap-1 text-xs hover:underline ${isTikTok ? 'text-[#25F4EE]' : 'text-soft-gold'}`}>
-                        Website <TrendingUp className="h-3 w-3" />
-                    </a>
-                )}
-            </div>
-
-            {/* Data Freshness Indicator */}
-            <div className="flex items-center gap-2 mb-6 rounded-2xl bg-white/5 border border-white/10 p-4">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${isTikTok ? 'bg-[#25F4EE]/10 text-[#25F4EE]' : 'bg-soft-gold/10 text-soft-gold'}`}>
-                <Calendar className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">Performans Verileri</p>
-                <p className="text-xs text-gray-400">
-                  Son {formatDist(activeData.lastUpdated)} güncellendi.
-                </p>
-              </div>
-            </div>
-
-            {/* Detailed Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {isTikTok ? (
-                    <>
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center transition-all duration-300 hover:border-[#25F4EE]/30 hover:bg-[#25F4EE]/5">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#25F4EE]/20 text-[#25F4EE]">
-                                <Users className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Takipçi</p>
-                            <p className="mt-1 text-lg font-bold text-white">{(activeData.followerCount || 0).toLocaleString('tr-TR')}</p>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center transition-all duration-300 hover:border-[#FE2C55]/30 hover:bg-[#FE2C55]/5">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#FE2C55]/20 text-[#FE2C55]">
-                                <Heart className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Toplam Beğeni</p>
-                            <p className="mt-1 text-lg font-bold text-white">{(safeStats.avg_likes || 0).toLocaleString('tr-TR')}</p>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center transition-all duration-300 hover:border-[#25F4EE]/30 hover:bg-[#25F4EE]/5">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-blue-400">
-                                <Activity className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Video Sayısı</p>
-                            <p className="mt-1 text-lg font-bold text-white">{safeStats.post_count.toLocaleString('tr-TR')}</p>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center transition-all duration-300 hover:border-[#FE2C55]/30 hover:bg-[#FE2C55]/5">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
-                                <TrendingUp className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Etkileşim Oranı</p>
-                            <p className="mt-1 text-lg font-bold text-white">{activeData.engagementRate ? `%${activeData.engagementRate}` : '—'}</p>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-blue-400">
-                                <Users className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Takipçi</p>
-                            <p className="mt-1 text-lg font-bold text-white">{(activeData.followerCount || 0).toLocaleString('tr-TR')}</p>
-                            {activeData.statsPayload?.changes?.follower_count && renderChange(activeData.statsPayload.changes.follower_count)}
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
-                                <TrendingUp className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Etkileşim</p>
-                            <p className="mt-1 text-lg font-bold text-white">{activeData.engagementRate ? `%${activeData.engagementRate}` : '—'}</p>
-                            {activeData.statsPayload?.changes?.engagement_rate && renderChange(activeData.statsPayload.changes.engagement_rate, true)}
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500/20 text-red-400">
-                                <Heart className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Ort. Beğeni</p>
-                            <p className="mt-1 text-lg font-bold text-white">{safeStats.avg_likes.toLocaleString('tr-TR')}</p>
-                            {activeData.statsPayload?.changes?.avg_likes && renderChange(activeData.statsPayload.changes.avg_likes)}
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20 text-green-400">
-                                <MessageCircle className="h-4 w-4" />
-                            </div>
-                            <p className="text-xs uppercase tracking-wider text-gray-400">Ort. Yorum</p>
-                            <p className="mt-1 text-lg font-bold text-white">{safeStats.avg_comments.toLocaleString('tr-TR')}</p>
-                        </div>
-                    </>
-                )}
-
-                {!isTikTok && safeStats.avg_views > 0 && (
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                        <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500/20 text-yellow-400">
-                            <Activity className="h-4 w-4" />
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-gray-400">Ort. İzlenme</p>
-                        <p className="mt-1 text-lg font-bold text-white">{safeStats.avg_views.toLocaleString('tr-TR')}</p>
-                        {activeData.statsPayload?.changes?.avg_views && renderChange(activeData.statsPayload.changes.avg_views)}
-                    </div>
-                )}
-
-                {!isTikTok && safeStats.posting_frequency > 0 && (
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                        <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/20 text-orange-400">
-                            <Activity className="h-4 w-4" />
-                        </div>
-                        <p className="text-xs uppercase tracking-wider text-gray-400">Paylaşım Sıklığı</p>
-                        <p className="mt-1 text-lg font-bold text-white">{safeStats.posting_frequency} günde bir</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Data Info Footer */}
-            <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isTikTok ? 'bg-[#25F4EE]' : 'bg-green-400'}`}></span>
-                            <span className={`relative inline-flex rounded-full h-2 w-2 ${isTikTok ? 'bg-[#25F4EE]' : 'bg-green-500'}`}></span>
-                        </span>
-                        <span>
-                            {isTikTok 
-                                ? 'Herkese açık TikTok profilinden alındı'
-                                : 'Son gönderiler analiz edildi'}
-                        </span>
-                    </div>
-                    {!isTikTok && (
-                        <div className="flex items-center gap-1.5 text-gray-500">
-                            <AlertCircle className="h-3 w-3" />
-                            <span>Not: Etkileşim verileri son paylaşılan içerikleri baz alır.</span>
-                        </div>
+            <Card>
+                <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3.5">
+                    <span className="text-[14px] font-medium text-ink">@{activeData.username || 'bağlı-hesap'}</span>
+                    <span className="text-xs text-ink-faint">{isTikTok ? 'TikTok' : 'Instagram'}</span>
+                    {safeStats.is_verified && <Chip tone="info">Onaylı hesap</Chip>}
+                    {safeStats.category_name && <Chip>{safeStats.category_name}</Chip>}
+                    {safeStats.external_url && (
+                        <a href={safeStats.external_url} target="_blank" rel="noopener noreferrer nofollow" className="ml-auto inline-flex items-center gap-1 text-xs text-gold hover:underline">
+                            Web sitesi <ExternalLink className="h-3 w-3" aria-hidden />
+                        </a>
                     )}
                 </div>
-                <div className="whitespace-nowrap">
-                    Son Güncelleme: <span className="text-gray-300 font-medium">{new Date(activeData.lastUpdated).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                </div>
-            </div>
-
-            {/* AI Analysis Section */}
-            {!hideAnalysisText && (
-                <div className={`group relative overflow-hidden rounded-3xl border p-6 shadow-glow transition-all ${
-                    isTikTok 
-                    ? 'border-[#25F4EE]/20 bg-gradient-to-br from-[#0F1C1F] to-[#0A0D10] hover:border-[#25F4EE]/40' 
-                    : 'border-soft-gold/20 bg-gradient-to-br from-[#1A1B22] to-[#0F1014] hover:border-soft-gold/40'
-                }`}>
-                    <div className={`absolute -right-10 -top-10 h-40 w-40 rounded-full blur-3xl transition-all ${
-                        isTikTok ? 'bg-[#25F4EE]/5 group-hover:bg-[#25F4EE]/10' : 'bg-soft-gold/5 group-hover:bg-soft-gold/10'
-                    }`}></div>
-
-                    {/* AI Feature Selector */}
-                    <div className="mb-6 flex flex-wrap gap-2">
-                        <AnalysisButton type="basic" label="Genel Özet" icon={Sparkles} requiredTier="FREE" />
-
-                        {mode === 'brand-view' && viewerRole === 'brand' && (
-                            <AnalysisButton type="campaign_analysis" label="Kampanya ROI" icon={TrendingUp} requiredTier="BRAND_PRO" />
+                <CardBody className="grid gap-3">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {isTikTok ? (
+                            <>
+                                <StatCard label="Takipçi" value={fmt(activeData.followerCount || 0)} />
+                                <StatCard label="Toplam beğeni" value={fmt(safeStats.avg_likes || 0)} />
+                                <StatCard label="Video sayısı" value={fmt(safeStats.post_count)} />
+                                <StatCard label="Etkileşim oranı" value={activeData.engagementRate ? `%${activeData.engagementRate}` : '—'} />
+                            </>
+                        ) : (
+                            <>
+                                <StatCard label="Takipçi" value={fmt(activeData.followerCount || 0)} detail={renderChange(changes?.follower_count)} />
+                                <StatCard label="Etkileşim" value={activeData.engagementRate ? `%${activeData.engagementRate}` : '—'} detail={renderChange(changes?.engagement_rate, true)} />
+                                <StatCard label="Ort. beğeni" value={fmt(safeStats.avg_likes)} detail={renderChange(changes?.avg_likes)} />
+                                <StatCard label="Ort. yorum" value={fmt(safeStats.avg_comments)} />
+                                {safeStats.avg_views > 0 && <StatCard label="Ort. izlenme" value={fmt(safeStats.avg_views)} detail={renderChange(changes?.avg_views)} />}
+                                {safeStats.posting_frequency > 0 && <StatCard label="Paylaşım sıklığı" value={`${safeStats.posting_frequency} günde bir`} />}
+                            </>
                         )}
                     </div>
+                    <p className="text-xs text-ink-faint">
+                        {isTikTok ? 'Herkese açık TikTok profilinden alındı' : 'Son gönderiler analiz edildi; etkileşim son paylaşımları baz alır'} · Son güncelleme {formatDist(activeData.lastUpdated)} (
+                        {new Date(activeData.lastUpdated).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })})
+                    </p>
+                </CardBody>
+            </Card>
 
-                    <div className="relative flex items-start gap-4">
-                        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-black shadow-lg bg-gradient-to-br ${
-                            isTikTok 
-                            ? 'from-[#25F4EE] to-[#FE2C55]' 
-                            : 'from-soft-gold to-yellow-600'
-                        }`}>
-                            {isPending ? <Sparkles className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5 fill-current" />}
-                        </div>
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-bold text-white">
-                                    {isPending ? 'Analiz ediliyor...' : 'Detaylı Profil Analizi'}
-                                </h3>
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${
-                                    isTikTok 
-                                    ? 'bg-[#25F4EE]/10 text-[#25F4EE] border-[#25F4EE]/20' 
-                                    : 'bg-soft-gold/10 text-soft-gold border-soft-gold/20'
-                                }`}>BETA</span>
+            {!hideAnalysisText && (
+                <Card className="relative overflow-hidden">
+                    <CardHeader
+                        title={
+                            <span className="inline-flex items-center gap-2">
+                                {isPending ? 'Analiz ediliyor…' : 'Profil analizi'}
+                                <Chip tone="gold">Beta</Chip>
+                            </span>
+                        }
+                        action={
+                            <div className="flex flex-wrap gap-1.5">
+                                {analysisOptions.map((o) => {
+                                    const locked = isLockedFor(o.requiredTier)
+                                    const active = lastAnalysisType === o.type && !locked
+                                    return (
+                                        <Button
+                                            key={o.type}
+                                            size="sm"
+                                            variant={active ? 'secondary' : 'ghost'}
+                                            disabled={isPending}
+                                            onClick={() => handleRunAnalysis(o.type)}
+                                            leftIcon={locked ? <Lock /> : <Sparkles />}
+                                        >
+                                            {o.label}
+                                        </Button>
+                                    )
+                                })}
                             </div>
+                        }
+                    />
+                    <CardBody>
+                        {isPending ? (
+                            <div className="grid gap-2" aria-hidden>
+                                <div className="h-4 w-3/4 animate-pulse rounded bg-surface-3" />
+                                <div className="h-4 w-1/2 animate-pulse rounded bg-surface-3" />
+                                <div className="h-4 w-2/3 animate-pulse rounded bg-surface-3" />
+                            </div>
+                        ) : (
+                            <>
+                                <ul className="grid gap-2">
+                                    {currentAnalysis.map((point, index) => (
+                                        <li key={index} className="flex gap-2.5 text-[13.5px] text-ink">
+                                            <TrendingUp className="mt-0.5 h-4 w-4 flex-none text-gold" aria-hidden />
+                                            {point}
+                                        </li>
+                                    ))}
+                                </ul>
+                                <p className="mt-3 text-[11px] text-ink-faint">Bu analiz otomatik oluşturulur; bilgi amaçlıdır, sonuç garantisi değildir.</p>
+                            </>
+                        )}
+                    </CardBody>
 
-                            {/* Loading State or Content */}
-                            {isPending ? (
-                                <div className="mt-4 space-y-2">
-                                    <div className="h-4 w-3/4 animate-pulse rounded bg-white/10"></div>
-                                    <div className="h-4 w-1/2 animate-pulse rounded bg-white/10"></div>
-                                    <div className="h-4 w-2/3 animate-pulse rounded bg-white/10"></div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="mt-4 space-y-3">
-                                        {currentAnalysis.map((point, index) => (
-                                            <div key={index} className="flex gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition hover:bg-white/10">
-                                                <TrendingUp className={`h-5 w-5 flex-shrink-0 ${isTikTok ? 'text-[#25F4EE]' : 'text-soft-gold'}`} />
-                                                <p className="text-sm text-gray-200">{point}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Footer Info or Disclaimer */}
-                                    <p className="mt-4 text-[10px] text-gray-500">
-                                        * Bu analiz Influmatch Akıllı Algoritması tarafından oluşturulmuştur. Kesin yatırım tavsiyesi değildir.
-                                    </p>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Paywall Overlay */}
                     {showPaywall && (
-                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6 text-center">
-                            <Lock className={`h-12 w-12 mb-4 ${isTikTok ? 'text-[#25F4EE]' : 'text-soft-gold'}`} />
-                            <h3 className="text-xl font-bold text-white">Bu Özelliği Aç</h3>
-                            <p className="mb-6 mt-2 text-sm text-gray-400 max-w-sm">
-                                Kampanya ROI analizi Spotlight Pro marka paketine dahildir.
-                            </p>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowPaywall(null)}
-                                    className="rounded-xl border border-white/10 bg-white/5 px-6 py-2 text-sm text-white hover:bg-white/10"
-                                >
-                                    Vazgeç
-                                </button>
-                                <button
-                                    onClick={handleUpgrade}
-                                    className={`rounded-xl px-6 py-2 text-sm font-bold text-black transition-colors ${
-                                        isTikTok ? 'bg-[#25F4EE] hover:bg-[#25F4EE]/80' : 'bg-soft-gold hover:bg-yellow-500'
-                                    }`}
-                                >
-                                    Paket Yükselt
-                                </button>
+                        <div className="absolute inset-0 z-10 grid place-items-center bg-surface-1/95 p-6 text-center backdrop-blur-sm">
+                            <div className="grid justify-items-center gap-2">
+                                <Lock className="h-8 w-8 text-gold" aria-hidden />
+                                <p className="text-[15px] font-medium text-ink">Bu özellik pakete dahil</p>
+                                <p className="max-w-sm text-[13px] text-ink-muted">Kampanya ROI analizi Spotlight Pro marka paketine dahildir.</p>
+                                <div className="mt-2 flex gap-2">
+                                    <Button size="sm" variant="ghost" onClick={() => setShowPaywall(null)}>Vazgeç</Button>
+                                    <Button size="sm" variant="primary" onClick={handleUpgrade}>Paketleri gör</Button>
+                                </div>
                             </div>
                         </div>
                     )}
-                </div>
+                </Card>
             )}
         </div>
     )
