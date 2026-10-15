@@ -1283,22 +1283,22 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 | ID | Öğe |
 |---|---|
-| 11.1 | `app/[locale]/layout.tsx`, `components/providers/SupabaseProvider.tsx` |
-| 11.2 | `app/cekilis/*` (sabit PIN'li) |
-| 11.3 | `app/api/test-welcome` |
-| 11.4 | `app/chat/[roomId]` + `components/chat/ChatWindow.tsx` (yetim), `markRoomAsRead` |
-| 11.5 | `app/auth/verify-email` |
-| 11.6 | `InflistCard.tsx`, `getLists`, `InfluencerOffersFeed` bileşeni, `undismissInfluencer`, `undismissOffer`, `cancelApplication` |
-| 11.7 | `manuallyAwardBadges`, iki `updateDisplayedBadges` (influencer ve marka), brand settings re-export dosyaları |
-| 11.8 | `components/showcase/ProfileCard.tsx`, `VerificationPromoCard.tsx` |
-| 11.9 | `lib/gemini.ts` (2026-10-10'da tamamen silindi), `@google/generative-ai`, `pg`, `xlsx`, `uuid` |
-| 11.10 | `checkIfBlocked` (kopya), `MessagesPage` içindeki kullanılmayan `ChatWindow` importu |
-| 11.11 | Kök dizindeki başıboş script ve notlar (8.7-S3), eski deploy dokümanları (8.8) |
+| 11.1 | ✅ silindi (2026-10-15 kontrol: dosyalar yok) `app/[locale]/layout.tsx`, `components/providers/SupabaseProvider.tsx` |
+| 11.2 | ✅ silindi (2026-10-15 kontrol) `app/cekilis/*` (sabit PIN'li) |
+| 11.3 | ✅ silindi (2026-10-15; yalnızca 410 dönen kalıntıydı) `app/api/test-welcome` |
+| 11.4 | ✅ silindi (2026-10-15 kontrol) `app/chat/[roomId]` + `components/chat/ChatWindow.tsx` (yetim), `markRoomAsRead` |
+| 11.5 | ✅ silindi (2026-10-15 kontrol) `app/auth/verify-email` |
+| 11.6 | ✅ (2026-10-15 kontrol: hepsi silindi; `cancelApplication` artık kullanılıyor — başvuruyu geri çekme) `InflistCard.tsx`, `getLists`, `InfluencerOffersFeed` bileşeni, `undismissInfluencer`, `undismissOffer`, `cancelApplication` |
+| 11.7 | ✅ silindi (2026-10-15 kontrol) `manuallyAwardBadges`, iki `updateDisplayedBadges` (influencer ve marka), brand settings re-export dosyaları |
+| 11.8 | ✅ silindi (2026-10-15; `ProfileCard.tsx` hiçbir yerde kullanılmıyordu) `components/showcase/ProfileCard.tsx`, `VerificationPromoCard.tsx` |
+| 11.9 | ✅ silindi (2026-10-15 kontrol: dosya ve dört paket yok) `lib/gemini.ts`, `@google/generative-ai`, `pg`, `xlsx`, `uuid` |
+| 11.10 | ✅ silindi (2026-10-15 kontrol) `checkIfBlocked` (kopya), `MessagesPage` içindeki kullanılmayan `ChatWindow` importu |
+| 11.11 | ✅ (8.7-S3 ve 8.8-S1 ile silindi) Kök dizindeki başıboş script ve notlar, eski deploy dokümanları |
 | 11.12 | ✅ 2026-10-09 taraması: kullanılmayan dosya yok; kullanılmayan dışa açık değerler (`manuallyAwardBadges`, `USER_ROLE_LABELS`, kategori etiket listeleri, `getCategoryKey`, `profileCompletionFields`), 80 kullanılmayan import/değişken (`tsc --noUnusedLocals` temiz), ölü `fetchRoomId`, `handleSubscribe` (influencer), rol filtresi durumu kaldırıldı |
 
 ---
 
-### 11.1 Bekleyen elle testler (kullanıcı yapacak)
+### 11.1 Bekleyen elle testler (kullanıcı yapacak; toplu testte)
 - **T1** Marka doğrulama kilidi (1.8-S4, PR #17): doğrulanmış marka hesabıyla Keşfet, İlanlar, Favoriler, AI öneriler, Teklifler normal açılmalı;
   doğrulanmamış markada bu sayfalar kilit ekranı göstermeli, ana sayfa/profil/ayarlar/rozetler açık olmalı.
 - **T2** Instagram hızlı doğrulama (PR #12): kodla hesap ekleyip "Kontrol et" süresi.
@@ -1311,12 +1311,10 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).
-- **Bekleyen tek SQL** (mobil sürüm çıktıktan sonra): `DROP POLICY "avatars insert" ON storage.objects;` (7.5-S1)
+- Bekleyen SQL yok. (`avatars insert` politikası 2026-10-09'da kaldırıldı, 7.5-S1; 2026-10-15'te canlıda yok olduğu doğrulandı.)
 
-### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07)
-- Mobil uygulamaya bir süre dokunulmayacak; önce web tamamlanacak, mobil entegrasyonlar web'e göre yapılacak.
-  **Hatırlatılacak.** O zamana kadar açık mobil maddeler (bölüm 10.3) bekliyor. PR #22'deki mobil düzeltmeler
-  (favoriler, başvuru, avatar yolu, geri bildirim) repoda, bir sonraki mobil sürümle yayına çıkar.
+### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07) — kalktı
+- 2026-10-09 kararıyla dondurma kalktı (CLAUDE.md kural 3): mobil test aşamasında, hedef web ile tam uyum.
   Mobil sürüm çıkınca: `avatars insert` politikası kaldırılacak (7.5-S1).
 
 ## 12. Öncelik sırası
