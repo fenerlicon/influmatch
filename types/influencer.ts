@@ -1,4 +1,4 @@
-import { type PlatformType } from '@/components/showcase/ProfileCard'
+export type PlatformType = 'instagram' | 'tiktok' | 'youtube' | 'kick'
 import type { Availability } from '@/lib/availability-shared'
 
 export interface DiscoverInfluencer {

@@ -24,7 +24,7 @@ import sys
 
 MAP_PATH = os.path.join(os.path.dirname(__file__), '..', 'docs', 'SYSTEM_MAP.md')
 ITEM_RE = re.compile(
-    r"^(?P<indent>\s*)-\s+(?P<done>✅\s+~~)?\*\*(?P<id>\d+\.\d+b?-[SNT]\d+)(?: \[(?P<sev>[^\]]+)\])?\*\*(?:~~)?\s*(?P<rest>.*)$"
+    r"^(?P<indent>\s*)-\s+(?:\*\*[^*]+:\*\*\s+)?(?P<done>✅\s+~~)?\*\*(?P<id>\d+\.\d+b?-[SNT]\d+)(?: \[(?P<sev>[^\]]+)\])?\*\*(?:~~)?\s*(?P<rest>.*)$"
 )
 
 
