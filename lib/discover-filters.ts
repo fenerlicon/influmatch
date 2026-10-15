@@ -25,6 +25,11 @@ export interface DiscoverFilters {
   blueTick?: boolean
   /** "Yalnızca iş alanlar": "Şu an dolu" profilleri gizler (3.19). */
   availableOnly?: boolean
+  /**
+   * "Bütçem" (₺, yalnızca marka): fiyat kartında en az bir başlangıç fiyatı bu tutara sığanlar kalır. Fiyat kartı gerektiği için
+   * yalnızca sunucuda (lib/profile-reads.ts listDiscoverProfiles) uygulanır; matchesDiscoverFilters bakmaz (3.14-S2).
+   */
+  budget?: number | null
   sort?: DiscoverSort | null
 }
 
@@ -86,6 +91,7 @@ export function parseDiscoverFilters(params: URLSearchParams): DiscoverFilters {
     withData: params.get('withData') === '1',
     blueTick: params.get('blueTick') === '1',
     availableOnly: params.get('availableOnly') === '1',
+    budget: cleanNumber(params.get('budget'), 100_000_000) || null,
     sort: sort && SORTS.includes(sort) ? sort : null,
   }
 }
@@ -102,7 +108,8 @@ export function hasActiveFilters(filters: DiscoverFilters): boolean {
       filters.maxEngagement != null ||
       filters.withData ||
       filters.blueTick ||
-      filters.availableOnly,
+      filters.availableOnly ||
+      (filters.budget ?? 0) > 0,
   )
 }
 

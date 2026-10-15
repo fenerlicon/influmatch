@@ -16,6 +16,7 @@ import { hasActiveFilters, matchesDiscoverFilters, sortDiscoverProfiles, type Di
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { isProPlan } from '@/lib/subscription-tier'
 import { effectiveAvailability, type Availability } from '@/lib/availability-shared'
+import { visibleMinPrices } from '@/lib/rate-card'
 
 /** Liste kartı alanları (keşif, öne çıkanlar, çark). */
 export const PROFILE_CARD_COLUMNS =
@@ -209,7 +210,12 @@ export function availabilityOf(card: Pick<ProfileCard, 'availability_status' | '
   return effectiveAvailability(card)
 }
 
-export type DiscoverProfile = ProfileCard & { social_accounts: PublicSocialAccount[]; availability: Availability }
+export type DiscoverProfile = ProfileCard & {
+  social_accounts: PublicSocialAccount[]
+  availability: Availability
+  /** Fiyat kartındaki en düşük başlangıç fiyatı (yalnızca marka izleyicide; RLS doğrulanmış markaya açar). */
+  min_price?: number | null
+}
 
 export type DiscoverResult =
   | { locked: true; verificationStatus: ViewerInfo['verification_status']; limited: false; profiles: []; proFilters: false }
@@ -282,10 +288,20 @@ export async function listDiscoverProfiles(
       availability_status: profile.availability.status,
       accounts: profile.social_accounts,
     })
-    const candidates = cards
+    let candidates: DiscoverProfile[] = cards
       .map((card) => ({ ...card, social_accounts: socials.get(card.id) ?? [], availability: availabilityOf(card) }))
       .filter((profile) => profile.social_accounts.length > 0)
       .filter((profile) => !filtering || matchesDiscoverFilters(toFilterable(profile), filters))
+    // Fiyat kartı ve "Bütçem" filtresi (3.14-S2): fiyatlar izleyicinin RLS'li istemcisiyle okunur (yalnızca doğrulanmış marka görür).
+    if (viewer.role === 'brand') {
+      const prices = await visibleMinPrices(
+        supabase,
+        candidates.map((profile) => profile.id),
+      )
+      candidates = candidates.map((profile) => ({ ...profile, min_price: prices[profile.id] ?? null }))
+      const budget = filters.budget ?? 0
+      if (budget > 0) candidates = candidates.filter((profile) => profile.min_price != null && profile.min_price <= budget)
+    }
     const profiles = sortDiscoverProfiles(candidates, filters, toFilterable).slice(0, limit)
     return { ...wheelPayloadOf(state), locked: false, profiles, proFilters }
   } catch (error) {

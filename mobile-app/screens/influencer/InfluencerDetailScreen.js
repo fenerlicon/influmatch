@@ -9,6 +9,7 @@ import { influencerCategoryLabel } from '../../constants/categories';
 import { RATE_CARD_ITEMS, RATE_CARD_SELECT, formatTry } from '../../constants/rateCard';
 import DiscoveryWheelCard from '../../components/DiscoveryWheelCard';
 import PortfolioResults from '../../components/PortfolioResults';
+import ProfileAnalysis from '../../components/ProfileAnalysis';
 import { availabilityText, busyOfferWarning } from '../../constants/availability';
 import { formatCount, formatPercent } from '../../lib/format';
 import {
@@ -269,6 +270,10 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                         ) : (
                             <Text variant="small" tone="fg3">Bu platformda istatistik yok.</Text>
                         )}
+                        {/* Profil analizi (10.3-S25): web ile aynı kurallar ve paket kontrolü sunucuda */}
+                        {detail ? (
+                            <ProfileAnalysis profileId={influencer.id} platform={selectedPlatform} onOpenPlans={() => navigation.navigate('Spotlight')} />
+                        ) : null}
                     </>
                 ) : (
                     <Card padded={false}><EmptyState icon={BarChart3} title="İstatistik yok" text="Doğrulanmış sosyal hesap istatistiği bulunmuyor." /></Card>
