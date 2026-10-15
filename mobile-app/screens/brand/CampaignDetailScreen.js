@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, ActivityIndicator, Alert, Pressable } from 'react-native';
+import { View, ActivityIndicator, Alert, Pressable, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { UserPlus, Pencil, Link2, Users, Lock, Check } from 'lucide-react-native';
-import { apiRequest } from '../../lib/api';
+import { apiRequest, API_BASE } from '../../lib/api';
 import CampaignBrief from '../../components/CampaignBrief';
 import CampaignFormSheet from '../../components/CampaignFormSheet';
 import CampaignResults from '../../components/CampaignResults';
@@ -38,7 +38,7 @@ function InviteSheet({ visible, onClose, campaign, bulkInvite, quotaText, onDone
     const [selected, setSelected] = useState([]);
     const [availableOnly, setAvailableOnly] = useState(false);
     const [step, setStep] = useState('pick');
-    const [form, setForm] = useState({ campaignType: '', paymentType: 'cash', budget: '', message: '' });
+    const [form, setForm] = useState({ campaignType: '', paymentType: 'cash', budget: campaign?.per_creator_budget != null ? String(campaign.per_creator_budget) : '', message: '' });
     const [sending, setSending] = useState(false);
     const limit = bulkInvite ? CAMPAIGN_LIMITS.inviteMax : 1;
 
@@ -103,7 +103,7 @@ function InviteSheet({ visible, onClose, campaign, bulkInvite, quotaText, onDone
                                         subtitle={[
                                             influencerCategoryLabel(s.category),
                                             `${formatFollowers(s.followers)} takipçi`,
-                                            s.starting_price != null ? `${formatTry(s.starting_price)}'den${s.fits_budget === false ? ' (bütçe üstü)' : ''}` : 'fiyat kartı yok',
+                                            s.starting_price != null ? `${formatTry(s.starting_price)}'den${s.fits_budget === false ? ' (kişi başı bütçe üstü)' : ''}` : 'fiyat kartı yok',
                                             s.availability?.status === 'busy' ? 'şu an dolu' : null,
                                             s.already_invited ? 'davet edildi' : null,
                                         ].filter(Boolean).join(' · ')}
@@ -309,7 +309,10 @@ export default function CampaignDetailScreen({ navigation, route }) {
             ) : null}
 
             <CampaignBrief brief={campaign} title="Brief" />
-            <Text variant="caption" tone="fg3">CSV dışa aktarma web panelinde (Kampanyalar → CSV).</Text>
+            {/* CSV yalnızca web'de (3.19-S2): not, kampanyanın web panosunu açar (oturum tarayıcıda ayrıca açılır). */}
+            <Pressable onPress={() => Linking.openURL(`${API_BASE || 'https://influmatch.net'}/dashboard/brand/campaigns/${encodeURIComponent(campaign.id)}`)} accessibilityRole="link">
+                <Text variant="caption" tone="fg3">CSV dışa aktarma web panelinde: <Text variant="caption" style={{ color: colors.gold }}>kampanyayı web'de aç</Text></Text>
+            </Pressable>
 
             {sheet === 'invite' ? (
                 <InviteSheet visible onClose={() => setSheet(null)} campaign={campaign} bulkInvite={!!features?.bulkInvite} quotaText={quotaText}

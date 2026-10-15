@@ -10,7 +10,7 @@ import { Avatar, Button, ButtonLink, Card, CardBody, CardHeader, Chip, EmptyStat
 import { getCategoryLabel } from '@/utils/categories'
 import { OFFER_CAMPAIGN_TYPES } from '@/lib/offer-shared'
 import { availabilityText } from '@/lib/availability-shared'
-import { CAMPAIGN_LIMITS, formatTryAmount, type CampaignSuggestion } from '@/lib/campaigns-shared'
+import { BUDGET_BASIS_LABELS, CAMPAIGN_LIMITS, formatTryAmount, type CampaignSuggestion, type campaignBudgetPerCreator } from '@/lib/campaigns-shared'
 import type { OfferTemplate } from '@/lib/offer-templates'
 import type { InviteOutcome } from '@/lib/campaigns'
 import { cn } from '@/utils/cn'
@@ -21,18 +21,20 @@ interface Props {
   campaignId: string
   campaignName: string
   totalBudget: number | null
+  /** Önerilerdeki "bütçeye sığar" kıyasının tutarı ve dayanağı (3.19-S1). */
+  budgetPerCreator: ReturnType<typeof campaignBudgetPerCreator>
   suggestions: CampaignSuggestion[]
   bulkInvite: boolean
   quotaText: string | null
 }
 
 /** Sihirbazın 3. (önerilen profiller) ve 4. (davet) adımı. */
-export default function CampaignInvite({ campaignId, campaignName, totalBudget, suggestions, bulkInvite, quotaText }: Props) {
+export default function CampaignInvite({ campaignId, campaignName, totalBudget, budgetPerCreator, suggestions, bulkInvite, quotaText }: Props) {
   const router = useRouter()
   const [step, setStep] = useState<2 | 3>(2)
   const [selected, setSelected] = useState<string[]>([])
   const [availableOnly, setAvailableOnly] = useState(false)
-  const [form, setForm] = useState({ campaignType: OFFER_CAMPAIGN_TYPES[0] as string, paymentType: 'cash' as 'cash' | 'barter', budget: '', message: '' })
+  const [form, setForm] = useState({ campaignType: OFFER_CAMPAIGN_TYPES[0] as string, paymentType: 'cash' as 'cash' | 'barter', budget: budgetPerCreator?.basis === 'per_creator' ? String(budgetPerCreator.amount) : '', message: '' })
   const [templates, setTemplates] = useState<OfferTemplate[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<InviteOutcome | null>(null)
@@ -199,7 +201,9 @@ export default function CampaignInvite({ campaignId, campaignName, totalBudget, 
                         {s.starting_price !== null ? (
                           <>
                             <div className="font-semibold tabular-nums text-ink">₺{s.starting_price.toLocaleString('tr-TR')}&apos;den</div>
-                            {s.fits_budget === false && <div className="text-warning">Toplam bütçenin üstünde</div>}
+                            {s.fits_budget === false && budgetPerCreator && (
+                              <div className="text-warning">Bütçenin üstünde ({BUDGET_BASIS_LABELS[budgetPerCreator.basis]})</div>
+                            )}
                           </>
                         ) : (
                           <div className="text-ink-faint">Fiyat kartı yok</div>

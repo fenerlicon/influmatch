@@ -6,7 +6,7 @@ import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '../constants/ca
 import { TURKISH_CITIES } from '../constants/cities';
 import { DELIVERABLE_KINDS } from '../constants/collaborationWorkspace';
 import { CAMPAIGN_LIMITS, CAMPAIGN_PLATFORMS } from '../constants/campaigns';
-import { Sheet, Text, TextField, Button, Segment, FilterChip, ChipRow, SelectField, OptionSheet, colors, ICON_STROKE } from './ui';
+import { Sheet, Text, TextField, Button, Segment, FilterChip, ChipRow, SelectField, OptionSheet, DateField, colors, ICON_STROKE } from './ui';
 
 function stateFrom(c) {
     return {
@@ -21,6 +21,8 @@ function stateFrom(c) {
         startDate: c?.start_date || '',
         endDate: c?.end_date || '',
         totalBudget: c?.total_budget != null ? String(c.total_budget) : '',
+        perCreatorBudget: c?.per_creator_budget != null ? String(c.per_creator_budget) : '',
+        plannedCreators: c?.planned_creators != null ? String(c.planned_creators) : '',
         deliverables: (c?.default_deliverables || []).map((d) => ({ kind: d.kind, quantity: String(d.quantity) })),
         categories: c?.target_categories || [],
         cities: c?.target_cities || [],
@@ -32,7 +34,6 @@ function stateFrom(c) {
 }
 
 const digits = (v, max = 10) => v.replace(/[^0-9]/g, '').slice(0, max);
-const dateChars = (v) => v.replace(/[^0-9-]/g, '').slice(0, 10);
 const toggle = (list, value) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
 /**
@@ -61,6 +62,8 @@ export default function CampaignFormSheet({ visible, onClose, campaign, onSaved 
             startDate: form.startDate || null,
             endDate: form.endDate || null,
             totalBudget: form.totalBudget || null,
+            perCreatorBudget: form.perCreatorBudget || null,
+            plannedCreators: form.plannedCreators || null,
             defaultDeliverables: form.deliverables.map((d) => ({ kind: d.kind, quantity: Number(d.quantity) })),
             targetCategories: form.categories,
             targetCities: form.cities,
@@ -91,10 +94,14 @@ export default function CampaignFormSheet({ visible, onClose, campaign, onSaved 
                     <TextField label="Etiketler ve bahsetmeler" hint="Boşlukla ayır: #yaz @marka" autoCapitalize="none" value={form.hashtags} onChangeText={(v) => set('hashtags', v)} />
                     <TextField label="Notlar (isteğe bağlı)" multiline value={form.notes} maxLength={CAMPAIGN_LIMITS.textMax} onChangeText={(v) => set('notes', v)} />
                     <View className="flex-row" style={{ gap: 8 }}>
-                        <View className="flex-1"><TextField label="Başlangıç" placeholder="YYYY-AA-GG" keyboardType="numbers-and-punctuation" value={form.startDate} onChangeText={(v) => set('startDate', dateChars(v))} /></View>
-                        <View className="flex-1"><TextField label="Bitiş" placeholder="YYYY-AA-GG" keyboardType="numbers-and-punctuation" value={form.endDate} onChangeText={(v) => set('endDate', dateChars(v))} /></View>
+                        <View className="flex-1"><DateField label="Başlangıç" value={form.startDate} max={form.endDate || undefined} onChange={(v) => set('startDate', v)} /></View>
+                        <View className="flex-1"><DateField label="Bitiş" value={form.endDate} min={form.startDate || undefined} onChange={(v) => set('endDate', v)} /></View>
                     </View>
                     <TextField label="Toplam bütçe (isteğe bağlı)" prefix="₺" keyboardType="number-pad" value={form.totalBudget} onChangeText={(v) => set('totalBudget', digits(v, 9))} />
+                    <View className="flex-row" style={{ gap: 8 }}>
+                        <View className="flex-1"><TextField label="Kişi başı bütçe" hint="İsteğe bağlı; önerilerde fiyat kartı bununla kıyaslanır." prefix="₺" keyboardType="number-pad" value={form.perCreatorBudget} onChangeText={(v) => set('perCreatorBudget', digits(v, 9))} /></View>
+                        <View className="flex-1"><TextField label="Planlanan profil" hint="Kişi başı boşsa toplam bütçe buna bölünür." keyboardType="number-pad" value={form.plannedCreators} onChangeText={(v) => set('plannedCreators', digits(v, 4))} /></View>
+                    </View>
                     <View style={{ gap: 6 }}>
                         <Text variant="small" weight="medium" tone="fg2">Varsayılan teslimatlar</Text>
                         {form.deliverables.map((d, i) => (
