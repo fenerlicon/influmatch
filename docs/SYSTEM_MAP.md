@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-15 (4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -801,6 +801,10 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     **Karar (2026-10-14):** Influencer Pro'ya sonuç raporunun (3.20) üstüne gerçek özellikler gelecek: önce **"portföyde sonuç raporları"** (tamamlanan iş birliklerinin
     ölçümleri influencer profilinde; okuma `lib/post-metrics.ts` `listDeliverableMetrics` ile, görünürlük kuralı sunucuda), sonra **"haftalık özette detaylı istatistik"**
     (Resend ücretli plan gerekir). Henüz yapılmadı; madde açık, 3.20 birleştikten sonraki adım (ROADMAP).
+  - ✅ ~~**4.3-N1 [KARAR]**~~ (2026-10-15 kullanıcı kararı: fiyatlar `lib/spotlight-plans.ts` + mobil `constants/spotlightPlans.js` — Influencer Basic
+    149 / 1.490 ₺, Pro 299 / 2.990 ₺; Marka Basic 990 / 9.900 ₺, Pro 2.490 / 24.900 ₺ (aylık / yıllık, yıllık = 10 ay). Marka Pro listesine "Profillerde
+    kampanya ROI analizi" eklendi. Marka Basic sınırları `platform_settings`'e yazıldı: günde 10 / ayda 60 teklif, 3 aktif ilan (`20261015000010`, canlıda;
+    yalnızca `free_brand_limits_enabled` açıkken uygulanır)) Spotlight fiyatları ve Marka Basic sınırları.
   - ✅ ~~**4.3-S3 [DÜŞÜK]**~~ (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. 2026-10-10, kullanıcı kararı: ajans sayfası ve Spotlight seçimindeki "Agency Edition" kartı kaldırıldı; ajans paketi gelince eklenir) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller
