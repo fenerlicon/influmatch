@@ -16,3 +16,20 @@ export const COLLABORATION_STATUS_LABELS: Record<CollaborationStatus, string> = 
 
 /** Marka yayın linkine bu kadar gün yanıt vermezse iş birliği otomatik tamamlanır. */
 export const AUTO_COMPLETE_DAYS = 7
+
+/** Teklif / başvuru listelerinde gösterilen iş birliği aşaması (3.14-S1): kabul edilen kaydın iş birliği. */
+export interface CollaborationStageRef {
+  id: string
+  status: CollaborationStatus
+}
+
+/** Listelerde kısa aşama etiketi. */
+export const COLLABORATION_STAGE_SHORT_LABELS: Record<CollaborationStatus, string> = {
+  agreed: 'Anlaşıldı',
+  in_progress: 'Devam ediyor',
+  published: 'Yayında',
+  completed: 'Tamamlandı',
+  cancelled: 'İptal edildi',
+}
+
+export const collaborationDetailHref = (id: string) => `/dashboard/collaborations/${id}`

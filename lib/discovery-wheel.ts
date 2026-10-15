@@ -155,15 +155,16 @@ export async function spinWheel(
       take(recycle(otherPool))
     }
 
-    const now = new Date()
-    const expiresAt = new Date(now.getTime() + context.settings.wheel_window_hours * 60 * 60 * 1000)
-    const { data: created, error: insertError } = await admin
-      .from('discovery_spins')
-      .insert({ brand_id: userId, influencer_ids: picked, created_at: now.toISOString(), expires_at: expiresAt.toISOString() })
-      .select('id, influencer_ids, created_at, expires_at')
-      .single()
+    // Kayıt tek SQL fonksiyonunda, marka başına kilitle (3.17-S4): aynı anda iki istek tek çevirme açar; ikincisi onu döndürür.
+    const { data: rows, error: insertError } = await admin.rpc('create_discovery_spin', {
+      p_brand_id: userId,
+      p_influencer_ids: picked,
+      p_window_hours: context.settings.wheel_window_hours,
+    })
+    const created = (Array.isArray(rows) ? rows[0] : rows) as (DiscoverySpin & { already_active?: boolean }) | null
     if (insertError || !created) throw new Error(insertError?.message ?? 'insert failed')
-    return { success: true, spin: created as DiscoverySpin, alreadyActive: false }
+    const { already_active: alreadyActive, ...spin } = created
+    return { success: true, spin, alreadyActive: !!alreadyActive }
   } catch (error) {
     console.error('[discovery-wheel] spin error:', error)
     return { error: 'Çark çevrilemedi. Lütfen tekrar deneyin.' }
