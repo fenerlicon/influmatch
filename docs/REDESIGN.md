@@ -145,6 +145,12 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      bağlı olduğu iş satırı (iş birliği > teklif > ilan başvurusu, `lib/conversation-jobs.ts`) ve "İşe git". Mesajlar günlere ayrılmış;
      rapor / engelle ve profil penceresi ortak Modal ile, tarayıcı `alert` / `confirm` kalktı. Aynı kişiyle olan odalar yine tek sohbet.
      Telefonda liste ve sohbet ayrı ekran (geri düğmesi). Tasarımdaki sistem satırları ("Teklif kabul edildi") veride olmadığı için eklenmedi.
+   - ✅ Profil sayfası (2026-10-15): `app/profile/[username]/page.tsx` tasarımdaki düzen: başlık kartı (avatar, rol/kategori/Spotlight çipleri,
+     ad + tik, @kullanıcı adı · şehir · tamamlanan iş / marka güvenilirliği, müsaitlik, bio, "Teklif gönder"), sekmeler `?tab=` Genel bakış ·
+     İstatistikler · Rozetler · İş geçmişi (içeriği olan sekmeler görünür), sağda fiyat kartı, güvenilirlik, hesap bağlantıları. Erişim kuralları,
+     görüntülenme kaydı ve sorgular aynı. `OfferModal` ortak Modal'a geçti (şablon, son teklifi kopyala, kampanya, kota/dolu uyarısı aynı;
+     alan adları "Teklif başlığı", "İçerik türü"). `RateCardView`, `PortfolioResults`, `BadgeDetailList` yeni bileşenlerde.
+     İstatistikler sekmesindeki `InfluencerStats` henüz eski görünümde (İstatistikler işiyle).
    - Kalanlar ve sıra: yukarıdaki "Paralel oturumlar" tablosunda (Web panel satırı).
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding. ✅ Bitti (2026-10-15).
    - ✅ Ana sayfa (2026-10-14): `app/page.tsx` + `components/landing/{LandingHeader,LandingFooter,HowItWorks,Faq,FeaturedProfiles}`.

@@ -3,6 +3,9 @@
 import type { ChangeEvent, FormEvent } from 'react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { Copy, Send, Trash2 } from 'lucide-react'
+import { Button, Field, Input, Modal, Notice, Select, Textarea } from '@/components/ui'
 import { createOffer, deleteOfferTemplate, getLastOfferDraft, listOfferTemplates, saveOfferTemplate } from '@/app/profile/actions'
 import { OFFER_CAMPAIGN_TYPES, OFFER_TEMPLATE_LIMIT } from '@/lib/offer-shared'
 import type { OfferDraft, OfferTemplate } from '@/lib/offer-templates'
@@ -20,6 +23,8 @@ interface OfferModalProps {
   /** Markanın taslak / aktif kampanyaları: teklif kampanyaya bağlanabilir (3.19). */
   campaigns?: Array<{ id: string; name: string }>
   defaultCampaignId?: string | null
+  /** Tetikleyici düğme tam genişlik. */
+  block?: boolean
 }
 
 const CAMPAIGN_TYPES = OFFER_CAMPAIGN_TYPES
@@ -53,11 +58,11 @@ export default function OfferModal({
   busyWarning = null,
   campaigns = [],
   defaultCampaignId = null,
+  block = false,
 }: OfferModalProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(defaultOpen && isViewerVerified)
   const [formState, setFormState] = useState(initialFormState)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [templates, setTemplates] = useState<OfferTemplate[] | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
@@ -84,11 +89,11 @@ export default function OfferModal({
     startTemplateTransition(async () => {
       const result = await getLastOfferDraft()
       if ('error' in result && result.error) {
-        setToast({ type: 'error', message: result.error })
+        toast.error(result.error)
         return
       }
       if (!('draft' in result) || !result.draft) {
-        setToast({ type: 'error', message: 'Daha önce gönderilmiş bir teklifiniz yok.' })
+        toast.error('Daha önce gönderilmiş bir teklifiniz yok.')
         return
       }
       setSelectedTemplateId('')
@@ -107,7 +112,7 @@ export default function OfferModal({
         paymentType: formState.paymentType,
       })
       if ('error' in result && result.error) {
-        setToast({ type: 'error', message: result.error })
+        toast.error(result.error)
         return
       }
       if ('template' in result && result.template) {
@@ -117,7 +122,7 @@ export default function OfferModal({
       }
       setTemplateName('')
       setIsSavingTemplate(false)
-      setToast({ type: 'success', message: 'Şablon kaydedildi.' })
+      toast.success('Şablon kaydedildi.')
     })
   }
 
@@ -127,12 +132,12 @@ export default function OfferModal({
     startTemplateTransition(async () => {
       const result = await deleteOfferTemplate(id)
       if ('error' in result && result.error) {
-        setToast({ type: 'error', message: result.error })
+        toast.error(result.error)
         return
       }
       setTemplates((prev) => (prev ?? []).filter((t) => t.id !== id))
       setSelectedTemplateId('')
-      setToast({ type: 'success', message: 'Şablon silindi.' })
+      toast.success('Şablon silindi.')
     })
   }
 
@@ -140,15 +145,9 @@ export default function OfferModal({
     return !formState.campaignName || !formState.budget || isPending
   }, [formState.budget, formState.campaignName, isPending])
 
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 3500)
-    return () => clearTimeout(timer)
-  }, [toast])
-
   const handleOpen = () => {
     if (!isViewerVerified) {
-      setToast({ type: 'error', message: 'Teklif göndermek için hesabınızın onaylanması gerekmektedir.' })
+      toast.error('Teklif göndermek için hesabının onaylanması gerekiyor.')
       return
     }
     setIsOpen(true)
@@ -178,137 +177,104 @@ export default function OfferModal({
         })
 
         if ('error' in result) {
-          setToast({ type: 'error', message: result.error })
+          toast.error(result.error)
           return
         }
 
         setFormState(initialFormState)
         setIsOpen(false)
-        setToast({ type: 'success', message: 'Teklifiniz gönderildi!' })
+        toast.success('Teklifin gönderildi.')
         // Kalan teklif hakkı bilgisi (sınır uygulanan markada) güncellensin.
         if (quotaText) router.refresh()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Teklif gönderilemedi.'
-        setToast({ type: 'error', message })
+        toast.error(message)
       }
     })
   }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="rounded-2xl border border-soft-gold/50 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold shadow-glow transition hover:border-soft-gold hover:bg-soft-gold/20"
-      >
-        Teklif Gönder
-      </button>
+      <Button variant="primary" onClick={handleOpen} leftIcon={<Send />} block={block}>
+        Teklif gönder
+      </Button>
 
-      {isOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-10 backdrop-blur">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-[#0C0D10] p-6 text-white shadow-glow">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Yeni Teklif</p>
-                <h3 className="mt-2 text-2xl font-semibold"> {receiverName} için</h3>
+      <Modal
+        open={isOpen}
+        onClose={handleClose}
+        dismissible={!isPending}
+        size="lg"
+        title={`${receiverName} için teklif`}
+        description="Teklif kabul edilirse sohbet açılır ve iş, İşler sayfasında takip edilir."
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>Vazgeç</Button>
+            <Button variant="primary" size="sm" type="submit" form="offer-form" loading={isPending} disabled={isDisabled}>
+              Teklifi gönder
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-5">
+          {/* Şablon ve son teklif */}
+          <div className="grid gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={selectedTemplateId}
+                onChange={(event) => handlePickTemplate(event.target.value)}
+                disabled={templateBusy || templates === null}
+                aria-label="Şablon seç"
+                className="min-w-0 flex-1"
+              >
+                <option value="">{templates === null ? 'Şablonlar yükleniyor…' : templates.length ? 'Şablondan doldur' : 'Kayıtlı şablon yok'}</option>
+                {(templates ?? []).map((template) => (
+                  <option key={template.id} value={template.id}>{template.name}</option>
+                ))}
+              </Select>
+              {selectedTemplateId ? (
+                <Button size="sm" variant="danger" onClick={handleDeleteTemplate} disabled={templateBusy} leftIcon={<Trash2 />}>
+                  Şablonu sil
+                </Button>
+              ) : null}
+              <Button size="sm" onClick={handleCopyLastOffer} disabled={templateBusy} leftIcon={<Copy />}>
+                Son teklifimi kopyala
+              </Button>
+            </div>
+            {isSavingTemplate ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  aria-label="Şablon adı"
+                  value={templateName}
+                  onChange={(event) => setTemplateName(event.target.value)}
+                  maxLength={60}
+                  placeholder="Şablon adı (ör. Yaz serisi - Reels)"
+                  className="min-w-0 flex-1"
+                />
+                <Button size="sm" onClick={handleSaveTemplate} loading={templateBusy} disabled={!templateName.trim() || !formState.campaignName.trim()}>
+                  Kaydet
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsSavingTemplate(false)}>Vazgeç</Button>
               </div>
+            ) : (
               <button
                 type="button"
-                onClick={handleClose}
-                className="rounded-full border border-white/10 px-3 py-1 text-sm text-gray-300 transition hover:border-soft-gold hover:text-soft-gold"
+                onClick={() => setIsSavingTemplate(true)}
+                disabled={(templates?.length ?? 0) >= OFFER_TEMPLATE_LIMIT}
+                className="justify-self-start text-[12.5px] text-gold hover:underline disabled:cursor-not-allowed disabled:text-ink-faint disabled:no-underline"
               >
-                Kapat
+                {(templates?.length ?? 0) >= OFFER_TEMPLATE_LIMIT ? `En fazla ${OFFER_TEMPLATE_LIMIT} şablon kaydedebilirsin` : 'Bu formu şablon olarak kaydet'}
               </button>
-            </div>
+            )}
+          </div>
 
-            <div className="mt-6 space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={selectedTemplateId}
-                  onChange={(event) => handlePickTemplate(event.target.value)}
-                  disabled={templateBusy || templates === null}
-                  aria-label="Şablon seç"
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0C0D10] px-3 py-2 text-sm text-white outline-none transition focus:border-soft-gold/60 disabled:opacity-60"
-                >
-                  <option value="">{templates === null ? 'Şablonlar yükleniyor...' : templates.length ? 'Şablondan doldur' : 'Kayıtlı şablon yok'}</option>
-                  {(templates ?? []).map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-                {selectedTemplateId ? (
-                  <button
-                    type="button"
-                    onClick={handleDeleteTemplate}
-                    disabled={templateBusy}
-                    className="rounded-xl border border-red-400/40 px-3 py-2 text-xs font-semibold text-red-200 transition hover:border-red-400 disabled:opacity-60"
-                  >
-                    Şablonu sil
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={handleCopyLastOffer}
-                  disabled={templateBusy}
-                  className="rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-gray-200 transition hover:border-soft-gold/60 hover:text-soft-gold disabled:opacity-60"
-                >
-                  Son teklifimi kopyala
-                </button>
-              </div>
-              {isSavingTemplate ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    value={templateName}
-                    onChange={(event) => setTemplateName(event.target.value)}
-                    maxLength={60}
-                    placeholder="Şablon adı (ör. Yaz kampanyası - Reel)"
-                    className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-soft-gold/60"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveTemplate}
-                    disabled={templateBusy || !templateName.trim() || !formState.campaignName.trim()}
-                    className="rounded-xl border border-soft-gold/60 bg-soft-gold/15 px-3 py-2 text-xs font-semibold text-soft-gold transition hover:bg-soft-gold/25 disabled:opacity-60"
-                  >
-                    {templateBusy ? 'Kaydediliyor...' : 'Kaydet'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsSavingTemplate(false)}
-                    className="rounded-xl border border-white/10 px-3 py-2 text-xs text-gray-300 transition hover:text-white"
-                  >
-                    Vazgeç
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsSavingTemplate(true)}
-                  disabled={(templates?.length ?? 0) >= OFFER_TEMPLATE_LIMIT}
-                  className="text-xs font-semibold text-soft-gold underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:text-gray-500 disabled:no-underline"
-                >
-                  {(templates?.length ?? 0) >= OFFER_TEMPLATE_LIMIT
-                    ? `En fazla ${OFFER_TEMPLATE_LIMIT} şablon kaydedebilirsiniz`
-                    : 'Bu formu şablon olarak kaydet'}
-                </button>
-              )}
-            </div>
-
-            <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-              {quotaText && (
-                <p className="rounded-2xl border border-soft-gold/30 bg-soft-gold/10 px-4 py-2 text-xs text-soft-gold">{quotaText}</p>
-              )}
-              {busyWarning && (
-                <p role="alert" className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-200">
-                  {busyWarning}
-                </p>
-              )}
-              {campaigns.length > 0 && (
-                <label className="block text-sm text-gray-400">
-                  Kampanya (isteğe bağlı)
-                  <select
+          <form id="offer-form" onSubmit={handleSubmit} className="grid gap-4">
+            {quotaText && <Notice tone="gold">{quotaText}</Notice>}
+            {busyWarning && <Notice tone="warning">{busyWarning}</Notice>}
+            {campaigns.length > 0 && (
+              <Field label="Kampanya (isteğe bağlı)" hint="Seçersen kampanya açıklaması teklifte influencer'a görünür.">
+                {(props) => (
+                  <Select
+                    {...props}
                     value={campaignId}
                     onChange={(event) => {
                       const id = event.target.value
@@ -316,67 +282,41 @@ export default function OfferModal({
                       const picked = campaigns.find((c) => c.id === id)
                       if (picked && !formState.campaignName.trim()) setFormState((prev) => ({ ...prev, campaignName: picked.name }))
                     }}
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
                   >
-                    <option value="" className="bg-[#0C0D10] text-white">
-                      Kampanyaya bağlama
-                    </option>
+                    <option value="">Kampanyaya bağlama</option>
                     {campaigns.map((c) => (
-                      <option key={c.id} value={c.id} className="bg-[#0C0D10] text-white">
-                        {c.name}
-                      </option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
-                  <span className="mt-1 block text-xs text-gray-500">Seçersen kampanya brief&apos;i teklifte influencer&apos;a görünür.</span>
-                </label>
-              )}
-              <label className="block text-sm text-gray-400">
-                Kampanya Başlığı
-                <input
-                  required
-                  type="text"
-                  name="campaignName"
-                  value={formState.campaignName}
-                  onChange={handleChange}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
-                  placeholder="Örn. Lüks Yaz Lansmanı"
-                />
-              </label>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block text-sm text-gray-400">
-                  Kampanya Tipi
-                  <select
-                    name="campaignType"
-                    value={formState.campaignType}
-                    onChange={handleChange}
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
-                  >
+                  </Select>
+                )}
+              </Field>
+            )}
+            <Field label="Teklif başlığı">
+              {(props) => <Input {...props} required name="campaignName" value={formState.campaignName} onChange={handleChange} placeholder="Ör. Yaz koleksiyonu lansmanı" />}
+            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="İçerik türü">
+                {(props) => (
+                  <Select {...props} name="campaignType" value={formState.campaignType} onChange={handleChange}>
                     {CAMPAIGN_TYPES.map((type) => (
-                      <option key={type} value={type} className="bg-[#0C0D10] text-white">
-                        {type}
-                      </option>
+                      <option key={type} value={type}>{type}</option>
                     ))}
-                  </select>
-                </label>
-
-                <label className="block text-sm text-gray-400">
-                  Ödeme Yöntemi
-                  <select
-                    name="paymentType"
-                    value={formState.paymentType}
-                    onChange={handleChange}
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
-                  >
-                    <option value="cash" className="bg-[#0C0D10] text-white">Nakit (Para)</option>
-                    <option value="barter" className="bg-[#0C0D10] text-white">Barter (Ürün)</option>
-                  </select>
-                </label>
-              </div>
-
-              <label className="block text-sm text-gray-400">
-                {formState.paymentType === 'barter' ? 'Ürün Piyasa Değeri (₺)' : 'Bütçe (₺)'}
-                <input
+                  </Select>
+                )}
+              </Field>
+              <Field label="Ödeme türü">
+                {(props) => (
+                  <Select {...props} name="paymentType" value={formState.paymentType} onChange={handleChange}>
+                    <option value="cash">Nakit</option>
+                    <option value="barter">Barter (ürün)</option>
+                  </Select>
+                )}
+              </Field>
+            </div>
+            <Field label={formState.paymentType === 'barter' ? 'Ürünün piyasa değeri (₺)' : 'Bütçe (₺)'}>
+              {(props) => (
+                <Input
+                  {...props}
                   required
                   name="budget"
                   type="number"
@@ -384,46 +324,16 @@ export default function OfferModal({
                   step="100"
                   value={formState.budget}
                   onChange={handleChange}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
-                  placeholder={formState.paymentType === 'barter' ? 'Örn. 5000' : '25000'}
+                  placeholder={formState.paymentType === 'barter' ? 'Ör. 5000' : 'Ör. 25000'}
                 />
-              </label>
-
-              <label className="block text-sm text-gray-400">
-                Mesaj / Not
-                <textarea
-                  name="message"
-                  rows={4}
-                  value={formState.message}
-                  onChange={handleChange}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
-                  placeholder="Brief detaylarını paylaşabilirsiniz."
-                />
-              </label>
-
-              <button
-                type="submit"
-                disabled={isDisabled}
-                className="w-full rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isPending ? 'Gönderiliyor...' : 'Teklifi Gönder'}
-              </button>
-            </form>
-          </div>
+              )}
+            </Field>
+            <Field label="Mesaj">
+              {(props) => <Textarea {...props} name="message" rows={4} value={formState.message} onChange={handleChange} placeholder="İçerik beklentini ve tarihleri paylaşabilirsin." />}
+            </Field>
+          </form>
         </div>
-      ) : null}
-
-      {toast ? (
-        <div
-          className={`fixed right-6 top-6 z-50 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-glow ${toast.type === 'success'
-            ? 'border-soft-gold/70 bg-soft-gold/15 text-soft-gold'
-            : 'border-red-400/70 bg-red-500/10 text-red-200'
-            }`}
-        >
-          {toast.message}
-        </div>
-      ) : null}
+      </Modal>
     </>
   )
 }
-
