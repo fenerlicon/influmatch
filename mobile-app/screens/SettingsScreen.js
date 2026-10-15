@@ -3,14 +3,16 @@ import { View, Alert, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import {
-    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink,
+    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink, CalendarClock,
 } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { signOutAndClearPush } from '../utils/notifications';
 import SupportTicketForm from '../components/SupportTicketForm';
+import { AVAILABILITY_NOTE_MAX, availabilityText } from '../constants/availability';
+import { BRAND_PORTFOLIO_SETTING_HELP, BRAND_PORTFOLIO_SETTING_LABEL } from '../constants/portfolio';
 import {
-    Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, colors, ICON_STROKE,
+    Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, DateField, colors, ICON_STROKE,
 } from '../components/ui';
 
 // Ayarlar (design/mobile/ortak.html). E-posta tercihleri web ile aynı alan (users.email_notifications,
@@ -79,12 +81,49 @@ function PasswordSheet({ visible, onClose }) {
     );
 }
 
+// Müsaitlik "Şu an dolu" ayrıntısı (3.19): isteğe bağlı not ve bitiş tarihi (takvimden, en fazla bir yıl); tarih geçince "İş alıyorum"a döner.
+const localIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function AvailabilitySheet({ visible, onClose, initial, onSaved }) {
+    const [note, setNote] = useState(initial?.note || '');
+    const [until, setUntil] = useState(initial?.until || '');
+    const [saving, setSaving] = useState(false);
+
+    const save = async () => {
+        setSaving(true);
+        const result = await apiRequest('availability', { method: 'POST', body: { status: 'busy', note, until: until || null } });
+        setSaving(false);
+        if (result.error) return Alert.alert('Kaydedilemedi', result.error);
+        onSaved(result.availability);
+        onClose();
+    };
+
+    return (
+        <Sheet visible={visible} onClose={onClose} title="Şu an dolu" scroll>
+            <Text variant="small" tone="fg2">Doluyken keşifte alt sırada görünürsün; markalar yine teklif gönderebilir ama teklif penceresinde uyarı görür.</Text>
+            <TextField label="Not (isteğe bağlı)" value={note} onChangeText={setNote} maxLength={AVAILABILITY_NOTE_MAX} placeholder="Örn. Ay sonuna kadar takvimim dolu" />
+            <DateField
+                label="Bitiş tarihi (isteğe bağlı)"
+                hint="Bu tarihten sonra kendiliğinden İş alıyorum olur."
+                value={until}
+                onChange={setUntil}
+                min={localIso(new Date())}
+                max={localIso(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))}
+            />
+            <Button title="Kaydet" onPress={save} loading={saving} block />
+        </Sheet>
+    );
+}
+
 export default function SettingsScreen({ navigation }) {
     const [role, setRole] = useState(null);
     const [username, setUsername] = useState('');
     const [prefs, setPrefs] = useState(null);
     const [passwordOpen, setPasswordOpen] = useState(false);
     const [supportOpen, setSupportOpen] = useState(false);
+    const [availability, setAvailability] = useState(null);
+    const [availabilityOpen, setAvailabilityOpen] = useState(false);
+    // Marka: portföylerde marka adı (4.3-S7; varsayılan kapalı, /api/mobile/portfolio).
+    const [showBrandName, setShowBrandName] = useState(null);
 
     useFocusEffect(useCallback(() => {
         (async () => {
@@ -96,6 +135,14 @@ export default function SettingsScreen({ navigation }) {
             ]);
             if (data) { setRole(data.role); setUsername(data.username || ''); }
             if (pref?.preferences) setPrefs(pref.preferences);
+            if (data?.role === 'influencer') {
+                const av = await apiRequest('availability');
+                if (av?.availability) setAvailability(av.availability);
+            }
+            if (data?.role === 'brand') {
+                const pf = await apiRequest('portfolio');
+                if (typeof pf?.showBrandName === 'boolean') setShowBrandName(pf.showBrandName);
+            }
         })();
     }, []));
 
@@ -108,6 +155,28 @@ export default function SettingsScreen({ navigation }) {
         if (!result.success) {
             setPrefs(before);
             Alert.alert('Kaydedilemedi', result.error || 'Lütfen tekrar deneyin.');
+        }
+    };
+
+    // "İş alıyorum" açık = open; kapatınca not / tarih sayfası açılır, kayıt orada.
+    const toggleAvailability = async (open) => {
+        if (!open) return setAvailabilityOpen(true);
+        const before = availability;
+        setAvailability({ status: 'open', note: null, until: null });
+        const result = await apiRequest('availability', { method: 'POST', body: { status: 'open' } });
+        if (result.error) {
+            setAvailability(before);
+            Alert.alert('Kaydedilemedi', result.error);
+        }
+    };
+
+    const toggleBrandName = async (value) => {
+        const before = showBrandName;
+        setShowBrandName(value);
+        const result = await apiRequest('portfolio', { method: 'POST', body: { showBrandName: value } });
+        if (result.error) {
+            setShowBrandName(before);
+            Alert.alert('Kaydedilemedi', result.error);
         }
     };
 
@@ -164,6 +233,45 @@ export default function SettingsScreen({ navigation }) {
                 />
             </ListGroup>
 
+            {role === 'influencer' ? (
+                <>
+                    <GroupLabel>Müsaitlik</GroupLabel>
+                    <ListGroup>
+                        <ToggleRow
+                            title="İş alıyorum"
+                            subtitle={availability ? availabilityText(availability) : 'Yükleniyor…'}
+                            value={availability ? availability.status !== 'busy' : true}
+                            disabled={!availability}
+                            onValueChange={toggleAvailability}
+                        />
+                        {availability?.status === 'busy' ? (
+                            <ListRow
+                                left={<IconBox icon={CalendarClock} />}
+                                title="Not ve bitiş tarihi"
+                                subtitle={availability.note || 'Not yok'}
+                                onPress={() => setAvailabilityOpen(true)}
+                                chevron
+                            />
+                        ) : null}
+                    </ListGroup>
+                </>
+            ) : null}
+
+            {isBrand ? (
+                <>
+                    <GroupLabel>Portföylerde marka adı</GroupLabel>
+                    <ListGroup>
+                        <ToggleRow
+                            title={BRAND_PORTFOLIO_SETTING_LABEL}
+                            subtitle={BRAND_PORTFOLIO_SETTING_HELP}
+                            value={!!showBrandName}
+                            disabled={showBrandName === null}
+                            onValueChange={toggleBrandName}
+                        />
+                    </ListGroup>
+                </>
+            ) : null}
+
             <GroupLabel>E-posta bildirimleri</GroupLabel>
             <ListGroup>
                 {EMAIL_PREFS.map((p) => (
@@ -200,6 +308,9 @@ export default function SettingsScreen({ navigation }) {
             <Text variant="caption" tone="fg3" style={{ textAlign: 'center' }}>Influmatch · sürüm {version}</Text>
 
             <PasswordSheet visible={passwordOpen} onClose={() => setPasswordOpen(false)} />
+            {availabilityOpen ? (
+                <AvailabilitySheet visible onClose={() => setAvailabilityOpen(false)} initial={availability} onSaved={setAvailability} />
+            ) : null}
             <Sheet visible={supportOpen} onClose={() => setSupportOpen(false)} title="Destek talebi" scroll>
                 <SupportTicketForm onSent={() => setSupportOpen(false)} />
             </Sheet>

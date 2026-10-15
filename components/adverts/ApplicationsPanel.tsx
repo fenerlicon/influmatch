@@ -7,9 +7,11 @@ import { Inbox, MessageSquare, Star, Undo2 } from 'lucide-react'
 import { getOrCreateAdvertApplicationRoom, updateApplicationStatus } from '@/app/dashboard/brand/advert/actions'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { countUnreadInRoom } from '@/lib/unread-messages'
-import { worksHref } from '@/lib/works'
+import { worksHref, COLLABORATION_TONES } from '@/lib/works'
 import { APPLICATION_STATUS, formatExpectation, relativeDay, type AdvertApplication, type ApplicationStatus } from '@/lib/adverts-shared'
 import { Avatar, Button, ButtonLink, Card, CardHeader, Chip, ConfirmDialog, EmptyState, Segmented, VerifiedTick } from '@/components/ui'
+import { COLLABORATION_STAGE_SHORT_LABELS, collaborationDetailHref } from '@/lib/collaboration-shared'
+import ApplicationAnswers from './ApplicationAnswers'
 
 type Filter = 'new' | 'shortlisted' | 'reviewed'
 const FILTER_OF: Record<ApplicationStatus, Filter> = { pending: 'new', shortlisted: 'shortlisted', accepted: 'reviewed', rejected: 'reviewed' }
@@ -131,11 +133,16 @@ export default function ApplicationsPanel({ advertTitle, applications, currentUs
                 <div className="flex flex-wrap items-center gap-2">
                   <b className="font-semibold text-ink">{name}</b>
                   {inf.displayed_badges?.includes('verified-account') && <VerifiedTick />}
-                  {filter === 'reviewed' && (
-                    <Chip tone={status.tone} dot>
-                      {status.label}
-                    </Chip>
-                  )}
+                  {filter === 'reviewed' &&
+                    (app.status === 'accepted' && app.collaboration ? (
+                      <Chip tone={COLLABORATION_TONES[app.collaboration.status]} dot>
+                        {COLLABORATION_STAGE_SHORT_LABELS[app.collaboration.status]}
+                      </Chip>
+                    ) : (
+                      <Chip tone={status.tone} dot>
+                        {status.label}
+                      </Chip>
+                    ))}
                   <span className="text-xs text-ink-faint">· {relativeDay(app.created_at)}</span>
                 </div>
                 <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-ink-faint">
@@ -154,6 +161,7 @@ export default function ApplicationsPanel({ advertTitle, applications, currentUs
                 {app.cover_letter && (
                   <p className="mt-2 whitespace-pre-line rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-[13px] text-ink-muted">{app.cover_letter}</p>
                 )}
+                <ApplicationAnswers answers={app.answers} />
               </div>
               <div className="col-span-2 flex flex-wrap justify-end gap-1.5 md:col-span-1">
                 {inf.username && (
@@ -190,8 +198,8 @@ export default function ApplicationsPanel({ advertTitle, applications, currentUs
                   </Button>
                 )}
                 {app.status === 'accepted' && (
-                  <ButtonLink size="sm" href={worksHref('active')}>
-                    İşe git
+                  <ButtonLink size="sm" href={app.collaboration ? collaborationDetailHref(app.collaboration.id) : worksHref('active')}>
+                    {app.collaboration ? 'İş birliğine git' : 'İşe git'}
                   </ButtonLink>
                 )}
               </div>

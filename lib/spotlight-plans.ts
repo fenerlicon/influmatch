@@ -7,10 +7,10 @@ export type SpotlightPlanCode = 'ibasic' | 'ipro' | 'mbasic' | 'mpro'
 export type BillingInterval = 'mo' | 'yr'
 
 export const SPOTLIGHT_PLAN_PRICES: Record<SpotlightPlanCode, Record<BillingInterval, string>> = {
-  ibasic: { mo: '99 ₺', yr: '990 ₺' },
-  ipro: { mo: '199 ₺', yr: '1.990 ₺' },
-  mbasic: { mo: '750 ₺', yr: '7.500 ₺' },
-  mpro: { mo: '1.250 ₺', yr: '12.500 ₺' },
+  ibasic: { mo: '149 ₺', yr: '1.490 ₺' },
+  ipro: { mo: '299 ₺', yr: '2.990 ₺' },
+  mbasic: { mo: '990 ₺', yr: '9.900 ₺' },
+  mpro: { mo: '2.490 ₺', yr: '24.900 ₺' },
 }
 
 export interface PlanFeature {
@@ -23,14 +23,14 @@ export const SPOTLIGHT_PLAN_FEATURES: Record<SpotlightPlanCode, PlanFeature[]> =
     { text: 'Spotlight rozeti ve çerçevesi', highlight: true },
     { text: 'Keşfette öncelikli listeleme' },
     { text: 'Profil görüntülenme sayıları' },
-    { text: 'Uyum skoru analizi' },
+    { text: 'Anlık ilan alarmı', highlight: true },
   ],
   ipro: [
     { text: 'Spotlight rozeti ve çerçevesi', highlight: true },
     { text: 'Keşfette öncelikli listeleme', highlight: true },
     { text: 'Profil görüntülenme sayıları' },
-    { text: 'Uyum skoru analizi' },
-    { text: 'Profil koçu (detaylı analiz)', highlight: true },
+    { text: 'Anlık ilan alarmı' },
+    { text: 'Portföyde iş birliği sonuçları', highlight: true },
   ],
   mbasic: [
     { text: 'Akıllı eşleştirme önerileri', highlight: true },
@@ -43,7 +43,8 @@ export const SPOTLIGHT_PLAN_FEATURES: Record<SpotlightPlanCode, PlanFeature[]> =
     { text: 'Kampanya uyum skoru' },
     { text: 'Benzer profil keşfi' },
     { text: 'İlanların topluluk listesinde öne çıkar' },
-    { text: 'Profil koçu (detaylı analiz)', highlight: true },
+    { text: 'Keşifte "Verisi olanlar" ve "Mavi tikli" filtreleri', highlight: true },
+    { text: 'Profillerde kampanya ROI analizi', highlight: true },
   ],
 }
 

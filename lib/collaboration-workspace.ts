@@ -6,7 +6,8 @@
 //     (http/https); dosya yükleme ve teslim kilidi R2 ile gelecek (collaboration_submissions.file_key / file_locked).
 //     Revize sayısı anlaşmadaki sınırla karşılaştırılır; sınır dolunca marka yeni revize isteyemez. Bütün teslimatlar yayınlanınca
 //     iş birliği "published" olur ve mevcut 7 günlük marka onayı / otomatik tamamlama işler.
-//   - Ödeme teyidi: marka "Ödeme yapıldı", influencer "Ödeme alındı" işaretler. Tamamlanmadan 14 gün sonra teyit yoksa influencer
+//   - Ödeme teyidi: marka "Ödeme yapıldı", influencer "Ödeme alındı" işaretler. Tamamlanmadan ya da bütün teslimatlar onaylandıktan
+//     (3.18-S5) 14 gün sonra teyit yoksa influencer
 //     "Ödeme alamadım" ile admin'e destek kaydı (Ödeme Sorunu) açar, markaya bildirim gider. Otomatik yaptırım yok.
 //
 // Okumalar oturumdaki kullanıcının RLS'li istemcisiyle (yalnızca taraflar); yazımların hepsi burada, taraf ve rol kontrolünden
@@ -19,6 +20,10 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
 import { listCollaborationsFor, validatePublishUrl, type CollaborationListItem, type CollaborationRow } from '@/lib/collaborations'
 import { ticketCode } from '@/lib/support-ticket'
+import { campaignBriefForCollaboration } from '@/lib/campaigns'
+import type { CampaignBrief } from '@/lib/campaigns-shared'
+import { getDeliverableMetricsFor, startDeliverableTracking } from '@/lib/post-metrics'
+import type { DeliverableMetrics } from '@/lib/post-metrics-shared'
 import {
   AGREEMENT_LIMITS,
   DELIVERABLE_KIND_LABELS,
@@ -108,6 +113,8 @@ export interface PaymentRow {
 export interface DeliverableView extends DeliverableRow {
   actions: DeliverableAction[]
   submissions: SubmissionRow[]
+  /** Yayınlanan gönderinin ölçümleri (sonuç raporu, 3.20); iki taraf da görür. */
+  metrics: DeliverableMetrics | null
 }
 
 export interface CollaborationWorkspace {
@@ -128,6 +135,8 @@ export interface CollaborationWorkspace {
     nonpaymentAvailableAt: string | null
   }
   brandReliability: { completed: number; confirmed: number }
+  /** Kampanyaya bağlı iş birliğinde brief (salt okunur) ve varsayılan teslimatlar (3.19). */
+  campaignBrief: CampaignBrief | null
 }
 
 const AGREEMENT_COLUMNS =
@@ -256,16 +265,50 @@ function deliverableActions(d: DeliverableRow, ctx: { isBrand: boolean; active: 
   return actions
 }
 
-function nonpaymentAvailableAt(collab: Pick<CollaborationRow, 'status' | 'completed_at'>) {
-  if (collab.status !== 'completed' || !collab.completed_at) return null
-  return new Date(new Date(collab.completed_at).getTime() + NONPAYMENT_REPORT_DAYS * DAY_MS).toISOString()
+type DeliverableTiming = Pick<DeliverableRow, 'status' | 'approved_at' | 'published_at' | 'reviewed_at' | 'updated_at'>
+
+/** Bütün teslimatlar onaylandıysa (onaylandı / yayınlandı) son onayın zamanı; teslimat yoksa ya da biri bekliyorsa null. */
+function allDeliverablesApprovedAt(deliverables: DeliverableTiming[]): string | null {
+  if (deliverables.length === 0) return null
+  let latest = 0
+  for (const d of deliverables) {
+    if (d.status !== 'approved' && d.status !== 'published') return null
+    const at = d.approved_at ?? d.reviewed_at ?? d.published_at ?? d.updated_at
+    const time = at ? new Date(at).getTime() : NaN
+    if (!Number.isFinite(time)) return null
+    latest = Math.max(latest, time)
+  }
+  return new Date(latest).toISOString()
 }
 
-function buildPermissions(collab: CollaborationRow, isBrand: boolean, agreement: AgreementRow | null, payment: PaymentRow | null) {
+/**
+ * "Ödeme alamadım" düğmesinin açılacağı an: iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan
+ * NONPAYMENT_REPORT_DAYS gün sonra (hangisi önceyse). İkinci yol 3.18-S5: marka teslimatı onaylayıp yayınlamazsa
+ * iş birliği tamamlanmaz; influencer yine de ödeme sorununu bildirebilmeli. İptal edilen iş birliğinde açılmaz.
+ */
+function nonpaymentAvailableAt(collab: Pick<CollaborationRow, 'status' | 'completed_at'>, deliverables: DeliverableTiming[]) {
+  if (collab.status === 'cancelled') return null
+  const starts: number[] = []
+  if (collab.status === 'completed' && collab.completed_at) starts.push(new Date(collab.completed_at).getTime())
+  const approvedAt = allDeliverablesApprovedAt(deliverables)
+  if (approvedAt) starts.push(new Date(approvedAt).getTime())
+  const valid = starts.filter((t) => Number.isFinite(t))
+  if (valid.length === 0) return null
+  return new Date(Math.min(...valid) + NONPAYMENT_REPORT_DAYS * DAY_MS).toISOString()
+}
+
+function buildPermissions(
+  collab: CollaborationRow,
+  isBrand: boolean,
+  agreement: AgreementRow | null,
+  payment: PaymentRow | null,
+  deliverables: DeliverableTiming[],
+) {
   const editable = EDITABLE_STATUSES.includes(collab.status)
   const ownConfirmation = agreement ? (isBrand ? agreement.brand_confirmed_at : agreement.influencer_confirmed_at) : null
   const paymentOpen = PAYMENT_STATUSES.includes(collab.status)
-  const availableAt = nonpaymentAvailableAt(collab)
+  // Anlaşma özeti olmayan iş birliğindeki teslimat yalnızca tek yayın linkidir (3.20-S2); marka onayı sayılmaz.
+  const availableAt = nonpaymentAvailableAt(collab, agreement ? deliverables : [])
   return {
     canEditAgreement: editable,
     canConfirmAgreement: editable && !!agreement && !ownConfirmation,
@@ -317,7 +360,9 @@ export async function getCollaborationWorkspace(
   const collaboration = listed.collaborations[0]
   if (!collaboration) return { error: 'İş birliği bulunamadı.' }
 
-  const [agreementRes, deliverablesRes, submissionsRes, paymentRes, reliability] = await Promise.all([
+  // Taraf olduğu RLS'li okumayla doğrulandı; kampanya brief'i sunucudan (lib/campaigns.ts).
+  const isBrandViewer = collaboration.brand_id === userId
+  const [agreementRes, deliverablesRes, submissionsRes, paymentRes, reliability, campaignBrief, metrics] = await Promise.all([
     supabase.from('collaboration_agreements').select(AGREEMENT_COLUMNS).eq('collaboration_id', collaborationId).maybeSingle(),
     supabase.from('collaboration_deliverables').select(DELIVERABLE_COLUMNS).eq('collaboration_id', collaborationId).order('position').order('created_at'),
     supabase
@@ -328,6 +373,8 @@ export async function getCollaborationWorkspace(
       .limit(500),
     supabase.from('collaboration_payments').select(PAYMENT_COLUMNS).eq('collaboration_id', collaborationId).maybeSingle(),
     brandReliability(supabase, [collaboration.brand_id]),
+    campaignBriefForCollaboration(collaboration).catch(() => null),
+    getDeliverableMetricsFor(supabase, collaborationId, isBrandViewer),
   ])
   if (agreementRes.error || deliverablesRes.error || submissionsRes.error || paymentRes.error) {
     console.error(
@@ -347,6 +394,7 @@ export async function getCollaborationWorkspace(
     ...d,
     actions: deliverableActions(d, { isBrand, active, confirmed, revisionLimit: agreement?.revision_limit ?? 0 }),
     submissions: submissions.filter((s) => s.deliverable_id === d.id),
+    metrics: metrics.get(d.id) ?? null,
   }))
 
   return {
@@ -357,8 +405,9 @@ export async function getCollaborationWorkspace(
       agreementConfirmed: confirmed,
       deliverables,
       payment,
-      permissions: buildPermissions(collaboration, isBrand, agreement, payment),
+      permissions: buildPermissions(collaboration, isBrand, agreement, payment, deliverables),
       brandReliability: reliability.get(collaboration.brand_id) ?? { completed: 0, confirmed: 0 },
+      campaignBrief,
     },
   }
 }
@@ -583,12 +632,65 @@ async function saveAgreement(
     ...confirmations,
   }
 
+  // Anlaşma ve teslimat listesi tek veritabanı işleminde (3.18-S3, save_collaboration_agreement; sürüm kilidi dahil).
+  // Fonksiyon canlıya uygulanmadıysa eski sıralı yazıma düşer.
+  const { error: rpcError } = await admin.rpc('save_collaboration_agreement', {
+    p_collaboration_id: collab.id,
+    p_user_id: userId,
+    p_is_brand: isBrand,
+    p_expected_version: agreement ? agreement.version : null,
+    p_fee_amount: next.fee_amount,
+    p_payment_type: next.payment_type,
+    p_usage_rights: next.usage_rights,
+    p_revision_limit: next.revision_limit,
+    p_deliverables: next.deliverables.map((d) => ({ id: d.id, kind: d.kind, quantity: d.quantity, note: d.note, due_date: d.due_date })),
+  })
+  if (rpcError) {
+    if (/collab_agreement_stale/.test(rpcError.message ?? '')) return stale
+    if (rpcError.code !== 'PGRST202' && !/save_collaboration_agreement/.test(rpcError.message ?? '')) {
+      console.error('[collaboration-workspace] anlaşma kaydı:', rpcError.message)
+      return { error: 'Kaydedilemedi. Lütfen tekrar deneyin.' }
+    }
+    const fallback = await saveAgreementSequential(admin, collab.id, agreement, userId, next, removed, fields, now)
+    if (fallback) return fallback
+  }
+
+  const name = await displayNameOf(admin, userId)
+  const first = !agreement
+  const wasConfirmed = isConfirmed(agreement)
+  await notifyUser(
+    {
+      userId: otherId,
+      event: first ? 'collab_agreement' : 'collab_agreement_changed',
+      title: first ? 'Anlaşma özeti hazırlandı' : 'Anlaşma özeti değişti',
+      message: first
+        ? `${name}, "${collab.title}" iş birliği için anlaşma özeti hazırladı. Kontrol edip onaylayın.`
+        : `${name}, "${collab.title}" anlaşma özetini değiştirdi.${wasConfirmed ? ' Önceki onaylar sıfırlandı;' : ''} Yeni hali kontrol edip onaylayın.`,
+      link: detailLink(collab.id),
+      type: first ? 'info' : 'warning',
+    },
+    admin,
+  )
+  return { success: true, message: 'Anlaşma özeti kaydedildi. Karşı tarafın onayı bekleniyor.' }
+}
+
+/** Eski sıralı yazım (SQL fonksiyonu yoksa). Hata ya da çelişkide sonuç döner, başarıda null. */
+async function saveAgreementSequential(
+  admin: SupabaseClient,
+  collaborationId: string,
+  agreement: AgreementRow | null,
+  userId: string,
+  next: NormalizedAgreement,
+  removed: DeliverableRow[],
+  fields: Record<string, unknown>,
+  now: string,
+): Promise<Result<{ message?: string }> | null> {
   if (agreement) {
     // Sürüm kilidi: aynı anda iki kayıtta ikincisi boşa düşer.
     const { data: updated, error } = await admin
       .from('collaboration_agreements')
       .update({ ...fields, version: agreement.version + 1 })
-      .eq('collaboration_id', collab.id)
+      .eq('collaboration_id', collaborationId)
       .eq('version', agreement.version)
       .select('version')
     if (error) {
@@ -597,7 +699,7 @@ async function saveAgreement(
     }
     if (!updated?.length) return stale
   } else {
-    const { error } = await admin.from('collaboration_agreements').insert({ collaboration_id: collab.id, drafted_by: userId, version: 1, ...fields })
+    const { error } = await admin.from('collaboration_agreements').insert({ collaboration_id: collaborationId, drafted_by: userId, version: 1, ...fields })
     if (error) {
       if (error.code === '23505') return stale
       console.error('[collaboration-workspace] anlaşma ekleme:', error.message)
@@ -622,9 +724,9 @@ async function saveAgreement(
     next.deliverables.map((d, position) => {
       const row = { kind: d.kind, quantity: d.quantity, note: d.note, due_date: d.due_date, position }
       if (d.id) {
-        return admin.from('collaboration_deliverables').update({ ...row, updated_at: now }).eq('id', d.id).eq('collaboration_id', collab.id)
+        return admin.from('collaboration_deliverables').update({ ...row, updated_at: now }).eq('id', d.id).eq('collaboration_id', collaborationId)
       }
-      inserts.push({ ...row, collaboration_id: collab.id })
+      inserts.push({ ...row, collaboration_id: collaborationId })
       return Promise.resolve()
     }),
   )
@@ -636,23 +738,7 @@ async function saveAgreement(
     }
   }
 
-  const name = await displayNameOf(admin, userId)
-  const first = !agreement
-  const wasConfirmed = isConfirmed(agreement)
-  await notifyUser(
-    {
-      userId: otherId,
-      event: first ? 'collab_agreement' : 'collab_agreement_changed',
-      title: first ? 'Anlaşma özeti hazırlandı' : 'Anlaşma özeti değişti',
-      message: first
-        ? `${name}, "${collab.title}" iş birliği için anlaşma özeti hazırladı. Kontrol edip onaylayın.`
-        : `${name}, "${collab.title}" anlaşma özetini değiştirdi.${wasConfirmed ? ' Önceki onaylar sıfırlandı;' : ''} Yeni hali kontrol edip onaylayın.`,
-      link: detailLink(collab.id),
-      type: first ? 'info' : 'warning',
-    },
-    admin,
-  )
-  return { success: true, message: 'Anlaşma özeti kaydedildi. Karşı tarafın onayı bekleniyor.' }
+  return null
 }
 
 async function deliverableAction(
@@ -782,6 +868,15 @@ async function deliverableAction(
       const checked = validatePublishUrl(input.url)
       if ('error' in checked) return { error: checked.error }
       if (!(await transition({ status: 'published', publish_url: checked.url, published_at: now }))) return stale
+      // Sonuç raporu: gönderi ölçümü saatlik görevde başlar (yayından ~1, 7, 30 gün sonra).
+      await startDeliverableTracking(admin, {
+        deliverableId: deliverable.id,
+        collaborationId: collab.id,
+        influencerId: collab.influencer_id,
+        url: checked.url,
+        publishedAt: now,
+        kind: deliverable.kind,
+      })
 
       // Bütün teslimatlar yayınlandıysa iş birliği "yayında" olur; 7 günlük marka onayı / otomatik tamamlama başlar.
       const { data: rest } = await admin.from('collaboration_deliverables').select('status').eq('collaboration_id', collab.id)
@@ -835,10 +930,20 @@ async function reportNonpayment(
   now: string,
 ): Promise<Result<{ message?: string }>> {
   if (isBrand) return { error: 'Bu işlem şu an yapılamaz.' }
-  const availableAt = nonpaymentAvailableAt(collab)
+  const { data: deliverableData, error: deliverableError } = await admin
+    .from('collaboration_deliverables')
+    .select('status, approved_at, published_at, reviewed_at, updated_at')
+    .eq('collaboration_id', collab.id)
+  if (deliverableError) return { error: 'Bildirim gönderilemedi. Lütfen tekrar deneyin.' }
+  // Anlaşma özeti olmayan iş birliğindeki teslimat yalnızca tek yayın linkidir (3.20-S2); marka onayı sayılmaz.
+  const deliverables = agreement ? ((deliverableData ?? []) as DeliverableTiming[]) : []
+  const availableAt = nonpaymentAvailableAt(collab, deliverables)
   if (!availableAt || Date.now() < new Date(availableAt).getTime()) {
-    return { error: `Bu bildirim, iş birliği tamamlandıktan ${NONPAYMENT_REPORT_DAYS} gün sonra açılır.` }
+    return {
+      error: `Bu bildirim, iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan ${NONPAYMENT_REPORT_DAYS} gün sonra açılır.`,
+    }
   }
+  const approvedAt = allDeliverablesApprovedAt(deliverables)
 
   // Tek bildirim: önce satır güvenceye alınır, sonra "bildirildi" işareti yalnızca boşsa yazılır.
   await admin.from('collaboration_payments').upsert({ collaboration_id: collab.id }, { onConflict: 'collaboration_id', ignoreDuplicates: true })
@@ -862,6 +967,7 @@ async function reportNonpayment(
     `İş birliği: "${collab.title}" (${collab.id})`,
     `Marka: ${brandLabel}`,
     `Tamamlanma: ${collab.completed_at?.slice(0, 10) ?? '—'}`,
+    `Teslimatların hepsi onaylandı: ${approvedAt?.slice(0, 10) ?? '—'}`,
     `Anlaşma: ${agreement ? `${formatTry(agreement.fee_amount)} · ${PAYMENT_TYPE_LABELS[agreement.payment_type]}` : 'anlaşma özeti yok'}`,
     paidInfo,
     userNote ? `Influencer notu: ${userNote}` : null,

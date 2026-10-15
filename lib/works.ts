@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { OfferListItem } from '@/components/dashboard/OffersManager'
 import type { ChipTone } from '@/components/ui'
-import { effectiveOfferStatus } from '@/lib/offer-shared'
+import { effectiveOfferStatus, type OfferStatus } from '@/lib/offer-shared'
 import type { CollaborationStatus } from '@/lib/collaboration-shared'
 import type { CollaborationListItem } from '@/lib/collaborations'
 
@@ -25,8 +25,12 @@ export interface BrandOfferItem {
   budget: number | null
   payment_type?: 'cash' | 'barter' | null
   message: string | null
-  status: 'pending' | 'accepted' | 'rejected' | 'expired'
+  status: OfferStatus
   created_at: string
+  /** Marka bekleyen teklifi düzenlediyse (2026-10-14). */
+  edited_at?: string | null
+  /** Kampanya daveti (3.19). */
+  campaign_id?: string | null
   room_id?: string | null
   receiver: {
     id: string
@@ -61,7 +65,7 @@ export async function loadIncomingOffers(supabase: SupabaseClient, userId: strin
   let query = supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at, campaign_id,
       sender:sender_user_id(id, full_name, avatar_url, username, social_links, verification_status, displayed_badges)`,
     )
     .eq('receiver_user_id', userId)
@@ -84,7 +88,7 @@ export async function loadSentOffers(supabase: SupabaseClient, userId: string, l
   let query = supabase
     .from('offers')
     .select(
-      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at,
+      `id, campaign_name, campaign_type, budget, payment_type, message, status, created_at, edited_at, campaign_id,
       receiver:receiver_user_id(id, full_name, avatar_url, username, verification_status, displayed_badges)`,
     )
     .eq('sender_user_id', userId)

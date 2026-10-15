@@ -1,8 +1,10 @@
 // Kullanıcı bildirimleri (kullanıcı kararı, 2026-10-09):
 // - Her olay site içi bildirim (notifications tablosu, zil) olarak yazılır.
 // - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı,
-//   iş birliği yayın linki / tamamlanma / iptal, anlaşma özeti / taslak / revize / ödeme alınamadı (3.18), süresi dolan teklif (markaya), ilan alarmı (influencer'a).
-//   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez.
+//   iş birliği yayın linki / tamamlanma / iptal, anlaşma özeti / taslak / revize / ödeme alınamadı (3.18), süresi dolan teklif (markaya), ilan alarmı (influencer'a),
+//   hesap onayı / reddi (admin kararı), ilana yeni başvuru (markaya).
+//   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez. Yeni başvuru e-postası da
+//   aynı bağlantı için saatte en fazla bir (arada gelen başvurular yalnızca site içi + push).
 // - Kullanıcının ayarlardaki e-posta tercihleri (users.email_notifications) uygulanır.
 // - Mobil uygulaması olan kullanıcıya push da gider (lib/push.ts); push metni e-postadaki sade metindir
 //   (mesaj içeriği gönderilmez). Push'u kullanıcı telefonun bildirim ayarlarından kapatır.
@@ -43,7 +45,10 @@ export type NotificationEvent =
   | 'collab_payment'
   | 'collab_nonpayment'
   | 'offer_expired'
+  | 'offer_withdrawn'
+  | 'offer_edited'
   | 'advert_alert'
+  | 'account_status'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -51,7 +56,8 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   offer_new: { preference: 'offers', email: true },
   offer_response: { preference: 'offers', email: true },
   offer_talk: { preference: 'offers', email: false },
-  application_new: { preference: 'advert_applications', email: false },
+  // Yeni başvuru markaya e-postayla da gider; aynı bağlantı için saatte en fazla bir e-posta (EMAIL_THROTTLED_EVENTS).
+  application_new: { preference: 'advert_applications', email: true },
   application_status: { preference: 'advert_applications', email: true },
   message_new: { preference: 'messages', email: true },
   support_reply: { preference: 'updates', email: true },
@@ -74,9 +80,17 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   collab_nonpayment: { preference: 'offers', email: true },
   // Yanıtlanmadan süresi dolan teklif markaya bildirilir.
   offer_expired: { preference: 'offers', email: true },
+  // Marka bekleyen teklifi geri çekti / düzenledi (2026-10-14): yalnızca site içi + push.
+  offer_withdrawn: { preference: 'offers', email: false },
+  offer_edited: { preference: 'offers', email: false },
   // İlan alarmı: influencer'ın kurduğu alarma uyan yeni ilan ("İlan Başvuruları" e-posta tercihi).
   advert_alert: { preference: 'advert_applications', email: true },
+  // Hesap onayı / reddi (admin kararı): önemli olay, "Platform Güncellemeleri" tercihine bağlı.
+  account_status: { preference: 'updates', email: true },
 }
+
+/** E-postası alıcı + bağlantı başına saatte en fazla bir kez giden olaylar (site içi bildirim her seferinde yazılır). */
+const EMAIL_THROTTLED_EVENTS: ReadonlySet<NotificationEvent> = new Set(['application_new'])
 
 const NOTIFICATION_EMAIL_MAX_RATIO = 0.8
 const MESSAGE_THROTTLE_MS = 60 * 60 * 1000
@@ -104,6 +118,19 @@ async function notificationEmailAllowed(admin: SupabaseClient) {
   if (usage.quota_exceeded) return false
   const limits = resendLimits()
   return usage.daily_used < limits.daily * NOTIFICATION_EMAIL_MAX_RATIO && usage.monthly_used < limits.monthly * NOTIFICATION_EMAIL_MAX_RATIO
+}
+
+/** Aynı alıcıya aynı bağlantıyla son bir saatte bildirim yazılmış mı (yeni bildirim yazılmadan önce çağrılır). */
+async function hasRecentNotification(admin: SupabaseClient, userId: string, link: string) {
+  const since = new Date(Date.now() - MESSAGE_THROTTLE_MS).toISOString()
+  const { data: recent } = await admin
+    .from('notifications')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('link', link)
+    .gte('created_at', since)
+    .limit(1)
+  return !!recent && recent.length > 0
 }
 
 async function maybeSendEmail(admin: SupabaseClient, input: NotifyInput) {
@@ -142,16 +169,11 @@ export async function notifyUser(input: NotifyInput, admin: SupabaseClient | nul
   try {
     // Mesajlarda alıcı başına saatte bir bildirim (zil + e-posta); arada gelenler aynı bildirimin altında kalır.
     if (input.event === 'message_new' && input.link) {
-      const since = new Date(Date.now() - MESSAGE_THROTTLE_MS).toISOString()
-      const { data: recent } = await admin
-        .from('notifications')
-        .select('id')
-        .eq('user_id', input.userId)
-        .eq('link', input.link)
-        .gte('created_at', since)
-        .limit(1)
-      if (recent && recent.length > 0) return
+      if (await hasRecentNotification(admin, input.userId, input.link)) return
     }
+    // Saatlik e-posta sınırı olan olaylarda (yeni başvuru) zil ve push her seferinde, e-posta saatte bir.
+    const skipEmail =
+      EMAIL_THROTTLED_EVENTS.has(input.event) && !!input.link && (await hasRecentNotification(admin, input.userId, input.link))
 
     const { error } = await admin.from('notifications').insert({
       user_id: input.userId,
@@ -163,7 +185,7 @@ export async function notifyUser(input: NotifyInput, admin: SupabaseClient | nul
     if (error) console.error(`[notify] ${input.event} bildirimi yazılamadı:`, error.message)
 
     await Promise.all([
-      maybeSendEmail(admin, input),
+      skipEmail ? Promise.resolve() : maybeSendEmail(admin, input),
       sendPushToUser(admin, input.userId, {
         title: input.email?.subject ?? input.title,
         body: input.email?.text ?? input.message,

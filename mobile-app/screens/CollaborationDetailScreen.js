@@ -5,6 +5,8 @@ import {
     MessageCircle, Clock, Check, CircleDashed, RotateCcw, Send, Globe, Plus, ExternalLink, History, TriangleAlert,
 } from 'lucide-react-native';
 import { apiRequest } from '../lib/api';
+import CampaignBrief from '../components/CampaignBrief';
+import DeliverableMetrics from '../components/DeliverableMetrics';
 import {
     AGREEMENT_LIMITS,
     AGREEMENT_SUMMARY_NOTE,
@@ -151,9 +153,12 @@ export default function CollaborationDetailScreen({ navigation, route }) {
             fee_amount: agreement?.fee_amount != null ? String(agreement.fee_amount) : '',
             revision_limit: String(agreement?.revision_limit ?? 2),
             usage_rights: agreement?.usage_rights || '',
+            // Teslimat yoksa kampanyanın varsayılan teslimatlarıyla (3.19) ya da tek Reels satırıyla başlar.
             deliverables: deliverables.length
                 ? deliverables.map((d) => ({ id: d.id, kind: d.kind, quantity: String(d.quantity), note: d.note || '', due_date: d.due_date || '' }))
-                : [{ id: null, kind: 'reel', quantity: '1', note: '', due_date: '' }],
+                : ws?.campaignBrief?.default_deliverables?.length
+                    ? ws.campaignBrief.default_deliverables.map((d) => ({ id: null, kind: d.kind, quantity: String(d.quantity), note: '', due_date: '' }))
+                    : [{ id: null, kind: 'reel', quantity: '1', note: '', due_date: '' }],
         });
     };
 
@@ -322,6 +327,9 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                 {collab.publish_url ? <LinkLine label="Yayın" url={collab.publish_url} /> : null}
             </Card>
 
+            {/* Kampanya brief'i (3.19, salt okunur) */}
+            {ws.campaignBrief ? <CampaignBrief brief={ws.campaignBrief} /> : null}
+
             {/* Anlaşma özeti */}
             <Section title="Anlaşma özeti">
                 {agreement ? (
@@ -397,6 +405,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                                         </View>
                                     ) : null}
                                     <LinkLine label="Yayın" url={d.publish_url} />
+                                    {d.metrics ? <DeliverableMetrics collaborationId={id} metrics={d.metrics} onUpdated={load} /> : null}
                                     {isBrand && d.status === 'draft_submitted' && d.revisions_used >= revisionLimit ? (
                                         <Text variant="caption" tone="fg3">Revize hakkı doldu.</Text>
                                     ) : null}
@@ -487,7 +496,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                     ) : null}
                     {!perms.canReportNonpayment && perms.nonpaymentAvailableAt && !payment?.nonpayment_reported_at ? (
                         <Text variant="caption" tone="fg3">
-                            Ödemeyi alamazsanız {formatDate(perms.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz.
+                            Ödemeyi alamazsanız {formatDate(perms.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan 14 gün sonra açılır).
                         </Text>
                     ) : null}
                 </Card>

@@ -4,6 +4,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
+import CampaignBriefView from '@/components/campaigns/CampaignBriefView'
+import DeliverableMetricsPanel from '@/components/dashboard/DeliverableMetricsPanel'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { workspaceAction } from '@/app/dashboard/collaborations/[id]/actions'
 import { collaborationAction } from '@/app/dashboard/collaborations/actions'
@@ -21,6 +23,7 @@ import {
   type AgreementPaymentType,
   type DeliverableKind,
   type DeliverableStatus,
+  NONPAYMENT_REPORT_DAYS,
 } from '@/lib/collaboration-workspace-shared'
 import type { CollaborationWorkspace, DeliverableView } from '@/lib/collaboration-workspace'
 
@@ -152,9 +155,12 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
       fee_amount: agreement?.fee_amount != null ? String(agreement.fee_amount) : '',
       revision_limit: String(agreement?.revision_limit ?? 2),
       usage_rights: agreement?.usage_rights ?? '',
+      // Teslimat yoksa kampanyanın varsayılan teslimatlarıyla (3.19) ya da tek Reels satırıyla başlar.
       deliverables: deliverables.length
         ? deliverables.map((d) => ({ id: d.id, kind: d.kind, quantity: String(d.quantity), note: d.note ?? '', due_date: d.due_date ?? '' }))
-        : [{ id: null, kind: 'reel', quantity: '1', note: '', due_date: '' }],
+        : workspace.campaignBrief?.default_deliverables.length
+          ? workspace.campaignBrief.default_deliverables.map((d) => ({ id: null, kind: d.kind, quantity: String(d.quantity), note: '', due_date: '' }))
+          : [{ id: null, kind: 'reel', quantity: '1', note: '', due_date: '' }],
     })
     setEditing(true)
     setMessage(null)
@@ -331,6 +337,13 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
         >
           {message.text}
         </div>
+      )}
+
+      {/* Kampanya brief'i (3.19, salt okunur) */}
+      {workspace.campaignBrief && (
+        <section className="rounded-3xl border border-white/10 bg-[#0F1014] p-6">
+          <CampaignBriefView brief={workspace.campaignBrief} />
+        </section>
       )}
 
       {/* Anlaşma özeti */}
@@ -544,6 +557,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
               <DeliverableCard
                 key={d.id}
                 d={d}
+                collaborationId={collab.id}
                 revisionLimit={agreement?.revision_limit ?? 0}
                 isBrand={isBrand}
                 busy={busy}
@@ -613,7 +627,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
         </div>
         {!permissions.canReportNonpayment && permissions.nonpaymentAvailableAt && !payment?.nonpayment_reported_at && (
           <p className="mt-3 text-xs text-gray-500">
-            Ödemeyi alamazsanız {formatDate(permissions.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz.
+            Ödemeyi alamazsanız {formatDate(permissions.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan {NONPAYMENT_REPORT_DAYS} gün sonra açılır).
           </p>
         )}
 
@@ -667,6 +681,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
 
 function DeliverableCard({
   d,
+  collaborationId,
   revisionLimit,
   isBrand,
   busy,
@@ -678,6 +693,7 @@ function DeliverableCard({
   run,
 }: {
   d: DeliverableView
+  collaborationId: string
   revisionLimit: number
   isBrand: boolean
   busy: boolean
@@ -724,6 +740,7 @@ function DeliverableCard({
           </a>
         </p>
       )}
+      {d.metrics && <DeliverableMetricsPanel collaborationId={collaborationId} metrics={d.metrics} />}
 
       <div className="mt-3 flex flex-wrap gap-2">
         {d.actions.includes('submit_draft') && (

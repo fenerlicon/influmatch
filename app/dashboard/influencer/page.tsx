@@ -15,6 +15,7 @@ import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { ACTIVE_COLLAB_STATUSES, COLLABORATION_TONES, collaborationNextStep, countWorks, greetingFor, loadIncomingOffers, worksHref } from '@/lib/works'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { advertCategoryLabel, advertFitsCategory, getCategoryLabel } from '@/utils/categories'
 
 export const revalidate = 0
 
@@ -30,7 +31,7 @@ export default async function InfluencerDashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: accounts }, { data: blueTickBadge }, firstSteps, offersResult, collabResult, { data: adverts }] = await Promise.all([
+  const [{ data: profile }, { data: accounts }, { data: blueTickBadge }, firstSteps, offersResult, collabResult, { data: advertRows }] = await Promise.all([
     supabase
       .from('users')
       .select('spotlight_active, spotlight_plan, spotlight_expires_at, is_showcase_visible, full_name, username, avatar_url, category, verification_status')
@@ -47,11 +48,16 @@ export default async function InfluencerDashboardPage() {
     listCollaborationsFor(supabase, user.id),
     supabase
       .from('advert_projects')
-      .select('id, title, brand_name, budget_min, budget_max, platforms, created_at')
+      .select('id, title, brand_name, budget_min, budget_max, platforms, category, created_at')
       .eq('status', 'open')
       .order('created_at', { ascending: false })
-      .limit(3),
+      .limit(30),
   ])
+
+  // Kategorine uygun ilanlar önce (aynı kategori ya da "Genel", 3.7-S5), sonra en yeniler; ilk 3.
+  const myCategory = (profile?.category as string | null) ?? null
+  const fitting = (advertRows ?? []).filter((ad) => advertFitsCategory(ad.category as string | null, myCategory))
+  const adverts = [...fitting, ...(advertRows ?? []).filter((ad) => !fitting.includes(ad))].slice(0, 3)
 
   // Takipçi verisi eskiyse arka planda yenilenir (sayfayı bekletmez); önceki davranışla aynı.
   if (profile?.username) {
@@ -163,13 +169,14 @@ export default async function InfluencerDashboardPage() {
                       <div className="text-xs text-ink-faint">
                         {offer.campaign_type ? `${offer.campaign_type} · ` : ''}
                         {offer.payment_type === 'barter' ? 'Barter' : tl(offer.budget)}
+                        {offer.edited_at ? ' · düzenlendi' : ''}
                       </div>
                     </div>
                     <Chip tone={left <= 2 ? 'warning' : 'neutral'} dot>
                       {left} gün kaldı
                     </Chip>
                     <div className="ml-auto">
-                      <OfferActionButtons offerId={offer.id} />
+                      <OfferActionButtons offerId={offer.id} editedAt={offer.edited_at ?? null} />
                     </div>
                   </ListRow>
                 )
@@ -208,8 +215,8 @@ export default async function InfluencerDashboardPage() {
 
           <Card as="section">
             <CardHeader
-              title="Yeni ilanlar"
-              description="Markaların en yeni açık ilanları"
+              title={fitting.length ? 'Kategorine uygun ilanlar' : 'Yeni ilanlar'}
+              description={fitting.length && myCategory ? `${getCategoryLabel(myCategory)} ve genel ilanlar önce` : 'Markaların en yeni açık ilanları'}
               action={
                 <ButtonLink href="/dashboard/influencer/advert" variant="ghost" size="sm" rightIcon={<ArrowRight />}>
                   İlanlar
@@ -226,6 +233,7 @@ export default async function InfluencerDashboardPage() {
                     <div className="truncate text-[13.5px] font-medium text-ink hover:text-gold">{ad.title}</div>
                     <div className="truncate text-xs text-ink-faint">
                       {ad.brand_name ?? 'Marka'}
+                      {` · ${advertCategoryLabel(ad.category as string | null)}`}
                       {Array.isArray(ad.platforms) && ad.platforms.length ? ` · ${(ad.platforms as string[]).join(', ')}` : ''}
                     </div>
                   </Link>

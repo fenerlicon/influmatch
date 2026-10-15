@@ -12,10 +12,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { canBrandViewInfluencer, getWheelState, type WheelState } from '@/lib/discovery-wheel'
+import { hasActiveFilters, matchesDiscoverFilters, sortDiscoverProfiles, type DiscoverFilters } from '@/lib/discover-filters'
+import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { isProPlan } from '@/lib/subscription-tier'
+import { effectiveAvailability, type Availability } from '@/lib/availability-shared'
+import { visibleMinPrices } from '@/lib/rate-card'
 
 /** Liste kartı alanları (keşif, öne çıkanlar, çark). */
 export const PROFILE_CARD_COLUMNS =
-  'id, full_name, username, avatar_url, category, city, bio, role, spotlight_active, verification_status, displayed_badges, creator_type, is_showcase_visible'
+  'id, full_name, username, avatar_url, category, city, bio, role, spotlight_active, verification_status, displayed_badges, creator_type, is_showcase_visible, availability_status, availability_note, availability_until'
 
 /** Profil sayfası alanları. */
 export const PROFILE_DETAIL_COLUMNS = `${PROFILE_CARD_COLUMNS}, social_links`
@@ -42,6 +47,9 @@ export type ProfileCard = {
   displayed_badges: string[] | null
   creator_type: string | null
   is_showcase_visible: boolean | null
+  availability_status?: string | null
+  availability_note?: string | null
+  availability_until?: string | null
 }
 
 export type PublicSocialAccount = {
@@ -197,11 +205,26 @@ export async function getWheelProfileCards(state: WheelState): Promise<ProfileCa
   return discoverableCardsByIds(reader, state.spin.influencer_ids)
 }
 
-export type DiscoverProfile = ProfileCard & { social_accounts: PublicSocialAccount[] }
+/** Geçerli müsaitlik (3.19): bitiş tarihi geçmiş "dolu" = "iş alıyorum". */
+export function availabilityOf(card: Pick<ProfileCard, 'availability_status' | 'availability_note' | 'availability_until'>): Availability {
+  return effectiveAvailability(card)
+}
+
+export type DiscoverProfile = ProfileCard & {
+  social_accounts: PublicSocialAccount[]
+  availability: Availability
+  /** Fiyat kartındaki en düşük başlangıç fiyatı (yalnızca marka izleyicide; RLS doğrulanmış markaya açar). */
+  min_price?: number | null
+}
 
 export type DiscoverResult =
-  | { locked: true; verificationStatus: ViewerInfo['verification_status']; limited: false; profiles: [] }
-  | (WheelPayload & { locked: false; profiles: DiscoverProfile[] })
+  | { locked: true; verificationStatus: ViewerInfo['verification_status']; limited: false; profiles: []; proFilters: false }
+  | (WheelPayload & { locked: false; profiles: DiscoverProfile[]; /** "Verisi olanlar" / "Mavi tikli" (Spotlight Pro). */ proFilters: boolean })
+
+/** Spotlight Pro filtreleri ("Verisi olanlar", "Mavi tikli") açık mı: aktif Spotlight + Pro plan (web keşifle aynı). */
+export function canUseProDiscoverFilters(viewer: Pick<ViewerInfo, 'spotlight_active' | 'spotlight_expires_at' | 'spotlight_plan'>) {
+  return hasActiveSpotlight(viewer) && isProPlan(viewer.spotlight_plan)
+}
 
 /**
  * Keşif / öne çıkanlar listesi (mobil Keşfet ve marka ana sayfası; web keşif sayfasıyla aynı kural):
@@ -211,34 +234,47 @@ export type DiscoverResult =
 export async function listDiscoverProfiles(
   supabase: SupabaseClient,
   userId: string,
-  options: { limit?: number } = {},
+  options: { limit?: number; filters?: DiscoverFilters } = {},
 ): Promise<DiscoverResult | { error: string }> {
   const viewer = await getViewerInfo(supabase, userId)
   if (!viewer) return { error: 'Profil bulunamadı.' }
   if (viewer.role === 'brand' && viewer.verification_status !== 'verified') {
-    return { locked: true, verificationStatus: viewer.verification_status, limited: false, profiles: [] }
+    return { locked: true, verificationStatus: viewer.verification_status, limited: false, profiles: [], proFilters: false }
   }
   const reader = profileReader()
   if (!reader) return { error: 'Sistem yapılandırma hatası.' }
 
   const limit = Math.min(Math.max(1, Math.floor(options.limit ?? DISCOVER_MAX)), DISCOVER_MAX)
+  // Pro filtreleri yalnızca Spotlight Pro izleyicide uygulanır; diğerlerinde sessizce yok sayılır.
+  const proFilters = canUseProDiscoverFilters(viewer)
+  const filters: DiscoverFilters = { ...(options.filters ?? {}) }
+  if (!proFilters) {
+    filters.withData = false
+    filters.blueTick = false
+  }
+  const filtering = hasActiveFilters(filters)
   try {
+    // Filtreler çarkın (ücretsiz marka, sınırlar açıkken) gösterdiği küme içinde uygulanır; kümeyi genişletmez.
     const state = viewer.role === 'brand' ? await getWheelState(userId) : ({ limited: false } as WheelState)
     let cards: ProfileCard[]
     if (state.limited) {
       cards = await getWheelProfileCards(state)
     } else {
-      // Doğrulanmış hesap şartı sonradan uygulandığı için aday sayısı biraz geniş tutulur.
-      const { data, error } = await reader
+      // Doğrulanmış hesap şartı sonradan uygulandığı için aday sayısı biraz geniş tutulur; filtre varken bütün havuz.
+      let query = reader
         .from('users')
         .select(PROFILE_CARD_COLUMNS)
         .eq('role', 'influencer')
         .eq('verification_status', 'verified')
         .eq('is_showcase_visible', true)
         .neq('id', userId)
+      if (filters.city) query = query.eq('city', filters.city)
+      if (filters.creatorType === 'ugc') query = query.in('creator_type', ['ugc', 'both'])
+      if (filters.creatorType === 'influencer') query = query.or('creator_type.is.null,creator_type.neq.ugc')
+      const { data, error } = await query
         .order('spotlight_active', { ascending: false })
         .order('full_name', { ascending: true })
-        .limit(Math.min(DISCOVER_MAX, limit * 3))
+        .limit(filtering || filters.sort ? DISCOVER_MAX : Math.min(DISCOVER_MAX, limit * 3))
       if (error) throw new Error(error.message)
       cards = (data ?? []) as unknown as ProfileCard[]
     }
@@ -247,11 +283,27 @@ export async function listDiscoverProfiles(
       cards.map((card) => card.id),
       { verifiedOnly: true },
     )
-    const profiles = cards
-      .map((card) => ({ ...card, social_accounts: socials.get(card.id) ?? [] }))
+    const toFilterable = (profile: DiscoverProfile) => ({
+      ...profile,
+      availability_status: profile.availability.status,
+      accounts: profile.social_accounts,
+    })
+    let candidates: DiscoverProfile[] = cards
+      .map((card) => ({ ...card, social_accounts: socials.get(card.id) ?? [], availability: availabilityOf(card) }))
       .filter((profile) => profile.social_accounts.length > 0)
-      .slice(0, limit)
-    return { ...wheelPayloadOf(state), locked: false, profiles }
+      .filter((profile) => !filtering || matchesDiscoverFilters(toFilterable(profile), filters))
+    // Fiyat kartı ve "Bütçem" filtresi (3.14-S2): fiyatlar izleyicinin RLS'li istemcisiyle okunur (yalnızca doğrulanmış marka görür).
+    if (viewer.role === 'brand') {
+      const prices = await visibleMinPrices(
+        supabase,
+        candidates.map((profile) => profile.id),
+      )
+      candidates = candidates.map((profile) => ({ ...profile, min_price: prices[profile.id] ?? null }))
+      const budget = filters.budget ?? 0
+      if (budget > 0) candidates = candidates.filter((profile) => profile.min_price != null && profile.min_price <= budget)
+    }
+    const profiles = sortDiscoverProfiles(candidates, filters, toFilterable).slice(0, limit)
+    return { ...wheelPayloadOf(state), locked: false, profiles, proFilters }
   } catch (error) {
     console.error('[profile-reads] keşif listesi okunamadı:', error)
     return { error: 'Profiller yüklenemedi. Lütfen tekrar deneyin.' }

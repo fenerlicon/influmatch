@@ -13,6 +13,7 @@ import { createCollaborationFor } from '@/lib/collaborations'
 import { OFFER_EXPIRY_DAYS, OFFER_EXPIRY_MS, effectiveOfferStatus } from '@/lib/offer-shared'
 import { brandLimitErrorFromDb, getBrandLimitContext, getOfferQuota, offerQuotaError } from '@/lib/brand-limits'
 import { canBrandViewInfluencer, getWheelState } from '@/lib/discovery-wheel'
+import { closeOfferRoomOnWithdraw } from '@/lib/room-close'
 
 export interface CreateOfferInput {
   receiverId: string
@@ -21,7 +22,14 @@ export interface CreateOfferInput {
   budget?: string | number | null
   message?: string | null
   paymentType?: 'cash' | 'barter' | null
+  /** Kampanya daveti (3.19): markanın kendi taslak / aktif kampanyası. */
+  campaignId?: string | null
 }
+
+/** Teklif oluşturma sonucu. code: 'quota' teklif hakkı doldu (toplu davet bu durumda durur). */
+export type CreateOfferResult = { success: true; offerId: string | null } | { error: string; code?: 'quota' | 'campaign' }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type OfferResponse = 'accepted' | 'rejected' | 'hold'
 
@@ -61,7 +69,7 @@ export async function createOfferAs(
   supabase: SupabaseClient,
   userId: string,
   input: CreateOfferInput,
-): Promise<{ success: true } | { error: string }> {
+): Promise<CreateOfferResult> {
   if ((await fetchAccountRole(supabase, userId)) !== 'brand') {
     return { error: 'Sadece marka hesapları teklif gönderebilir.' }
   }
@@ -79,6 +87,24 @@ export async function createOfferAs(
   if ('error' in fields) return { error: fields.error }
   const { campaignName, campaignType, budgetValue, paymentType, message } = fields
 
+  // Kampanya bağlantısı: yalnızca markanın kendi taslak / aktif kampanyası (RLS'li oturum istemcisi yalnızca kendi
+  // kampanyalarını döndürür; DB'de enforce_campaign_owner tetikleyicisi de yedek kontrol yapar).
+  let campaignId: string | null = null
+  if (input.campaignId) {
+    if (typeof input.campaignId !== 'string' || !UUID_RE.test(input.campaignId)) return { error: 'Kampanya bulunamadı.', code: 'campaign' }
+    const { data: campaign } = await supabase
+      .from('campaigns')
+      .select('id, brand_id, status')
+      .eq('id', input.campaignId)
+      .eq('brand_id', userId)
+      .maybeSingle()
+    if (!campaign) return { error: 'Kampanya bulunamadı.', code: 'campaign' }
+    if (campaign.status !== 'draft' && campaign.status !== 'active') {
+      return { error: 'Tamamlanan ya da arşivlenen kampanyaya davet gönderilemez.', code: 'campaign' }
+    }
+    campaignId = campaign.id as string
+  }
+
   // Ücretsiz marka teklif sınırı (bayrak kapalıyken kota null döner, kontrol yapılmaz). Sayım okunamazsa
   // DB tetikleyicisi (enforce_brand_offer_limits) yedek olarak sınırı yine uygular.
   // Keşif çarkı açıkken ücretsiz marka yalnızca açabildiği profillere (çark / önceki ilişki) teklif gönderir.
@@ -91,25 +117,33 @@ export async function createOfferAs(
       }
     }
     const quotaError = offerQuotaError(await getOfferQuota(userId, limitContext))
-    if (quotaError) return { error: quotaError }
+    if (quotaError) return { error: quotaError, code: 'quota' }
   } catch (quotaReadError) {
     console.error('[createOffer] quota read error:', quotaReadError)
   }
 
-  const { error } = await supabase.from('offers').insert({
-    sender_user_id: userId,
-    receiver_user_id: input.receiverId,
-    campaign_name: campaignName,
-    campaign_type: campaignType,
-    budget: budgetValue,
-    payment_type: paymentType,
-    message,
-    status: 'pending',
-  })
+  const { data: inserted, error } = await supabase
+    .from('offers')
+    .insert({
+      sender_user_id: userId,
+      receiver_user_id: input.receiverId,
+      campaign_name: campaignName,
+      campaign_type: campaignType,
+      budget: budgetValue,
+      payment_type: paymentType,
+      message,
+      status: 'pending',
+      ...(campaignId ? { campaign_id: campaignId } : {}),
+    })
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     console.error('[createOffer] insert error:', error)
-    return { error: brandLimitErrorFromDb(error.message) ?? 'Teklif gönderilemedi. Lütfen tekrar deneyin.' }
+    const limitError = brandLimitErrorFromDb(error.message)
+    if (limitError) return { error: limitError, code: 'quota' }
+    if (error.message?.includes('campaign_owner_mismatch')) return { error: 'Kampanya bulunamadı.', code: 'campaign' }
+    return { error: 'Teklif gönderilemedi. Lütfen tekrar deneyin.' }
   }
 
   const admin = createSupabaseAdminClient()
@@ -125,17 +159,25 @@ export async function createOfferAs(
     admin,
   )
 
-  return { success: true }
+  return { success: true, offerId: (inserted?.id as string | undefined) ?? null }
 }
+
+const sameInstant = (a: string | null | undefined, b: string | null | undefined) =>
+  (a ? Date.parse(a) : null) === (b ? Date.parse(b) : null)
+
+const OFFER_EDITED_SINCE_SEEN = 'Marka bu teklifi az önce düzenledi. Yeni koşulları inceleyip tekrar deneyin.'
 
 /**
  * Influencer teklife yanıt verir. 'hold' = "Markayla görüş": durum değişmez, pazarlık için teklif odası açılır.
+ * seenEditedAt verilirse (ekrandaki teklifin edited_at değeri) ve marka o arada teklifi düzenlediyse kabul
+ * reddedilir: influencer eski koşulları görerek kabul etmesin.
  */
 export async function respondToOfferAs(
   supabase: SupabaseClient,
   userId: string,
   offerId: string,
   response: OfferResponse,
+  options: { seenEditedAt?: string | null } = {},
 ): Promise<{ error: string } | { success: true; roomId: string | null; senderUserId: string }> {
   if (!['accepted', 'rejected', 'hold'].includes(response)) {
     return { error: 'Geçersiz teklif durumu.' }
@@ -143,17 +185,21 @@ export async function respondToOfferAs(
 
   const { data: offer, error: offerError } = await supabase
     .from('offers')
-    .select('id, receiver_user_id, sender_user_id, status, campaign_name, created_at')
+    .select('id, receiver_user_id, sender_user_id, status, campaign_name, created_at, edited_at')
     .eq('id', offerId)
     .maybeSingle()
 
   if (offerError || !offer) return { error: 'Teklif bulunamadı.' }
   if (offer.receiver_user_id !== userId) return { error: 'Bu teklif üzerinde işlem yapma yetkiniz yok.' }
+  if (offer.status === 'withdrawn') return { error: 'Marka bu teklifi geri çekti.' }
   // Saatlik görev henüz işaretlemediyse de 7 günü geçen teklif yanıtlanamaz.
   if (effectiveOfferStatus(offer as { status: string; created_at: string }) === 'expired') {
     return { error: `Bu teklifin süresi doldu (${OFFER_EXPIRY_DAYS} gün içinde yanıtlanmadı).` }
   }
   if (offer.status !== 'pending') return { error: 'Bu teklif zaten yanıtlanmış.' }
+  if (response === 'accepted' && options.seenEditedAt !== undefined && !sameInstant(options.seenEditedAt, offer.edited_at as string | null)) {
+    return { error: OFFER_EDITED_SINCE_SEEN }
+  }
   if (response !== 'rejected' && !(await hasVerifiedSocialAccount(supabase, userId))) {
     return { error: SOCIAL_VERIFICATION_REQUIRED }
   }
@@ -241,6 +287,158 @@ export async function respondToOfferAs(
   )
 
   return { success: true, roomId, senderUserId: offer.sender_user_id as string }
+}
+
+interface BrandPendingOffer {
+  id: string
+  sender_user_id: string
+  receiver_user_id: string
+  campaign_name: string | null
+  campaign_type: string | null
+  budget: number | string | null
+  payment_type: string | null
+  message: string | null
+  status: string
+  created_at: string
+}
+
+/** Marka yalnızca kendi gönderdiği, hâlâ bekleyen (süresi dolmamış) teklifi değiştirebilir. */
+async function loadBrandPendingOffer(
+  supabase: SupabaseClient,
+  userId: string,
+  offerId: string,
+  verb: string,
+): Promise<{ error: string } | { offer: BrandPendingOffer }> {
+  if (!offerId || typeof offerId !== 'string') return { error: 'Teklif bulunamadı.' }
+  if ((await fetchAccountRole(supabase, userId)) !== 'brand') return { error: 'Bu işlem yalnızca marka hesapları içindir.' }
+
+  // Oturum istemcisiyle okunur: RLS markaya yalnızca kendi gönderdiği teklifleri gösterir.
+  const { data, error } = await supabase
+    .from('offers')
+    .select('id, sender_user_id, receiver_user_id, campaign_name, campaign_type, budget, payment_type, message, status, created_at')
+    .eq('id', offerId)
+    .maybeSingle()
+  const offer = data as BrandPendingOffer | null
+  if (error || !offer) return { error: 'Teklif bulunamadı.' }
+  if (offer.sender_user_id !== userId) return { error: 'Bu teklif üzerinde işlem yapma yetkiniz yok.' }
+
+  const status = effectiveOfferStatus(offer)
+  if (status === 'expired') return { error: `Bu teklifin süresi doldu; ${verb}.` }
+  if (status === 'withdrawn') return { error: 'Bu teklif zaten geri çekildi.' }
+  if (status !== 'pending') return { error: `Influencer bu teklifi yanıtladı; artık ${verb}.` }
+  return { offer }
+}
+
+/** Güncelleme yalnızca hâlâ bekleyen ve süresi dolmamış satıra yazılır (aynı anda yanıt / süre dolumu yarışı). */
+function updatePendingOffer(admin: SupabaseClient, offerId: string, userId: string, patch: Record<string, unknown>) {
+  return admin
+    .from('offers')
+    .update(patch)
+    .eq('id', offerId)
+    .eq('sender_user_id', userId)
+    .eq('status', 'pending')
+    .gt('created_at', new Date(Date.now() - OFFER_EXPIRY_MS).toISOString())
+    .select('id')
+}
+
+/**
+ * Marka bekleyen teklifini geri çeker (2026-10-14). Kabul / red / süresi dolmuş teklif geri çekilemez.
+ * Geri çekilen teklif kotadan düşmez (sayım durumdan bağımsız, created_at ile). Influencer'a site içi + push bildirim.
+ * Teklifin sohbet odası varsa kapanır (salt okunur, lib/room-close.ts).
+ */
+export async function withdrawOfferAs(
+  supabase: SupabaseClient,
+  userId: string,
+  offerId: string,
+): Promise<{ success: true } | { error: string }> {
+  const check = await loadBrandPendingOffer(supabase, userId, offerId, 'geri çekilemez')
+  if ('error' in check) return check
+  const { offer } = check
+
+  const admin = createSupabaseAdminClient()
+  if (!admin) return { error: 'Sunucu yapılandırması eksik.' }
+  const { data: updated, error } = await updatePendingOffer(admin, offer.id, userId, {
+    status: 'withdrawn',
+    withdrawn_at: new Date().toISOString(),
+  })
+  if (error) {
+    console.error('[withdrawOffer] update error:', error.message)
+    return { error: 'Teklif geri çekilemedi. Lütfen tekrar deneyin.' }
+  }
+  if (!updated?.length) return { error: 'Bu teklif artık geri çekilemez (yanıtlanmış ya da süresi dolmuş olabilir).' }
+
+  // "Markayla görüş" ile açılmış oda kapanır, sistem mesajı yazılır (3.6-S8).
+  await closeOfferRoomOnWithdraw(admin, offer.id, userId)
+
+  const brandName = await displayNameOf(admin, userId)
+  const campaign = offer.campaign_name ? `"${offer.campaign_name}" teklifini` : 'teklifini'
+  await notifyUser(
+    {
+      userId: offer.receiver_user_id,
+      event: 'offer_withdrawn',
+      title: 'Marka teklifi geri çekti',
+      message: `${brandName}, ${campaign} geri çekti. Bu teklif artık yanıtlanamaz.`,
+      link: '/dashboard/works?stage=offers',
+    },
+    admin,
+  )
+  return { success: true }
+}
+
+/**
+ * Marka bekleyen teklifini düzenler (2026-10-14). 7 günlük süre yeniden başlamaz (created_at değişmez),
+ * kotaya yeni teklif olarak sayılmaz; edited_at yazılır ve influencer'a site içi + push bildirim gider.
+ */
+export async function editOfferAs(
+  supabase: SupabaseClient,
+  userId: string,
+  offerId: string,
+  input: Omit<CreateOfferInput, 'receiverId'>,
+): Promise<{ success: true; changed: boolean } | { error: string }> {
+  if (!input || typeof input !== 'object') return { error: 'Geçersiz istek.' }
+  const fields = validateOfferFields(input)
+  if ('error' in fields) return { error: fields.error }
+
+  const check = await loadBrandPendingOffer(supabase, userId, offerId, 'düzenlenemez')
+  if ('error' in check) return check
+  const { offer } = check
+
+  const unchanged =
+    offer.campaign_name === fields.campaignName &&
+    (offer.campaign_type ?? null) === fields.campaignType &&
+    (offer.budget === null ? null : Number(offer.budget)) === fields.budgetValue &&
+    (offer.payment_type === 'barter' ? 'barter' : 'cash') === fields.paymentType &&
+    (offer.message ?? null) === fields.message
+  if (unchanged) return { success: true, changed: false }
+
+  const admin = createSupabaseAdminClient()
+  if (!admin) return { error: 'Sunucu yapılandırması eksik.' }
+  const { data: updated, error } = await updatePendingOffer(admin, offer.id, userId, {
+    campaign_name: fields.campaignName,
+    campaign_type: fields.campaignType,
+    budget: fields.budgetValue,
+    payment_type: fields.paymentType,
+    message: fields.message,
+    edited_at: new Date().toISOString(),
+  })
+  if (error) {
+    console.error('[editOffer] update error:', error.message)
+    return { error: 'Teklif güncellenemedi. Lütfen tekrar deneyin.' }
+  }
+  if (!updated?.length) return { error: 'Bu teklif artık düzenlenemez (yanıtlanmış ya da süresi dolmuş olabilir).' }
+
+  const brandName = await displayNameOf(admin, userId)
+  await notifyUser(
+    {
+      userId: offer.receiver_user_id,
+      event: 'offer_edited',
+      title: 'Teklif güncellendi',
+      message: `${brandName}, "${fields.campaignName}" teklifini düzenledi. Yanıtlamadan önce yeni koşulları inceleyin.`,
+      link: '/dashboard/works?stage=offers',
+    },
+    admin,
+  )
+  return { success: true, changed: true }
 }
 
 /**

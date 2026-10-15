@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-10 (3.17-N5, 3.18) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -294,6 +294,15 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**3.2-S1 [ORTA]**~~ (favoriler ve liste sayfaları aktif Spotlight planını geçiriyor) Favoriler ve Inflist sayfaları `spotlightPlan` geçmiyor → Pro markalarda bile PRO filtreleri kilitli.
   - ✅ ~~**3.2-S2 [ORTA]**~~ (kullanıcı kararı: kota şimdilik yok; keşfet ızgarası 24'er profil, "Daha fazla göster") (ertelendi: <100 influencer; 3.13-N4 "ücretsiz markaya kota" tasarımıyla birlikte yapılacak) Her şey tek seferde yükleniyor (sayfalama yok); "1,2K" gibi metin istatistikler istemcide ayrıştırılıyor.
+  - ✅ ~~**3.2-N1 [ÖZELLİK]**~~ (2026-10-14, kullanıcı onayı: ortak kural `lib/discover-filters.ts` — şehir (`users.city`, il listesi `utils/turkishCities.ts`
+    yazımıyla; canlıda değerler temiz), platform, üretici türü, takipçi aralığı, etkileşim oranı aralığı (aralıklar aynı hesapta sağlanmalı; platform
+    seçiliyse o platformun hesabı), sıralama (takipçi çok/az, etkileşim; Spotlight profiller önde) ve Spotlight Pro filtreleri ("Verisi olanlar",
+    "Mavi tikli"). Mobil liste sunucuda süzülür: `listDiscoverProfiles` (`/api/mobile/discover?city=&platform=&creatorType=&minFollowers=&maxFollowers=&minEngagement=&maxEngagement=&sort=&withData=1&blueTick=1`);
+    şehir ve üretici türü SQL'de, diğerleri doğrulanmış hesaplarla; çark açıkken yalnızca çarktaki profiller içinde (küme genişlemez). Pro filtreleri
+    sunucuda yalnızca aktif Spotlight Pro izleyicide uygulanır (yanıtta `proFilters`). Web ızgarası yetkili listeyi aynı kuralla süzer (şehir seçici,
+    takipçi ve etkileşim min–maks kutuları). Mobil Keşfet web'e eşitlendi: "Filtreler" paneli (platform, üretici türü, şehir, aralıklar, Pro filtreleri
+    kilitli/açık), sıralama çipleri. Cinsiyet filtresi yok (veri yok). Şema değişikliği yok; ~150 satırda indeks gerekmedi) Keşifte şehir, takipçi ve etkileşim
+    filtresi yoktu; mobil Keşfet'te platform, üretici türü ve sıralama yoktu.
 
 ### 3.3 Favoriler
 - **Dosyalar:** `app/dashboard/brand/favorites/page.tsx`, `app/actions/favorites.ts`, ortak `lib/favorites.ts`, mobil `/api/mobile/favorites` (3.17-N5)
@@ -317,7 +326,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ### 3.6 Teklifler (marka → influencer)
 - **Dosyalar:** `components/profile/OfferModal.tsx` → `app/profile/actions.ts` (`createOffer`), `brand/offers/page.tsx`,
-  `components/dashboard/BrandOffersList.tsx`, `brand/offers/dismiss/actions.ts`
+  `components/dashboard/BrandOffersList.tsx`, `brand/offers/dismiss/actions.ts`; geri çekme / düzenleme (2026-10-14): `lib/offers.ts`
+  (`withdrawOfferAs`, `editOfferAs`), `brand/offers/actions.ts`, `/api/mobile/offers/[id]` (PATCH / POST), mobil `JobsScreen`; migration `20261014000020_offer_withdraw_edit.sql`
 - **Sorunlar:**
   - ✅ ~~**3.6-S1 [ORTA]**~~ (rol DB'den, `fetchAccountRole`) `createOffer` rol kontrolünü `user_metadata.role` ile yapıyor (DB politikası asıl korumayı sağlıyor),
     bütçe NaN/negatif kontrolü yok, alıcının influencer olduğu kontrol edilmiyor.
@@ -326,6 +336,34 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.6-S6 [DÜŞÜK]**~~ (kolon canlıda; influencer ve marka teklif ekranlarında "Bütçe (nakit)" / "Barter (ürün değeri)") Teklif listelerinde ödeme türü (nakit / barter) gösterilmiyordu.
   - ✅ ~~**3.6-S3 [ORTA]**~~ (sayımlar paralel ve yalnızca `count` dönüyor; okundu bilgisi 5.3-S1 ile metadata'dan) Okunmamış sayıları N+1 sorgu; okundu bilgisi hiç temizlenmiyor (bkz. 5.3).
   - ✅ ~~**3.6-S4 [DÜŞÜK]**~~ (`rooms` kanalı `brand_id` ile filtreli; `undismissInfluencer` ve `'hold'` daha önce kaldırılmıştı) `rooms` INSERT realtime kanalı filtresiz; `undismissInfluencer` için arayüz yok; `'hold'` tipi eksik.
+  - ✅ ~~**3.6-N1 [ÖZELLİK]**~~ (2026-10-14, kullanıcı onayı: teklif geri çekme. Yeni durum `withdrawn` (+ `withdrawn_at`), `offers_status_check` genişletildi.
+    `withdrawOfferAs` (`lib/offers.ts`): yalnızca marka, yalnızca kendi gönderdiği ve hâlâ bekleyen (süresi dolmamış) teklif; kabul / red / süresi dolmuş
+    geri çekilemez. Yazım service role ile, rol + sahiplik kontrolünden sonra ve yalnızca `status = pending` + 7 günü geçmemiş satıra. Influencer'a site içi +
+    push bildirim (`offer_withdrawn`, e-posta yok). Influencer listesinde "Tümü"/işlem listesinden çıkar, "Düşen" filtresinde "Marka geri çekti" (web) /
+    "Süresi dolan / geri çekilen teklifleri göster" (mobil); yanıt sunucuda reddedilir. **Kota:** geri çekilen teklif ücretsiz marka günlük/aylık hakkından
+    düşmez (sayım `lib/brand-limits.ts` ve `enforce_brand_offer_limits` tetikleyicisinde `created_at` ile, durumdan bağımsız). Web: İşler > teklif
+    ayrıntısında "Geri çek" (onay penceresi); mobil: İşler ekranı teklif ayrıntısı, `POST /api/mobile/offers/[id]` `{action:'withdraw'}`) Marka gönderdiği teklifi geri alamıyordu.
+  - ✅ ~~**3.6-N2 [ÖZELLİK]**~~ (2026-10-14, kullanıcı onayı: teklif düzenleme. `editOfferAs`: bekleyen teklifte kampanya adı, tür, bütçe, nakit/barter, mesaj;
+    doğrulama `validateOfferFields` (yeni teklifle aynı). **7 günlük süre yeniden başlamaz** (`created_at` değişmez), kotaya yeni teklif sayılmaz, `edited_at`
+    yazılır, "düzenlendi" etiketi (web influencer listesi/ayrıntısı/ana sayfa, marka ayrıntısı; mobil kart + ayrıntı). Değişiklik yoksa yazım ve bildirim yok.
+    Influencer'a site içi + push (`offer_edited`). Eski koşullarla kabulü önlemek için yanıt ekrandaki `edited_at`'i gönderir (`seenEditedAt`); marka o arada
+    düzenlediyse kabul "Marka bu teklifi az önce düzenledi" hatasıyla reddedilir ve liste yenilenir. Web: İşler > teklif ayrıntısında "Düzenle" penceresi
+    (server action `app/dashboard/brand/offers/actions.ts`); mobil: İşler ekranında "Teklifi düzenle" sayfası, `PATCH /api/mobile/offers/[id]`) Marka teklifini düzeltemiyordu.
+  - ✅ ~~**3.6-S7 [ORTA]**~~ (2026-10-14, yeni bulgu; `20261014000020`, canlıda) `offers` güncelleme koruması (`secure_offers_final`) istemci oturumunun
+    `created_at` (7 günlük süreyi uzatma), `sender_user_id` / `receiver_user_id` (teklifi başkasına taşıma), `campaign_type` ve `payment_type` değiştirmesine
+    izin veriyordu; anon'un da tüm yazma yetkileri vardı. Artık istemci yalnızca `status` kolonunu güncelleyebilir (kolon yetkisi) ve yalnızca alıcı influencer,
+    bekleyen teklifte `accepted` / `rejected` yapabilir; içerik, kimlik ve tarih kolonları donuk; `withdrawn` / `expired` yalnızca sunucudan. Geri çekme ve
+    düzenleme service role ile. Rollback'li denemeyle doğrulandı (influencer `withdrawn`/`expired` yapamaz, bütçe/tarih yazamaz; marka durum ve mesaj
+    değiştiremez; service role geri çeker; geri çekilen teklif kabul edilemez; normal kabul çalışır).
+  - ✅ ~~**3.6-S8 [DÜŞÜK]**~~ (2026-10-14, kullanıcı kararı; `20261014000050`, canlıda) "Markayla görüş" ile açılmış teklif odası teklif geri çekilince açık
+    kalıyordu. Artık geri çekmede (`withdrawOfferAs` → `lib/room-close.ts`, service role) oda kapanır (`rooms.closed_at` / `closed_reason = offer_withdrawn`)
+    ve odaya "Marka teklifini geri çekti." sistem mesajı (`messages.is_system`) yazılır; geçmiş görünür, iki taraf da yazamaz. Web sohbet (aynı kişiyle
+    birleşik görünüm) yeni mesajı en son yazışılan **açık** odaya gönderir; bütün odalar kapalıysa yazma alanı kapalı + açıklama; sistem mesajı ortada.
+    Mobil Mesajlar ekranında aynı. `sendMessageAs` kapalı odayı reddeder. DB yedeği: istemci oturumu kapalı odaya mesaj ekleyemez, sistem mesajı yazamaz,
+    kapalı oda açamaz, geri çekilmiş teklif için yeni oda açamaz (`enforce_room_open_on_message`, `enforce_room_insert_state`); rooms'ta istemci
+    UPDATE politikası zaten yok. Rollback'li denemeyle doğrulandı (kapalı odaya ekleme reddedildi, açık odada mesaj gidiyor ve `is_system` false'a
+    çevriliyor, istemci odayı yeniden açamıyor, geri çekilmiş teklife oda açılamıyor). **Not:** reddedilen teklifin odası (Markayla görüş sonrası red)
+    bilerek değişmedi, açık kalır.
 
 ### 3.7 İlanlar (advert projects / kampanyalar)
 - **Dosyalar:** `brand/advert/page.tsx`, `influencer/advert/page.tsx`, `components/adverts/*` (yeni görünüm, 2026-10-14), `lib/adverts-shared.ts`,
@@ -335,12 +373,25 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.7-S2 [YÜKSEK]**~~ (payment_type/custom_questions okunuyor, açıklama ezilmiyor) Düzenlemede veri kaybı: sayfa `payment_type`, `custom_questions`, `description` seçmiyor → barter ilan nakde dönüyor, açıklama `''` ile eziliyor.
   - ✅ ~~**3.7-S3 [ORTA]**~~ (`getAnalyticsStats` Spotlight kontrolü yapıyor) Analitik yalnızca istemcide kısıtlı; `getAnalyticsStats` Spotlight kontrolü yapmıyor.
   - ✅ ~~**3.7-S4 [DÜŞÜK]**~~ (brandIsSpotlight süre kontrollü dolduruluyor; kapak silme yolu adresten çıkarılıyor) Topluluk sekmesinde `brandIsSpotlight` hiç set edilmiyor (sıralama işlemiyor); liste sınırsız; silmede dosya yolu `split('/').pop()`.
-  - **3.7-S5 [DÜŞÜK]** İlan kategorisi serbest metin (`AdvertForm` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
+  - ✅ ~~**3.7-S5 [DÜŞÜK]**~~ (2026-10-15, `claude/open-adverts`: ilan formunda (web `AdvertForm`, mobil `BrandAdvertsScreen`) kategori seçici —
+    `INFLUENCER_CATEGORIES` + "Genel (her kategori)"; DB'ye anahtar yazılır (`beauty`, `general`). `saveAdvertAs` listede olmayan değeri reddeder
+    (düzenlemede değiştirilmemiş eski metin korunur). Ekranda `advertCategoryLabel` (web `utils/categories.ts`, mobil `constants/categories.js`).
+    Influencer ana sayfasında (web + mobil) "Kategorine uygun ilanlar": aynı kategori + Genel ilanlar önce, sonra en yeniler. Eski değerlerin eşlemesi
+    (Genel → general, Çanta / Çanta -Cüzdan → fashion, Bakım → beauty; 7 ilan) `20261015000021` dosyasında; PR #94 yayına girdikten sonra
+    2026-10-15'te canlıya uygulandı (general 4, fashion 2, beauty 1)) İlan kategorisi serbest metin (`AdvertForm` metin kutusu, varsayılan "Genel"); influencer kategorileriyle
     (`utils/categories.ts`) yapısal eşleşme yok. Bu yüzden influencer ana sayfasında "kategorine uygun ilanlar" yapılamadı ("Yeni ilanlar"
     gösteriliyor); ilan alarmı anahtar kelimeyle çalışıyor. Öneri: ilan formunda kategori seçici (`INFLUENCER_CATEGORIES`), eski değerler için eşleme. (2026-10-14, yeni görünüm çalışması)
-  - **3.7-S6 [DÜŞÜK]** İlan "özel soruları" (`custom_questions`) yanıtlanamıyor: marka soru ekleyebiliyor ama başvuru formunda (web + mobil) yanıt alanı ve
+  - ✅ ~~**3.7-S6 [DÜŞÜK]**~~ (2026-10-15, `claude/open-adverts`: başvuru formunda (web `AdvertDetail`, mobil `ProposalsScreen`) her soru için alan —
+    metin, tek seçim, çoklu seçim; soruya "Yanıt zorunlu" seçeneği (varsayılan açık, eski sorular zorunlu sayılır). `applyToAdvertAs` → `validateAnswers`:
+    zorunlu boş olamaz, seçenekler ilandaki listeden, metin en fazla 1000 karakter, ilanda olmayan soru yok sayılır; soru metni yanıtla birlikte
+    `advert_applications.answers` (jsonb, dizi, en fazla 10 öğe / 20 KB CHECK) kolonuna yazılır. Marka başvuru listesinde (web `ApplicationsPanel`,
+    mobil başvuru kartı) ve influencer'ın kendi başvurusunda yanıtlar görünür. Migration `20261015000020` canlıda, rollback'li denemeyle doğrulandı) İlan "özel soruları" (`custom_questions`) yanıtlanamıyor: marka soru ekleyebiliyor ama başvuru formunda (web + mobil) yanıt alanı ve
     `advert_applications`'ta yanıt kolonu yok. Yeni görünümde sorular ilan ayrıntısında gösteriliyor, influencer'dan yanıtları niyet mesajına eklemesi isteniyor.
     Kalıcı çözüm SQL ister: `advert_applications.answers jsonb` + `applyToAdvertAs` doğrulaması + marka başvuru satırında gösterim. (2026-10-14)
+  - ✅ ~~**3.7-S7 [ORTA]**~~ (2026-10-14, yeni bulgu) Web ilan formundaki "Diğer" ödeme türü `saveAdvertAs`'ta nakde çevriliyordu. Artık `cash` / `barter` / `other` korunuyor.
+  - ✅ ~~**3.7-S8 [ORTA]**~~ (2026-10-14, yeni bulgu) `saveAdvertAs` istemciden gelen `custom_questions` JSON'unu, platform/teslimat listelerini ve son başvuru
+    tarihini olduğu gibi yazıyordu. Artık sorular en fazla 5, bilinen türler (metin / tek seçim / çoklu seçim), seçenekli soruda en az 2 seçenek; listeler
+    yalnızca metin (en fazla 15 öğe, 80 karakter); tarih YYYY-AA-GG; para birimi 3 harf. Web ve mobil aynı kod.
 
 ### 3.8 Başvuru değerlendirme (marka)
 - **Dosyalar:** `components/adverts/ApplicationsPanel.tsx`, `brand/advert/actions.ts` (`getBrandApplicationsAdmin`, `updateApplicationStatus`, `getOrCreateAdvertApplicationRoom`)
@@ -353,6 +404,13 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.8-S5 [ORTA]**~~ (2026-10-14, yeni görünüm: yeni başvuruda sayfa sunucudan yenileniyor; oda bağları sunucuda okunuyor) Yeni başvuru realtime
     işleyicisi `advert_applications`'ta olmayan `room_id, has_messages` kolonlarını seçiyordu: sorgu hata verdiği için yeni başvuru sayfaya canlı düşmüyordu.
     Marka tarafında `room_id` hiç yüklenmediği için başvuru satırındaki okunmamış mesaj sayısı da hiç çalışmamıştı.
+  - ✅ ~~**3.8-S6 [YÜKSEK]**~~ (2026-10-15, yeni bulgu) Mobil marka İlanlar ekranındaki başvuru sorguları (`BrandAdvertsScreen`) `advert_applications`'ta
+    olmayan `payment_type` kolonunu seçiyordu: sorgu hata verdiği için mobilde marka hiçbir başvuruyu görmüyordu (liste ve ilan ayrıntısı boş). Kolon
+    çıkarıldı; teslimat önerisi ve soru yanıtları eklendi.
+  - ✅ ~~**3.8-S7 [ORTA]**~~ (2026-10-15, yeni bulgu; `20261015000020`, canlıda) Marka kendi ilanına gelen başvuruda istemci oturumuyla niyet mesajını,
+    bütçe beklentisini (ve yeni yanıtları) değiştirebiliyordu (tablo düzeyinde UPDATE yetkisi; tetikleyici yalnızca durumu koruyordu); anon'un da tüm
+    yazma yetkileri vardı. Artık istemci yalnızca `status` kolonunu güncelleyebilir; anon yazamaz. Rollback'li denemede marka metin güncellemesi reddedildi,
+    durum güncellemesi çalıştı.
   - ✅ ~~**3.8-N1**~~ (2026-10-14) Web marka başvuru listesinde "Kabul et" ve "Ön liste" düğmesi yoktu (yalnızca Reddet + mesaj; mobilde vardı, sunucu destekliyordu).
     Kabul (onay penceresiyle, iş birliği başlatır), ön liste / listeden çıkar ve reddi geri alma eklendi.
 
@@ -429,9 +487,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   başlangıç fiyatı bütçeye sığanlar kalır; boşken herkes görünür. Web profil düzenleme + mobil MyProfile'dan düzenlenir.
 - **Geriye dönük:** canlıdaki 1 kabul edilmiş teklif `agreed` olarak aktarıldı (kabul edilmiş başvuru yoktu).
 - **Sorunlar / notlar:**
-  - **3.14-S1 [DÜŞÜK]** (yeni bulgu) Teklif ve başvuru listeleri iş birliği aşamasını göstermiyor (yalnızca "Kabul edildi"); kullanıcı aşamayı
+  - ✅ ~~**3.14-S1 [DÜŞÜK]**~~ (2026-10-15, `claude/open-collab`: kabul edilen teklif / başvuru listelerde iş birliği aşamasını (Anlaşıldı / Devam ediyor / Yayında / Tamamlandı / İptal edildi) ve iş birliği detayına bağlantıyı gösterir: web İşler teklifleri (iki rol, `OffersManager`, `BrandOffersList`; aşama zaten yüklü iş birliklerinden), web ilan başvuruları (`MyApplications`, `ApplicationsPanel`; `collaborationStagesBySource`, RLS'li okuma), mobil İşler, İlanlar (başvurularım) ve marka ilan başvuruları (`constants/collaborations.js`)) (yeni bulgu) Teklif ve başvuru listeleri iş birliği aşamasını göstermiyor (yalnızca "Kabul edildi"); kullanıcı aşamayı
     İş Birlikleri sayfasında görüyor. 2. aşamada (takip alanı) listelere bağlantı/aşama etiketi eklenebilir.
-  - **3.14-S2 [DÜŞÜK]** (yeni bulgu) Mobil keşif bütçe filtresi fiyat kartlarını istemcide süzüyor (en fazla 1000 kart); kart sayısı büyüyünce sunucu ucuna taşınmalı.
+  - ✅ ~~**3.14-S2 [DÜŞÜK]**~~ (2026-10-15: `/api/mobile/discover?budget=`; `listDiscoverProfiles` marka izleyicide her profile `min_price` ekler (fiyat kartı RLS'li okunur) ve bütçe filtresini sunucuda uygular; mobildeki 1000 kartlık istemci okuması kalktı) (yeni bulgu) Mobil keşif bütçe filtresi fiyat kartlarını istemcide süzüyor (en fazla 1000 kart); kart sayısı büyüyünce sunucu ucuna taşınmalı.
   - **3.14-N1** Fiyat kartı bugün tüm doğrulanmış markalara açık; ücretsiz/ücretli marka ayrımı (3.13-N3/N4) gelince burada da ele alınmalı.
   - **3.14-N2** Revize hakkı, teslimat listesi, taslak onayı ve anlaşma özeti yol haritasının 2. aşamasında (ROADMAP "Buluşturmayı kolaylaştıran özellikler" 2).
     ✅ Anlaşma özeti, teslimat takibi (taslak linki, revize sayacı, teslimat başına yayın linki) ve ödeme teyidi yapıldı (2026-10-10, bkz. 3.18).
@@ -441,7 +499,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Dosyalar:** `lib/offer-shared.ts`, `lib/offers.ts` (`expireStaleOffers`, `validateOfferFields`), `lib/offer-templates.ts`,
   `lib/advert-alerts.ts`, `lib/advert-alerts-shared.ts`, `components/profile/OfferModal.tsx`, `components/dashboard/{InfluencerAdvertTabs,AdvertAlertsManager,AdvertProjectsList}.tsx`,
   `/api/mobile/{offer-templates,saved-adverts,advert-alerts}`, mobil `OffersScreen`, `InfluencerDetailScreen` (teklif formu), `ProposalsScreen`,
-  `constants/advertAlerts.js`; migration `20261010000010_offer_expiry_templates_advert_alerts.sql` (canlıda).
+  `constants/advertAlerts.js`; migration `20261010000010_offer_expiry_templates_advert_alerts.sql` (canlıda). 2026-10-15: anlık gönderim + gönderim kaydı
+  (`dispatchInstantAdvertAlerts`, `lib/background.ts`, `advert_alert_deliveries`), migration `20261015000020` (canlıda).
 - **Maddeler:**
   - ✅ ~~**3.15-N1**~~ (2026-10-10, cevapsız teklif: `offers.status` CHECK'ine `expired` eklendi; saatlik görev 7 günü geçen `pending` teklifleri
     `expired` yapıyor (turda en fazla 50, süre bütçesiyle) ve markaya site içi + e-posta ("Teklif bildirimleri" tercihi) + push bildirim gönderiyor
@@ -459,11 +518,19 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     ilan başına en fazla 300 alıcı, kullanıcı başına tek bildirim (site içi + e-posta "İlan Başvuruları" tercihi + push). İki tablo yalnızca sahibine
     SELECT, `advert_alert_runs` istemcilere tamamen kapalı) Influencer ilanı kaydedemiyor, yeni uygun ilandan haberdar olamıyordu.
 - **Sorunlar / notlar:**
-  - **3.15-S1 [DÜŞÜK]** (yeni bulgu) İlan alarmı saatlik çalışıyor (anlık değil). ROADMAP "anlık ilan alarmı"nı Spotlight Basic'e koyuyor;
+  - ✅ ~~**3.15-S1 [DÜŞÜK]**~~ (2026-10-15, kullanıcı onayı: anlık ilan alarmı Influencer Spotlight Basic/Pro'da — gerçek kapı, bayrağa bağlı değil.
+    Yeni ilan yayınlanınca (`saveAdvertAs`, web + mobil) `dispatchInstantAdvertAlerts` yanıt beklemeden arka planda çalışır (`lib/background.ts`, Vercel
+    `waitUntil`; bağlam yoksa beklenir), 8 sn bütçeyle yalnızca alarmı uyan onaylı + aktif Spotlight influencer'lara gönderir; kalanları saatlik görev
+    tamamlar. Ücretsiz hesap saatlik. Alarmlar sekmesinde (web + mobil) "Anlık" / "Saatte bir". "Anlık ilan alarmı" Influencer Basic ve Pro listesine
+    (web `lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`, SSS, influencer Spotlight sayfası) eklendi) İlan alarmı saatlik çalışıyor (anlık değil). ROADMAP "anlık ilan alarmı"nı Spotlight Basic'e koyuyor;
     bugün alarmlar herkese açık ve saatlik. Spotlight ayrımı (anlık = yayın anında eşleştirme) satış başlayınca kararla eklenir.
-  - **3.15-S2 [DÜŞÜK]** (yeni bulgu) Web ilan formunda kategori serbest metin ("Çanta -Cüzdan", "Bakım"); alarm bu yüzden anahtar kelimeyle
+  - ✅ ~~**3.15-S2 [DÜŞÜK]**~~ (2026-10-15: ilan kategorisi listeden (3.7-S5); alarma kategori seçimi eklendi (`advert_alerts.category_key`, web + mobil),
+    eşleşme yapısal: aynı kategori ya da "Genel" ilan. Anahtar kelime ayrı alan olarak kaldı (kategori adı + başlıkta arar)) Web ilan formunda kategori serbest metin ("Çanta -Cüzdan", "Bakım"); alarm bu yüzden anahtar kelimeyle
     eşleşiyor (kategori + başlık, büyük/küçük harf ve aksan farkı yok). İlan formuna kategori listesi eklenirse alarm da listeden seçilebilir.
-  - **3.15-S3 [DÜŞÜK]** (yeni bulgu) Bir ilanın alıcıları saatlik görevin süre bütçesine sığmazsa kalanlar o ilan için atlanır (ilan önce
+  - ✅ ~~**3.15-S3 [DÜŞÜK]**~~ (2026-10-15: kime gönderildiği `advert_alert_deliveries` (ilan + kullanıcı birincil anahtar, istemcilere kapalı) tablosunda;
+    her 10'lu grup önce bu tabloya yazılır, yalnızca yazılabilenlere bildirim gider — anlık gönderim, saatlik görev ve eşzamanlı koşular aynı kişiye iki
+    kez göndermez. Süre biterse ilan `advert_alert_runs.completed_at` boş kalır, kalan alıcılar sonraki saatte gönderilir; ilan başına 300 alıcı sınırı
+    kaldırıldı. `completed_at` varsayılanı now(): yayından önceki kodun yazdığı satırlar tamamlanmış sayılır) Bir ilanın alıcıları saatlik görevin süre bütçesine sığmazsa kalanlar o ilan için atlanır (ilan önce
     "işlendi" işaretlenir; çift bildirim yerine eksik bildirim tercih edildi). Bugünkü kullanıcı sayısında sorun değil.
 
 ### 3.16 İlk adımlar kontrol listesi (2026-10-10 kararı)
@@ -532,9 +599,10 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     admin 309/309; anon `social_accounts` 0).
   - ✅ ~~**3.17-S3 [DÜŞÜK]**~~ (2026-10-10 kararıyla kapandı: bayrak açıkken ücretsiz markada favoriler/listeler gizli, bkz. 3.17-N5) Favoriler / listeler sayfaları ve web marka ana sayfasındaki "son favoriler" ücretsiz markada da kaydedilmiş
     profillerin kartlarını gösterir (profil sayfası çark kuralıyla kapalı). Karar: favoriler çark dışında kalsın mı?
-  - **3.17-S4 [DÜŞÜK]** (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
+  - ✅ ~~**3.17-S4 [DÜŞÜK]**~~ (2026-10-15: çevirme `create_discovery_spin` SQL fonksiyonunda marka başına danışma kilidiyle (aktif çevirme varsa o döner); teklif ve ilan sınırı tetikleyicileri sınır varken marka başına danışma kilidi alır. Rollback'li denemede: iki ardışık çağrı tek satır açtı, ikincisi `already_active`; bayrak açıkken teklif eklemesinde kilit tutuluyor. Gerçek eşzamanlı iki oturumla deneme MCP'den yapılamadı (kilit davranışı Postgres garantisi)) (yeni bulgu) Aynı anda iki "Çarkı çevir" isteği iki çevirme kaydı açabilir (son açılan geçerli olur); sayaç sınırları da eşzamanlı
     isteklerde bir fazla geçebilir. Bugünkü kullanıcı sayısında sorun değil.
   - **3.17-S5 [DÜŞÜK]** Fiyat kartı (3.14-N1) ve ilan alarmının anlık sürümü (3.15-S1) ücretsiz/ücretli ayrımına henüz bağlanmadı; satış başlarken kararla.
+    (2026-10-15: anlık ilan alarmı Spotlight Basic/Pro'ya bağlandı, 3.15-S1; fiyat kartı kısmı açık.)
 
 ### 3.18 İş birliği takip alanı, anlaşma özeti ve ödeme teyidi (yol haritası özellik 2, 2026-10-10)
 - **Dosyalar:** `lib/collaboration-workspace.ts` (okuma + bütün yazımlar), `lib/collaboration-workspace-shared.ts`, `lib/collaborations.ts`
@@ -572,13 +640,144 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     `collaboration_submissions.file_key`, `file_locked` (kontrol kısıtı url veya file_key ister).
   - ✅ ~~**3.18-S1 [DÜŞÜK]**~~ (2026-10-11 kullanıcı kararı: olduğu gibi kalır; UGC'de de teslimat yayın linkiyle tamamlanır, marka onayı tek başına teslim sayılmaz) UGC video teslimatı da yayın linki istiyor (Instagram/TikTok/YouTube); marka içeriği kendi hesabında yayınlıyorsa influencer
     markanın gönderi linkini girmeli. UGC için "onaylandı = teslim edildi" ayrımı istenirse kararla eklenir.
-  - **3.18-S2 [DÜŞÜK]** (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
+  - ✅ ~~**3.18-S2 [DÜŞÜK]**~~ (2026-10-15: yeniden açılışta eski anlaşma özeti, teslimatlar (taslak geçmişi ve ölçümler cascade) ve ödeme kaydı silinir, iş birliği temiz başlar; tek işlemde `reopen_collaboration` (service role). Fonksiyon canlıya uygulanana kadar kod aynı işi sırayla yapar (bkz. 3.18-S6). Mevcut veriye dokunulmadı) (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
     kalır. Bugün yeniden açma yalnızca başvuruda ve nadir; gerekirse yeniden açılışta sıfırlanır.
-  - **3.18-S3 [DÜŞÜK]** (yeni bulgu) Anlaşma kaydı ile teslimat değişiklikleri tek veritabanı işleminde değil (sürüm kilidi var; teslimat yazımı arada hata verirse liste
+  - ✅ ~~**3.18-S3 [DÜŞÜK]**~~ (2026-10-15: anlaşma ve teslimat listesi tek işlemde `save_collaboration_agreement` (service role, sürüm kilidi korunur; yarışta hiçbir şey yazılmaz). Fonksiyon canlıya uygulanana kadar eski sıralı yazım yedek (bkz. 3.18-S6)) (yeni bulgu) Anlaşma kaydı ile teslimat değişiklikleri tek veritabanı işleminde değil (sürüm kilidi var; teslimat yazımı arada hata verirse liste
     kısmen güncellenebilir, aynı form tekrar kaydedilince düzelir). Gerekirse service role RPC'sine taşınır.
-  - **3.18-S4 [DÜŞÜK]** (yeni bulgu) Web teklif listesinde (influencer) marka güvenilirliği satırı yok; marka profili ve iş birliği detayında var, mobilde teklif detayında var.
-  - **3.18-S5 [ORTA]** (yeni bulgu, 3.18-S1 kararından) Marka teslimatı onaylayıp içeriği yayınlamazsa yayın linki girilemez, iş birliği "devam ediyor"da kalır ve
+  - ✅ ~~**3.18-S4 [DÜŞÜK]**~~ (2026-10-15: web İşler teklif ayrıntısında (influencer) "X iş birliği, Y ödeme teyitli" (`brandReliability`, mobil teklif detayıyla aynı)) (yeni bulgu) Web teklif listesinde (influencer) marka güvenilirliği satırı yok; marka profili ve iş birliği detayında var, mobilde teklif detayında var.
+  - ✅ ~~**3.18-S5 [ORTA]**~~ (2026-10-14, kullanıcı onayı: "Ödeme alamadım" iş birliği tamamlandıktan **ya da** bütün teslimatlar onaylandıktan
+    (onaylandı / yayınlandı; son onay zamanı) 14 gün sonra açılır, hangisi önceyse; iptal edilende açılmaz. Sunucu kontrolü `lib/collaboration-workspace.ts`
+    (`nonpaymentAvailableAt`, izinler ve `reportNonpayment` aynı kural), destek kaydına "Teslimatların hepsi onaylandı" tarihi eklendi; web ve mobil
+    açıklama metni iki yolu söylüyor) Marka teslimatı onaylayıp içeriği yayınlamazsa yayın linki girilemez, iş birliği "devam ediyor"da kalır ve
     tamamlanmadığı için "Ödeme alamadım" düğmesi (tamamlanma + 14 gün) hiç çıkmaz. Çözüm önerisi: tüm teslimatlar onaylandıktan 14 gün sonra da düğme açılsın.
+  - **3.18-S6 [DÜŞÜK]** (2026-10-15, yeni bulgu) `reopen_collaboration` ve `save_collaboration_agreement` SQL fonksiyonları canlıya MCP ile
+    uygulanamadı (gövdede DELETE olduğu için onay zaman aşımına uğradı). `supabase/manual/2026-10-15_is_birligi_rpc.sql` SQL Editor'de çalıştırılınca
+    3.18-S2/S3 tek işlemde çalışır; o zamana kadar kod aynı işi eski sıralı yolla yapar (fonksiyon yok hatasında yedek yol). Sıralama önemli değil.
+
+### 3.19 Kampanyalar (marka) ve müsaitlik (influencer) (yol haritası özellik 4; 2026-10-14 kullanıcı onayıyla Aralık'tan öne çekildi)
+- **Dosyalar:** `lib/campaigns.ts` (bütün kurallar), `lib/campaigns-shared.ts`, `lib/availability.ts`, `lib/availability-shared.ts`, `lib/offers.ts`
+  (`createOfferAs` `campaignId`, kota hatasında `code: 'quota'`), `lib/profile-reads.ts` (kart alanlarında müsaitlik), `lib/discover-filters.ts`
+  (`availableOnly`, dolu profiller sonda), `lib/collaboration-workspace.ts` (`campaignBrief`), web `app/dashboard/brand/campaigns/{page,new,[id],[id]/edit,[id]/invite,[id]/export}`,
+  `app/dashboard/brand/campaigns/actions.ts`, `app/actions/campaign-brief.ts`, `components/campaigns/*`, `components/settings/AvailabilitySettings.tsx`,
+  `components/profile/OfferModal.tsx` (kampanya seçimi + dolu uyarısı), `components/dashboard/{OffersManager,CollaborationWorkspace}.tsx` (brief),
+  mobil `/api/mobile/{campaigns,campaigns/[id],availability}`, `screens/brand/{CampaignsScreen,CampaignDetailScreen}.js`, `components/{CampaignBrief,CampaignFormSheet}.js`,
+  `constants/{campaigns,availability}.js`; migration `20261014000030_campaigns_availability.sql` (canlıda).
+- **Veri:** `campaigns` (marka başına en fazla 100; ad, brief: hedef, ana mesajlar, yapılacaklar / yapılmayacaklar, örnek linkler (http/https, en fazla 10),
+  etiket / bahsetme (en fazla 20), not; hedef: kategoriler (`utils/categories.ts` anahtarları), şehirler, platform, üretici türü, takipçi aralığı; toplam bütçe (₺ tam sayı,
+  isteğe bağlı), başlangıç / bitiş, varsayılan teslimatlar (iş birliği anlaşmasıyla aynı türler + adet), durum taslak / aktif / tamamlandı / arşiv).
+  `offers.campaign_id`, `advert_projects.campaign_id`; `enforce_campaign_owner` tetikleyicisi kampanyanın teklifin gönderenine / ilanın sahibine ait olmasını şart koşar
+  (istemci ve service role yazımları). `users.availability_status` (`open`/`busy`), `availability_note` (≤140), `availability_until`, `availability_updated_at`.
+- **Güvenlik:** `campaigns` RLS: yalnızca sahibi marka (ve admin) SELECT; istemciye INSERT/UPDATE/DELETE yok, bütün yazımlar `lib/campaigns.ts`'te rol + onay + sahiplik
+  kontrolünden sonra service role ile. Davet edilen influencer brief'i **yalnızca sunucu kodundan** görür (dar RLS politikası açılmadı): teklif ekranında
+  `getOfferCampaignBrief` / mobil `GET /api/mobile/offers` (teklif RLS'li okunur; yalnızca alıcı / gönderen), iş birliği detayında `campaignBriefForCollaboration`
+  (taraf olduğu RLS'li okumayla doğrulandıktan sonra). Böylece hedef, toplam bütçe ve diğer davetliler istemciye hiç gitmez. Müsaitlik kolonları
+  `users_before_update_guard` beyaz listesinde değil: istemci yazamaz (sessizce düşer), yazım `setAvailabilityAs` (yalnızca influencer, kendi satırı, service role);
+  sahibine kolon SELECT yetkisi var, başkaları `lib/profile-reads.ts` kart alanlarıyla görür.
+  Canlıda rollback'li denemeyle doğrulandı: sahibi kendi kampanyasını görür; başka marka 0 satır; davet edilen ve edilmeyen influencer 0 satır; anon reddedilir;
+  istemci INSERT/UPDATE/DELETE reddedilir; başka markanın kampanyasıyla teklif (istemci ve service role) ve ilan bağlama `campaign_owner_mismatch` ile reddedilir,
+  kendi ilanını bağlama çalışır; influencer teklifin `campaign_id`'sini değiştiremez; istemcinin müsaitlik yazımı uygulanmaz, kendi satırını okur.
+- **Maddeler:**
+  - ✅ ~~**3.19-N1 [ÖZELLİK]**~~ (2026-10-14, kampanya: web `/dashboard/brand/campaigns` (menüde "Kampanyalar"), sihirbaz brief → hedef → önerilen profiller → davet;
+    düzenleme, durum, arşiv; mobil Kampanyalar ekranı (marka ana sayfasından) ve basit oluşturma / düzenleme sayfası) Marka kampanya kapsayıcısı.
+  - ✅ ~~**3.19-N2 [ÖZELLİK]**~~ (2026-10-14, öneriler + toplu davet: öneriler `listDiscoverProfiles` ile (onay, keşif çarkı, doğrulanmış hesap kuralı aynen) hedefe göre
+    süzülür; sıra müsait olanlar önce, kategori uyumu (hedef kategori yoksa marka sektörü, `lib/category-map.ts`), fiyat kartı başlangıç fiyatı toplam bütçeye sığanlar,
+    takipçi. Toplu davet = seçilen her profile ayrı teklif (`createOfferAs`: kota, doğrulama, 7 günlük süre, bildirim / e-posta / push, çark; her davet teklif hakkından düşer),
+    tek seferde en fazla 25, sırayla; teklif hakkı dolunca durur ve gönderilemeyen / denenmeyen profilleri bildirir; bu kampanyada bekleyen ya da kabul edilmiş teklifi
+    olan atlanır. İlk davetle taslak kampanya "aktif" olur. Teklif alanları (tür, nakit / barter, kişi başı bütçe, mesaj) bir kez doğrulanır; teklif şablonundan
+    doldurulabilir) Sihirbaz önerileri ve toplu davet.
+  - ✅ ~~**3.19-N3 [ÖZELLİK]**~~ (2026-10-14, Spotlight Pro kapısı: `free_brand_limits_enabled` açıkken öneriler ve birden fazla profile aynı anda davet yalnızca
+    Spotlight Pro (`campaignFeaturesFor`, sunucuda); ücretsiz / Basic marka kampanya açar, profilleri tek tek ekler (profil sayfasındaki teklif penceresinde kampanya
+    seçimi, mobil teklif formunda kampanya çipi, mevcut teklifleri bağlama). Kilit kartı `CampaignProLockedCard` (fiyat yok). Bayrak kapalıyken herkes her şeyi kullanır)
+    Ücretsiz / ücretli ayrımı.
+  - ✅ ~~**3.19-N4 [ÖZELLİK]**~~ (2026-10-14, bağlama: mevcut teklif ve ilan kampanyaya bağlanır / çıkarılır (yalnızca markanın kendi kaydı, başka kampanyaya bağlı
+    kayıt önce oradan çıkarılmalı); bağlı ilandan kabul edilen başvurular kampanya tablosunda görünür) Mevcut teklif ve ilanları kampanyaya ekleme.
+  - ✅ ~~**3.19-N5 [ÖZELLİK]**~~ (2026-10-14, kampanya panosu `/dashboard/brand/campaigns/[id]` ve mobil `CampaignDetail`: profil başına teklif durumu (bekliyor / kabul /
+    red / süresi doldu / geri çekildi), iş birliği aşaması, teslimat "X / Y yayında", anlaşılan ücret (anlaşma özeti, onay bekliyorsa işaretli), ödeme (marka işaretledi /
+    influencer teyit etti); özet: toplam bütçe, kalan, anlaşılan nakit ücretler, marka işaretli ve teyitli ödenen tutar, davet sayıları. İş birliği / İşler / sohbet
+    bağlantıları. CSV `/dashboard/brand/campaigns/[id]/export` (yalnızca sahibi; `;` ayraçlı, UTF-8 BOM, formül hücreleri kaçırılır)) Kampanya panosu ve CSV.
+  - ✅ ~~**3.19-N6 [ÖZELLİK]**~~ (2026-10-14, brief: davet edilen influencer teklif ayrıntısında (web İşler, mobil İşler) ve iş birliği detayında (web + mobil) brief'i
+    salt okunur görür; anlaşma özeti formu teslimat yoksa kampanyanın varsayılan teslimatlarıyla dolar) Brief'in davetliye gösterilmesi.
+  - ✅ ~~**3.19-N7 [ÖZELLİK]**~~ (2026-10-14, müsaitlik: "İş alıyorum / Şu an dolu" + isteğe bağlı not ve bitiş tarihi (geçince kendiliğinden "İş alıyorum"; okurken
+    hesaplanır, saatlik görev de temizler). Web influencer ayarları, mobil Ayarlar. Keşif kartında (web + mobil) "Şu an dolu" çipi, profilde (web + mobil) durum ve not;
+    doluyken keşifte her sıralamada sonda, kampanya önerilerinde sonda; keşifte "Yalnızca iş alanlar" filtresi (web + mobil, sunucuda `availableOnly`); teklif penceresi
+    (web + mobil) ve toplu davet uyarı gösterir, gönderim serbest) Influencer müsaitliği.
+- **Sorunlar / notlar:**
+  - ✅ ~~**3.19-S1 [DÜŞÜK]**~~ (2026-10-15: kampanyaya isteğe bağlı "Kişi başı bütçe" ve "Planlanan profil sayısı" (`campaigns.per_creator_budget`, `planned_creators`, canlıda). "Bütçeye sığar" kıyası `campaignBudgetPerCreator`: kişi başı bütçe, yoksa toplam ÷ planlanan profil, yoksa toplam. Web formu + mobil form; davet adımı kişi başı tutarla dolar, etiket kıyas dayanağını yazar) (yeni bulgu) Kampanya önerilerindeki "bütçeye sığar" kıyası en düşük başlangıç fiyatıyla toplam kampanya bütçesini karşılaştırır (kişi başı bütçe
+    kavramı yok). Davet adımında kişi başı bütçe × seçilen profil sayısı toplam bütçeyle yan yana gösterilir; sınır uygulanmaz.
+  - ✅ ~~**3.19-S2 [DÜŞÜK]**~~ (2026-10-15: mobil kampanya tarihleri ve müsaitlik bitişi uygulama içi takvimle (`components/ui/DateField.js`; yeni yerel paket yok, YYYY-AA-GG sunucuya aynı). CSV yalnızca web'de kalır; mobil not kampanyayı web'de açar) (yeni bulgu) CSV dışa aktarma yalnızca web'de; mobil panoda not var. Mobil tarih alanları (kampanya, müsaitlik bitişi) metin (YYYY-AA-GG);
+    tarih seçici eklenebilir.
+  - **3.19-S3 [DÜŞÜK]** (yeni bulgu) Toplu davet sırayla gönderilir (25 teklif, her biri bildirim + e-posta + push); sayfa ve mobil uçta `maxDuration = 60`. Resend
+    ücretsiz plan kotası (8.4-S1) büyük davetlerde hızla dolabilir (%80'de bildirim e-postaları zaten durur).
+  - **3.19-N8 [KARAR]** Spotlight paket listesi (`lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`): "Kampanya sihirbazı ve toplu davet" Marka Pro'ya
+    eklenmedi; kapı yalnızca bayrak açıkken çalıştığı için bugün herkese açık. **Karar (2026-10-14):** satış başladığında, `free_brand_limits_enabled`
+    açıldığı anda Marka Pro listesine (web + mobil + SSS) eklenir; o zamana kadar açık kalır (ROADMAP "satış başlarken yapılacaklar").
+  - ✅ ~~**3.19-N9 [KARAR]**~~ (2026-10-14, kullanıcı kararı: silme yok, yalnızca arşiv; kod değişikliği yok) Kampanya silme yok (arşiv var); bağlı teklif / ilan silinince bağ `ON DELETE SET NULL`.
+
+### 3.20 Sonuç raporu (yol haritası özellik 3'ün rapor kısmı; 2026-10-14, R2 gerektirmez)
+- **Dosyalar:** `lib/post-metrics.ts` (takip, Apify ölçümü, saatlik iş, elle güncelleme, okuma, kampanya sonuçları), `lib/post-metrics-shared.ts`
+  (etiketler, etkileşim hesabı, tipler), `lib/collaboration-workspace.ts` (yayında takip satırı açılır; `DeliverableView.metrics`), `app/api/cron/hourly/route.ts`
+  (`processDueMetrics`), web `components/dashboard/DeliverableMetricsPanel.tsx`, `app/dashboard/collaborations/[id]/actions.ts` (`refreshMetricsAction`),
+  `app/dashboard/brand/campaigns/[id]/{page,report/page,export/route}.ts(x)`, `components/campaigns/{CampaignResultsTable,CampaignResultsLockedCard,PrintButton}.tsx`,
+  `lib/campaigns.ts` (`campaignFeaturesFor().results`, CSV ölçüm sütunları), mobil `/api/mobile/collaborations/[id]/metrics`, `/api/mobile/campaigns/[id]` (`results`),
+  `mobile-app/components/{DeliverableMetrics,CampaignResults}.js`, `constants/postMetrics.js`; migration `20261014000070_deliverable_metrics.sql` (canlıda).
+- **Veri:** `deliverable_metric_tracking` (teslimat başına: platform, gönderi linki, durum ölçülüyor / tamamlandı / ulaşılamıyor / ölçülmüyor, sıradaki ölçüm 1 / 7 / 30. gün
+  ve zamanı, yayın anındaki takipçi (UGC videoda boş), art arda hata sayısı, son elle güncelleme), `deliverable_metric_snapshots` (beğeni, yorum, izlenme, paylaşım,
+  ölçüm anı, aşama `d1`/`d7`/`d30`/`manual`). İkisi de RLS'li, istemciye yalnızca SELECT ve yalnızca iş birliğinin tarafları + admin (`is_collaboration_party`);
+  yazımlar service role. Canlıda rollback'li denemeyle doğrulandı: marka ve influencer görür, taraf olmayan marka / influencer 0 satır, istemci INSERT / UPDATE / DELETE
+  reddedilir, anon SELECT reddedilir.
+- **Ölçüm:** Apify anahtar havuzu (`runApifyActor`; yalnızca herkese açık gönderi linki gider, kişisel veri yok). Instagram gönderi / Reels: `apify~instagram-scraper`
+  (`directUrls`, `resultsType: details`; beğeni gizliyse boş), TikTok: `clockworks~tiktok-scraper` (`postURLs`). Story (24 saatte kaybolur) ve YouTube (havuzda anahtar /
+  ucuz aktör yok) "ölçülmüyor". Saatlik görevde istatistik yenilemesiyle paralel: tek platform, tek koşu, en fazla 10 gönderi, en eski önce, koşu en geç 10. saniyede başlar;
+  seçilen satırlar 1 saat "kiralanır" (üst üste binen tur aynı gönderiyi ölçmez). Gecikmeli turda geçmiş en son aşama tek ölçümle alınır. Gönderiye ulaşılamazsa 6 saat
+  sonra tekrar, art arda 3 hatada "ulaşılamıyor" ve durur; servis / kredi kesintisi gönderiye sayılmaz (bir sonraki saat). Eksik takip satırları (son 31 gün) her turda
+  tamamlanır.
+- **Maddeler:**
+  - ✅ ~~**3.20-N1 [ÖZELLİK]**~~ (2026-10-14, ölçüm altyapısı: yukarıdaki tablolar + saatlik iş + Apify; yayından ~1, 7, 30 gün sonra, sonra durur) Yayın linkinden beğeni /
+    yorum / izlenme.
+  - ✅ ~~**3.20-N2 [ÖZELLİK]**~~ (2026-10-14, iş birliği detayında (web + mobil) teslimat başına son ölçüm, ölçüm geçmişi (son 10), etkileşim ve ölçütü: izlenme varsa
+    (beğeni + yorum) / izlenme, yoksa yayın anındaki takipçiye göre (etikette yazar). İki taraf da görür (influencer kendi gönderilerini, ücretsiz). Marka "Şimdi güncelle"
+    teslimat başına 6 saatte bir (koşullu güncellemeyle DB kilidi; servis hatasında kilit geri bırakılır); sayfa ve mobil uçta `maxDuration = 60`) Taraflara ölçümler.
+  - ✅ ~~**3.20-N3 [ÖZELLİK]**~~ (2026-10-14, kampanya sonuçları: web kampanya panosunda "Sonuçlar" (yayındaki gönderi, toplam izlenme, beğeni / yorum, etkileşim, 1000 izlenme
+    başı ve etkileşim başı maliyet; profil satırları), mobil kampanya ekranında aynı; maliyet yalnızca anlaşma özetindeki nakit ve 0'dan büyük ücretten, 1000 izlenme başı
+    yalnızca bütün ölçülen gönderilerinde izlenme olan profilde; etiketlerde yazar. Kıyas / ortalama yok. Yazdırılabilir rapor `/dashboard/brand/campaigns/[id]/report`
+    (yazdırma CSS'i; tarayıcıdan "PDF olarak kaydet", dış servis yok). CSV'ye ölçüm sütunları) Kampanya raporu.
+  - ✅ ~~**3.20-N4 [ÖZELLİK]**~~ (2026-10-14, kapı: `free_brand_limits_enabled` açıkken kampanya düzeyindeki rapor (panodaki Sonuçlar, rapor sayfası, CSV ölçüm sütunları,
+    mobil `results`) yalnızca Spotlight Pro (`campaignFeaturesFor().results`, sunucuda); kilit kartı `CampaignResultsLockedCard` (fiyat yok). İş birliği başına ölçüm her
+    zaman iki tarafa açık. Bayrak kapalıyken (bugün) herkes görür) Ücretsiz / ücretli ayrımı.
+- **Sorunlar / notlar:**
+  - **3.20-S1 [ORTA]** (yeni bulgu) Apify aktörlerinin gönderi bağlantısıyla girdi / çıktı alanları bu oturumda canlı denenemedi (oturumdan api.apify.com'a erişim yok;
+    toplu deneme yapılmadı). Alanlar savunmacı okunuyor (eşleşmeyen sonuç "ulaşılamadı" sayılır, 3 hatada durur). İlk gerçek yayından sonra `deliverable_metric_snapshots`
+    ve saatlik görev çıktısındaki `postMetrics` kontrol edilmeli.
+  - ✅ ~~**3.20-S2 [DÜŞÜK]**~~ (2026-10-15: teslimatsız iş birliğinde girilen yayın linki tek "Diğer" teslimatı (yayınlandı) olarak da yazılır ve ölçüm takibi başlar; ölçüm, sonuç raporu ve portföy teslimat üzerinden işler. Anlaşma özeti yokken bu teslimat "Ödeme alamadım" için marka onayı sayılmaz. Canlıda eski kayıt yoktu, geriye dönük işlem gerekmedi) (yeni bulgu) Teslimatsız eski iş birliklerinin tek yayın linki (`collaborations.publish_url`) ölçülmüyor; yalnızca teslimat linkleri. Canlıda bu tür
+    kayıt yok (2026-10-14).
+  - ✅ ~~**3.20-S3 [DÜŞÜK]**~~ (2026-10-15, varsayılan kabul: güncel ölçekte eşzamanlı 4 Apify koşusu kabul edilebilir; `/admin/api-keys`'ten izlenir) (yeni bulgu) Saatlik görevde eşzamanlı Apify koşusu 3'ten 4'e çıktı (istatistik 3 + ölçüm 1). Bellek sınırına takılırsa anahtar 1 dk "hız limiti"
+    alır ve sıradaki tur dener; `/admin/api-keys`'ten izlenir.
+  - ✅ ~~**3.20-S4 [DÜŞÜK]**~~ (2026-10-15, varsayılan kabul: yayın anındaki takipçinin son istatistik yenilemesinden alınması yeterli) (yeni bulgu) "Yayın anındaki takipçi" hesabın son istatistik yenilemesinden (en fazla ~3 gün eski) alınır; UGC videosunda tutulmaz (gönderi
+    çoğu zaman markanın hesabında).
+  - **3.20-S5 [DÜŞÜK]** (yeni bulgu) YouTube linkleri ölçülmüyor ("Bu bağlantı için ölçüm yok"). Havuzda YouTube Data API anahtarı yok; eklenirse ya da ucuz aktör
+    seçilirse `fetchPostMetrics`'e eklenir.
+  - ✅ ~~**3.20-N6 [ÖZELLİK]**~~ (2026-10-14, 4.3-S7 kararı, `claude/portfolio-results`) **Portföyde iş birliği sonuçları:** influencer/UGC profilinde (web
+    `/profile/[username]`, mobil profil detayında "Sonuçlar" sekmesi) tamamlanan iş birlikleri: marka, teslimat türleri, yayın tarihi, iş birliği toplamı ve gönderi
+    başına son ölçüm (izlenme, beğeni, yorum, etkileşim; etiketler sonuç raporuyla aynı). Kod `lib/portfolio-results.ts` (+ `-shared`), web
+    `components/profile/PortfolioResults.tsx`, `app/actions/portfolio.ts`, mobil `components/PortfolioResults.js`, `constants/portfolio.js`, `/api/mobile/portfolio`,
+    `/api/mobile/profiles/[id]` (`portfolio`). **Kapı:** başkalarına yalnızca profil sahibi Influencer Pro ise (onaylı + aktif Spotlight + `ipro`,
+    `resolveSubscriptionTier` = SPOTLIGHT_PLUS; sunucuda, bayrağa bağlı değil). Sahibi kendi sonuçlarını her zaman görür (influencer Ayarlar sayfası, kendi profili,
+    mobil Profil → Sonuçlar) ve Pro değilse fiyatsız kilit notu. Profil erişim kuralı (oturum, marka onayı, keşif çarkı) önce `getProfileForViewer` ile uygulanır.
+    **Gizlilik:** influencer iş birliğini tek tek gizler (`portfolio_hidden_items`; gizli kayıt başkalarına hiç gönderilmez). Marka adı yalnızca marka izin verdiyse
+    (`brand_portfolio_settings.show_name`, **varsayılan kapalı**; web marka Ayarlar + mobil Ayarlar "İş birliği sonuçlarımda markamın adı görünsün"); yoksa "Bir marka" +
+    sektör. Gönderi bağlantısı markayı gösterdiği için izin yoksa başkalarına bağlantı da gönderilmez (bkz. 3.20-N8). Ücret, anlaşma, başlık, not hiç gönderilmez.
+    Migration `20261014000090` canlıda; iki tablo da istemcilere tamamen kapalı (RLS açık, politika yok, anon/authenticated SELECT/INSERT/UPDATE reddi rollback'li denemeyle doğrulandı).
+  - **3.20-N7 [ÖZELLİK, GÖNDERİM BEKLİYOR]** (2026-10-14) **Haftalık özette detaylı istatistik:** `lib/weekly-summary.ts` `buildWeeklyCreatorSummary(userId)` (son 7 gün:
+    gelen / kabul edilen / bekleyen teklif; Influencer Pro'da ayrıca profil görüntülenme + görüntüleyen marka sayısı ve hafta içinde ölçülen gönderilerin son ölçümü)
+    ve `renderWeeklyCreatorEmail` (konu, düz metin, kaçışlı HTML). Admin önizlemesi `/admin/weekly-preview?user=` (menü: "Haftalık Özet Önizleme"; "Pro görünümünü dene").
+    **Gönderim ve cron yok:** Resend ücretli plana geçilince eklenecek (e-posta tercihi + %80 kota kuralı uygulanmalı); o zaman Influencer Pro listesine yazılır.
+  - ✅ ~~**3.20-N8 [KARAR]**~~ (2026-10-15, kullanıcı varsayılanı kabul etti: marka izni yoksa bağlantı gizli kalır) (yeni, 2026-10-14) Portföyde marka izin vermediyse gönderi bağlantısı da gizleniyor (bağlantı markayı açık eder; daha güvenli seçenek).
+    Kullanıcı isterse bağlantı her zaman gösterilebilir (`lib/portfolio-results.ts` `showLinks`).
+  - **3.20-S6 [DÜŞÜK]** (yeni bulgu) Canlıda tamamlanmış iş birliği yok (2026-10-14); portföy ve haftalık özet gerçek veriyle denenmedi. Toplu testte bir iş birliği
+    tamamlanıp ölçüldükten sonra Pro / Pro olmayan profil, gizleme ve marka adı izni kontrol edilmeli.
+  - **3.20-N5 [KARAR]** Spotlight paket listesi: "Kampanya sonuç raporu" Marka Pro'ya eklenmedi (dosya başka dalda düzenleniyor). 3.19-N8 ile aynı: bayrak açıldığında
+    Marka Pro listesine (web `lib/spotlight-plans.ts` + mobil `constants/spotlightPlans.js` + SSS) eklenir. Önerilen satır: "Kampanya sonuç raporu (izlenme, etkileşim,
+    maliyet; yazdırılabilir)".
 
 ---
 
@@ -608,12 +807,41 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     kolon beyaz listede olmadığı için sessizce düşüyor; cron da kapatmıyor. Süresi dolanlar sıralamada önde, +10 güven puanı ve mavi tik hakkı sürüyor.
     Fonksiyon ayrıca istemciden gelen `userId`'ye güveniyor.
   - ✅ ~~**4.3-S2 [ORTA]**~~ (fiyatlar `lib/spotlight-plans.ts`'te tek yerde (değerler değişmedi), seviye eşlemesi 2.9-S2 ile tekleşti; plan sayfaları metadata rolü okumuyor) Fiyatlar birden çok yerde sabit; seviye eşlemesi tutarsız (bkz. 2.9-S2); plan sayfaları metadata rolünü okuyor.
+  - ✅ ~~**4.3-S4 [ORTA]**~~ (2026-10-14, kullanıcı onayı) Marka Pro (`mpro`) paketinde "Profil koçu" yazıyordu ama marka tarafında profil koçu yok
+    (yalnızca influencer görünümünde düğme). Paketten (web `lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`, SSS) kaldırıldı; yerine kodda
+    gerçekten yalnızca Pro'da açık olan keşif filtreleri ("Verisi olanlar", "Mavi tikli") yazıldı (mobilde de sunucuda Pro kontrolüyle, 3.2-N1).
+  - ✅ ~~**4.3-S5 [ORTA]**~~ (2026-10-14, kullanıcı onayı) `resolveSubscriptionTier` her markaya plandan bağımsız `BRAND_PRO` veriyordu. Artık
+    gerçek plan: onaylı + aktif Spotlight değilse FREE, `mbasic` → SPOTLIGHT, `mpro` → BRAND_PRO (influencer'daki ibasic/ipro düzeniyle aynı).
+    Seviye yalnızca profil sayfasındaki analiz düğmelerini (`InfluencerStats`, `generateAIAnalysis`) belirler. **Değişen:** "Kampanya ROI" analizi
+    önceden her markaya açıktı, artık yalnızca Marka Pro'da (diğer markalarda kilit + paket penceresi). "Genel Özet" herkese açık kaldı; "Uyum Skoru"
+    düğmesi zaten "Çok yakında" uyarısı veriyor. Paket listelerine ROI eklenmedi (metinlerinde doğrulanmamış iddialar var, bkz. 4.3-S6).
+  - ✅ ~~**4.3-S6 [DÜŞÜK]**~~ (2026-10-14, kullanıcı kararı: maddeler çıksın) Influencer paketlerinde "Uyum skoru analizi" ve "Profil koçu" yazıyordu ama
+    düğmeler yalnızca "Çok yakın zamanda!" diyordu. Paket listelerinden (web + mobil), influencer Spotlight sayfasından ("Detaylı Profil Analizi" kartı),
+    SSS'den çıktı; profil sayfasındaki iki düğme ve `generateAIAnalysis` içindeki iki modül kaldırıldı. "Kampanya ROI" yalnızca profilin kendi ölçümlerini
+    yazar (etkileşim hacmi, izlenme oranı, etkileşim oranı); "sektör ortalamasının 3x üzerinde", "birim maliyetiniz çok ucuza gelir", "para kaybettirmez",
+    uydurma erişim çarpanı (×2.5 / ×1.2) gibi kaynaksız iddialar çıktı. Web + mobilde benzer kaynaksız iddialar da temizlendi (Genel Özet'te
+    "Geleneksel TV reklamlarına rakip", "Ortalamanın üzerinde"; rozet sayfalarında "Algoritmamız rozetli profilleri önceliklendirir" (böyle sıralama yok);
+    Spotlight vitrininde "gerçek sonuçlar sunar", "rakiplerinin önüne geç"; site açıklamasında "Türkiye'nin en şeffaf", "doğrudan iletişime geçin").
+  - ✅ ~~**4.3-S7 [KARAR]**~~ (2026-10-14, `claude/portfolio-results`: Influencer Pro'ya gerçek özellik "Portföyde iş birliği sonuçları" (3.20-N6) eklendi ve
+    paket listesine (web `lib/spotlight-plans.ts`, mobil `constants/spotlightPlans.js`, SSS) yazıldı. Haftalık özetin verisi ve admin önizlemesi hazır (3.20-N7);
+    gönderim Resend ücretli planı bekliyor, o yüzden listede yok) (yeni bulgu, 2026-10-14) 4.3-S6 sonrası Influencer Basic (99 ₺) ve Pro (199 ₺) listeleri aynı (rozet/çerçeve, öncelikli listeleme,
+    profil görüntülenmeleri); kodda da `ipro`'nun ek bir karşılığı kalmadı. Pro'ya çalışan bir özellik eklenene kadar (ör. yol haritasındaki sonuç raporları)
+    fiyat/paket kararı kullanıcıda. Uydurma madde eklenmedi.
+    **Karar (2026-10-14):** Influencer Pro'ya sonuç raporunun (3.20) üstüne gerçek özellikler gelecek: önce **"portföyde sonuç raporları"** (tamamlanan iş birliklerinin
+    ölçümleri influencer profilinde; okuma `lib/post-metrics.ts` `listDeliverableMetrics` ile, görünürlük kuralı sunucuda), sonra **"haftalık özette detaylı istatistik"**
+    (Resend ücretli plan gerekir). Henüz yapılmadı; madde açık, 3.20 birleştikten sonraki adım (ROADMAP).
+  - ✅ ~~**4.3-N1 [KARAR]**~~ (2026-10-15 kullanıcı kararı: fiyatlar `lib/spotlight-plans.ts` + mobil `constants/spotlightPlans.js` — Influencer Basic
+    149 / 1.490 ₺, Pro 299 / 2.990 ₺; Marka Basic 990 / 9.900 ₺, Pro 2.490 / 24.900 ₺ (aylık / yıllık, yıllık = 10 ay). Marka Pro listesine "Profillerde
+    kampanya ROI analizi" eklendi. Marka Basic sınırları `platform_settings`'e yazıldı: günde 10 / ayda 60 teklif, 3 aktif ilan (`20261015000010`, canlıda;
+    yalnızca `free_brand_limits_enabled` açıkken uygulanır)) Spotlight fiyatları ve Marka Basic sınırları.
   - ✅ ~~**4.3-S3 [DÜŞÜK]**~~ (`/dashboard/influencer/spotlight` sahte istatistik gösteriyordu; artık `/dashboard/spotlight/influencer`'a yönleniyor. 2026-10-10, kullanıcı kararı: ajans sayfası ve Spotlight seçimindeki "Agency Edition" kartı kaldırıldı; ajans paketi gelince eklenir) `/dashboard/influencer/spotlight` menüde yok; `/dashboard/spotlight/agency` statik "Çok Yakında".
 
 ### 4.4 Benzer profiller
 - **Dosyalar:** `app/actions/spotlight.ts` (`getSimilarInfluencers`), `SimilarProfilesModal.tsx`
 - **Sorunlar:** ✅ ~~**4.4-S1 [YÜKSEK]**~~ (doğrulanmış hesaplardan okunuyor, oturum gerekli) Var olmayan `instagram_stats` kolonunu okuyor → takipçi hep 0, filtre neredeyse hiçbir şey döndürmüyor.
   Yetki/Spotlight kontrolü yok, `limit(5)` filtreden önce.
+  - ✅ ~~**4.4-S2 [ORTA]**~~ (2026-10-14) Benzer profil keşfi Spotlight özelliği ama `getSimilarInfluencers` yalnızca oturum, marka onayı ve çarkı
+    kontrol ediyordu (kilit yalnızca arayüzde). Artık aktif Spotlight (admin hariç) sunucuda şart. Mobilde karşılığı yok.
 
 ### 4.5 Herkese açık profil `/profile/[username]`
 - **Dosyalar:** `app/profile/[username]/page.tsx`, `app/profile/actions.ts`
@@ -677,6 +905,12 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.4-S1 [YÜKSEK]**~~ (2026-10-09, kullanıcı kararı: `lib/notify.ts`; yeni teklif, teklif yanıtı / görüşme isteği, yeni başvuru, başvuru sonucu, yeni mesaj (oda başına saatte bir, çevrimiçiyken e-posta yok, içerik e-postaya konmaz), destek yanıtı, sarı tik değişikliği için site içi bildirim; önemli olaylarda e-posta. Mobilden gelen olaylar mobil güncellemesinde) Yeni teklif, teklif durumu, yeni başvuru, başvuru durumu, yeni mesaj, destek yanıtı için hiçbir bildirim ya da e-posta üretilmiyor.
     Tek üreticiler admin paneli ve Spotlight bildirimi.
   - ✅ ~~**5.4-S2 [DÜŞÜK]**~~ (etiket kaldırıldı) Header herkese sabit "PREMIUM" etiketi gösteriyor.
+  - ✅ ~~**5.4-S3 [ORTA]**~~ (2026-10-14, kullanıcı onayı) Admin hesabı onaylayınca / reddedince (`verifyUser`, `rejectUser`) kullanıcıya hiçbir
+    bildirim gitmiyordu. Artık `account_status` olayı: site içi + push + e-posta ("Platform Güncellemeleri" tercihine bağlı, önemli olay sayıldı);
+    marka ve influencer için ayrı metin, yalnızca durum gerçekten değişince.
+  - ✅ ~~**5.4-S4 [DÜŞÜK]**~~ (2026-10-14, kullanıcı onayı) İlana yeni başvuru markaya yalnızca site içi + push gidiyordu. Artık e-posta da gider
+    ("İlan Başvuruları" tercihi); aynı alıcıya aynı bağlantıyla saatte en fazla bir e-posta (`EMAIL_THROTTLED_EVENTS`), arada gelen başvurular
+    site içi + push. Mesajdaki saatlik özet düzeniyle aynı.
 
 ### 5.5 Otomatik mesajlar / hoş geldin mesajı
 - **Dosyalar:** `lib/welcome-message.ts`, `app/actions/automated-messages.ts`
@@ -795,6 +1029,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `offer_templates` | marka teklif şablonları (3.15) | sahibi okur; yazma yalnızca sunucu |
 | `saved_adverts` / `advert_alerts` | kaydedilen ilanlar, ilan alarmları (3.15) | sahibi okur; yazma yalnızca sunucu |
 | `advert_alert_runs` | alarm eşleştirmesi yapılan ilanlar (3.15) | yalnızca service role |
+| `campaigns` | marka kampanyaları: brief, hedef, bütçe, varsayılan teslimatlar (3.19) | sahibi marka ve admin okur; yazma yalnızca sunucu; davetli influencer brief'i sunucudan |
+| `deliverable_metric_tracking` / `deliverable_metric_snapshots` | sonuç raporu: gönderi ölçüm takvimi ve ölçümler (3.20) | iş birliğinin tarafları ve admin okur; yazma yalnızca sunucu |
+| `portfolio_hidden_items` / `brand_portfolio_settings` | portföyde gizlenen iş birlikleri, markanın "adım görünsün" tercihi (3.20-N6) | yalnızca service role (istemcilere kapalı) |
 
 ### 7.3 `users` koruma katmanı
 - RLS: authenticated herkes okur; anon için SELECT politikası **yok**. Kolon bazlı gizlilik: email, phone, tax_id, tax_office, tax_office_city,
@@ -878,11 +1115,13 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `GET /api/auth/{instagram,tiktok}/login` · `callback` | oturum + state çerezi | OAuth bağlama (2.3) |
 | `POST /api/mobile/verify-{instagram,tiktok}` | Bearer JWT | mobil bio doğrulama (2.1-S1: sınırsız) |
 | `GET /api/cron/refresh-stats` | `Bearer CRON_SECRET` | günlük istatistik yenileme (2.2) |
-| `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14), teklif süresi ve ilan alarmları (3.15) |
+| `GET /api/cron/hourly` | `Bearer CRON_SECRET` | anahtar sağlık kontrolü + e-posta, mavi tik taraması, iş birliği otomatik tamamlama (3.14), teklif süresi ve ilan alarmları (3.15), süresi geçen "Şu an dolu" temizliği (3.19) |
 | `GET/POST/DELETE /api/mobile/offer-templates` · `GET/POST /api/mobile/saved-adverts` · `GET/POST/DELETE /api/mobile/advert-alerts` | Bearer JWT | teklif şablonları (marka), kaydedilen ilanlar ve alarmlar (influencer) (3.15) |
 | `GET/POST /api/mobile/collaborations` · `GET/PUT /api/mobile/rate-card` | Bearer JWT | iş birliği listesi ve işlemleri, fiyat kartı (3.14) |
 | `GET/POST /api/mobile/collaborations/[id]` | Bearer JWT | takip alanı: anlaşma özeti, teslimatlar, ödeme teyidi (3.18) |
 | `GET /api/mobile/first-steps` | Bearer JWT | ilk adımlar kontrol listesi durumu (3.16) |
+| `GET/POST /api/mobile/campaigns` · `GET/PATCH/POST /api/mobile/campaigns/[id]` · `GET/POST /api/mobile/availability` | Bearer JWT | kampanyalar, öneriler, toplu davet, bağlama; müsaitlik (3.19) |
+| `GET /dashboard/brand/campaigns/[id]/export` | oturum (sahibi marka) | kampanya tablosu CSV (3.19) |
 | `POST /api/award-badges` | admin | rozet verme (2.6-S1) |
 | `GET /api/check-username` | yok | kullanıcı adı müsaitliği (7.3-S2) |
 | `GET /api/test-welcome` | yok | 410 dönen ölü taslak |
@@ -891,6 +1130,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 8.2 Zamanlanmış işler
 - **Vercel cron** (`vercel.json`): `refresh-stats` her gün 09:00 UTC.
 - **Supabase pg_cron** (`supabase/cron/hourly_jobs.sql`): her saat `/api/cron/hourly`, gizli anahtar Vault'ta.
+  Saatlik görev 2026-10-14'ten beri gönderi ölçümlerini de alır (3.20, istatistik yenilemesiyle paralel, tek Apify koşusu, en fazla 10 gönderi).
 - **Sorunlar:**
   - ✅ ~~**8.2-S2 [ORTA]**~~ (2026-10-09, yeni bulgu) Saatlik ve günlük cron yeni Apify koşusunu 25. saniyeye kadar başlatıyordu; koşu 45 sn sürebildiği için görev 60 sn sınırını aşıyor, pg_net zaman aşımı alıyordu (8 Ekim 06:00 ve 09:00). Yeni koşu en geç 10. saniyede başlıyor.
   - ✅ ~~**8.2-S1 [YÜKSEK]**~~ (Spotlight kısmı) Süresi dolan Spotlight'ı kapatan bir iş yok (4.3-S1); `refresh-stats` zaman aşımı (2.2-S2).
@@ -901,6 +1141,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   - ✅ ~~**8.3-S1 [DÜŞÜK]**~~ (anahtarlar duruma göre sıralanıyor: sağlıklılar önce, kredisi biten/hata verenler sona) `isKeyUsable` bekleme süresi olmayan `exhausted`/`error` anahtarları yine deniyor.
   - ✅ ~~**8.3-S2 [DÜŞÜK]**~~ (içerik üretme fonksiyonu ve tipleri kaldırıldı; yalnızca anahtar sağlık kontrolü kaldı) `generateGeminiContent` ve `@google/generative-ai` paketi kullanılmıyor (vergi kontrolü yerelde).
   - ✅ ~~**8.3-S3 [DÜŞÜK]**~~ (`fetchExternal` 50 sn, Resend 15 sn; Apify `?timeout=45` ile çalıştırmayı da durduruyor) `fetch` çağrılarında zaman aşımı yok.
+  - ✅ ~~**8.3-S4 [KRİTİK]**~~ (2026-10-15 kontrol: Apify aylık limiti Ekim'de sıfırlandı; anahtar aktif, 119 başarılı / 0 hatalı çağrı, bu ay 0,34 $ / 5 $; kullanım /admin/api-keys'ten izleniyor) Apify hesabı aylık kullanım sınırına dayanmıştı (HTTP 403 "Monthly usage hard limit exceeded"); 5 Ekim civarı hesap doğrulamaları ve istatistik yenilemeleri başarısızdı.
 
 ### 8.4 E-posta (Resend)
 - **Dosya:** `lib/email.ts` (`sendEmail`, `sendAdminAlertEmail`). Kullanım: admin uyarıları, kurumsal e-posta kodları.
@@ -933,7 +1174,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `SUPABASE_DB_URL` | `env.example`'da var, kullanılmıyor |
 
 ### 8.7 Gizli bilgiler ve repo hijyeni
-- **8.7-S1 [KRİTİK]** (kısmen: dosya silindi; anahtarın rocketapi.io panelinde iptali kullanıcıda, iptal edilince ✅ yap) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
+- ✅ ~~**8.7-S1 [KRİTİK]**~~ (2026-10-15 kullanıcı kararı: yok sayıldı. Dosya silindi; RocketAPI kodda hiçbir yerde kullanılmıyor, anahtar yalnızca o rocketapi.io hesabını ilgilendiriyor. Kullanıcı paneli bulamadı; hesap kullanılmıyorsa risk yok) (kısmen: dosya silindi; anahtarın rocketapi.io panelinde iptali kullanıcıda, iptal edilince ✅ yap) `test-rocket-reels-debug.js` dosyasında canlı görünen bir RocketAPI anahtarı commit'lenmiş. Anahtar iptal edilip yenilenmeli,
   dosya silinmeli (git geçmişinde kalacağı için iptal şart).
 - ✅ ~~**8.7-S2 [DÜŞÜK]**~~ (takipten çıkarıldı) `.env.local.txt` `.gitignore`'a rağmen takip ediliyor (yalnızca URL + anon key).
 - ✅ ~~**8.7-S3 [DÜŞÜK]**~~ (başıboş dosyalar silindi) Başıboş dosyalar: `validate_json.js`, `fix_turkish.js`, `crop_icon.py`, boş `types.ts`, `tsc_output.txt`, `tasarim-sistemi-analizi.txt`.
@@ -1022,12 +1263,19 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - ✅ ~~**10.3-S22 [ORTA]**~~ (2026-10-10, kullanıcı kararı) Profil düzenleme, vitrin modu, destek talebi, geri bildirim ve bildirim okundu işaretleme doğrudan tabloya yazıyordu (web doğrulamaları atlanıyordu, ör. vitrinde bağlı hesap kontrolü, avatar adresi, sosyal link kuralları). Hepsi web ile ortak sunucu koduna taşındı: `/api/mobile/{profile,showcase,support,feedback,notifications}` → `lib/{profile-update,showcase,support,feedback,notification-reads}.ts`. Marka profil alanları web'le aynı (Marka Adı = `full_name`, Şirket Ünvanı, Şehir, İnternet Sitesi; olmayan "Telefon" kaldırıldı). Vitrinden çıkmak artık onaysız hesapta da serbest (web'de de).
 - ✅ ~~**10.3-S23 [ORTA]**~~ (2026-10-10: web ve mobil aynı sunucu kodu `lib/onboarding.ts` `saveOnboarding`; web `saveOnboardingProfile` ve mobil `POST /api/mobile/onboarding` çağırır. Kullanıcı adı, profil fotoğrafı, sosyal linkler (web kuralları + normalize), influencer en az bir hesap, marka web sitesi + kurumsal e-posta + vergi no/daire/il sunucuda doğrulanır; rol istemciden değil kayıttan alınır. Mobil formda ad soyad / marka adı, web sitesi, kurumsal e-posta, vergi dairesi ve ili eklendi; `company_legal_name` ve sahte rozet notu kaldırıldı (resmi unvan marka doğrulama ekranında); `is_onboarded` metadata yazımı kalktı) Mobil onboarding `users`'a doğrudan yazıyor: sosyal linkler web kurallarıyla doğrulanmıyor, marka `tax_id` gönderiyor (beyaz liste düşürüyor) ve `is_onboarded` auth metadata'ya yazılıyor. Web onboarding'in sunucu koduna taşınmalı.
 - ✅ ~~**10.3-S24 [ORTA]**~~ (2026-10-14, yeni bulgu; ekran ve girişleri kaldırıldı) Mobil "Analiz Merkezi" (`AnalysisScreen`) tamamen sahteydi: "Yapay Zeka Önerileri" başlığı altında sabit cümleler ve uydurma oran ("%40 daha fazla erişim"), sabit "skorunuz sabit kaldı", işlevsiz "PDF indir"; skor parametresi hiç gelmediği için hep 0.
-- **10.3-S25 [DÜŞÜK]** (2026-10-14, yeni bulgu) Mobilde gerçek profil analizi yok. Web'deki kural tabanlı analiz (`app/actions/ai-analysis.ts`, Spotlight paketine bağlı) için bir `/api/mobile/...` ucu yazılıp mobil ekran ona bağlanmalı.
+- ✅ ~~**10.3-S25 [DÜŞÜK]**~~ (2026-10-15: kural tabanlı analiz `lib/profile-analysis.ts`'e taşındı (web sunucu aksiyonu aynı); `/api/mobile/analysis?profileId=` aynı seviye kuralı (`resolveSubscriptionTier`) ve profil erişim kuralıyla (`getProfileForViewer`), istatistik sunucudaki hesap kaydından. Mobil profil detayında İstatistik sekmesinde "Profil analizi": Genel Özet herkese, marka izleyicide Kampanya ROI (Marka Pro değilse fiyatsız kilit kartı)) (2026-10-14, yeni bulgu) Mobilde gerçek profil analizi yok. Web'deki kural tabanlı analiz (`app/actions/ai-analysis.ts`, Spotlight paketine bağlı) için bir `/api/mobile/...` ucu yazılıp mobil ekran ona bağlanmalı.
 - ✅ ~~**10.3-S26 [ORTA]**~~ (2026-10-14: web `lib/spotlight-plans.ts` birebir `constants/spotlightPlans.js`'e taşındı; ekran rolün paketlerini gösterir) Mobil Spotlight fiyatları web'den farklıydı (299/599 ₺, web 99/199 ₺), özellik listesi canlıda olmayan maddeler ve "AI destekli istatistik önerileri" içeriyordu, "2 ay bedava" ibaresi vardı.
 - ✅ ~~**10.3-S27 [DÜŞÜK]**~~ (2026-10-14) Hesap doğrulama ekranında uydurma "markaların %85 daha fazla dikkatini çekiyorsunuz" cümlesi ve hesap onayını "Mavi Tik Rozetiniz Aktif" diye gösterme (mavi tik ayrı rozet: Spotlight + 10.000 takipçi + 80 güven skoru); profil menüsünde "Mavi tik için doğrula" yazısı.
 - ✅ ~~**10.3-S28 [DÜŞÜK]**~~ (2026-10-14) İlanlar ekranı ilanda platform/teslimat yoksa uydurma değer gösteriyordu ("Instagram", "1x Reels, 2x Story").
 - ✅ ~~**10.3-S29 [DÜŞÜK]**~~ (2026-10-14) Rozetler ekranı web ile aynı olan `constants/badges.js` yerine eski bir listeyi kullanıyordu ("Onaylı Hesap", eski aşamalar ve koşullar); web'deki koşul metinleri de eklendi, kullanılmayan `components/badges/*` silindi.
 - ✅ ~~**10.3-S30 [DÜŞÜK]**~~ (2026-10-14) Profil düzenlemede bağlı hesabın "Yeniden bağla" düğmesi doğrulama yerine doğrudan "Hesap doğrulandı" ekranını açıyordu.
+- ✅ ~~**10.3-S31 [ORTA]**~~ (2026-10-14, kullanıcı onayı: mobil ilan formu web'e eşit) Mobil marka ilan formunda yalnızca başlık, açıklama, tek bütçe, kategori ve kapak
+  vardı (son başvuru alanı state'te olup ekranda yoktu); düzenleme web'de girilen alanları göremiyordu. `BrandAdvertsScreen` formu artık web `AdvertForm` ile aynı alanlar:
+  açıklama (özet), kategori, konum, platformlar, teslimatlar (virgülle), ödeme türü (nakit / barter / diğer), para birimi + en az / en çok bütçe (nakitte), son başvuru
+  (YYYY-AA-GG), düzenlemede durum (yayında / duraklat / kapat) ve en fazla 5 soru (tür + seçenekler). Düzenleme bütün alanları doldurur. Yazım `POST /api/mobile/adverts`
+  → `saveAdvertAs` (web ile aynı kod, 3.7-S8 doğrulaması ve aktif ilan sınırı dahil).
+- ✅ ~~**10.3-S32 [ORTA]**~~ (2026-10-15, yeni bulgu) Mobil influencer ana sayfasındaki ilan sorgusu `advert_projects`'te olmayan `brand_logo` kolonunu
+  seçiyordu; sorgu hata verdiği için "Yeni ilanlar" hep boştu. Artık satırın tamamı okunuyor (ayrıntı ekranı sorular dahil açılır), kategorine uygun ilanlar önce.
 
 ---
 
@@ -1038,22 +1286,22 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 | ID | Öğe |
 |---|---|
-| 11.1 | `app/[locale]/layout.tsx`, `components/providers/SupabaseProvider.tsx` |
-| 11.2 | `app/cekilis/*` (sabit PIN'li) |
-| 11.3 | `app/api/test-welcome` |
-| 11.4 | `app/chat/[roomId]` + `components/chat/ChatWindow.tsx` (yetim), `markRoomAsRead` |
-| 11.5 | `app/auth/verify-email` |
-| 11.6 | `InflistCard.tsx`, `getLists`, `InfluencerOffersFeed` bileşeni, `undismissInfluencer`, `undismissOffer`, `cancelApplication` |
-| 11.7 | `manuallyAwardBadges`, iki `updateDisplayedBadges` (influencer ve marka), brand settings re-export dosyaları |
-| 11.8 | `components/showcase/ProfileCard.tsx`, `VerificationPromoCard.tsx` |
-| 11.9 | `lib/gemini.ts` (2026-10-10'da tamamen silindi), `@google/generative-ai`, `pg`, `xlsx`, `uuid` |
-| 11.10 | `checkIfBlocked` (kopya), `MessagesPage` içindeki kullanılmayan `ChatWindow` importu |
-| 11.11 | Kök dizindeki başıboş script ve notlar (8.7-S3), eski deploy dokümanları (8.8) |
+| 11.1 | ✅ silindi (2026-10-15 kontrol: dosyalar yok) `app/[locale]/layout.tsx`, `components/providers/SupabaseProvider.tsx` |
+| 11.2 | ✅ silindi (2026-10-15 kontrol) `app/cekilis/*` (sabit PIN'li) |
+| 11.3 | ✅ silindi (2026-10-15; yalnızca 410 dönen kalıntıydı) `app/api/test-welcome` |
+| 11.4 | ✅ silindi (2026-10-15 kontrol) `app/chat/[roomId]` + `components/chat/ChatWindow.tsx` (yetim), `markRoomAsRead` |
+| 11.5 | ✅ silindi (2026-10-15 kontrol) `app/auth/verify-email` |
+| 11.6 | ✅ (2026-10-15 kontrol: hepsi silindi; `cancelApplication` artık kullanılıyor — başvuruyu geri çekme) `InflistCard.tsx`, `getLists`, `InfluencerOffersFeed` bileşeni, `undismissInfluencer`, `undismissOffer`, `cancelApplication` |
+| 11.7 | ✅ silindi (2026-10-15 kontrol) `manuallyAwardBadges`, iki `updateDisplayedBadges` (influencer ve marka), brand settings re-export dosyaları |
+| 11.8 | ✅ silindi (2026-10-15; `ProfileCard.tsx` hiçbir yerde kullanılmıyordu) `components/showcase/ProfileCard.tsx`, `VerificationPromoCard.tsx` |
+| 11.9 | ✅ silindi (2026-10-15 kontrol: dosya ve dört paket yok) `lib/gemini.ts`, `@google/generative-ai`, `pg`, `xlsx`, `uuid` |
+| 11.10 | ✅ silindi (2026-10-15 kontrol) `checkIfBlocked` (kopya), `MessagesPage` içindeki kullanılmayan `ChatWindow` importu |
+| 11.11 | ✅ (8.7-S3 ve 8.8-S1 ile silindi) Kök dizindeki başıboş script ve notlar, eski deploy dokümanları |
 | 11.12 | ✅ 2026-10-09 taraması: kullanılmayan dosya yok; kullanılmayan dışa açık değerler (`manuallyAwardBadges`, `USER_ROLE_LABELS`, kategori etiket listeleri, `getCategoryKey`, `profileCompletionFields`), 80 kullanılmayan import/değişken (`tsc --noUnusedLocals` temiz), ölü `fetchRoomId`, `handleSubscribe` (influencer), rol filtresi durumu kaldırıldı |
 
 ---
 
-### 11.1 Bekleyen elle testler (kullanıcı yapacak)
+### 11.1 Bekleyen elle testler (kullanıcı yapacak; toplu testte)
 - **T1** Marka doğrulama kilidi (1.8-S4, PR #17): doğrulanmış marka hesabıyla Keşfet, İlanlar, Favoriler, AI öneriler, Teklifler normal açılmalı;
   doğrulanmamış markada bu sayfalar kilit ekranı göstermeli, ana sayfa/profil/ayarlar/rozetler açık olmalı.
 - **T2** Instagram hızlı doğrulama (PR #12): kodla hesap ekleyip "Kontrol et" süresi.
@@ -1062,16 +1310,14 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **Kural (kullanıcı, 2026-10-07):** risksiz şema düzeltmeleri (kısıt genişletme, indeks, idempotent kolon) doğrudan
   canlıya uygulanır ve migration dosyasına yazılır; uygulanamayanlar (DROP POLICY vb.) bu listede birikir ve en sonda
   sırasıyla toplu verilir.
-- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı). `20261010000030` favori/liste kilidi: `brand_favorites_locked`, `enforce_brand_favorites_lock` tetikleyicileri, anon yazma yetkileri geri alındı (3.17-N5; execute_sql ile, rollback'li denemeyle doğrulandı). `20261010000050` `my_related_user_ids()` (3.17-S2; 2026-10-10, execute_sql ile, yetki doğrulandı). `20261010000051` users/social_accounts SELECT daraltması (3.17-S2; PR #58 yayına girdikten sonra 2026-10-10'da uygulandı, `pg_policies` ile doğrulandı). `20261010000040` iş birliği takip alanı: dört tablo, `is_collaboration_party`, `brand_collaboration_reliability`, realtime (3.18; 2026-10-10, execute_sql ile parça parça, her tablo RLS + REVOKE ile aynı çağrıda; rollback'li denemeyle doğrulandı).
+- Canlıya doğrudan uygulananlar: `20261007000010` favoriler tekil indeksi; `20261007000011` başvuru `shortlisted`, ilan `paused`; `20261007000012` geri bildirimde admin rolü. `20261007000014` tetikleyici fonksiyonlarda EXECUTE kaldırıldı, iki RPC anon'a kapatıldı, `website_host` search_path. `20261007000015` 17 yabancı anahtar indeksi. `20261007000016` realtime yayınına 8 tablo. `20261010000001` iş birlikleri + fiyat kartı tabloları, RLS, RPC'ler, realtime, geriye dönük aktarım (3.14; execute_sql ile parça parça, RLS canlıda denendi). `20261010000000` okundu tablosu `room_reads` + metadata taşıması (5.3-S2; 2026-10-10, execute_sql ile, doğrulandı). `20261010000020` ücretsiz marka sınırları: `platform_settings`, `discovery_spins`, `brand_limit_for`, iki BEFORE tetikleyici, bayrak kapalı (3.17; 2026-10-10, execute_sql ile, rollback'li RLS/tetikleyici denemesiyle doğrulandı). `20261010000030` favori/liste kilidi: `brand_favorites_locked`, `enforce_brand_favorites_lock` tetikleyicileri, anon yazma yetkileri geri alındı (3.17-N5; execute_sql ile, rollback'li denemeyle doğrulandı). `20261010000050` `my_related_user_ids()` (3.17-S2; 2026-10-10, execute_sql ile, yetki doğrulandı). `20261010000051` users/social_accounts SELECT daraltması (3.17-S2; PR #58 yayına girdikten sonra 2026-10-10'da uygulandı, `pg_policies` ile doğrulandı). `20261010000040` iş birliği takip alanı: dört tablo, `is_collaboration_party`, `brand_collaboration_reliability`, realtime (3.18; 2026-10-10, execute_sql ile parça parça, her tablo RLS + REVOKE ile aynı çağrıda; rollback'li denemeyle doğrulandı). `20261014000030` kampanyalar + müsaitlik: `campaigns` (RLS + REVOKE aynı çağrıda), `offers`/`advert_projects.campaign_id`, `enforce_campaign_owner`, `users.availability_*` (3.19; 2026-10-14, execute_sql ile iki parça, rollback'li denemeyle doğrulandı).
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).
-- **Bekleyen tek SQL** (mobil sürüm çıktıktan sonra): `DROP POLICY "avatars insert" ON storage.objects;` (7.5-S1)
+- Bekleyen SQL yok. (`avatars insert` politikası 2026-10-09'da kaldırıldı, 7.5-S1; 2026-10-15'te canlıda yok olduğu doğrulandı.)
 
-### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07)
-- Mobil uygulamaya bir süre dokunulmayacak; önce web tamamlanacak, mobil entegrasyonlar web'e göre yapılacak.
-  **Hatırlatılacak.** O zamana kadar açık mobil maddeler (bölüm 10.3) bekliyor. PR #22'deki mobil düzeltmeler
-  (favoriler, başvuru, avatar yolu, geri bildirim) repoda, bir sonraki mobil sürümle yayına çıkar.
+### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07) — kalktı
+- 2026-10-09 kararıyla dondurma kalktı (CLAUDE.md kural 3): mobil test aşamasında, hedef web ile tam uyum.
   Mobil sürüm çıkınca: `avatars insert` politikası kaldırılacak (7.5-S1).
 
 ## 12. Öncelik sırası
@@ -1080,7 +1326,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 | Sıra | ID | Konu |
 |---|---|---|
-| 1 | 8.7-S1 | Repodaki RocketAPI anahtarını iptal et, dosyayı sil |
+| 1 | 8.7-S1 | Repodaki RocketAPI anahtarını iptal et, dosyayı sil (yok sayıldı) |
 | 2 | 1.8-S1 | Rolü her yerde DB'den oku; `/dashboard/brand` ve `/dashboard/influencer` için rol koruyan layout |
 | 3 | 2.1-S1, 2.2-S1 | Apify harcamasına sunucu tarafı sınır ve kilit |
 | 4 | 4.3-S1, 8.2-S1 | Süresi dolan Spotlight'ı saatlik işte kapat |

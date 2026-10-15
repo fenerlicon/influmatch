@@ -1,6 +1,6 @@
 import {
-  Award, Bell, Briefcase, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
-  MessagesSquare, SlidersHorizontal, UserRound, Users, type LucideIcon,
+  Award, Bell, Briefcase, CalendarDays, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
+  MessagesSquare, SlidersHorizontal, Target, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
 export type ShellRole = 'influencer' | 'brand' | 'admin'
@@ -72,6 +72,8 @@ const BRAND: NavGroup[] = [
     label: 'Çalış',
     items: [
       { id: 'works', label: 'İşler', href: '/dashboard/works', icon: Briefcase, alsoActive: WORKS_ALIASES },
+      // Kampanyalar (3.19): brief, toplu davet ve kampanya panosu.
+      { id: 'campaigns', label: 'Kampanyalar', href: '/dashboard/brand/campaigns', icon: Target },
       { id: 'messages', label: 'Mesajlar', href: '/dashboard/messages', icon: MessageSquare, unread: true },
     ],
   },
@@ -100,6 +102,7 @@ const ADMIN: NavGroup[] = [
     items: [
       { id: 'adverts', label: 'İlanlar', href: '/admin/adverts', icon: Megaphone },
       { id: 'notify', label: 'Bildirim Gönder', href: '/admin/notifications', icon: Bell },
+      { id: 'weekly-preview', label: 'Haftalık Özet Önizleme', href: '/admin/weekly-preview', icon: CalendarDays },
     ],
   },
   {

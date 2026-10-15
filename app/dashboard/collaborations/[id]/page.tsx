@@ -8,6 +8,8 @@ import { fetchAccountRole } from '@/lib/viewer-role'
 import { getCollaborationWorkspace } from '@/lib/collaboration-workspace'
 
 export const revalidate = 0
+// "Şimdi güncelle" (sonuç raporu) bir Apify koşusu bekler (en fazla ~45 sn).
+export const maxDuration = 60
 
 export default async function CollaborationDetailPage({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient()

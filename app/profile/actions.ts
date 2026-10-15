@@ -17,6 +17,7 @@ interface CreateOfferPayload {
   budget: string
   message: string
   paymentType: 'cash' | 'barter'
+  campaignId?: string | null
 }
 
 async function currentUser() {

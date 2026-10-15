@@ -4,7 +4,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createOffer, deleteOfferTemplate, getLastOfferDraft, listOfferTemplates, saveOfferTemplate } from '@/app/profile/actions'
-import { OFFER_TEMPLATE_LIMIT } from '@/lib/offer-shared'
+import { OFFER_CAMPAIGN_TYPES, OFFER_TEMPLATE_LIMIT } from '@/lib/offer-shared'
 import type { OfferDraft, OfferTemplate } from '@/lib/offer-templates'
 
 interface OfferModalProps {
@@ -15,9 +15,14 @@ interface OfferModalProps {
   quotaText?: string | null
   /** Keşif kartındaki "Teklif" düğmesinden gelindiyse (?teklif=1) pencere açık başlar. */
   defaultOpen?: boolean
+  /** Influencer "Şu an dolu" ise uyarı (teklif yine gönderilebilir, 3.19). */
+  busyWarning?: string | null
+  /** Markanın taslak / aktif kampanyaları: teklif kampanyaya bağlanabilir (3.19). */
+  campaigns?: Array<{ id: string; name: string }>
+  defaultCampaignId?: string | null
 }
 
-const CAMPAIGN_TYPES = ['Story', 'Reel', 'Post', 'YouTube'] as const
+const CAMPAIGN_TYPES = OFFER_CAMPAIGN_TYPES
 
 const initialFormState = {
   campaignName: '',
@@ -39,7 +44,16 @@ function draftToForm(draft: OfferDraft): typeof initialFormState {
   }
 }
 
-export default function OfferModal({ receiverId, receiverName, isViewerVerified, quotaText, defaultOpen = false }: OfferModalProps) {
+export default function OfferModal({
+  receiverId,
+  receiverName,
+  isViewerVerified,
+  quotaText,
+  defaultOpen = false,
+  busyWarning = null,
+  campaigns = [],
+  defaultCampaignId = null,
+}: OfferModalProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(defaultOpen && isViewerVerified)
   const [formState, setFormState] = useState(initialFormState)
@@ -50,6 +64,7 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified,
   const [templateName, setTemplateName] = useState('')
   const [isSavingTemplate, setIsSavingTemplate] = useState(false)
   const [templateBusy, startTemplateTransition] = useTransition()
+  const [campaignId, setCampaignId] = useState(() => (defaultCampaignId && campaigns.some((c) => c.id === defaultCampaignId) ? defaultCampaignId : ''))
 
   // Pencere ilk açıldığında markanın şablonları yüklenir.
   useEffect(() => {
@@ -159,6 +174,7 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified,
           budget: formState.budget,
           message: formState.message,
           paymentType: formState.paymentType,
+          campaignId: campaignId || null,
         })
 
         if ('error' in result) {
@@ -283,6 +299,36 @@ export default function OfferModal({ receiverId, receiverName, isViewerVerified,
             <form onSubmit={handleSubmit} className="mt-5 space-y-5">
               {quotaText && (
                 <p className="rounded-2xl border border-soft-gold/30 bg-soft-gold/10 px-4 py-2 text-xs text-soft-gold">{quotaText}</p>
+              )}
+              {busyWarning && (
+                <p role="alert" className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-200">
+                  {busyWarning}
+                </p>
+              )}
+              {campaigns.length > 0 && (
+                <label className="block text-sm text-gray-400">
+                  Kampanya (isteğe bağlı)
+                  <select
+                    value={campaignId}
+                    onChange={(event) => {
+                      const id = event.target.value
+                      setCampaignId(id)
+                      const picked = campaigns.find((c) => c.id === id)
+                      if (picked && !formState.campaignName.trim()) setFormState((prev) => ({ ...prev, campaignName: picked.name }))
+                    }}
+                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-soft-gold/60"
+                  >
+                    <option value="" className="bg-[#0C0D10] text-white">
+                      Kampanyaya bağlama
+                    </option>
+                    {campaigns.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-[#0C0D10] text-white">
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-xs text-gray-500">Seçersen kampanya brief&apos;i teklifte influencer&apos;a görünür.</span>
+                </label>
               )}
               <label className="block text-sm text-gray-400">
                 Kampanya Başlığı

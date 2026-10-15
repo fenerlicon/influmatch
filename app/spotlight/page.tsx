@@ -45,7 +45,7 @@ export default function PublicSpotlightPage() {
                         Potansiyelini <span className="text-transparent bg-clip-text bg-gradient-to-r from-soft-gold to-yellow-200">Keşfet</span>
                     </h1>
                     <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        İster marka ol, ister influencer. Spotlight paketleri ile akıllı eşleştirme ve detaylı analiz özelliklerini kullan, rakiplerinin önüne geç.
+                        İster marka ol, ister influencer. Influencer'lar keşifte üst sıralarda listelenir, markalar akıllı eşleştirme önerilerini görür.
                     </p>
 
                     {/* Toggle */}

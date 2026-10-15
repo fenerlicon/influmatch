@@ -10,6 +10,10 @@ import { displayNameOf, notifyUser } from '@/lib/notify'
 import { hasVerifiedSocialAccount, SOCIAL_VERIFICATION_REQUIRED } from '@/lib/creator-verification'
 import { createCollaborationFor, hasActiveCollaboration } from '@/lib/collaborations'
 import { advertQuotaError, brandLimitErrorFromDb, getAdvertQuota } from '@/lib/brand-limits'
+import { dispatchInstantAdvertAlerts } from '@/lib/advert-alerts'
+import { runInBackground } from '@/lib/background'
+import { ANSWER_MAX_LENGTH, isQuestionRequired, type AdvertAnswer, type AdvertQuestion } from '@/lib/adverts-shared'
+import { ADVERT_GENERAL_CATEGORY, isAdvertCategoryKey } from '@/utils/categories'
 
 export type AdvertStatus = 'open' | 'paused' | 'closed'
 export type ApplicationStatus = 'pending' | 'shortlisted' | 'rejected' | 'accepted'
@@ -60,6 +64,41 @@ async function openAdvertLimitError(userId: string): Promise<string | null> {
   }
 }
 
+const MAX_QUESTIONS = 5
+const QUESTION_TYPES = ['text', 'single_select', 'multiple_choice']
+
+/** Virgülle girilen liste alanları (platform, teslimat): yalnızca metin, kırpılmış, en fazla 15 öğe. */
+function cleanList(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().slice(0, 80))
+    .filter(Boolean)
+    .slice(0, 15)
+}
+
+/**
+ * Başvuranlara sorular (web formu ve mobil form aynı şekli gönderir). İstemciden gelen JSON olduğu gibi
+ * yazılmaz: en fazla 5 soru, bilinen türler, seçenekli sorularda en az 2 seçenek.
+ */
+function cleanQuestions(value: unknown[]): { questions: Array<{ id: string; type: string; question: string; options: string[]; required: boolean }> } | { error: string } {
+  const questions = value.slice(0, MAX_QUESTIONS + 1).map((raw, index) => {
+    const q = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+    const type = QUESTION_TYPES.includes(q.type as string) ? (q.type as string) : 'text'
+    return {
+      id: typeof q.id === 'string' && q.id.trim() ? q.id.trim().slice(0, 64) : `q${index + 1}-${Date.now()}`,
+      type,
+      question: typeof q.question === 'string' ? q.question.trim().slice(0, 300) : '',
+      options: type === 'text' ? [] : cleanList(q.options).slice(0, 10),
+      // Alan gönderilmezse zorunlu (eski sorular ve eski istemciler).
+      required: q.required !== false,
+    }
+  }).filter((q) => q.question)
+  if (questions.length > MAX_QUESTIONS) return { error: `En fazla ${MAX_QUESTIONS} soru ekleyebilirsin.` }
+  if (questions.some((q) => q.type !== 'text' && q.options.length < 2)) return { error: 'Seçenekli sorularda en az 2 seçenek olmalı.' }
+  return { questions }
+}
+
 function cleanNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   const n = Number(value)
@@ -81,11 +120,13 @@ export async function saveAdvertAs(supabase: SupabaseClient, userId: string, inp
 
   let currentHero: string | null = null
   let currentStatus: string | null = null
+  let currentCategory: string | null = null
   if (input.id) {
-    const { data: existing } = await supabase.from('advert_projects').select('hero_image, status').eq('id', input.id).eq('brand_user_id', userId).maybeSingle()
+    const { data: existing } = await supabase.from('advert_projects').select('hero_image, status, category').eq('id', input.id).eq('brand_user_id', userId).maybeSingle()
     if (!existing) return { error: 'İlan bulunamadı veya düzenleme yetkiniz yok.' }
     currentHero = existing.hero_image as string | null
     currentStatus = existing.status as string | null
+    currentCategory = existing.category as string | null
   }
   if (!isAllowedHeroImage(input.hero_image, currentHero)) {
     return { error: 'Kapak fotoğrafı geçersiz. Lütfen görseli yeniden yükleyin.' }
@@ -96,27 +137,49 @@ export async function saveAdvertAs(supabase: SupabaseClient, userId: string, inp
   if (budgetMin !== null && budgetMax !== null && budgetMin > budgetMax) {
     return { error: 'En düşük bütçe en yüksek bütçeden büyük olamaz.' }
   }
+  const deadline = typeof input.deadline === 'string' ? input.deadline.trim().slice(0, 10) : ''
+  if (deadline && (!/^\d{4}-\d{2}-\d{2}$/.test(deadline) || Number.isNaN(Date.parse(deadline)))) {
+    return { error: 'Son başvuru tarihi YYYY-AA-GG biçiminde olmalı.' }
+  }
+  const currency = typeof input.budget_currency === 'string' ? input.budget_currency.trim().toUpperCase() : ''
+  if (currency && !/^[A-Z]{3}$/.test(currency)) return { error: 'Para birimi geçersiz.' }
+  const questions = Array.isArray(input.custom_questions) ? cleanQuestions(input.custom_questions) : null
+  if (questions && 'error' in questions) return { error: questions.error }
+  if (questions && new Set(questions.questions.map((q) => q.id)).size !== questions.questions.length) {
+    return { error: 'Soru kimlikleri tekrar ediyor. Formu yenileyip tekrar dene.' }
+  }
 
   // Güncellemede yalnızca gönderilen alanlar yazılır (mobil form web'deki tüm alanları taşımıyor;
   // gönderilmeyen platform/teslimat vb. varsayılanlarla ezilmesin). Yeni ilanda varsayılanlar uygulanır.
   const has = (key: keyof SaveAdvertInput) => !input.id || key in input
+  // Kategori listeden seçilir (influencer kategorisi ya da "Genel", 3.7-S5). Düzenlemede eski serbest metin
+  // değer değiştirilmeden kalabilir; yeni değer listeden olmalı.
+  let category: string | undefined
+  if (has('category')) {
+    const raw = typeof input.category === 'string' ? input.category.trim() : ''
+    if (!raw) category = ADVERT_GENERAL_CATEGORY
+    else if (isAdvertCategoryKey(raw) || (input.id && raw === currentCategory)) category = raw
+    else return { error: 'Kategori listeden seçilmeli.' }
+  }
+
   const row: Record<string, unknown> = { title, summary, hero_image: input.hero_image, brand_user_id: userId, brand_id: userId }
-  if (has('category')) row.category = input.category || 'Genel'
+  if (category !== undefined) row.category = category
   if (has('brand_name')) row.brand_name = input.brand_name?.trim() || null
-  if (has('platforms')) row.platforms = Array.isArray(input.platforms) ? input.platforms : []
-  if (has('deliverables')) row.deliverables = Array.isArray(input.deliverables) ? input.deliverables : []
-  if (has('budget_currency')) row.budget_currency = input.budget_currency || 'TRY'
+  if (has('platforms')) row.platforms = cleanList(input.platforms)
+  if (has('deliverables')) row.deliverables = cleanList(input.deliverables)
+  if (has('budget_currency')) row.budget_currency = currency || 'TRY'
   if (has('budget_min')) row.budget_min = budgetMin
   if (has('budget_max')) row.budget_max = budgetMax
-  if (has('location')) row.location = input.location || 'Uzaktan'
-  if (has('deadline')) row.deadline = input.deadline || null
+  if (has('location')) row.location = (typeof input.location === 'string' && input.location.trim().slice(0, 80)) || 'Uzaktan'
+  if (has('deadline')) row.deadline = deadline || null
 
   // Açıklama gönderilmezse güncellemede mevcut açıklama ezilmez, yeni ilanda boş başlar.
   if (input.description !== undefined) row.description = input.description?.trim() || ''
   else if (!input.id) row.description = ''
-  if (input.payment_type) row.payment_type = input.payment_type === 'barter' ? 'barter' : 'cash'
+  // Web formundaki "Diğer" ödeme türü de korunur (önceden nakde çevriliyordu, 3.7-S7).
+  if (input.payment_type) row.payment_type = ['barter', 'other'].includes(input.payment_type) ? input.payment_type : 'cash'
   // Boş dizi de yazılır: markanın tüm soruları silmesi güncellemeye yansısın.
-  if (Array.isArray(input.custom_questions)) row.custom_questions = input.custom_questions
+  if (questions) row.custom_questions = questions.questions
   if (input.status && ['open', 'paused', 'closed'].includes(input.status)) row.status = input.status
 
   if (input.id) {
@@ -141,6 +204,8 @@ export async function saveAdvertAs(supabase: SupabaseClient, userId: string, inp
     console.error('[saveAdvert] insert error', error?.message)
     return { error: brandLimitErrorFromDb(error?.message) ?? 'İlan oluşturulamadı. Lütfen tekrar deneyin.' }
   }
+  // Anlık ilan alarmı (Spotlight influencer'lar, 3.15-S1): yanıt beklemeden arka planda; kalanları saatlik görev tamamlar.
+  await runInBackground('instant-advert-alerts', () => dispatchInstantAdvertAlerts(created.id as string))
   return { success: true, id: created.id as string }
 }
 
@@ -198,6 +263,52 @@ export interface ApplyInput {
   coverLetter: string
   deliverableIdea?: string | null
   budgetExpectation?: number | string | null
+  /** Markanın sorularına yanıtlar: soru kimliği → metin (metin sorusu) ya da seçenek(ler). */
+  answers?: unknown
+}
+
+/**
+ * Başvuru yanıtlarını ilanın sorularına göre doğrular (3.7-S6): zorunlu sorular boş olamaz, tek seçimde tek seçenek,
+ * çoklu seçimde seçenekler ilandaki listeden olmalı, metin en fazla ANSWER_MAX_LENGTH karakter. İlanda olmayan
+ * soru kimlikleri yok sayılır. Soru metni yanıtla birlikte saklanır.
+ */
+export function validateAnswers(questionsRaw: unknown, input: unknown): { answers: AdvertAnswer[] } | { error: string } {
+  const questions = (Array.isArray(questionsRaw) ? questionsRaw : []).filter(
+    (q): q is AdvertQuestion => !!q && typeof q === 'object' && typeof (q as AdvertQuestion).question === 'string' && !!(q as AdvertQuestion).question.trim(),
+  )
+  if (!questions.length) return { answers: [] }
+  const given = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {}
+  const answers: AdvertAnswer[] = []
+  for (const [index, q] of questions.entries()) {
+    const label = `${index + 1}. soru`
+    const raw = typeof q.id === 'string' ? given[q.id] : undefined
+    const options = (Array.isArray(q.options) ? q.options : []).filter((o): o is string => typeof o === 'string' && !!o.trim())
+    const type = q.type === 'single_select' || q.type === 'multiple_choice' ? q.type : 'text'
+    let answer: string | string[] | null = null
+    if (type === 'text') {
+      const text = typeof raw === 'string' ? raw.trim() : ''
+      if (text.length > ANSWER_MAX_LENGTH) return { error: `${label}: yanıt en fazla ${ANSWER_MAX_LENGTH} karakter olabilir.` }
+      if (text) answer = text
+    } else if (type === 'single_select') {
+      const choice = typeof raw === 'string' ? raw.trim() : Array.isArray(raw) && raw.length === 1 && typeof raw[0] === 'string' ? raw[0].trim() : ''
+      if (choice && !options.includes(choice)) return { error: `${label}: seçenek geçersiz. Sayfayı yenileyip tekrar dene.` }
+      if (choice) answer = choice
+    } else {
+      const list = Array.isArray(raw) ? raw : typeof raw === 'string' && raw ? [raw] : []
+      if (list.some((c) => typeof c !== 'string' || !options.includes(c.trim()))) {
+        return { error: `${label}: seçenek geçersiz. Sayfayı yenileyip tekrar dene.` }
+      }
+      // İlandaki sırayla, tekrarsız.
+      const picked = options.filter((o) => list.some((c) => (c as string).trim() === o))
+      if (picked.length) answer = picked
+    }
+    if (answer === null) {
+      if (isQuestionRequired(q)) return { error: `${label} yanıtlanmalı: "${q.question.trim().slice(0, 80)}"` }
+      continue
+    }
+    answers.push({ id: String(q.id ?? `q${index + 1}`), question: q.question.trim(), type, answer })
+  }
+  return { answers }
 }
 
 export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, input: ApplyInput): Promise<Result> {
@@ -216,7 +327,7 @@ export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, 
 
   const { data: advert } = await supabase
     .from('advert_projects')
-    .select('id, status, deadline, title, brand_user_id')
+    .select('id, status, deadline, title, brand_user_id, custom_questions')
     .eq('id', input.advertId)
     .maybeSingle()
   if (!advert) return { error: 'İlan bilgisi alınamadı.' }
@@ -226,6 +337,9 @@ export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, 
   const todayIstanbul = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' })
   if (advert.deadline && (advert.deadline as string) < todayIstanbul) return { error: 'Bu ilanın son başvuru tarihi geçti.' }
 
+  const checked = validateAnswers(advert.custom_questions, input.answers)
+  if ('error' in checked) return { error: checked.error }
+
   const { error } = await supabase.from('advert_applications').insert({
     advert_id: input.advertId,
     influencer_id: userId,
@@ -233,6 +347,7 @@ export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, 
     cover_letter: coverLetter,
     deliverable_idea: input.deliverableIdea?.toString().trim() || null,
     budget_expectation: cleanNumber(input.budgetExpectation),
+    answers: checked.answers.length ? checked.answers : null,
   })
   if (error) {
     if (error.code === '23505') return { error: 'Bu ilana zaten başvurdunuz.' }

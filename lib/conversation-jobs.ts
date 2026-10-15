@@ -31,6 +31,7 @@ const OFFER_STATUS: Record<string, { label: string; tone: ChipTone }> = {
   accepted: { label: 'Kabul edildi', tone: 'success' },
   rejected: { label: 'Reddedildi', tone: 'neutral' },
   expired: { label: 'Süresi doldu', tone: 'neutral' },
+  withdrawn: { label: 'Geri çekildi', tone: 'neutral' },
 }
 
 const APPLICATION_STATUS: Record<string, { label: string; tone: ChipTone }> = {

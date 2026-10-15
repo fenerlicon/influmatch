@@ -5,6 +5,7 @@ import BrandOffersList from '@/components/dashboard/BrandOffersList'
 import CollaborationsManager from '@/components/dashboard/CollaborationsManager'
 import { ButtonLink, PageHeader, Segmented } from '@/components/ui'
 import type { CollaborationListItem } from '@/lib/collaborations'
+import type { CollaborationStageRef } from '@/lib/collaboration-shared'
 import { worksHref, type BrandOfferItem, type WorkCounts, type WorkStage } from '@/lib/works'
 import { cn } from '@/utils/cn'
 
@@ -15,7 +16,13 @@ type Props = {
   collaborations: CollaborationListItem[]
   collabError?: string | null
 } & (
-  | { role: 'influencer'; offers: OfferListItem[]; dismissedOfferIds: Set<string> }
+  | {
+      role: 'influencer'
+      offers: OfferListItem[]
+      dismissedOfferIds: Set<string>
+      /** Teklif gönderen markaların güvenilirliği (3.18-S4). */
+      brandReliability?: Record<string, { completed: number; confirmed: number }>
+    }
   | { role: 'brand'; offers: BrandOfferItem[]; dismissedReceiverIds: string[] }
 )
 
@@ -24,6 +31,11 @@ const IN_FLIGHT: WorkStage[] = ['agreed', 'in_progress', 'published']
 /** İşler sayfasının görünümü (veri app/dashboard/works/page.tsx'te yüklenir). */
 export default function WorksView(props: Props) {
   const { role, userId, stage, counts, collaborations, collabError } = props
+  // Kabul edilen teklifin iş birliği aşaması (3.14-S1); iş birlikleri zaten yüklü, ek sorgu yok.
+  const collaborationByOffer: Record<string, CollaborationStageRef> = {}
+  collaborations.forEach((c) => {
+    if (c.offer_id) collaborationByOffer[c.offer_id] = { id: c.id, status: c.status }
+  })
 
   const pipeline: Array<{ stage: WorkStage; label: string; count: number; hint: string }> = [
     { stage: 'offers', label: 'Teklif', count: counts.offers, hint: role === 'influencer' ? 'Yanıtını bekliyor' : 'Yanıt bekleniyor' },
@@ -85,9 +97,20 @@ export default function WorksView(props: Props) {
 
       {stage === 'offers' ? (
         props.role === 'influencer' ? (
-          <OffersManager initialOffers={props.offers} currentUserId={userId} dismissedOfferIds={props.dismissedOfferIds} />
+          <OffersManager
+            initialOffers={props.offers}
+            currentUserId={userId}
+            dismissedOfferIds={props.dismissedOfferIds}
+            collaborationByOffer={collaborationByOffer}
+            brandReliability={props.brandReliability}
+          />
         ) : (
-          <BrandOffersList initialOffers={props.offers} currentUserId={userId} dismissedReceiverIds={props.dismissedReceiverIds} />
+          <BrandOffersList
+            initialOffers={props.offers}
+            currentUserId={userId}
+            dismissedReceiverIds={props.dismissedReceiverIds}
+            collaborationByOffer={collaborationByOffer}
+          />
         )
       ) : (
         <CollaborationsManager initialItems={collaborations} currentUserId={userId} role={role} stage={stage} />

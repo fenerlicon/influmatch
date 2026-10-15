@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, ActivityIndicator, Alert, Pressable } from 'react-native';
-import { Camera, User, Instagram, Music2, CircleCheck, Copy, AtSign, Tags } from 'lucide-react-native';
+import { Camera, User, Instagram, Music2, CircleCheck, Copy, AtSign, Tags, BarChart3 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { OWN_PROFILE_COLUMNS } from '../../lib/userColumns';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { API_BASE, apiRequest } from '../../lib/api';
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '../../constants/categories';
 import { RATE_CARD_ITEMS } from '../../constants/rateCard';
+import PortfolioResults from '../../components/PortfolioResults';
 import {
     Screen, StackHeader, BottomBar, Section, Text, Button, ListGroup, ListRow, IconBox, Avatar, FilterChip, TextField, ToggleRow, Sheet,
     colors, ICON_STROKE,
@@ -39,6 +40,8 @@ export default function MyProfileScreen({ navigation, route }) {
     const [ratePrices, setRatePrices] = useState(EMPTY_PRICES);
     const [rateNegotiable, setRateNegotiable] = useState(false);
     const [savingRate, setSavingRate] = useState(false);
+    // Portföy sonuçları (4.3-S7; /api/mobile/portfolio → lib/portfolio-results.ts): kendi sonuçları, gizle / göster.
+    const [portfolio, setPortfolio] = useState(null);
 
     // ── Fetch data ─────────────────────────────────────────────────────────────
     const fetchProfile = useCallback(async () => {
@@ -75,6 +78,9 @@ export default function MyProfileScreen({ navigation, route }) {
                 setRatePrices(Object.fromEntries(RATE_CARD_ITEMS.map((item) => [item.key, prices[item.key] ? String(prices[item.key]) : ''])));
                 setRateNegotiable(!!rate.rateCard?.negotiable);
             }
+
+            const own = await apiRequest('portfolio');
+            setPortfolio(own?.portfolio || null);
         } catch (e) {
             console.error('[MyProfile]', e);
         } finally {
@@ -230,6 +236,19 @@ export default function MyProfileScreen({ navigation, route }) {
         setModalVisible(true);
     };
 
+    // ── Portföy sonuçları (ayrı görünüm: Profil → Sonuçlar) ──
+    if (route?.params?.section === 'results') {
+        return (
+            <Screen scroll header={<StackHeader title="Sonuçlar" onBack={() => navigation.goBack()} />}>
+                {portfolio ? (
+                    <PortfolioResults view={portfolio} onOpenPlans={() => navigation.navigate('Spotlight')} />
+                ) : (
+                    <Text variant="small" tone="fg3">Sonuçlar yüklenemedi.</Text>
+                )}
+            </Screen>
+        );
+    }
+
     // ── Fiyat kartı (ayrı görünüm: Profil → Fiyat kartı, Hesap durumu adımı) ──
     if (rateOnly) {
         return (
@@ -316,6 +335,7 @@ export default function MyProfileScreen({ navigation, route }) {
 
             <ListGroup>
                 <ListRow onPress={() => navigation.push('MyProfile', { section: 'rate-card' })} left={<IconBox icon={Tags} />} title="Fiyat kartı" subtitle="Teslimat başına başlangıç fiyatların" chevron />
+                <ListRow onPress={() => navigation.push('MyProfile', { section: 'results' })} left={<IconBox icon={BarChart3} />} title="Sonuçlar" subtitle="Tamamlanan iş birliklerinin ölçümleri (portföy)" chevron />
             </ListGroup>
 
             {/* Instagram / TikTok bağlama: biyografi koduyla (/api/mobile/verify-instagram, verify-tiktok) */}

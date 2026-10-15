@@ -9,7 +9,9 @@ import { sweepOfficialBusiness } from '@/lib/official-business'
 import { refreshStaleAccounts } from '@/lib/social-stats'
 import { autoCompleteCollaborations } from '@/lib/collaborations'
 import { expireStaleOffers } from '@/lib/offers'
+import { resetExpiredAvailability } from '@/lib/availability'
 import { processAdvertAlerts } from '@/lib/advert-alerts'
+import { processDueMetrics } from '@/lib/post-metrics'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -29,6 +31,7 @@ const HOURLY_STATS_START_BUDGET_MS = 10_000
  * - Yayın linkine 7 gün yanıt verilmeyen iş birlikleri otomatik tamamlanır (lib/collaborations.ts).
  * - 7 gün yanıtlanmayan teklifler "Süresi doldu" olur, markaya bildirim gider (lib/offers.ts).
  * - Yeni açılan ilanlar influencer ilan alarmlarıyla eşleştirilir (lib/advert-alerts.ts).
+ * - Yayınlanan teslimatların gönderi ölçümleri (sonuç raporu, lib/post-metrics.ts): tek Apify koşusu, en fazla 10 gönderi.
  */
 export async function GET(req: Request) {
   const startedAt = Date.now()
@@ -112,6 +115,14 @@ export async function GET(req: Request) {
     result.offerExpiryError = error instanceof Error ? error.message : String(error)
   }
 
+  // Bitiş tarihi geçen "Şu an dolu" durumları (okuma zaten geçmiş tarihi "İş alıyorum" sayar; bu yalnızca temizlik).
+  try {
+    result.availability = await resetExpiredAvailability(admin)
+  } catch (error) {
+    console.error('[cron/hourly] Müsaitlik temizliği başarısız:', error)
+    result.availabilityError = error instanceof Error ? error.message : String(error)
+  }
+
   try {
     result.advertAlerts = await processAdvertAlerts(admin, { limit: 10, deadline: startedAt + 40_000 })
   } catch (error) {
@@ -119,14 +130,24 @@ export async function GET(req: Request) {
     result.advertAlertsError = error instanceof Error ? error.message : String(error)
   }
 
-  // Bayat istatistikleri kalan zamanda küçük parçalar halinde yenile. Bir Apify koşusu 45 saniyeye kadar
-  // sürdüğü için yeni koşu en geç 10. saniyede başlar; aksi halde görev 60 saniyelik sınırı aşıyordu
-  // (pg_net zaman aşımı, 2026-10-08). Taramalar uzun sürdüyse bu turda yenileme yapılmaz, günlük cron sürdürür.
-  try {
-    result.statsRefresh = await refreshStaleAccounts(admin, { deadline: startedAt + HOURLY_STATS_START_BUDGET_MS, limit: 10 })
-  } catch (error) {
-    console.error('[cron/hourly] İstatistik yenileme başarısız:', error)
-    result.statsRefreshError = error instanceof Error ? error.message : String(error)
+  // Bayat istatistikleri ve zamanı gelen gönderi ölçümlerini kalan zamanda küçük parçalar halinde al. Bir Apify koşusu 45 saniyeye
+  // kadar sürdüğü için yeni koşu en geç 10. saniyede başlar; aksi halde görev 60 saniyelik sınırı aşıyordu (pg_net zaman aşımı,
+  // 2026-10-08). İkisi paralel çalışır (ölçüm tek koşu: istatistiğin 3 eşzamanlı koşusuna en fazla 1 ekler). Taramalar uzun
+  // sürdüyse bu turda yapılmaz; istatistiği günlük cron, ölçümü bir sonraki saat sürdürür.
+  const statsDeadline = startedAt + HOURLY_STATS_START_BUDGET_MS
+  const [stats, metrics] = await Promise.allSettled([
+    refreshStaleAccounts(admin, { deadline: statsDeadline, limit: 10 }),
+    processDueMetrics(admin, { deadline: statsDeadline }),
+  ])
+  if (stats.status === 'fulfilled') result.statsRefresh = stats.value
+  else {
+    console.error('[cron/hourly] İstatistik yenileme başarısız:', stats.reason)
+    result.statsRefreshError = stats.reason instanceof Error ? stats.reason.message : String(stats.reason)
+  }
+  if (metrics.status === 'fulfilled') result.postMetrics = metrics.value
+  else {
+    console.error('[cron/hourly] Gönderi ölçümleri alınamadı:', metrics.reason)
+    result.postMetricsError = metrics.reason instanceof Error ? metrics.reason.message : String(metrics.reason)
   }
 
   return NextResponse.json(result)

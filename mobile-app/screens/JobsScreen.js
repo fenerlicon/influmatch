@@ -4,6 +4,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Mail, Handshake, MessageCircle, Bell } from 'lucide-react-native';
 import { apiRequest } from '../lib/api';
 import { reliabilityText } from '../constants/collaborationWorkspace';
+import { COLLAB_STAGE_SHORT } from '../constants/collaborations';
+import CampaignBrief from '../components/CampaignBrief';
 import { formatTRY, formatDate, timeAgo } from '../lib/format';
 import {
     Screen, LargeHeader, Text, Button, IconButton, Card, ListGroup, ListRow, Avatar, NameWithTick, Chip, Segment,
@@ -20,7 +22,11 @@ const OFFER_STATUS = {
     rejected: { label: 'Reddedildi', tone: 'danger' },
     // 7 gün yanıtlanmayan teklif (sunucu 'expired' döner; kabul edilemez).
     expired: { label: 'Süresi doldu', tone: 'neutral' },
+    // Marka bekleyen teklifi geri çekti (2026-10-14; kabul edilemez).
+    withdrawn: { label: 'Geri çekildi', tone: 'neutral' },
 };
+// İşlem listesinden çıkan teklifler (influencer'da isteğe bağlı gösterilir).
+const CLOSED_OFFER = ['expired', 'withdrawn'];
 
 const COLLAB_STATUS = {
     agreed: { label: 'Anlaşıldı', tone: 'info', stage: 1 },
@@ -52,6 +58,7 @@ export default function JobsScreen({ navigation, route }) {
     const [showExpired, setShowExpired] = useState(false);
     const [form, setForm] = useState(null); // { item, kind: 'publish' | 'cancel' }
     const [formText, setFormText] = useState('');
+    const [offerEdit, setOfferEdit] = useState(null); // marka: { offer, campaignName, campaignType, paymentType, budget, message }
 
     // Bildirimden ya da başka ekrandan belirli bölümle açılabilir
     useEffect(() => {
@@ -88,10 +95,13 @@ export default function JobsScreen({ navigation, route }) {
     // ── Teklif işlemleri (lib/offers.ts) ──
     const respond = async (offer, response) => {
         setBusy(`${offer.id}:${response}`);
-        const result = await apiRequest(`offers/${offer.id}/respond`, { method: 'POST', body: { response } });
+        // seenEditedAt: marka teklifi bu arada düzenlediyse sunucu kabulü reddeder (eski koşullarla kabul olmasın).
+        const result = await apiRequest(`offers/${offer.id}/respond`, { method: 'POST', body: { response, seenEditedAt: offer.edited_at || null } });
         setBusy(null);
         if (result.error) {
             Alert.alert('İşlem yapılamadı', result.error);
+            setSelected(null);
+            await load();
             return;
         }
         await load();
@@ -107,6 +117,69 @@ export default function JobsScreen({ navigation, route }) {
             { text: 'Vazgeç', style: 'cancel' },
             { text: 'Reddet', style: 'destructive', onPress: () => respond(offer, 'rejected') },
         ]);
+    };
+
+    // ── Marka: bekleyen teklifi düzenle / geri çek (lib/offers.ts; süre yeniden başlamaz, kota iade edilmez) ──
+    const openOfferEdit = (offer) => {
+        setSelected(null);
+        setOfferEdit({
+            offer,
+            campaignName: offer.campaign_name || '',
+            campaignType: offer.campaign_type || '',
+            paymentType: offer.payment_type === 'barter' ? 'barter' : 'cash',
+            budget: offer.budget == null ? '' : String(Math.round(Number(offer.budget))),
+            message: offer.message || '',
+        });
+    };
+
+    const saveOfferEdit = async () => {
+        if (!offerEdit) return;
+        if (!offerEdit.campaignName.trim()) {
+            Alert.alert('Eksik bilgi', 'Kampanya adı gerekli.');
+            return;
+        }
+        setBusy(`${offerEdit.offer.id}:edit`);
+        const result = await apiRequest(`offers/${offerEdit.offer.id}`, {
+            method: 'PATCH',
+            body: {
+                campaignName: offerEdit.campaignName,
+                campaignType: offerEdit.campaignType || null,
+                paymentType: offerEdit.paymentType,
+                budget: offerEdit.budget || null,
+                message: offerEdit.message,
+            },
+        });
+        setBusy(null);
+        if (result.error) {
+            Alert.alert('Teklif güncellenemedi', result.error);
+            return;
+        }
+        setOfferEdit(null);
+        if (result.changed) Alert.alert('Teklif güncellendi', 'Influencer bilgilendirildi.');
+        await load();
+    };
+
+    const confirmWithdraw = (offer) => {
+        Alert.alert(
+            'Teklifi geri çek',
+            'Influencer bilgilendirilir ve teklif artık yanıtlanamaz. Geri çekilen teklif bu ayki teklif hakkından düşmez.',
+            [
+                { text: 'Vazgeç', style: 'cancel' },
+                {
+                    text: 'Geri çek', style: 'destructive', onPress: async () => {
+                        setBusy(`${offer.id}:withdraw`);
+                        const result = await apiRequest(`offers/${offer.id}`, { method: 'POST', body: { action: 'withdraw' } });
+                        setBusy(null);
+                        if (result.error) {
+                            Alert.alert('Geri çekilemedi', result.error);
+                            return;
+                        }
+                        setSelected(null);
+                        await load();
+                    },
+                },
+            ],
+        );
     };
 
     // ── İş birliği işlemleri (lib/collaborations.ts) ──
@@ -144,9 +217,9 @@ export default function JobsScreen({ navigation, route }) {
     }
 
     const pendingOffers = offers.filter((o) => o.status === 'pending');
-    // Influencer: süresi dolan teklifler işlem listesinden çıkar, isteğe bağlı gösterilir.
-    const expiredCount = !isBrand ? offers.filter((o) => o.status === 'expired').length : 0;
-    const visibleOffers = !isBrand && !showExpired ? offers.filter((o) => o.status !== 'expired') : offers;
+    // Influencer: süresi dolan ve markanın geri çektiği teklifler işlem listesinden çıkar, isteğe bağlı gösterilir.
+    const expiredCount = !isBrand ? offers.filter((o) => CLOSED_OFFER.includes(o.status)).length : 0;
+    const visibleOffers = !isBrand && !showExpired ? offers.filter((o) => !CLOSED_OFFER.includes(o.status)) : offers;
     const activeCollabs = collabs.filter((c) => ACTIVE.includes(c.status));
     const doneCollabs = collabs.filter((c) => !ACTIVE.includes(c.status));
 
@@ -165,9 +238,9 @@ export default function JobsScreen({ navigation, route }) {
                     <Avatar name={nameOf(person)} uri={person?.avatar_url} square />
                     <View className="flex-1">
                         <NameWithTick name={nameOf(person)} verified={person?.verification_status === 'verified'} />
-                        <Text variant="caption" tone="fg3">{timeAgo(offer.created_at)}</Text>
+                        <Text variant="caption" tone="fg3">{timeAgo(offer.created_at)}{offer.edited_at ? ' · düzenlendi' : ''}</Text>
                     </View>
-                    <Chip label="Yeni" tone="gold" />
+                    <Chip label={offer.edited_at ? 'Güncellendi' : 'Yeni'} tone="gold" />
                 </View>
                 <View style={{ gap: 6 }}>
                     <Text weight="semibold" style={{ fontSize: 16 }}>{offer.campaign_name || 'İsimsiz teklif'}</Text>
@@ -191,9 +264,17 @@ export default function JobsScreen({ navigation, route }) {
         );
     };
 
+    // Kabul edilen teklifte iş birliği varsa "Kabul edildi" yerine aşaması (3.14-S1); iş birlikleri zaten yüklü.
+    const collabOfOffer = (offer) => (offer?.status === 'accepted' ? collabs.find((c) => c.offer_id === offer.id) || null : null);
+    const offerChip = (offer) => {
+        const collab = collabOfOffer(offer);
+        if (collab && COLLAB_STAGE_SHORT[collab.status]) return COLLAB_STAGE_SHORT[collab.status];
+        return OFFER_STATUS[offer.status] || OFFER_STATUS.pending;
+    };
+
     const renderOfferRow = (offer) => {
         const person = counterpart(offer);
-        const s = OFFER_STATUS[offer.status] || OFFER_STATUS.pending;
+        const s = offerChip(offer);
         return (
             <ListRow
                 key={offer.id}
@@ -227,7 +308,7 @@ export default function JobsScreen({ navigation, route }) {
                 {rest.length ? <ListGroup>{rest.map(renderOfferRow)}</ListGroup> : null}
                 {expiredCount > 0 ? (
                     <Button
-                        title={showExpired ? 'Süresi dolan teklifleri gizle' : `Süresi dolan teklifleri göster (${expiredCount})`}
+                        title={showExpired ? 'Düşen teklifleri gizle' : `Süresi dolan / geri çekilen teklifleri göster (${expiredCount})`}
                         variant="ghost" size="md" onPress={() => setShowExpired((v) => !v)} block
                     />
                 ) : null}
@@ -305,7 +386,8 @@ export default function JobsScreen({ navigation, route }) {
 
     const sel = selected;
     const selPerson = sel ? counterpart(sel) : null;
-    const selStatus = sel ? OFFER_STATUS[sel.status] || OFFER_STATUS.pending : null;
+    const selStatus = sel ? offerChip(sel) : null;
+    const selCollab = sel ? collabOfOffer(sel) : null;
 
     return (
         <Screen
@@ -341,15 +423,32 @@ export default function JobsScreen({ navigation, route }) {
                         <Card padded={false} className="px-4">
                             {sel.campaign_type ? <KeyValue label="Tür" value={sel.campaign_type} /> : null}
                             <KeyValue label={sel.payment_type === 'barter' ? 'Barter (ürün değeri)' : 'Bütçe (nakit)'} value={sel.budget == null ? 'Belirtilmedi' : formatTRY(sel.budget)} />
-                            <KeyValue label="Gönderildi" value={formatDate(sel.created_at)} last />
+                            <KeyValue label="Gönderildi" value={formatDate(sel.created_at)} last={!sel.edited_at} />
+                            {sel.edited_at ? <KeyValue label="Düzenlendi" value={formatDate(sel.edited_at)} last /> : null}
                         </Card>
                         {sel.message ? <Text tone="fg2" style={{ fontSize: 14.5 }}>{sel.message}</Text> : null}
+                        {/* Kampanya daveti (3.19): brief salt okunur, sunucudan yalnızca alıcıya gelir */}
+                        {sel.campaign_brief ? <CampaignBrief brief={sel.campaign_brief} /> : null}
                         {sel.status === 'expired' ? (
                             <Text variant="small" tone="fg3">
                                 {isBrand
                                     ? 'Teklif 7 gün içinde yanıtlanmadığı için süresi doldu. Başka bir influencer\'a gönderebilirsiniz.'
                                     : 'Bu teklif 7 gün içinde yanıtlanmadığı için artık yanıtlanamaz.'}
                             </Text>
+                        ) : null}
+                        {sel.status === 'withdrawn' ? (
+                            <Text variant="small" tone="fg3">
+                                {isBrand ? 'Bu teklifi geri çektiniz.' : 'Marka teklifi geri çekti. Bu teklif artık yanıtlanamaz.'}
+                            </Text>
+                        ) : null}
+                        {isBrand && sel.status === 'pending' ? (
+                            <>
+                                <Text variant="caption" tone="fg3">Yanıtlanmazsa 7 gün sonunda düşer; düzenleme süreyi uzatmaz.</Text>
+                                <View className="flex-row" style={{ gap: 8 }}>
+                                    <View className="flex-1"><Button title="Düzenle" variant="secondary" size="md" onPress={() => openOfferEdit(sel)} disabled={!!busy} block /></View>
+                                    <View className="flex-1"><Button title="Geri çek" variant="danger" size="md" onPress={() => confirmWithdraw(sel)} loading={busy === `${sel.id}:withdraw`} disabled={!!busy} block /></View>
+                                </View>
+                            </>
                         ) : null}
                         {!isBrand && sel.status === 'pending' ? (
                             <>
@@ -360,7 +459,35 @@ export default function JobsScreen({ navigation, route }) {
                                 </View>
                             </>
                         ) : null}
+                        {selCollab ? (
+                            <Button title="İş birliğine git" icon={Handshake} onPress={() => { setSelected(null); navigation.navigate('CollaborationDetail', { id: selCollab.id }); }} block />
+                        ) : null}
                         {sel.room_id ? <Button title="Sohbete git" icon={MessageCircle} variant={!isBrand && sel.status === 'pending' ? 'ghost' : 'primary'} onPress={() => goToChat(selPerson, sel.room_id)} block /> : null}
+                    </>
+                ) : null}
+            </Sheet>
+
+            {/* Marka: teklifi düzenle */}
+            <Sheet visible={!!offerEdit} onClose={() => !busy && setOfferEdit(null)} title="Teklifi düzenle" scroll>
+                {offerEdit ? (
+                    <>
+                        <Text variant="small" tone="fg2">Influencer bilgilendirilir. Yanıt süresi yeniden başlamaz.</Text>
+                        <TextField label="Kampanya / iş adı" value={offerEdit.campaignName} maxLength={120} onChangeText={(v) => setOfferEdit((f) => ({ ...f, campaignName: v }))} />
+                        <TextField label="Kampanya türü" value={offerEdit.campaignType} maxLength={40} onChangeText={(v) => setOfferEdit((f) => ({ ...f, campaignType: v }))} placeholder="ör. 2 Reels + 3 Hikâye" />
+                        <View style={{ gap: 7 }}>
+                            <Text variant="small" weight="medium" tone="fg2">Ödeme</Text>
+                            <Segment options={[{ key: 'cash', label: 'Nakit' }, { key: 'barter', label: 'Barter' }]} value={offerEdit.paymentType} onChange={(v) => setOfferEdit((f) => ({ ...f, paymentType: v }))} />
+                        </View>
+                        <TextField
+                            label={offerEdit.paymentType === 'barter' ? 'Ürün piyasa değeri' : 'Bütçe'}
+                            prefix="₺"
+                            keyboardType="number-pad"
+                            value={offerEdit.budget}
+                            onChangeText={(v) => setOfferEdit((f) => ({ ...f, budget: v.replace(/[^0-9]/g, '') }))}
+                            placeholder="0"
+                        />
+                        <TextField label="Mesaj" multiline maxLength={2000} value={offerEdit.message} onChangeText={(v) => setOfferEdit((f) => ({ ...f, message: v }))} />
+                        <Button title="Kaydet" onPress={saveOfferEdit} loading={busy === `${offerEdit.offer.id}:edit`} disabled={!!busy} block />
                     </>
                 ) : null}
             </Sheet>

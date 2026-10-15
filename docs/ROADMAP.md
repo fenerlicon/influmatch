@@ -74,9 +74,19 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
      "Ödeme alamadım" bildirimi, marka güvenilirliği satırı. Taslak dosyası yükleme ve teslim kilidi R2 ile (Kasım).
 3. **UGC portföyü + sonuç raporu** (Kasım sonu; R2'ye bağlı)
    - Profilde örnek videolar (R2, imzalı bağlantı). Yayın linkinden Apify ile beğeni/izlenme/yorum → markaya kampanya raporu.
+   - ✅ **Sonuç raporu** 2026-10-14 yapıldı (R2 gerekmedi; SYSTEM_MAP 3.20, `claude/results-report`): yayınlanan teslimatların herkese açık beğeni / yorum / izlenme
+     ölçümü (Apify, yayından ~1, 7, 30 gün sonra; marka 6 saatte bir elle günceller), iş birliği detayında iki tarafa (web + mobil), kampanya panosunda toplamlar +
+     profil satırları + nakit ücrete göre 1000 izlenme / etkileşim başı maliyet, yazdırılabilir rapor (tarayıcıdan PDF) ve CSV sütunları. Kampanya düzeyindeki rapor
+     bayrak açıkken yalnızca Marka Pro. **UGC portföyü (örnek videolar) R2'yi bekliyor.**
+   - ✅ **Portföyde sonuç raporları** (2026-10-14, 4.3-S7, SYSTEM_MAP 3.20-N6, `claude/portfolio-results`): influencer profilinde "Sonuçlar", başkalarına yalnızca
+     Influencer Pro; marka adı yalnızca markanın izniyle (varsayılan kapalı). Influencer Pro listesine eklendi.
+   - **Haftalık özette detaylı istatistik** (3.20-N7): veri fonksiyonu + admin önizlemesi hazır; **gönderim Resend ücretli planı bekliyor** (sonra Pro listesine eklenir).
 4. **Kampanya sihirbazı + müsaitlik** (Aralık başı)
    - Marka kısa brief → uygun profiller (`lib/category-map.ts` + fiyat kartı + müsaitlik) → toplu davet.
    - Influencer "iş alıyorum / dolu" durumu; doluyken keşifte alt sırada, teklif butonu uyarı gösterir.
+   - ✅ 2026-10-14 yapıldı, kullanıcı onayıyla Aralık'tan öne çekildi (SYSTEM_MAP 3.19, `claude/campaigns`): kampanya (brief, hedef, bütçe, tarihler, varsayılan
+     teslimatlar), sihirbaz + önerilen profiller + toplu davet (her davet ayrı teklif, kota geçerli), kampanya panosu + CSV, teklif / ilan bağlama, davetliye brief;
+     müsaitlik (ayarlar, keşif sırası ve filtresi, teklif uyarısı). Web + mobil. Sihirbaz önerileri ve toplu davet bayrak açıkken yalnızca Marka Pro (tabloyla aynı).
 
 ## 2026-10-10 (3. tur) kararları
 
@@ -89,6 +99,8 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
   - **Teklif:** ücretsiz markada **günde 3, ayda 15**. Spotlight Basic daha yüksek, Pro sınırsız (değerler paket içeriğiyle).
   - **İlan:** ücretsiz markada **1 aktif ilan**. Spotlight'ta daha fazla.
   - **Favoriler ve listeler (Inflist):** ücretsiz markada yok, yalnızca Spotlight (Basic/Pro). Kayıtlı olanlar silinmez, Spotlight ile geri gelir.
+  - **Satış başlarken (bayrak `free_brand_limits_enabled` açıldığı anda) yapılacaklar:** "Kampanya sihirbazı ve toplu davet" Marka Pro paket
+    listesine eklenir (`lib/spotlight-plans.ts` + mobil `constants/spotlightPlans.js`, SSS; 2026-10-14 kararı, SYSTEM_MAP 3.19-N8).
 - **Teklif şablonu:** marka bir teklifi şablon olarak kaydeder / son teklifini kopyalayıp başka influencer'a gönderir.
 - **Kaydedilen ilanlar + ilan alarmı:** influencer ilanı kaydeder; kategori/bütçe/platform alarmı kurar, yeni uygun ilan çıkınca
   bildirim (+ e-posta tercihine göre).
@@ -98,11 +110,17 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 - **Ödeme teyidi + teslim kilidi + marka güvenilirliği, davet kodu (Spotlight günü), admin metrik paneli:** kabul edildi (önceki tur).
 - **İlk adımlar kontrol listesi:** kabul edildi 2026-10-10 (web + mobil panelde yapıldı, SYSTEM_MAP 3.16).
 - **Spotlight paketleri:** karşılığı olmayan maddeler kaldırıldı (PR #50). Boşalan yerler **yalnızca çalışan özelliklerle** doldurulur;
-  bir özellik canlıya çıkınca `lib/spotlight-plans.ts`'teki listeye eklenir. Önerilen dağılım (sayılar kullanıcı onayıyla):
+  bir özellik canlıya çıkınca `lib/spotlight-plans.ts`'teki listeye eklenir. Önerilen dağılım (sayılar kullanıcı onayıyla).
+  2026-10-14: influencer "uyum skoru analizi" ve "profil koçu" çalışmadığı için paketlerden çıktı (SYSTEM_MAP 4.3-S6); bugün influencer
+  Basic ve Pro listesi aynı (rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri; 4.3-S7):
+
+2026-10-15 kararı: fiyatlar (aylık / yıllık) Influencer Basic 149 / 1.490 ₺, Pro 299 / 2.990 ₺; Marka Basic 990 / 9.900 ₺, Pro 2.490 / 24.900 ₺
+(satıştan önce son kez gözden geçirilir). Marka Basic sınırı: günde 10 / ayda 60 teklif, 3 aktif ilan (ücretsiz 3 / 15 / 1, Pro sınırsız; bayrak açılınca).
+Kampanya ROI analizi Marka Pro listesinde.
 
 | | Basic | Pro |
 |---|---|---|
-| Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, uyum skoru, **anlık ilan alarmı** | Basic + profil koçu, **portföyde sonuç raporları**, haftalık özette detaylı istatistik |
+| Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, **anlık ilan alarmı** (✅ 2026-10-15, listede) | Basic + **portföyde sonuç raporları** (✅ 2026-10-14, listede), haftalık özette detaylı istatistik (veri hazır, gönderim Resend ücretli planla), (ileride, çalışınca) profil koçu |
 | Marka | **Keşif çarkı yok (herkesi görür)**, daha yüksek teklif ve ilan sınırı, akıllı eşleştirme, uyum skoru, benzer profil keşfi, öne çıkan ilanlar | Basic + **sınırsız teklif/ilan**, **kampanya sihirbazı + toplu davet**, **sonuç raporları**, **haftalık eşleşme e-postası**, (ileride) **ekip hesabı** |
 
 ### Güncel iş sırası (Aralık sonuna kadar)
@@ -111,6 +129,6 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
 3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır); aynı bayrakla ücretsiz markada favori ve liste yok, yalnızca Spotlight (3.17-N5)
 4. ✅ İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + marka güvenilirliği (SYSTEM_MAP 3.18, `claude/collab-workspace`). **Teslim kilidi bekliyor** (R2 ile Kasım'da; veri modeli hazır, 3.18-N4)
 5. Akademi + R2 "Drive" (Kasım)
-6. UGC portföyü + sonuç raporu
-7. Kampanya sihirbazı + müsaitlik, davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
+6. ✅ Sonuç raporu (2026-10-14, SYSTEM_MAP 3.20) + ✅ Influencer Pro "portföyde sonuç raporları" (4.3-S7). Haftalık özette detaylı istatistik: veri + önizleme hazır, gönderim Resend ücretli planla. UGC portföyü (örnek videolar) R2 ile
+7. ✅ Kampanya sihirbazı + müsaitlik (2026-10-14, öne çekildi, SYSTEM_MAP 3.19); kalan: davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
 8. Ekip hesabı / ajans yapısı (yayından sonra da olabilir)

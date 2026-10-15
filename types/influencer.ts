@@ -1,10 +1,12 @@
-import { type PlatformType } from '@/components/showcase/ProfileCard'
+export type PlatformType = 'instagram' | 'tiktok' | 'youtube' | 'kick'
+import type { Availability } from '@/lib/availability-shared'
 
 export interface DiscoverInfluencer {
     id: string
     full_name: string | null
     username: string | null
     category: string | null
+    city?: string | null
     avatar_url: string | null
     spotlight_active: boolean | null
     displayed_badges?: string[] | null
@@ -14,6 +16,8 @@ export interface DiscoverInfluencer {
     platforms_data?: {
         platform: PlatformType
         follower_count: number | null
+        /** Etkileşim oranı (yüzde); keşif filtresi ve sıralaması için. */
+        engagement_rate?: number | null
         followers: string
         engagement: string
     }[]
@@ -25,6 +29,8 @@ export interface DiscoverInfluencer {
         avg_comments?: string
     }
     creator_type?: 'influencer' | 'ugc' | 'both' | null
+    /** Müsaitlik (3.19); yoksa "iş alıyorum". */
+    availability?: Availability | null
     matchScore?: number
     matchReasons?: string[]
 }

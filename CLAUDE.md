@@ -63,6 +63,12 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
      **satış başlayınca** açılır, altyapı kapalı bayrakla hazırlanır; cevapsız teklif 7 günde düşer; teklif şablonu, ilan alarmı,
      haftalık e-postalar (Resend ücretli plan), ekip/ajans hesabı. Spotlight listesine yalnızca canlıdaki özellik eklenir.
      Ayrıntı ve iş sırası: `docs/ROADMAP.md`.
+   - **2026-10-14:** marka teklifini geri çekince teklif sohbeti kapanır (sistem mesajı, iki taraf için salt okunur; reddedilen teklifte
+     değişiklik yok). Çalışmayan influencer "uyum skoru" / "profil koçu" paketlerden çıktı; arayüzde kaynaksız sayısal/karşılaştırmalı iddia yok.
+     "Kampanya sihirbazı ve toplu davet" satış başlayınca (bayrak açıldığı anda) Marka Pro listesine eklenir; kampanya silme yok, yalnızca arşiv.
+   - **2026-10-15:** Spotlight fiyatları (aylık / yıllık): Influencer Basic 149 / 1.490 ₺, Pro 299 / 2.990 ₺; Marka Basic 990 / 9.900 ₺,
+     Pro 2.490 / 24.900 ₺ (satıştan önce son kez gözden geçirilir). Marka Basic sınırı günde 10 / ayda 60 teklif, 3 aktif ilan (bayrak açılınca).
+     Kampanya ROI analizi Marka Pro listesinde.
    - **2026-10-15 (platformun rolü):** platform işbirliklerinden komisyon almaz; ödemeler taraflar arasında, platform üzerinden
      yapılmaz. Platform yalnızca bir araya getirir: işbirliği süreçlerinin yürütülmesinden ve güvenliğinden, paylaşılan içeriklerden
      ve bunlardan doğan hukuki uyuşmazlıklardan sorumlu değildir; marka ve influencer kendi haklarını korur. Arayüz ve metinler buna
