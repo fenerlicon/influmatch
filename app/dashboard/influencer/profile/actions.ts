@@ -6,7 +6,7 @@ import { awardBadgesForUser } from '@/utils/badgeAwarding'
 import { saveInfluencerProfile, type UpdateProfilePayload } from '@/lib/profile-update'
 import { saveRateCardAs, type RateCard, type RateCardInput } from '@/lib/rate-card'
 
-export async function updateProfile(payload: UpdateProfilePayload) {
+export async function updateProfile(payload: UpdateProfilePayload): Promise<{ success: true; error?: undefined } | { success?: undefined; error: string }> {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -14,11 +14,16 @@ export async function updateProfile(payload: UpdateProfilePayload) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    throw new Error('Oturum bulunamadı. Lütfen yeniden giriş yapın.')
+    return { error: 'Oturum bulunamadı. Lütfen yeniden giriş yapın.' }
   }
 
   // Doğrulama ve kayıt ortak kodda (lib/profile-update.ts); mobil uç da aynısını kullanır.
-  await saveInfluencerProfile(supabase, user.id, payload)
+  // Ortak kod hatayı istisna olarak fırlatır; canlıda istisna mesajı istemciye ulaşmadığı için burada mesaja çevrilir.
+  try {
+    await saveInfluencerProfile(supabase, user.id, payload)
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Profil güncellenemedi.' }
+  }
 
   // Award badges after profile update
   await awardBadgesForUser(user.id)

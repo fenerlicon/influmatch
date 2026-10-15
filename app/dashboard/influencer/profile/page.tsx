@@ -7,7 +7,7 @@ import RateCardForm from '@/components/influencer/RateCardForm'
 import { getOwnRateCard } from '@/lib/rate-card'
 import InstagramConnect from '@/components/dashboard/InstagramConnect'
 import TikTokConnect from '@/components/dashboard/TikTokConnect'
-import { Card, CardHeader } from '@/components/ui'
+import { Card, CardHeader, PageHeader } from '@/components/ui'
 
 export default async function InfluencerProfileSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -60,7 +60,8 @@ export default async function InfluencerProfileSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="grid max-w-5xl gap-5">
+      <PageHeader title="Profilim" description="Profil bilgilerin, fiyat kartın ve bağlı hesapların." />
       <ProfileForm 
         initialData={initialData} 
         connectedPlatforms={socialAccounts?.filter(a => a.is_verified).map(a => a.platform) || []} 

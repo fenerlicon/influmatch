@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { influencerBadges, brandBadges, phaseConfig } from '@/app/badges/data'
-import type { LucideIcon } from 'lucide-react'
+import { Check, type LucideIcon } from 'lucide-react'
 
 interface BadgeSelectorProps {
   userRole: 'influencer' | 'brand'
@@ -100,7 +100,7 @@ export default function BadgeSelector({
 
   if (availableBadges.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-gray-400">
+      <div className="rounded-xl border border-line bg-surface-2 p-6 text-center text-[13px] text-ink-muted">
         Henüz hiç rozet kazanmadınız. Rozetler sayfasından mevcut rozetleri görüntüleyebilirsiniz.
       </div>
     )
@@ -110,8 +110,8 @@ export default function BadgeSelector({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-white">Rozet Seçimi</p>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="text-[15px] font-semibold text-ink">Profilde gösterilecek rozetler</p>
+          <p className="mt-0.5 text-xs text-ink-faint">
             Profilinizde görünecek en fazla {maxSelectable} rozeti seçin. ({selectedCount}/{maxSelectable})
             {hasBlueTick && ' Mavi tik otomatik olarak gösterilir.'}
           </p>
@@ -130,33 +130,24 @@ export default function BadgeSelector({
               type="button"
               onClick={() => handleToggle(badge.id)}
               disabled={disabled || (!isSelected && isFull)}
-              className={`group relative flex items-start gap-3 rounded-2xl border p-4 text-left transition ${isSelected
-                ? `${config.borderColor} ${config.bgColor} ${config.glowColor}`
-                : 'border-white/10 bg-white/5 hover:border-white/20'
-                } ${disabled || (!isSelected && isFull) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              aria-pressed={isSelected}
+              className={`relative flex items-start gap-3 rounded-xl border p-3.5 text-left transition-colors ${isSelected
+                ? 'border-gold bg-gold/10'
+                : 'border-line-strong bg-surface-1 hover:border-white/20'
+                } ${disabled || (!isSelected && isFull) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
             >
-              <div
-                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isSelected ? config.bgColor : 'bg-white/5'
-                  }`}
-              >
-                <Icon className={`h-5 w-5 ${isSelected ? config.textColor : 'text-gray-400'}`} />
-              </div>
+              <span className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg ${isSelected ? 'bg-gold/15 text-gold' : 'bg-surface-3 text-ink-muted'}`}>
+                <Icon className="h-[18px] w-[18px]" aria-hidden />
+              </span>
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
-                  {badge.name}
-                </p>
-                <p className="mt-1 text-xs text-gray-400 line-clamp-2">{badge.description}</p>
-                <span
-                  className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${isSelected ? config.textColor : 'text-gray-500'
-                    }`}
-                >
-                  {config.label}
-                </span>
+                <p className="text-[13.5px] font-medium text-ink">{badge.name}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs text-ink-faint">{badge.description}</p>
+                <span className="mt-1.5 inline-block text-[11px] text-ink-faint">{config.label}</span>
               </div>
               {isSelected && (
-                <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">
-                  <span className="text-xs">✓</span>
-                </div>
+                <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-gold text-gold-ink">
+                  <Check className="h-3 w-3" aria-hidden />
+                </span>
               )}
             </button>
           )
