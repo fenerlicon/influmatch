@@ -3,7 +3,7 @@ import { createAdvertAlertAs, deleteAdvertAlertAs, listAdvertAlertsAs } from '@/
 
 export const dynamic = 'force-dynamic'
 
-/** Influencer'ın ilan alarmları: { alerts }. */
+/** Influencer'ın ilan alarmları: { alerts, instant } (instant: Spotlight Basic/Pro, yayın anında bildirim). */
 export async function GET(request: Request) {
   const ctx = await getBearerContext(request)
   if (!ctx) return mobileJson({ error: 'Oturum gerekli.' }, 401)
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   return mobileJson(result, result.success ? 200 : 403)
 }
 
-/** Alarm kurar. Gövde: { category?, platform?, minBudget? } (en fazla 5 alarm). */
+/** Alarm kurar. Gövde: { categoryKey?, category? (anahtar kelime), platform?, minBudget? } (en fazla 5 alarm). */
 export async function POST(request: Request) {
   const ctx = await getBearerContext(request)
   if (!ctx) return mobileJson({ error: 'Oturum gerekli.' }, 401)
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
 
   const result = await createAdvertAlertAs(ctx.supabase, ctx.user.id, {
     category: body.category,
+    categoryKey: body.categoryKey,
     platform: body.platform,
     minBudget: body.minBudget,
   })

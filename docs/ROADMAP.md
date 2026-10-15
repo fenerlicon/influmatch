@@ -120,7 +120,7 @@ Kampanya ROI analizi Marka Pro listesinde.
 
 | | Basic | Pro |
 |---|---|---|
-| Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, **anlık ilan alarmı** | Basic + **portföyde sonuç raporları** (✅ 2026-10-14, listede), haftalık özette detaylı istatistik (veri hazır, gönderim Resend ücretli planla), (ileride, çalışınca) profil koçu |
+| Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, **anlık ilan alarmı** (✅ 2026-10-15, listede) | Basic + **portföyde sonuç raporları** (✅ 2026-10-14, listede), haftalık özette detaylı istatistik (veri hazır, gönderim Resend ücretli planla), (ileride, çalışınca) profil koçu |
 | Marka | **Keşif çarkı yok (herkesi görür)**, daha yüksek teklif ve ilan sınırı, akıllı eşleştirme, uyum skoru, benzer profil keşfi, öne çıkan ilanlar | Basic + **sınırsız teklif/ilan**, **kampanya sihirbazı + toplu davet**, **sonuç raporları**, **haftalık eşleşme e-postası**, (ileride) **ekip hesabı** |
 
 ### Güncel iş sırası (Aralık sonuna kadar)

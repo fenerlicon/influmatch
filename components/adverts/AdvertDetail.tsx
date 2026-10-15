@@ -4,7 +4,18 @@ import { useState, useTransition } from 'react'
 import { Bookmark, CheckCircle2, Send } from 'lucide-react'
 import { applyToAdvert } from '@/app/dashboard/influencer/advert/actions'
 import { Avatar, Button, Chip, Eyebrow, Field, Input, Notice, Segmented, Textarea, VerifiedTick } from '@/components/ui'
-import { PAYMENT_LABELS, formatAdvertBudget, formatDay, isPastDeadline, type AdvertProject } from '@/lib/adverts-shared'
+import {
+  ANSWER_MAX_LENGTH,
+  PAYMENT_LABELS,
+  formatAdvertBudget,
+  formatDay,
+  isPastDeadline,
+  isQuestionRequired,
+  type AdvertAnswerInput,
+  type AdvertProject,
+  type AdvertQuestion,
+} from '@/lib/adverts-shared'
+import { advertCategoryLabel } from '@/utils/categories'
 import { cn } from '@/utils/cn'
 
 interface Props {
@@ -21,9 +32,50 @@ interface Props {
 
 const emptyForm = { coverLetter: '', deliverableIdea: '', budget: '', payment: 'cash' as 'cash' | 'barter' }
 
+const optionsOf = (q: AdvertQuestion) => (q.options ?? []).filter((o) => o?.trim())
+
+/** Tek bir sorunun yanıt alanı (metin / tek seçim / çoklu seçim). Kurallar sunucuda (lib/adverts.ts validateAnswers). */
+function QuestionInput({ q, index, value, onChange }: { q: AdvertQuestion; index: number; value: string | string[] | undefined; onChange: (v: string | string[]) => void }) {
+  const required = isQuestionRequired(q)
+  const label = `${index + 1}. ${q.question}${required ? '' : ' (isteğe bağlı)'}`
+  if (q.type === 'text') {
+    return (
+      <Field label={label}>
+        {(p) => <Textarea {...p} rows={2} maxLength={ANSWER_MAX_LENGTH} value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} />}
+      </Field>
+    )
+  }
+  const multiple = q.type === 'multiple_choice'
+  const selected = Array.isArray(value) ? value : typeof value === 'string' && value ? [value] : []
+  return (
+    <fieldset className="grid gap-1.5">
+      <legend className="mb-1 text-[12.5px] font-medium text-ink-muted">
+        {label}
+        {multiple && <span className="text-ink-faint"> · birden fazla seçebilirsin</span>}
+      </legend>
+      {optionsOf(q).map((option) => {
+        const on = selected.includes(option)
+        return (
+          <label key={option} className="flex cursor-pointer items-center gap-2 text-[13.5px] text-ink">
+            <input
+              type={multiple ? 'checkbox' : 'radio'}
+              name={`question-${q.id}`}
+              checked={on}
+              onChange={() => onChange(multiple ? (on ? selected.filter((o) => o !== option) : [...selected, option]) : option)}
+              className="h-4 w-4 accent-gold"
+            />
+            {option}
+          </label>
+        )
+      })}
+    </fieldset>
+  )
+}
+
 /** İlan ayrıntısı (sağ panel / telefonda pencere) ve influencer başvuru formu. */
 export default function AdvertDetail({ project, mode, applied, saved, onToggleSave, onApplied, isOwn }: Props) {
   const [form, setForm] = useState(emptyForm)
+  const [answers, setAnswers] = useState<AdvertAnswerInput>({})
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const closed = project.status !== 'open' || isPastDeadline(project.deadline)
@@ -35,6 +87,15 @@ export default function AdvertDetail({ project, mode, applied, saved, onToggleSa
       setError('Kısa bir niyet mesajı yazmalısın.')
       return
     }
+    const missing = questions.findIndex((q) => {
+      if (!isQuestionRequired(q)) return false
+      const v = answers[q.id]
+      return Array.isArray(v) ? v.length === 0 : !v?.trim()
+    })
+    if (missing >= 0) {
+      setError(`${missing + 1}. soruyu yanıtlamalısın.`)
+      return
+    }
     setError(null)
     startTransition(async () => {
       const result = await applyToAdvert({
@@ -42,12 +103,14 @@ export default function AdvertDetail({ project, mode, applied, saved, onToggleSa
         coverLetter: form.coverLetter,
         deliverableIdea: form.deliverableIdea,
         budgetExpectation: form.payment === 'barter' ? 0 : form.budget ? Number.parseFloat(form.budget.replace(/\./g, '').replace(',', '.')) : null,
+        answers,
       })
       if (result?.error) {
         setError(result.error)
         return
       }
       setForm(emptyForm)
+      setAnswers({})
       onApplied?.()
     })
   }
@@ -72,7 +135,7 @@ export default function AdvertDetail({ project, mode, applied, saved, onToggleSa
                 <span className="truncate">{project.brandName}</span>
                 {project.brandVerificationStatus === 'verified' && <VerifiedTick tone="gold" />}
               </div>
-              <div className="text-xs text-ink-faint">{project.category}</div>
+              <div className="text-xs text-ink-faint">{advertCategoryLabel(project.category)}</div>
             </div>
           </div>
           {mode === 'influencer' && onToggleSave && (
@@ -106,7 +169,7 @@ export default function AdvertDetail({ project, mode, applied, saved, onToggleSa
         </dl>
       </div>
 
-      {questions.length > 0 && (
+      {questions.length > 0 && (mode !== 'influencer' || applied || closed) && (
         <div className="border-t border-line px-5 py-4">
           <Eyebrow>Markanın soruları</Eyebrow>
           <ol className="mt-2 grid list-decimal gap-1.5 pl-[18px] text-[13.5px] text-ink-muted">
@@ -117,7 +180,6 @@ export default function AdvertDetail({ project, mode, applied, saved, onToggleSa
               </li>
             ))}
           </ol>
-          {mode === 'influencer' && !applied && !closed && <p className="mt-2 text-xs text-ink-faint">Yanıtlarını niyet mesajına ekle.</p>}
         </div>
       )}
 
@@ -131,6 +193,14 @@ export default function AdvertDetail({ project, mode, applied, saved, onToggleSa
             <Notice tone="info">Bu ilan artık başvuru almıyor.</Notice>
           ) : (
             <div className="grid gap-3">
+              {questions.length > 0 && (
+                <div className="grid gap-3 rounded-xl border border-line bg-surface-2 p-3">
+                  <Eyebrow>Markanın soruları</Eyebrow>
+                  {questions.map((q, i) => (
+                    <QuestionInput key={q.id} q={q} index={i} value={answers[q.id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))} />
+                  ))}
+                </div>
+              )}
               <Field label="Niyet mesajın" error={error ?? undefined}>
                 {(p) => (
                   <Textarea

@@ -22,10 +22,12 @@ interface Props {
   appliedIds: string[]
   savedIds: string[]
   alerts: AdvertAlert[]
+  /** Alarmlar yayın anında mı (Spotlight Basic/Pro). */
+  alertsInstant: boolean
 }
 
 /** Influencer İlanlar sayfası: açık ilanlar, kaydedilenler, başvurular, alarmlar (sekme adresi ?tab=). */
-export default function InfluencerAdverts({ openProjects, myApplications, appliedIds: initialApplied, savedIds: initialSaved, alerts: initialAlerts }: Props) {
+export default function InfluencerAdverts({ openProjects, myApplications, appliedIds: initialApplied, savedIds: initialSaved, alerts: initialAlerts, alertsInstant }: Props) {
   const params = useSearchParams()
   const [tab, setTab] = useState<TabKey>(isTab(params.get('tab')) ? (params.get('tab') as TabKey) : 'open')
   const [savedIds, setSavedIds] = useState(() => new Set(initialSaved))
@@ -124,7 +126,7 @@ export default function InfluencerAdverts({ openProjects, myApplications, applie
         />
       )}
       {tab === 'applications' && <MyApplications applications={myApplications} onBrowse={() => select('open')} />}
-      {tab === 'alerts' && <AdvertAlerts alerts={alerts} onChange={setAlerts} />}
+      {tab === 'alerts' && <AdvertAlerts alerts={alerts} instant={alertsInstant} onChange={setAlerts} />}
     </div>
   )
 }
