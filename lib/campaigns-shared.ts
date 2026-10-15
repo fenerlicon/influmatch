@@ -38,6 +38,7 @@ export const CAMPAIGN_LIMITS = {
   quantityMax: 50,
   budgetMax: 100_000_000,
   followersMax: 1_000_000_000,
+  plannedCreatorsMax: 1000,
   /** Tek seferde davet edilebilecek en fazla profil. */
   inviteMax: 25,
   suggestions: 30,
@@ -69,6 +70,10 @@ export interface CampaignRow {
   min_followers: number | null
   max_followers: number | null
   total_budget: number | null
+  /** Kişi başı bütçe (isteğe bağlı, 3.19-S1). */
+  per_creator_budget: number | null
+  /** Planlanan profil sayısı (isteğe bağlı); kişi başı bütçe yoksa toplam bütçe buna bölünür. */
+  planned_creators: number | null
   start_date: string | null
   end_date: string | null
   default_deliverables: CampaignDeliverable[]
@@ -77,7 +82,7 @@ export interface CampaignRow {
 }
 
 export const CAMPAIGN_COLUMNS =
-  'id, brand_id, name, status, goal, key_messages, dos, donts, example_links, hashtags, notes, target_categories, target_cities, target_platforms, target_creator_type, min_followers, max_followers, total_budget, start_date, end_date, default_deliverables, created_at, updated_at'
+  'id, brand_id, name, status, goal, key_messages, dos, donts, example_links, hashtags, notes, target_categories, target_cities, target_platforms, target_creator_type, min_followers, max_followers, total_budget, per_creator_budget, planned_creators, start_date, end_date, default_deliverables, created_at, updated_at'
 
 /**
  * Davet edilen influencer'ın gördüğü brief (salt okunur). Hedef kitle, toplam bütçe ve diğer davetliler gibi
@@ -118,6 +123,8 @@ export interface CampaignInput {
   minFollowers?: unknown
   maxFollowers?: unknown
   totalBudget?: unknown
+  perCreatorBudget?: unknown
+  plannedCreators?: unknown
   startDate?: unknown
   endDate?: unknown
   defaultDeliverables?: unknown
@@ -146,7 +153,7 @@ export interface CampaignSuggestion {
   platforms: string[]
   /** Fiyat kartındaki en düşük başlangıç fiyatı (yalnızca doğrulanmış markaya). */
   starting_price: number | null
-  /** Başlangıç fiyatı toplam bütçeye sığıyor mu (bütçe ya da fiyat yoksa null). */
+  /** Başlangıç fiyatı profil başına düşen bütçeye sığıyor mu (campaignBudgetPerCreator; bütçe ya da fiyat yoksa null). */
   fits_budget: boolean | null
   category_match: 'primary' | 'related' | null
   availability: Availability
@@ -230,3 +237,22 @@ export function briefHasContent(b: Pick<CampaignBrief, 'goal' | 'key_messages' |
     b.goal || b.key_messages || b.dos || b.donts || b.notes || b.example_links?.length || b.hashtags?.length || b.default_deliverables?.length,
   )
 }
+
+/**
+ * "Bütçeye sığar" kıyası için profil başına bütçe (3.19-S1): kişi başı bütçe girildiyse o; yoksa toplam bütçe planlanan
+ * profil sayısına bölünür; o da yoksa toplam bütçe. Hiçbiri yoksa null.
+ */
+export function campaignBudgetPerCreator(
+  c: Pick<CampaignRow, 'total_budget' | 'per_creator_budget' | 'planned_creators'>,
+): { amount: number; basis: 'per_creator' | 'planned' | 'total' } | null {
+  if (c.per_creator_budget !== null && c.per_creator_budget !== undefined) return { amount: c.per_creator_budget, basis: 'per_creator' }
+  if (c.total_budget === null || c.total_budget === undefined) return null
+  if (c.planned_creators && c.planned_creators > 0) return { amount: Math.floor(c.total_budget / c.planned_creators), basis: 'planned' }
+  return { amount: c.total_budget, basis: 'total' }
+}
+
+export const BUDGET_BASIS_LABELS = {
+  per_creator: 'kişi başı bütçe',
+  planned: 'toplam bütçe ÷ planlanan profil',
+  total: 'toplam bütçe',
+} as const

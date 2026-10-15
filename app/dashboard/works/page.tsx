@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import WorksView from '@/components/dashboard/WorksView'
 import { listCollaborationsFor } from '@/lib/collaborations'
+import { brandReliability } from '@/lib/collaboration-workspace'
 import { WORK_STAGES, countWorks, loadIncomingOffers, loadSentOffers, type WorkStage } from '@/lib/works'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
@@ -32,6 +33,11 @@ export default async function WorksPage({ searchParams }: { searchParams: { stag
 
   if (role === 'influencer') {
     const { offers, dismissedOfferIds } = await loadIncomingOffers(supabase, user.id)
+    // Teklif gönderen markaların güvenilirliği (3.18-S4): "X iş birliği, Y ödeme teyitli" (mobil teklif detayıyla aynı).
+    const reliability = await brandReliability(
+      supabase,
+      offers.map((o) => o.sender?.id ?? '').filter(Boolean),
+    )
     const counts = countWorks(offers, collaborations)
     const inFlight = counts.agreed + counts.in_progress + counts.published
     // Varsayılan: yanıt bekleyen teklif varsa teklifler, yoksa süren işler.
@@ -44,6 +50,7 @@ export default async function WorksPage({ searchParams }: { searchParams: { stag
         counts={counts}
         offers={offers}
         dismissedOfferIds={dismissedOfferIds}
+        brandReliability={Object.fromEntries(reliability)}
         collaborations={collaborations}
         collabError={collabError}
       />

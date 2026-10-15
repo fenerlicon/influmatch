@@ -12,7 +12,7 @@ import SupportTicketForm from '../components/SupportTicketForm';
 import { AVAILABILITY_NOTE_MAX, availabilityText } from '../constants/availability';
 import { BRAND_PORTFOLIO_SETTING_HELP, BRAND_PORTFOLIO_SETTING_LABEL } from '../constants/portfolio';
 import {
-    Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, colors, ICON_STROKE,
+    Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, DateField, colors, ICON_STROKE,
 } from '../components/ui';
 
 // Ayarlar (design/mobile/ortak.html). E-posta tercihleri web ile aynı alan (users.email_notifications,
@@ -81,7 +81,8 @@ function PasswordSheet({ visible, onClose }) {
     );
 }
 
-// Müsaitlik "Şu an dolu" ayrıntısı (3.19): isteğe bağlı not ve bitiş tarihi (YYYY-AA-GG); tarih geçince "İş alıyorum"a döner.
+// Müsaitlik "Şu an dolu" ayrıntısı (3.19): isteğe bağlı not ve bitiş tarihi (takvimden, en fazla bir yıl); tarih geçince "İş alıyorum"a döner.
+const localIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 function AvailabilitySheet({ visible, onClose, initial, onSaved }) {
     const [note, setNote] = useState(initial?.note || '');
     const [until, setUntil] = useState(initial?.until || '');
@@ -89,7 +90,7 @@ function AvailabilitySheet({ visible, onClose, initial, onSaved }) {
 
     const save = async () => {
         setSaving(true);
-        const result = await apiRequest('availability', { method: 'POST', body: { status: 'busy', note, until: until.trim() || null } });
+        const result = await apiRequest('availability', { method: 'POST', body: { status: 'busy', note, until: until || null } });
         setSaving(false);
         if (result.error) return Alert.alert('Kaydedilemedi', result.error);
         onSaved(result.availability);
@@ -100,13 +101,13 @@ function AvailabilitySheet({ visible, onClose, initial, onSaved }) {
         <Sheet visible={visible} onClose={onClose} title="Şu an dolu" scroll>
             <Text variant="small" tone="fg2">Doluyken keşifte alt sırada görünürsün; markalar yine teklif gönderebilir ama teklif penceresinde uyarı görür.</Text>
             <TextField label="Not (isteğe bağlı)" value={note} onChangeText={setNote} maxLength={AVAILABILITY_NOTE_MAX} placeholder="Örn. Ay sonuna kadar takvimim dolu" />
-            <TextField
+            <DateField
                 label="Bitiş tarihi (isteğe bağlı)"
-                hint="YYYY-AA-GG, ör. 2026-11-30. Bu tarihten sonra kendiliğinden İş alıyorum olur."
+                hint="Bu tarihten sonra kendiliğinden İş alıyorum olur."
                 value={until}
-                onChangeText={(v) => setUntil(v.replace(/[^0-9-]/g, '').slice(0, 10))}
-                keyboardType="numbers-and-punctuation"
-                autoCapitalize="none"
+                onChange={setUntil}
+                min={localIso(new Date())}
+                max={localIso(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))}
             />
             <Button title="Kaydet" onPress={save} loading={saving} block />
         </Sheet>

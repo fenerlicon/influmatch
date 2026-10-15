@@ -12,6 +12,9 @@ import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, Eyeb
 import { cn } from '@/utils/cn'
 import { countUnreadInRoom } from '@/lib/unread-messages'
 import { OFFER_EXPIRY_DAYS, effectiveOfferStatus } from '@/lib/offer-shared'
+import { COLLABORATION_STAGE_SHORT_LABELS, collaborationDetailHref, type CollaborationStageRef } from '@/lib/collaboration-shared'
+import { reliabilityText } from '@/lib/collaboration-workspace-shared'
+import { COLLABORATION_TONES } from '@/lib/works'
 
 export interface OfferListItem {
   id: string
@@ -44,6 +47,10 @@ interface OffersManagerProps {
   initialOffers: OfferListItem[]
   currentUserId: string
   dismissedOfferIds?: Set<string>
+  /** Kabul edilen teklifin iş birliği (3.14-S1): listede "Kabul edildi" yerine aşama, detayda bağlantı. */
+  collaborationByOffer?: Record<string, CollaborationStageRef>
+  /** Gönderen markanın güvenilirliği (3.18-S4): tamamlanan iş birliği ve ödeme teyitli sayısı. */
+  brandReliability?: Record<string, { completed: number; confirmed: number }>
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -78,7 +85,30 @@ const formatBudget = (value: number | null) => {
   }).format(value)
 }
 
-export default function OffersManager({ initialOffers, currentUserId, dismissedOfferIds = new Set() }: OffersManagerProps) {
+export default function OffersManager({
+  initialOffers,
+  currentUserId,
+  dismissedOfferIds = new Set(),
+  collaborationByOffer = {},
+  brandReliability = {},
+}: OffersManagerProps) {
+  // Kabul edilen teklifte iş birliği varsa aşaması gösterilir.
+  const statusChip = (offer: OfferListItem, status: string, pendingText?: string) => {
+    const collab = status === 'accepted' ? collaborationByOffer[offer.id] : undefined
+    if (collab) {
+      return (
+        <Chip tone={COLLABORATION_TONES[collab.status] ?? 'success'} dot>
+          {COLLABORATION_STAGE_SHORT_LABELS[collab.status]}
+        </Chip>
+      )
+    }
+    return (
+      <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
+        {status === 'pending' && pendingText ? pendingText : STATUS_LABELS[status] ?? offer.status}
+      </Chip>
+    )
+  }
+
   const supabase = useSupabaseClient()
   const [offers, setOffers] = useState<OfferListItem[]>(initialOffers)
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(initialOffers[0]?.id ?? null)
@@ -494,9 +524,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
               {offer.edited_at && <span>· düzenlendi</span>}
             </div>
           </div>
-          <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
-            {status === 'pending' ? `${daysLeft(offer.created_at)} gün kaldı` : STATUS_LABELS[status] ?? offer.status}
-          </Chip>
+          {statusChip(offer, status, `${daysLeft(offer.created_at)} gün kaldı`)}
         </button>
         <button
           type="button"
@@ -528,6 +556,7 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
     const status = effectiveOfferStatus(selectedOffer)
     const unread = selectedOffer.room_id ? unreadCounts.get(selectedOffer.room_id) ?? 0 : 0
     const canChat = selectedOffer.status === 'accepted' || (status === 'pending' && !!selectedOffer.room_id)
+    const selectedCollab = status === 'accepted' ? collaborationByOffer[selectedOffer.id] : undefined
 
     return (
       <Card as="section">
@@ -544,11 +573,14 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
                   @{sender.username}
                 </Link>
               ) : null}
+              {sender?.id && (
+                <div className="text-xs text-ink-faint">
+                  {reliabilityText(brandReliability[sender.id]?.completed ?? 0, brandReliability[sender.id]?.confirmed ?? 0)}
+                </div>
+              )}
             </div>
           </div>
-          <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
-            {STATUS_LABELS[status] ?? selectedOffer.status}
-          </Chip>
+          {statusChip(selectedOffer, status)}
         </div>
 
         <div className="border-t border-line p-5">
@@ -614,6 +646,11 @@ export default function OffersManager({ initialOffers, currentUserId, dismissedO
           <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
             {status === 'expired' && <span className="text-xs text-ink-faint">{OFFER_EXPIRY_DAYS} gün içinde yanıtlanmadığı için artık yanıtlanamaz.</span>}
             {status === 'withdrawn' && <span className="text-xs text-ink-faint">Marka teklifi geri çekti. Bu teklif artık yanıtlanamaz.</span>}
+            {selectedCollab && (
+              <ButtonLink size="sm" variant="primary" href={collaborationDetailHref(selectedCollab.id)}>
+                İş birliğine git
+              </ButtonLink>
+            )}
             {canChat && (
               <Button size="sm" leftIcon={<MessageSquare />} onClick={(e) => handleOpenChat(selectedOffer, e)}>
                 Sohbete git

@@ -37,6 +37,8 @@ interface FormState {
   startDate: string
   endDate: string
   totalBudget: string
+  perCreatorBudget: string
+  plannedCreators: string
   deliverables: Array<{ kind: DeliverableKind; quantity: string }>
   categories: string[]
   cities: string[]
@@ -59,6 +61,8 @@ function stateFrom(c?: CampaignRow | null): FormState {
     startDate: c?.start_date ?? '',
     endDate: c?.end_date ?? '',
     totalBudget: c?.total_budget != null ? String(c.total_budget) : '',
+    perCreatorBudget: c?.per_creator_budget != null ? String(c.per_creator_budget) : '',
+    plannedCreators: c?.planned_creators != null ? String(c.planned_creators) : '',
     deliverables: (c?.default_deliverables ?? []).map((d) => ({ kind: d.kind, quantity: String(d.quantity) })),
     categories: c?.target_categories ?? [],
     cities: c?.target_cities ?? [],
@@ -99,6 +103,8 @@ export default function CampaignForm({ initial }: Props) {
           startDate: form.startDate || null,
           endDate: form.endDate || null,
           totalBudget: form.totalBudget || null,
+          perCreatorBudget: form.perCreatorBudget || null,
+          plannedCreators: form.plannedCreators || null,
           defaultDeliverables: form.deliverables.map((d) => ({ kind: d.kind, quantity: Number(d.quantity) })),
           targetCategories: form.categories,
           targetCities: form.cities,
@@ -176,6 +182,14 @@ export default function CampaignForm({ initial }: Props) {
               </Field>
               <Field label="Toplam bütçe (₺, isteğe bağlı)">
                 {(p) => <Input {...p} inputMode="numeric" value={form.totalBudget} onChange={(e) => set('totalBudget', digits(e.target.value, 9))} />}
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Kişi başı bütçe (₺, isteğe bağlı)" hint="Önerilerde fiyat kartı bu tutarla kıyaslanır.">
+                {(p) => <Input {...p} inputMode="numeric" value={form.perCreatorBudget} onChange={(e) => set('perCreatorBudget', digits(e.target.value, 9))} />}
+              </Field>
+              <Field label="Planlanan profil sayısı (isteğe bağlı)" hint="Kişi başı bütçe boşsa toplam bütçe bu sayıya bölünür.">
+                {(p) => <Input {...p} inputMode="numeric" value={form.plannedCreators} onChange={(e) => set('plannedCreators', digits(e.target.value, 4))} />}
               </Field>
             </div>
             <div className="grid gap-2">

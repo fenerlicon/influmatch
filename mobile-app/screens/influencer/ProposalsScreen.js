@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Bookmark, BellRing, Trash2, Megaphone, Inbox, MapPin } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
+import { COLLAB_STAGE_SHORT, loadApplicationCollabs } from '../../constants/collaborations';
 import { ADVERT_ALERT_LIMIT, ADVERT_ALERT_PLATFORMS, describeAlert } from '../../constants/advertAlerts';
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, advertCategoryLabel } from '../../constants/categories';
 import { formatBudget, formatTRY, formatDate, daysLeft } from '../../lib/format';
@@ -137,7 +138,9 @@ export default function ProposalsScreen({ route, navigation }) {
                     .eq('influencer_id', user.id)  // DB column is influencer_id (not influencer_user_id)
                     .order('created_at', { ascending: false });
                 if (appsError) throw appsError;
-                setApplications(appsData || []);
+                // Kabul edilen başvurunun iş birliği aşaması (3.14-S1).
+                const collabs = await loadApplicationCollabs((appsData || []).filter((x) => x.status === 'accepted').map((x) => x.id));
+                setApplications((appsData || []).map((x) => ({ ...x, collaboration: collabs.get(x.id) || null })));
             }
         } catch (error) {
             console.error('Error fetching proposals:', error);
@@ -311,7 +314,7 @@ export default function ProposalsScreen({ route, navigation }) {
         applications.length ? (
             <ListGroup>
                 {applications.map((app) => {
-                    const s = APP_STATUS[app.status] || { label: app.status, tone: 'neutral' };
+                    const s = (app.collaboration && COLLAB_STAGE_SHORT[app.collaboration.status]) || APP_STATUS[app.status] || { label: app.status, tone: 'neutral' };
                     return (
                         <ListRow
                             key={app.id}
@@ -390,7 +393,7 @@ export default function ProposalsScreen({ route, navigation }) {
 
     const p = selectedProject;
     const a = selectedApplication;
-    const aStatus = a ? APP_STATUS[a.status] || { label: a.status, tone: 'neutral' } : null;
+    const aStatus = a ? (a.collaboration && COLLAB_STAGE_SHORT[a.collaboration.status]) || APP_STATUS[a.status] || { label: a.status, tone: 'neutral' } : null;
 
     return (
         <Screen
@@ -495,6 +498,13 @@ export default function ProposalsScreen({ route, navigation }) {
                             <KeyValue label="Tarih" value={formatDate(a.created_at)} />
                             <KeyValue label="Bütçe beklentin" value={a.budget_expectation ? formatTRY(a.budget_expectation) : 'Belirtilmedi'} last />
                         </Card>
+                        {a.collaboration ? (
+                            <Button
+                                title="İş birliğine git"
+                                onPress={() => { setSelectedApplication(null); navigation.navigate('CollaborationDetail', { id: a.collaboration.id }); }}
+                                block
+                            />
+                        ) : null}
                         {Array.isArray(a.answers) && a.answers.length ? (
                             <Card padded={false} className="px-4">
                                 {a.answers.map((ans, i) => (

@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { listAdvertAlertsAs, listSavedAdvertIdsAs } from '@/lib/advert-alerts'
+import { collaborationStagesBySource } from '@/lib/collaborations'
 
 export const revalidate = 0
 
@@ -178,6 +179,13 @@ export default async function InfluencerAdvertPage() {
     }
   }
 
+  // Kabul edilen başvuruların iş birliği aşaması (3.14-S1).
+  const collabByApplication = await collaborationStagesBySource(
+    supabase,
+    'application',
+    (applicationRows ?? []).filter((row: any) => row.status === 'accepted').map((row: any) => row.id as string),
+  )
+
   // Map applications for influencer view
   const myApplications: AdvertApplication[] = (applicationRows ?? []).map((row: any) => {
     const advert = row.advert_id ? advertMap.get(row.advert_id) : null
@@ -210,6 +218,7 @@ export default async function InfluencerAdvertPage() {
       created_at: row.created_at,
       room_id: roomInfo?.id ?? null,
       has_messages: roomInfo?.hasMessages ?? false,
+      collaboration: collabByApplication.get(row.id) ?? null,
       answers: parseAnswers(row.answers),
     }
   })

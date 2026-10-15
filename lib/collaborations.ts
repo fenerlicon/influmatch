@@ -11,11 +11,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
+import { startDeliverableTracking } from '@/lib/post-metrics'
 import {
   AUTO_COMPLETE_DAYS,
   COLLABORATION_STATUSES,
   type CollaborationAction,
   type CollaborationSource,
+  type CollaborationStageRef,
   type CollaborationStatus,
 } from '@/lib/collaboration-shared'
 
@@ -124,6 +126,40 @@ function autoCompleteAt(row: Pick<CollaborationRow, 'status' | 'published_at'>) 
   return new Date(new Date(row.published_at).getTime() + AUTO_COMPLETE_MS).toISOString()
 }
 
+/** İptal edilmiş iş birliğini temiz açar. SQL fonksiyonu yoksa (canlıya uygulanmadıysa) aynı işi sırayla yapar. */
+async function reopenCancelled(admin: SupabaseClient, collaborationId: string, title: string, roomId: string | null): Promise<boolean> {
+  const { data, error } = await admin.rpc('reopen_collaboration', { p_collaboration_id: collaborationId, p_title: title, p_room_id: roomId })
+  if (!error) return data === true
+  if (error.code !== 'PGRST202' && !/reopen_collaboration/.test(error.message ?? '')) throw error
+
+  const { data: updated, error: updateError } = await admin
+    .from('collaborations')
+    .update({
+      status: 'agreed',
+      title,
+      publish_url: null,
+      published_at: null,
+      completed_at: null,
+      auto_completed: false,
+      cancelled_at: null,
+      cancelled_by: null,
+      cancel_reason: null,
+      ...(roomId ? { room_id: roomId } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', collaborationId)
+    .eq('status', 'cancelled')
+    .select('id')
+  if (updateError) throw updateError
+  if (!updated?.length) return false
+  await Promise.all(
+    ['collaboration_deliverables', 'collaboration_agreements', 'collaboration_payments'].map((table) =>
+      admin.from(table).delete().eq('collaboration_id', collaborationId),
+    ),
+  )
+  return true
+}
+
 interface CreateInput {
   source: CollaborationSource
   sourceId: string
@@ -151,25 +187,10 @@ export async function createCollaborationFor(input: CreateInput, admin: Supabase
         }
         return
       }
-      // Başvuru yeniden kabul edildi: iptal edilmiş kayıt baştan açılır.
-      const { error } = await admin
-        .from('collaborations')
-        .update({
-          status: 'agreed',
-          title,
-          publish_url: null,
-          published_at: null,
-          completed_at: null,
-          auto_completed: false,
-          cancelled_at: null,
-          cancelled_by: null,
-          cancel_reason: null,
-          room_id: input.roomId ?? existing.room_id ?? null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        .eq('status', 'cancelled')
-      if (error) throw error
+      // Başvuru yeniden kabul edildi: iptal edilmiş kayıt baştan açılır. Eski anlaşma özeti, teslimatlar (taslak geçmişi ve
+      // ölçümler dahil) ve ödeme kaydı silinir; yeni iş birliği temiz başlar (3.18-S2). Tek işlemde: reopen_collaboration.
+      const reopened = await reopenCancelled(admin, existing.id as string, title, input.roomId ?? null)
+      if (!reopened) return // bu arada başka bir istek açtı
       collaborationId = existing.id as string
     } else {
       const { data: created, error } = await admin
@@ -331,6 +352,40 @@ async function ensureRoom(admin: SupabaseClient, row: CollaborationRow): Promise
   return roomId
 }
 
+/** Teslimatsız iş birliğinde girilen yayın linkini yayınlanmış tek teslimat olarak yazar ve ölçüm takibini başlatır. */
+async function recordLegacyPublishDeliverable(admin: SupabaseClient, row: CollaborationRow, url: string, now: string) {
+  try {
+    const { data: created, error } = await admin
+      .from('collaboration_deliverables')
+      .insert({
+        collaboration_id: row.id,
+        position: 0,
+        kind: 'other',
+        quantity: 1,
+        note: 'Yayın linki',
+        status: 'published',
+        publish_url: url,
+        published_at: now,
+      })
+      .select('id')
+      .single()
+    if (error || !created) {
+      console.error('[collaborations] yayın linki teslimatı yazılamadı:', error?.message)
+      return
+    }
+    await startDeliverableTracking(admin, {
+      deliverableId: created.id as string,
+      collaborationId: row.id,
+      influencerId: row.influencer_id,
+      url,
+      publishedAt: now,
+      kind: 'other',
+    })
+  } catch (error) {
+    console.error('[collaborations] yayın linki teslimatı yazılamadı:', error)
+  }
+}
+
 export interface CollaborationActionInput {
   action: CollaborationAction
   url?: string | null
@@ -399,6 +454,9 @@ export async function runCollaborationAction(
       const checked = validatePublishUrl(input.url)
       if ('error' in checked) return { error: checked.error }
       if (!(await transition(['agreed', 'in_progress'], { status: 'published', publish_url: checked.url, published_at: now }))) return stale
+      // Anlaşma özetsiz iş birliğinin tek yayın linki de ölçülsün (3.20-S2): link tek bir "Diğer" teslimatı olarak kaydedilir,
+      // ölçüm, sonuç raporu ve portföy teslimat üzerinden aynen işler. Hata yayın işlemini bozmaz.
+      await recordLegacyPublishDeliverable(admin, row, checked.url, now)
       const influencerName = await displayNameOf(admin, userId)
       await notifyUser(
         {
@@ -502,6 +560,31 @@ export async function autoCompleteCollaborations(admin: SupabaseClient, options:
     ])
   }
   return { due: data?.length ?? 0, completed }
+}
+
+/**
+ * Teklif / başvuru kimliklerine göre iş birliği aşaması (3.14-S1). RLS'li istemciyle okunur: yalnızca çağıranın taraf
+ * olduğu kayıtlar gelir.
+ */
+export async function collaborationStagesBySource(
+  supabase: SupabaseClient,
+  source: CollaborationSource,
+  sourceIds: string[],
+): Promise<Map<string, CollaborationStageRef>> {
+  const map = new Map<string, CollaborationStageRef>()
+  const column = source === 'offer' ? 'offer_id' : 'application_id'
+  const ids = Array.from(new Set(sourceIds.filter(Boolean)))
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error } = await supabase.from('collaborations').select(`id, status, ${column}`).in(column, ids.slice(i, i + 200))
+    if (error) {
+      console.error('[collaborations] aşamalar alınamadı:', error.message)
+      break
+    }
+    ;((data ?? []) as unknown as Array<Record<string, string>>).forEach((row) => {
+      if (row[column]) map.set(row[column], { id: row.id, status: row.status as CollaborationStatus })
+    })
+  }
+  return map
 }
 
 /** Influencer'ların tamamlanan iş birliği sayıları (giriş yapmış her kullanıcı görebilir; satırlar gizli kalır). */

@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Mail, Handshake, MessageCircle, Bell } from 'lucide-react-native';
 import { apiRequest } from '../lib/api';
 import { reliabilityText } from '../constants/collaborationWorkspace';
+import { COLLAB_STAGE_SHORT } from '../constants/collaborations';
 import CampaignBrief from '../components/CampaignBrief';
 import { formatTRY, formatDate, timeAgo } from '../lib/format';
 import {
@@ -263,9 +264,17 @@ export default function JobsScreen({ navigation, route }) {
         );
     };
 
+    // Kabul edilen teklifte iş birliği varsa "Kabul edildi" yerine aşaması (3.14-S1); iş birlikleri zaten yüklü.
+    const collabOfOffer = (offer) => (offer?.status === 'accepted' ? collabs.find((c) => c.offer_id === offer.id) || null : null);
+    const offerChip = (offer) => {
+        const collab = collabOfOffer(offer);
+        if (collab && COLLAB_STAGE_SHORT[collab.status]) return COLLAB_STAGE_SHORT[collab.status];
+        return OFFER_STATUS[offer.status] || OFFER_STATUS.pending;
+    };
+
     const renderOfferRow = (offer) => {
         const person = counterpart(offer);
-        const s = OFFER_STATUS[offer.status] || OFFER_STATUS.pending;
+        const s = offerChip(offer);
         return (
             <ListRow
                 key={offer.id}
@@ -377,7 +386,8 @@ export default function JobsScreen({ navigation, route }) {
 
     const sel = selected;
     const selPerson = sel ? counterpart(sel) : null;
-    const selStatus = sel ? OFFER_STATUS[sel.status] || OFFER_STATUS.pending : null;
+    const selStatus = sel ? offerChip(sel) : null;
+    const selCollab = sel ? collabOfOffer(sel) : null;
 
     return (
         <Screen
@@ -448,6 +458,9 @@ export default function JobsScreen({ navigation, route }) {
                                     <View className="flex-1"><Button title="Reddet" variant="danger" size="md" onPress={() => confirmReject(sel)} disabled={!!busy} block /></View>
                                 </View>
                             </>
+                        ) : null}
+                        {selCollab ? (
+                            <Button title="İş birliğine git" icon={Handshake} onPress={() => { setSelected(null); navigation.navigate('CollaborationDetail', { id: selCollab.id }); }} block />
                         ) : null}
                         {sel.room_id ? <Button title="Sohbete git" icon={MessageCircle} variant={!isBrand && sel.status === 'pending' ? 'ghost' : 'primary'} onPress={() => goToChat(selPerson, sel.room_id)} block /> : null}
                     </>

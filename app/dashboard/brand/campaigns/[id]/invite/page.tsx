@@ -5,7 +5,7 @@ import CampaignInvite from '@/components/campaigns/CampaignInvite'
 import CampaignProLockedCard from '@/components/campaigns/CampaignProLockedCard'
 import WizardSteps from '@/components/campaigns/WizardSteps'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { CAMPAIGN_OPEN_STATUSES, campaignFeaturesFor, getCampaignAs, suggestCampaignProfilesAs } from '@/lib/campaigns'
+import { CAMPAIGN_OPEN_STATUSES, campaignBudgetPerCreator, campaignFeaturesFor, getCampaignAs, suggestCampaignProfilesAs } from '@/lib/campaigns'
 import { getBrandLimitContext, getOfferQuota, offerQuotaSummary } from '@/lib/brand-limits'
 
 export const revalidate = 0
@@ -58,6 +58,7 @@ export default async function CampaignInvitePage({ params }: { params: { id: str
           campaignId={campaign.id}
           campaignName={campaign.name}
           totalBudget={campaign.total_budget}
+          budgetPerCreator={campaignBudgetPerCreator(campaign)}
           suggestions={suggestions?.success ? suggestions.suggestions : []}
           bulkInvite={features.bulkInvite}
           quotaText={quotaText}

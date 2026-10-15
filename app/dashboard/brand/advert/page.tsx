@@ -5,6 +5,7 @@ import { parseAnswers, type AdvertApplication, type AdvertProject } from '@/lib/
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { collaborationStagesBySource } from '@/lib/collaborations'
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -159,6 +160,13 @@ export default async function BrandAdvertPage() {
     })
   }
 
+  // Kabul edilen başvuruların iş birliği aşaması (3.14-S1).
+  const collabByApplication = await collaborationStagesBySource(
+    supabase,
+    'application',
+    (applicationRows ?? []).filter((row: any) => row.status === 'accepted').map((row: any) => row.id as string),
+  )
+
   const myApplications: AdvertApplication[] = (applicationRows ?? []).map((row: any) => ({
     id: row.id,
     advert_id: row.advert_id,
@@ -178,6 +186,7 @@ export default async function BrandAdvertPage() {
     status: row.status,
     created_at: row.created_at,
     room_id: roomByApplication.get(row.id) ?? null,
+    collaboration: collabByApplication.get(row.id) ?? null,
     answers: parseAnswers(row.answers),
   }))
 

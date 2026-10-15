@@ -36,6 +36,7 @@ import {
   CAMPAIGN_STATUSES,
   DELIVERABLE_KIND_LABELS,
   DELIVERABLE_KINDS,
+  campaignBudgetPerCreator,
   type CampaignBrief,
   type CampaignCreatorType,
   type CampaignDashboard,
@@ -213,6 +214,15 @@ export function validateCampaignInput(input: CampaignInput): { value: CampaignFi
 
   const totalBudget = parseInteger(input.totalBudget, CAMPAIGN_LIMITS.budgetMax)
   if (totalBudget === 'invalid') return { error: 'Toplam bütçe 0 ile 100.000.000 ₺ arasında tam sayı olmalı.' }
+  const perCreatorBudget = parseInteger(input.perCreatorBudget, CAMPAIGN_LIMITS.budgetMax)
+  if (perCreatorBudget === 'invalid') return { error: 'Kişi başı bütçe 0 ile 100.000.000 ₺ arasında tam sayı olmalı.' }
+  if (perCreatorBudget !== null && totalBudget !== null && perCreatorBudget > totalBudget) {
+    return { error: 'Kişi başı bütçe toplam bütçeden büyük olamaz.' }
+  }
+  const plannedCreators = parseInteger(input.plannedCreators, CAMPAIGN_LIMITS.plannedCreatorsMax)
+  if (plannedCreators === 'invalid' || plannedCreators === 0) {
+    return { error: `Planlanan profil sayısı 1 ile ${CAMPAIGN_LIMITS.plannedCreatorsMax} arasında olmalı.` }
+  }
 
   const startDate = parseDate(input.startDate)
   const endDate = parseDate(input.endDate)
@@ -246,6 +256,8 @@ export function validateCampaignInput(input: CampaignInput): { value: CampaignFi
       min_followers: minFollowers,
       max_followers: maxFollowers,
       total_budget: totalBudget,
+      per_creator_budget: perCreatorBudget,
+      planned_creators: plannedCreators,
       start_date: startDate,
       end_date: endDate,
       default_deliverables: deliverables,
@@ -402,7 +414,7 @@ export async function setCampaignStatusAs(
 /**
  * Kampanya hedefine uyan profiller. Liste lib/profile-reads.ts listDiscoverProfiles ile alınır: onay, keşif çarkı ve
  * doğrulanmış hesap kuralı aynen uygulanır (öneriler hiçbir zaman keşifte görülemeyecek profili göstermez).
- * Sıra: müsait olanlar önce, kategori uyumu, fiyat kartı toplam bütçeye sığanlar, takipçi.
+ * Sıra: müsait olanlar önce, kategori uyumu, fiyat kartı profil başına bütçeye sığanlar, takipçi.
  */
 export async function suggestCampaignProfilesAs(
   supabase: SupabaseClient,
@@ -444,6 +456,8 @@ export async function suggestCampaignProfilesAs(
   const ids = candidates.map((p) => p.id)
   const [prices, invited] = await Promise.all([visibleMinPrices(supabase, ids), invitedCreatorIds(supabase, userId, campaign.id)])
   const platformFilter = campaign.target_platforms.length ? new Set<string>(campaign.target_platforms) : null
+  // Başlangıç fiyatı profil başına düşen bütçeyle kıyaslanır (3.19-S1).
+  const budgetPerCreator = campaignBudgetPerCreator(campaign)
 
   const suggestions: CampaignSuggestion[] = candidates.map((p) => {
     const accounts = platformFilter ? p.social_accounts.filter((a) => platformFilter.has(a.platform)) : p.social_accounts
@@ -463,7 +477,7 @@ export async function suggestCampaignProfilesAs(
       engagement: best?.engagement_rate === null || best?.engagement_rate === undefined ? null : Number(best.engagement_rate),
       platforms: Array.from(new Set(p.social_accounts.map((a) => a.platform))),
       starting_price: price,
-      fits_budget: price === null || campaign.total_budget === null ? null : price <= campaign.total_budget,
+      fits_budget: price === null || budgetPerCreator === null ? null : price <= budgetPerCreator.amount,
       category_match: campaign.target_categories.length ? 'primary' : categoryMatch,
       availability: p.availability,
       already_invited: invited.has(p.id),

@@ -3,7 +3,6 @@ import { View, FlatList, Alert, ActivityIndicator, RefreshControl, Pressable } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Heart, Lock, Users, ShieldAlert, SlidersHorizontal, MapPin, BarChart3, BadgeCheck } from 'lucide-react-native';
 import { TURKISH_CITIES } from '../../constants/cities';
-import { RATE_CARD_ITEMS, RATE_CARD_SELECT } from '../../constants/rateCard';
 import { supabase } from '../../lib/supabase';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { getThumbnailUrl } from '../../utils/image';
@@ -38,7 +37,7 @@ const SORT_OPTIONS = [
 const CITY_OPTIONS = [{ value: '', label: 'Tüm şehirler' }, ...TURKISH_CITIES.map((c) => ({ value: c, label: c }))];
 const PRO_FILTER_TEXT = '"Verisi olanlar" ve "Mavi tikli" filtreleri Spotlight Pro paketine dahildir.';
 
-function discoverPath(f) {
+function discoverPath(f, budget) {
     const params = [];
     const add = (key, value) => {
         if (value === '' || value === false || value == null) return;
@@ -55,6 +54,7 @@ function discoverPath(f) {
     add('withData', f.withData);
     add('blueTick', f.blueTick);
     add('availableOnly', f.availableOnly);
+    if (budget > 0) add('budget', budget);
     return params.length ? `discover?${params.join('&')}` : 'discover';
 }
 
@@ -128,9 +128,9 @@ export default function DiscoverScreen({ navigation, route }) {
     // Onaysız marka: web ile aynı kural, profil listelenmez.
     const [locked, setLocked] = useState(false);
     const [spinning, setSpinning] = useState(false);
-    // Bütçe filtresi (yalnızca marka): fiyat kartında en az bir başlangıç fiyatı bütçeye sığanlar kalır.
+    // Bütçe filtresi (yalnızca marka): fiyat kartında en az bir başlangıç fiyatı bütçeye sığanlar kalır. Sunucuda uygulanır
+    // (?budget=, 3.14-S2); başlangıç fiyatı her profilde min_price olarak gelir.
     const [budgetInput, setBudgetInput] = useState('');
-    const [minPrices, setMinPrices] = useState(new Map());
     const budget = Number(budgetInput) || 0;
     const isShowcase = route?.name === 'Vitrin';
     const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -138,7 +138,7 @@ export default function DiscoverScreen({ navigation, route }) {
     const [cityOpen, setCityOpen] = useState(false);
     const [proFilters, setProFilters] = useState(false);
     const [filtering, setFiltering] = useState(false);
-    const path = discoverPath(filters);
+    const path = discoverPath(filters, isBrand ? budget : 0);
     const pathRef = useRef(path);
     pathRef.current = path;
     const requestRef = useRef(0);
@@ -167,16 +167,6 @@ export default function DiscoverScreen({ navigation, route }) {
             const favState = viewerIsBrand ? await apiRequest('favorites') : null;
             setFavoritesLocked(!!favState?.locked);
             const favIds = new Set(Array.isArray(favState?.ids) ? favState.ids : []);
-
-            if (viewerIsBrand) {
-                const { data: cards } = await supabase.from('rate_cards').select(RATE_CARD_SELECT).limit(1000);
-                const prices = new Map();
-                (cards || []).forEach((card) => {
-                    const values = RATE_CARD_ITEMS.map((item) => card[item.column]).filter((v) => typeof v === 'number' && v > 0);
-                    if (values.length) prices.set(card.user_id, Math.min(...values));
-                });
-                setMinPrices(prices);
-            }
 
             if (requestId !== requestRef.current) return;
             setProfiles((result.profiles || []).map((u) => ({
@@ -252,14 +242,13 @@ export default function DiscoverScreen({ navigation, route }) {
             if (segment === 'featured' && !u.spotlight_active) return false;
             if (segment === 'favorites' && !u.isFavorited) return false;
             if (category && u.category !== category) return false;
-            if (isBrand && budget > 0 && !(minPrices.has(u.id) && minPrices.get(u.id) <= budget)) return false;
             if (!q) return true;
             return [u.full_name, u.username, influencerCategoryLabel(u.category), u.city].some((v) => (v || '').toLocaleLowerCase('tr-TR').includes(q));
         });
         // Sıralama seçiliyse sunucunun sırası korunur (dolu profiller sonda, Spotlight önde); değilse dolu profiller sonda, Spotlight önde.
         const busy = (u) => Number(u.availability?.status === 'busy');
         return filters.sort ? list : list.sort((a, b) => busy(a) - busy(b) || Number(!!b.spotlight_active) - Number(!!a.spotlight_active));
-    }, [profiles, searchQuery, category, segment, budget, minPrices, isBrand, filters.sort]);
+    }, [profiles, searchQuery, category, segment, filters.sort]);
 
     const openProfile = (item) => navigation.navigate('InfluencerDetail', { influencer: item });
 
@@ -364,7 +353,7 @@ export default function DiscoverScreen({ navigation, route }) {
                             canFavorite={isBrand}
                             favoritesLocked={favoritesLocked}
                             onToggleFavorite={toggleFavorite}
-                            minPrice={minPrices.get(item.id)}
+                            minPrice={item.min_price}
                         />
                     )}
                     ListHeaderComponent={header}
