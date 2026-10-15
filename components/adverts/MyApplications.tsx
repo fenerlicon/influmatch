@@ -9,6 +9,7 @@ import { cancelApplication } from '@/app/dashboard/influencer/advert/actions'
 import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, ListRow, VerifiedTick } from '@/components/ui'
 import { worksHref } from '@/lib/works'
 import { APPLICATION_STATUS, formatExpectation, relativeDay, type AdvertApplication } from '@/lib/adverts-shared'
+import ApplicationAnswers from './ApplicationAnswers'
 
 /** Influencer'ın başvuruları: durum, mesaj, bekleyen başvuruyu geri çekme. */
 export default function MyApplications({ applications, onBrowse }: { applications: AdvertApplication[]; onBrowse: () => void }) {
@@ -80,6 +81,7 @@ export default function MyApplications({ applications, onBrowse }: { application
                   {expectation && <span>· Beklenti {expectation}</span>}
                 </div>
                 {a.status === 'accepted' && <div className="mt-1 text-[12.5px] text-ink-muted">İş başladı; ayrıntılar İşler sayfasında.</div>}
+                <ApplicationAnswers answers={a.answers} />
               </div>
               <div className="ml-auto flex flex-wrap gap-1.5">
                 {a.status === 'pending' && (

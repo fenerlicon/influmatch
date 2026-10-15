@@ -8,6 +8,37 @@ export interface AdvertQuestion {
   type: 'text' | 'single_select' | 'multiple_choice'
   question: string
   options?: string[]
+  /** Yanıt zorunlu mu (alan yoksa zorunlu sayılır; marka formunda varsayılan açık). */
+  required?: boolean
+}
+
+/** Başvurudaki tek bir soru yanıtı. Soru metni başvuru anında kopyalanır (marka soruyu sonra değiştirse de görünen aynı kalır). */
+export interface AdvertAnswer {
+  id: string
+  question: string
+  type: AdvertQuestion['type']
+  answer: string | string[]
+}
+
+/** Başvuru formundan sunucuya giden yanıtlar: soru kimliği → metin ya da seçenek(ler). */
+export type AdvertAnswerInput = Record<string, string | string[]>
+
+export const ANSWER_MAX_LENGTH = 1000
+
+export const isQuestionRequired = (q: Pick<AdvertQuestion, 'required'>) => q.required !== false
+
+/** Yanıtın ekrandaki hali (çoklu seçim virgülle). */
+export function formatAnswer(answer: AdvertAnswer['answer']): string {
+  return Array.isArray(answer) ? answer.join(', ') : answer
+}
+
+/** jsonb'den gelen yanıtlar (bozuk satırlar atlanır). */
+export function parseAnswers(value: unknown): AdvertAnswer[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (a): a is AdvertAnswer =>
+      !!a && typeof a === 'object' && typeof (a as AdvertAnswer).question === 'string' && (typeof (a as AdvertAnswer).answer === 'string' || Array.isArray((a as AdvertAnswer).answer)),
+  )
 }
 
 export interface AdvertProject {
@@ -60,6 +91,8 @@ export interface AdvertApplication {
   created_at: string
   room_id?: string | null
   has_messages?: boolean
+  /** Markanın sorularına verilen yanıtlar (3.7-S6). */
+  answers?: AdvertAnswer[]
 }
 
 export const APPLICATION_STATUS: Record<ApplicationStatus, { label: string; tone: ChipTone }> = {
