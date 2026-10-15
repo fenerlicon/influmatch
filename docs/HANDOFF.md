@@ -186,6 +186,10 @@
 | Gönderisiz hesaplar (10 Ekim) | Yeni doğrulamada reddediliyor (3.13-N6); doğrulanmış hesaplar kalır. |
 | Çerez banner'ı (10 Ekim) | "Şimdi ekle." Yalnızca web; zorunlu / tümü seçimi, 12 ay çerez. Metin avukata gösterilecek. |
 | Çevrimiçi / son görülme (8 Ekim) | Admin panelinde her kullanıcı için. Uygulandı (dakikalık sinyal + son giriş zamanı). |
+| Takvim (15 Ekim) | Cloudflare, bireysel Apple/Google geliştirici hesapları, `eas init` + FCM: **5 Kasım**. Resend ücretli plan: **5 Aralık**. |
+| 0₺ kampanyası (15 Ekim) | Herkese (mevcut + yeni) Spotlight Pro; POS açılınca biter, 7 gün önce hatırlatma; geçenlere ilk ay %50 indirim. Ayrıntı `docs/ROADMAP.md`. |
+| Akademi fiyatı (15 Ekim) | 1.490 ₺ tek seferlik; 25 yaş altı üniversite öğrencisi yarı fiyat, öğrenci belgesi yükleme + admin onayı. |
+| Ekip hesabı (15 Ekim) | Satış başladıktan sonra. |
 
 ## 4. Karar bekleyenler
 
