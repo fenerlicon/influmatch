@@ -19,6 +19,7 @@ export const SPOTLIGHT_PLAN_FEATURES = {
         { text: 'Spotlight rozeti ve çerçevesi', highlight: true },
         { text: 'Keşfette öncelikli listeleme', highlight: true },
         { text: 'Profil görüntülenme sayıları' },
+        { text: 'Portföyde iş birliği sonuçları', highlight: true },
     ],
     mbasic: [
         { text: 'Akıllı eşleştirme önerileri', highlight: true },

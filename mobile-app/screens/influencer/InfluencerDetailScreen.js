@@ -8,6 +8,7 @@ import { influencerBadges } from '../../constants/badges';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { RATE_CARD_ITEMS, RATE_CARD_SELECT, formatTry } from '../../constants/rateCard';
 import DiscoveryWheelCard from '../../components/DiscoveryWheelCard';
+import PortfolioResults from '../../components/PortfolioResults';
 import { availabilityText, busyOfferWarning } from '../../constants/availability';
 import { formatCount, formatPercent } from '../../lib/format';
 import {
@@ -50,6 +51,8 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     const [availability, setAvailability] = useState(route.params.influencer?.availability || null);
     const [campaigns, setCampaigns] = useState([]);
     const [campaignId, setCampaignId] = useState(route?.params?.campaignId || '');
+    // Portföyde iş birliği sonuçları (4.3-S7): sunucu yalnızca Influencer Pro profilinde (ya da sahibine) döndürür.
+    const [portfolio, setPortfolio] = useState(null);
 
     const draftToForm = (draft) => ({
         campaignName: draft.campaign_name || '',
@@ -116,6 +119,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                 } else if (access?.status === 'ok' && access.profile) {
                     const accounts = access.socialAccounts || [];
                     setAvailability(access.availability || null);
+                    setPortfolio(access.portfolio || null);
                     setDetail({
                         ...access.profile,
                         isVerified: Array.isArray(access.profile.displayed_badges) && access.profile.displayed_badges.includes('verified-account'),
@@ -202,6 +206,7 @@ export default function InfluencerDetailScreen({ navigation, route }) {
     const platforms = [['instagram', 'Instagram'], ['tiktok', 'TikTok']].filter(([key]) => influencer[key]);
     const tabs = [
         { key: 'stats', label: 'İstatistik' },
+        ...(portfolio ? [{ key: 'results', label: 'Sonuçlar' }] : []),
         ...(rateCard ? [{ key: 'rate', label: 'Fiyat kartı' }] : []),
         { key: 'about', label: 'Hakkında' },
         { key: 'badges', label: 'Rozetler' },
@@ -268,6 +273,10 @@ export default function InfluencerDetailScreen({ navigation, route }) {
                 ) : (
                     <Card padded={false}><EmptyState icon={BarChart3} title="İstatistik yok" text="Doğrulanmış sosyal hesap istatistiği bulunmuyor." /></Card>
                 )
+            ) : null}
+
+            {tab === 'results' && portfolio ? (
+                <PortfolioResults view={portfolio} onOpenPlans={() => navigation.navigate('Spotlight')} />
             ) : null}
 
             {tab === 'rate' && rateCard ? (

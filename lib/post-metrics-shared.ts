@@ -88,6 +88,28 @@ export function engagementOf(
   return null
 }
 
+/**
+ * Birden çok gönderinin toplam etkileşimi: izlenmesi olan gönderiler varsa (beğeni + yorum) / izlenme, yoksa
+ * yayın anındaki takipçiye göre. Kampanya sonuçları ve portföy sonuçları aynı hesabı kullanır.
+ */
+export function aggregateEngagement(
+  posts: Array<{ likes: number | null; comments: number | null; views: number | null; followers: number | null }>,
+): EngagementRate | null {
+  const withViews = posts.filter((p) => p.views && p.views > 0)
+  if (withViews.length) {
+    const interactions = withViews.reduce((sum, p) => sum + (p.likes ?? 0) + (p.comments ?? 0), 0)
+    const views = withViews.reduce((sum, p) => sum + (p.views ?? 0), 0)
+    return { value: (interactions / views) * 100, basis: 'views' }
+  }
+  const withFollowers = posts.filter((p) => p.followers && p.followers > 0)
+  if (withFollowers.length) {
+    const interactions = withFollowers.reduce((sum, p) => sum + (p.likes ?? 0) + (p.comments ?? 0), 0)
+    const followers = withFollowers.reduce((sum, p) => sum + (p.followers ?? 0), 0)
+    return { value: (interactions / followers) * 100, basis: 'followers' }
+  }
+  return null
+}
+
 export function engagementLabel(basis: EngagementBasis) {
   return basis === 'views' ? 'Etkileşim (izlenmeye göre)' : 'Etkileşim (yayın anındaki takipçiye göre)'
 }

@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-14 (sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -91,8 +91,16 @@
   mobil kampanya ekranında aynı. Kampanya düzeyi rapor bayrak açıkken yalnızca Marka Pro (`campaignFeaturesFor().results`). Migration `20261014000070` canlıda,
   rollback'li RLS denemesiyle doğrulandı. **Apify aktörleri bu oturumda canlı denenemedi (3.20-S1):** ilk gerçek yayından sonra ölçüm kontrol edilmeli.
   Karar (2026-10-14, 4.3-S7): sıradaki adım Influencer Pro "portföyde sonuç raporları", sonra haftalık özette detaylı istatistik (Resend ücretli).
+- **`claude/portfolio-results` (2026-10-14, 4.3-S7 ✅, SYSTEM_MAP 3.20-N6…N8):** influencer profilinde (web + mobil) **"Sonuçlar"**: tamamlanan iş birliklerinin
+  teslimat türleri, yayın tarihi, son ölçümleri (sonuç raporuyla aynı etiketler). Başkalarına **yalnızca Influencer Pro** (onaylı + aktif Spotlight + `ipro`, sunucuda;
+  bayrağa bağlı değil); sahibi her zaman görür (influencer Ayarlar, kendi profili, mobil Profil → Sonuçlar), Pro değilse fiyatsız kilit notu. Influencer kayıtları tek tek
+  gizler; marka adı + gönderi bağlantısı yalnızca marka izin verirse (marka Ayarlar "İş birliği sonuçlarımda markamın adı görünsün", **varsayılan kapalı**), yoksa
+  "Bir marka" + sektör. Kod `lib/portfolio-results.ts`, mobil `/api/mobile/portfolio`. Influencer Pro listesine (web + mobil + SSS) "Portföyde iş birliği sonuçları"
+  eklendi. **Haftalık özet:** `lib/weekly-summary.ts` (veri + e-posta HTML/metin) ve admin `/admin/weekly-preview?user=`; **gönderim / cron yok, Resend ücretli plan
+  bekleniyor** (o zamana kadar paket listesinde yok). Migration `20261014000090` (iki tablo, istemcilere tamamen kapalı) canlıda, rollback'li denemeyle doğrulandı.
+  Canlıda tamamlanmış iş birliği olmadığından gerçek veriyle denenmedi (3.20-S6).
 - **Canlı SQL:** bekleyen yok. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
-  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı), `20261014000070` (sonuç raporu ölçüm tabloları) canlıda ve doğrulandı.
+  `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı), `20261014000070` (sonuç raporu ölçüm tabloları), `20261014000090` (portföy gizleme + marka adı tercihi) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
