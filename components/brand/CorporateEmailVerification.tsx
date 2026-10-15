@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, CheckCircle, Loader2, Mail } from 'lucide-react'
+import { Mail } from 'lucide-react'
+import { Button, Input, Notice } from '@/components/ui'
 import { confirmCorporateEmailCode, resendCorporateEmailCode, submitCorporateEmail } from '@/app/dashboard/brand/profile/corporate-email-actions'
 import { validateCorporateEmail } from '@/lib/corporate-email'
 
@@ -42,35 +43,33 @@ export default function CorporateEmailVerification({ initialEmail, verified, web
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="grid gap-3 rounded-xl border border-line bg-surface-2 p-4">
       <div>
-        <p className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Mail className="h-4 w-4 text-soft-gold" /> Kurumsal E-posta
+        <p className="flex items-center gap-2 text-[14px] font-medium text-ink">
+          <Mail className="h-4 w-4 text-gold" aria-hidden /> Kurumsal e-posta
         </p>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-ink-faint">
           &quot;Resmi İşletme&quot; rozeti için web sitenizin alan adına ait bir e-postayı (ör. ad@markaniz.com) kodla doğrulamanız
           gerekir. Giriş e-postanızdan farklı olabilir.
         </p>
       </div>
 
-      {isVerified && !changed ? (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">
-          <CheckCircle className="h-4 w-4" /> {initialEmail} doğrulandı.
-        </div>
-      ) : null}
+      {isVerified && !changed ? <Notice tone="success">{initialEmail} doğrulandı.</Notice> : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <input
+        <Input
           type="email"
+          aria-label="Kurumsal e-posta"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="ad@markaniz.com"
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-soft-gold focus:outline-none"
+          className="flex-1"
+          aria-invalid={inlineError ? true : undefined}
         />
         {(changed || !isVerified) && (
-          <button
-            type="button"
-            disabled={isPending || !!inlineError || !email.trim()}
+          <Button
+            disabled={!!inlineError || !email.trim()}
+            loading={isPending}
             onClick={() =>
               act(
                 () => (changed ? submitCorporateEmail(email) : resendCorporateEmailCode()),
@@ -80,46 +79,33 @@ export default function CorporateEmailVerification({ initialEmail, verified, web
                 },
               )
             }
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2.5 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {changed ? 'Kaydet ve kod gönder' : 'Kodu tekrar gönder'}
-          </button>
+          </Button>
         )}
       </div>
-      {inlineError && <p className="text-xs text-red-300">{inlineError}</p>}
-      {changed && isVerified && (
-        <p className="text-xs text-yellow-200">E-postayı değiştirirseniz yeni adres doğrulanana kadar sarı tikiniz kalkar.</p>
-      )}
+      {inlineError && <p className="text-xs text-danger">{inlineError}</p>}
+      {changed && isVerified && <p className="text-xs text-warning">E-postayı değiştirirseniz yeni adres doğrulanana kadar sarı tikiniz kalkar.</p>}
 
       {codeSent && !isVerified && !changed && (
         <div className="flex flex-col gap-2 sm:flex-row">
-          <input
+          <Input
+            aria-label="Doğrulama kodu"
             inputMode="numeric"
             maxLength={6}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             placeholder="6 haneli kod"
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 font-mono text-sm tracking-widest text-white placeholder:font-sans placeholder:tracking-normal placeholder:text-gray-500 focus:border-soft-gold focus:outline-none sm:w-48"
+            className="font-mono tracking-widest placeholder:font-sans placeholder:tracking-normal sm:w-48"
           />
-          <button
-            type="button"
-            disabled={isPending || code.length !== 6}
-            onClick={() => act(() => confirmCorporateEmailCode(code), () => setIsVerified(true))}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-soft-gold px-4 py-2.5 text-sm font-semibold text-background transition hover:bg-champagne disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          <Button variant="primary" loading={isPending} disabled={code.length !== 6} onClick={() => act(() => confirmCorporateEmailCode(code), () => setIsVerified(true))}>
             Doğrula
-          </button>
+          </Button>
         </div>
       )}
 
-      {message && <p className="text-xs text-emerald-300">{message}</p>}
-      {error && (
-        <p className="flex items-start gap-2 text-xs text-red-300">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {error}
-        </p>
-      )}
+      {message && <p className="text-xs text-success">{message}</p>}
+      {error && <Notice tone="danger">{error}</Notice>}
     </div>
   )
 }

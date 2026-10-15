@@ -3,7 +3,8 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { AlertCircle, CheckCircle, Clock, FileUp, Loader2, XCircle } from 'lucide-react'
+import { CheckCircle, Clock, FileUp, XCircle } from 'lucide-react'
+import { Button, Notice } from '@/components/ui'
 import { requestTaxUploadUrl, submitTaxCertificate } from '@/app/dashboard/brand/profile/tax-actions'
 
 export interface TaxVerificationSummary {
@@ -23,12 +24,12 @@ interface TaxCertificateUploadProps {
 const ACCEPTED = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 const MAX_BYTES = 5 * 1024 * 1024
 
-const STATUS_VIEW: Record<TaxVerificationSummary['status'], { title: string; className: string; Icon: typeof Clock }> = {
-  processing: { title: 'İnceleniyor', className: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-200', Icon: Clock },
-  needs_review: { title: 'Ekibimiz inceliyor', className: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-200', Icon: Clock },
-  auto_approved: { title: 'Vergi levhanız doğrulandı', className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200', Icon: CheckCircle },
-  approved: { title: 'Vergi levhanız doğrulandı', className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200', Icon: CheckCircle },
-  rejected: { title: 'Belge kabul edilmedi', className: 'border-red-500/40 bg-red-500/10 text-red-200', Icon: XCircle },
+const STATUS_VIEW: Record<TaxVerificationSummary['status'], { title: string; tone: 'warning' | 'success' | 'danger'; Icon: typeof Clock }> = {
+  processing: { title: 'İnceleniyor', tone: 'warning', Icon: Clock },
+  needs_review: { title: 'Ekibimiz inceliyor', tone: 'warning', Icon: Clock },
+  auto_approved: { title: 'Vergi levhanız doğrulandı', tone: 'success', Icon: CheckCircle },
+  approved: { title: 'Vergi levhanız doğrulandı', tone: 'success', Icon: CheckCircle },
+  rejected: { title: 'Belge kabul edilmedi', tone: 'danger', Icon: XCircle },
 }
 
 export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit, latest }: TaxCertificateUploadProps) {
@@ -92,10 +93,10 @@ export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit,
   const showUpload = !verified && shown?.status !== 'processing'
 
   return (
-    <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="grid gap-3 rounded-xl border border-line bg-surface-2 p-4">
       <div>
-        <p className="text-sm font-semibold text-white">Vergi Levhası</p>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="text-[14px] font-medium text-ink">Vergi levhası</p>
+        <p className="mt-1 text-xs text-ink-faint">
           e-Devlet veya GİB İnternet Vergi Dairesi&apos;nden indirdiğiniz vergi levhası PDF&apos;ini yükleyin. Belgeniz otomatik
           kontrol edilir; ekibimiz onayladığında ve kurumsal e-postanız doğrulandığında &quot;Resmi İşletme&quot; rozeti verilir. Fotoğraf ve taramalar da kabul edilir
           ancak incelemesi daha uzun sürebilir.
@@ -103,47 +104,28 @@ export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit,
       </div>
 
       {view && shown && !(verified && shown.status === 'rejected') && (
-        <div className={`rounded-xl border p-3 text-sm ${view.className}`}>
-          <p className="flex items-center gap-2 font-semibold">
-            <view.Icon className="h-4 w-4" /> {view.title}
-          </p>
-          {shown.status !== 'auto_approved' && shown.status !== 'approved' && (shown.reasons?.length ?? 0) > 0 && (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs opacity-90">
-              {shown.reasons!.map((reason) => (
-                <li key={reason}>{reason}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <Notice tone={view.tone} icon={view.Icon} title={view.title}>
+          {shown.status !== 'auto_approved' && shown.status !== 'approved' && (shown.reasons?.length ?? 0) > 0 ? shown.reasons!.join(' · ') : null}
+        </Notice>
       )}
 
       {showUpload && (
-        <>
-          <input ref={inputRef} type="file" accept={ACCEPTED.join(',')} className="hidden" onChange={handleFile} />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={isWorking || !canSubmit || !userId}
-            className="inline-flex items-center gap-2 rounded-xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
-            {isWorking ? 'Belge kontrol ediliyor...' : shown ? 'Yeni belge yükle' : 'Vergi levhası yükle'}
-          </button>
-          {!canSubmit && (
-            <p className="text-xs text-gray-400">Önce resmi unvan, vergi numarası, vergi dairesi ve ili kaydedin.</p>
-          )}
-          <p className="text-[11px] text-gray-500">
+        <div className="grid gap-2">
+          <input ref={inputRef} type="file" accept={ACCEPTED.join(',')} className="sr-only" onChange={handleFile} />
+          <div>
+            <Button onClick={() => inputRef.current?.click()} loading={isWorking} disabled={!canSubmit || !userId} leftIcon={<FileUp />}>
+              {isWorking ? 'Belge kontrol ediliyor…' : shown ? 'Yeni belge yükle' : 'Vergi levhası yükle'}
+            </Button>
+          </div>
+          {!canSubmit && <p className="text-xs text-ink-faint">Önce resmi unvan, vergi numarası, vergi dairesi ve ili kaydedin.</p>}
+          <p className="text-[11px] text-ink-faint">
             Belgeniz sadece Influmatch sunucularında kontrol edilir; yapay zeka servislerine veya üçüncü taraflara gönderilmez.
             İnceleme için güvenli bir alanda saklanır.
           </p>
-        </>
+        </div>
       )}
 
-      {error && (
-        <p className="flex items-start gap-2 text-xs text-red-300">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {error}
-        </p>
-      )}
+      {error && <Notice tone="danger">{error}</Notice>}
     </div>
   )
 }
