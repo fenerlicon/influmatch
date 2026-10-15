@@ -10,6 +10,7 @@ import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, List
 import { worksHref, COLLABORATION_TONES } from '@/lib/works'
 import { APPLICATION_STATUS, formatExpectation, relativeDay, type AdvertApplication } from '@/lib/adverts-shared'
 import { COLLABORATION_STAGE_SHORT_LABELS, collaborationDetailHref } from '@/lib/collaboration-shared'
+import ApplicationAnswers from './ApplicationAnswers'
 
 /** Influencer'ın başvuruları: durum, mesaj, bekleyen başvuruyu geri çekme. */
 export default function MyApplications({ applications, onBrowse }: { applications: AdvertApplication[]; onBrowse: () => void }) {
@@ -91,6 +92,7 @@ export default function MyApplications({ applications, onBrowse }: { application
                     {a.collaboration ? 'İş birliği aşaması yukarıda; ayrıntılar iş birliği sayfasında.' : 'İş başladı; ayrıntılar İşler sayfasında.'}
                   </div>
                 )}
+                <ApplicationAnswers answers={a.answers} />
               </div>
               <div className="ml-auto flex flex-wrap gap-1.5">
                 {a.status === 'pending' && (

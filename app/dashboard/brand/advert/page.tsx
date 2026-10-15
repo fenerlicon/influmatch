@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getBrandApplicationsAdmin } from './actions'
 import BrandAdverts from '@/components/adverts/BrandAdverts'
-import type { AdvertApplication, AdvertProject } from '@/lib/adverts-shared'
+import { parseAnswers, type AdvertApplication, type AdvertProject } from '@/lib/adverts-shared'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
@@ -187,6 +187,7 @@ export default async function BrandAdvertPage() {
     created_at: row.created_at,
     room_id: roomByApplication.get(row.id) ?? null,
     collaboration: collabByApplication.get(row.id) ?? null,
+    answers: parseAnswers(row.answers),
   }))
 
   return (

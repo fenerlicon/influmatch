@@ -23,11 +23,13 @@ export const SPOTLIGHT_PLAN_FEATURES: Record<SpotlightPlanCode, PlanFeature[]> =
     { text: 'Spotlight rozeti ve çerçevesi', highlight: true },
     { text: 'Keşfette öncelikli listeleme' },
     { text: 'Profil görüntülenme sayıları' },
+    { text: 'Anlık ilan alarmı', highlight: true },
   ],
   ipro: [
     { text: 'Spotlight rozeti ve çerçevesi', highlight: true },
     { text: 'Keşfette öncelikli listeleme', highlight: true },
     { text: 'Profil görüntülenme sayıları' },
+    { text: 'Anlık ilan alarmı' },
     { text: 'Portföyde iş birliği sonuçları', highlight: true },
   ],
   mbasic: [

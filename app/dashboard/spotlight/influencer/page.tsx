@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Crown, Search, Users } from 'lucide-react'
+import { BellRing, Crown, Search, Users } from 'lucide-react'
 import PricingCard from '@/components/spotlight/PricingCard'
 import SpotlightFeatureList from '@/components/spotlight/SpotlightFeatureList'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
@@ -25,6 +25,11 @@ const features = [
         icon: Users,
         title: 'Profil Görüntülenmeleri',
         description: 'Profilini kaç markanın görüntülediğini panelinden takip et.',
+    },
+    {
+        icon: BellRing,
+        title: 'Anlık İlan Alarmı',
+        description: 'Kurduğun alarma uyan ilan yayınlandığı anda bildirim alırsın (ücretsiz hesapta saatte bir kontrol edilir).',
     },
 ]
 

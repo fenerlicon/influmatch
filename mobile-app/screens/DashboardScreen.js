@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { OWN_PROFILE_COLUMNS } from '../lib/userColumns';
 import { formatBudget, daysLeft } from '../lib/format';
+import { advertCategoryLabel, advertFitsCategory } from '../constants/categories';
 import AccountStatusCard from '../components/AccountStatusCard';
 import {
     Screen, LargeHeader, Logo, Section, Text, Button, IconButton, Card, ListGroup, ListRow, IconBox, Avatar,
@@ -18,6 +19,7 @@ export default function DashboardScreen({ navigation }) {
 
     const [profile, setProfile] = useState(null);
     const [projects, setProjects] = useState([]);
+    const [fittingCount, setFittingCount] = useState(0);
     const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
     const isSpotlightActive = !!profile?.spotlight_active && !(profile?.spotlight_expires_at && new Date(profile?.spotlight_expires_at) < new Date());
@@ -29,7 +31,8 @@ export default function DashboardScreen({ navigation }) {
 
             const [{ data: profileData }, { data: projectsData }, { count: unread }] = await Promise.all([
                 supabase.from('users').select(OWN_PROFILE_COLUMNS).eq('id', user.id).single(),
-                supabase.from('advert_projects').select('id, title, brand_name, brand_logo, budget_min, budget_max, platform, deadline').eq('status', 'open').order('created_at', { ascending: false }).limit(5),
+                // brand_logo kolonu yok (sorgu hata verip liste boş kalıyordu); ayrıntı ekranı için tüm satır.
+                supabase.from('advert_projects').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(30),
                 supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
             ]);
 
@@ -40,7 +43,11 @@ export default function DashboardScreen({ navigation }) {
             }
 
             setProfile(profileData);
-            setProjects(projectsData || []);
+            // Kategorine uygun ilanlar önce (aynı kategori ya da Genel), sonra en yeniler.
+            const rows = projectsData || [];
+            const fitting = rows.filter((p) => advertFitsCategory(p.category, profileData?.category));
+            setFittingCount(fitting.length);
+            setProjects([...fitting, ...rows.filter((p) => !fitting.includes(p))]);
             setUnreadNotifCount(unread || 0);
         } catch (e) {
             console.error('[Dashboard] fetchDashboardData error:', e);
@@ -113,7 +120,7 @@ export default function DashboardScreen({ navigation }) {
 
             <AccountStatusCard navigation={navigation} />
 
-            <Section title="Yeni ilanlar" action="Tümü" onAction={() => navigation.navigate('İlanlar')}>
+            <Section title={fittingCount ? 'Kategorine uygun ilanlar' : 'Yeni ilanlar'} action="Tümü" onAction={() => navigation.navigate('İlanlar')}>
                 {projects.length ? (
                     <ListGroup>
                         {projects.slice(0, 4).map((project) => (
@@ -122,7 +129,7 @@ export default function DashboardScreen({ navigation }) {
                                 onPress={() => navigation.navigate('İlanlar', { project })}
                                 left={<Avatar name={project.brand_name || project.title} uri={project.brand_logo} square />}
                                 title={project.title}
-                                subtitle={[project.brand_name, project.platform].filter(Boolean).join(' · ')}
+                                subtitle={[project.brand_name, advertCategoryLabel(project.category)].filter(Boolean).join(' · ')}
                                 right={
                                     <View className="items-end">
                                         <Text variant="small" weight="semibold">{formatBudget(project.budget_min, project.budget_max)}</Text>

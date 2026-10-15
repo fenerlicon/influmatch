@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25; ilan soruları yanıtı, ilan kategorisi listesi, anlık ilan alarmı `claude/open-adverts`). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -105,8 +105,15 @@
   (3.18-S2) ve anlaşma + teslimatlar tek işlemde (3.18-S3); kampanyada kişi başı bütçe / planlanan profil (3.19-S1); mobil uygulama içi tarih seçici
   `components/ui/DateField.js` (3.19-S2); teslimatsız iş birliğinin yayın linki de ölçülür (3.20-S2); mobil profil analizi `/api/mobile/analysis` (10.3-S25).
   Migration `20261015000040`: kolonlar, `create_discovery_spin` ve tetikleyici kilitleri canlıda (rollback'li denemeyle doğrulandı).
-- **Canlı SQL:** **bekleyen 1 dosya:** `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
-  sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
+- **`claude/open-adverts` (2026-10-15, PR açılmadı):** ilan özel soruları artık başvuruda yanıtlanıyor (3.7-S6; `advert_applications.answers`, doğrulama
+  `validateAnswers`, marka listesinde web + mobil). İlan kategorisi `INFLUENCER_CATEGORIES` + "Genel" seçicisi (3.7-S5), alarmda kategori seçimi + anahtar kelime
+  (3.15-S2), influencer ana sayfasında "Kategorine uygun ilanlar" (web + mobil). **Anlık ilan alarmı** Influencer Spotlight Basic/Pro (3.15-S1; yayın anında arka
+  planda, `lib/background.ts`), paket listelerine eklendi; ücretsiz hesap saatlik. Saatlik görev artık alıcı başına kayıt tutuyor, yarım kalan ilan sonraki saatte
+  tamamlanıyor, çift bildirim yok (3.15-S3, `advert_alert_deliveries`). Yeni bulgular düzeltildi: mobil marka başvuru listesi boştu (3.8-S6), marka başvuru metnini
+  değiştirebiliyordu (3.8-S7, kolon yetkisi), mobil influencer ana sayfa ilanları boştu (10.3-S32). Migration `20261015000020` canlıda, rollback'li denemeyle doğrulandı.
+- **Canlı SQL:** bekleyen: (1) `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
+  sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır; (2) `supabase/migrations/20261015000021_advert_category_mapping.sql` (7 ilanın eski kategori metni → anahtar; yalnızca UPDATE)
+  **`claude/open-adverts` yayına girdikten sonra** uygulanmalı. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
   `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı), `20261014000070` (sonuç raporu ölçüm tabloları), `20261014000090` (portföy gizleme + marka adı tercihi) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
@@ -121,12 +128,11 @@
 2. **Uygulama adı kararı verildi (2026-10-10):** "Influmatch", paket kimliği `net.influmatch.app`; `mobile-app/app.json`'a yazıldı
    (slug `influmatch`). `eas init` bu ayarlardan sonra çalıştırılmalı.
 3. **Mobil onboarding** web koduna taşındı (10.3-S23, 2026-10-10). Favoriler de `/api/mobile/favorites` ucunda (3.17-N5).
-4. **8.7-S1:** rocketapi.io anahtarının panelden iptali kullanıcıda; iptal edilince ✅.
-5. **OAuth (karar 2026-10-10): mağaza yayınından sonra** açılacak: 2.3-S2, 2.3-S3, 2.3-S4 ve 3.13 kod/OAuth ayrımı.
-6. **Takip panosu:** bulut oturumları (claude.ai/code) panoya yazabiliyor. Yerel hesap (hello@socialartajans.com) erişemiyordu; erişimi olmayan
+4. **OAuth (karar 2026-10-10): mağaza yayınından sonra** açılacak: 2.3-S2, 2.3-S3, 2.3-S4 ve 3.13 kod/OAuth ayrımı.
+5. **Takip panosu:** bulut oturumları (claude.ai/code) panoya yazabiliyor. Yerel hesap (hello@socialartajans.com) erişemiyordu; erişimi olmayan
    oturum haritayı günceller, ilk erişimli oturum `scripts/tracker_sync.py` ile eşitler.
-7. **Kuyruğun en sonu:** bölüm 8 ("ne kaldı" sorulunca hatırlat).
-8. Kullanıcı daha sonra **strateji** konuşmak istiyor.
+6. **Kuyruğun en sonu:** bölüm 8 ("ne kaldı" sorulunca hatırlat).
+7. Kullanıcı daha sonra **strateji** konuşmak istiyor.
 
 ## 3. Kullanıcının verdiği kararlar (kronolojik, 6–7 Ekim 2026)
 
@@ -139,7 +145,7 @@
 | Resend | Vercel'e eklendi. Günlük 100 / aylık 3000 e-posta sınırı "riskli" kategorisinde (8.4-S1). Durumu admin panelinde izleniyor. `EMAIL_FROM` gönderici adresidir (ör. `Influmatch <dogrulama@influmatch.net>`). Resend'de influmatch.net alan adı doğrulanmış olmalı, yoksa e-postalar yalnızca hesap sahibine gider. Kayıt e-postaları gidiyor (kullanıcı onayladı). |
 | Kurumsal e-posta | Şirketler için sarı tik almak, şirket alan adıyla uyumlu bir e-postayı kodla doğrulamaya bağlı. Kayıt e-postası farklı olabilir. Uygulandı. |
 | Sistem haritası | Tüm sistem numaralı haritaya döküldü (`docs/SYSTEM_MAP.md`). Takip panosu artifact'ta (CLAUDE.md'de link). |
-| RocketAPI anahtarı | Repodan silindi. Anahtar rocketapi.io'ya ait ve git geçmişinde duruyor. Kullanıcı hesabı nereden aldığını hatırlamıyor. Uygulama artık kullanmıyor; iptal kullanıcıda. |
+| RocketAPI anahtarı | Repodan silindi. Anahtar rocketapi.io'ya ait ve git geçmişinde duruyor. Kullanıcı hesabı nereden aldığını hatırlamıyor. Uygulama artık kullanmıyor. 2026-10-15: kullanıcı kararıyla yok sayıldı (8.7-S1). |
 | Supabase ayarları | Passkeys açıldı. "Leaked password protection" ayarı Free planda görünmüyor, büyük ihtimalle Pro özelliği. Pro'ya geçilince açılacak. |
 | Doğrudan mesaj (5.1-S1) | "Şimdilik kalsın, mantığını birlikte oturturuz." Bekliyor. |
 | Profiller | **Giriş yapmadan görünmesin** (kesin). Site haritasında yok, robots engelliyor. |
@@ -233,7 +239,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 
 | ID | Seviye | Durum |
 |---|---|---|
-| 8.7-S1 | KRİTİK | Dosya silindi; rocketapi.io anahtarının iptali kullanıcıda. |
+| 8.7-S1 | KRİTİK | Dosya silindi; 2026-10-15 kullanıcı kararıyla yok sayıldı. |
 | 2.3-S2, 2.3-S3, 2.3-S4 | YÜKSEK/ORTA/DÜŞÜK | OAuth kapalı; mağaza yayınından sonra açılacak. |
 | 10.3-S23, 5.3-S3, 6.7-S2, 3.10-S1, 1.12-S2 | — | 2026-10-10'da yapıldı (3.10-S1 politikası canlıda). |
 | 2.9-S1, 3.5-S2, 5.3-S2, 6.7-S1, 3.13-N6, 9.1-S2, 9.1-S3 | — | 2026-10-10'da yapıldı. |
@@ -251,6 +257,12 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **`users` gizli kolonları:** tax_id gibi kolonlar istemci rolüne okunamaz. Bu yüzden onboarding upsert yerine ayrı update/insert yapıyor. Gizli alanları sunucu, admin istemcisiyle yazar.
 - **Okunmamış mesaj sayısı:** `components/dashboard/useUnreadMessageCount.ts` içinde tek kanaldan izleniyor. Okundu bilgisi `room_reads`
   tablosunda (`lib/room-reads.ts`; `markRoomsRead` tarayıcıda `influmatch:room-read` olayı yayınlar, sayaç onunla yenilenir).
+- **Arka plan işi (2026-10-15):** Next 14'te `after()` yok; `lib/background.ts` `runInBackground` Vercel istek bağlamının `waitUntil`'ini kullanır
+  (bağlam yoksa bekler). İş kendi süre bütçesiyle sınırlı olmalı (Hobby). İlk kullanım: anlık ilan alarmı.
+- **`advert_applications` yazma yetkisi (2026-10-15):** istemci yalnızca `status` güncelleyebilir (kolon yetkisi); yeni kolonu istemci güncelleyecekse ayrıca GRANT gerekir.
+  Ekleme tablo düzeyinde (RLS: yalnızca onaylı influencer, açık ilan).
+- **İlan kategorisi:** `advert_projects.category` influencer kategori anahtarı ya da `general`; gösterim `advertCategoryLabel` (web `utils/categories.ts`, mobil
+  `constants/categories.js`, ikisi aynı tutulur).
 - **Dış çağrılar:** `lib/api-keys.ts` `fetchExternal` 50 sn zaman aşımıyla çalışıyor. Apify çağrıları `?timeout=45`, Resend 15 sn.
 - **Apify aktörleri ve maliyet:** profil istatistiği `apify~instagram-profile-scraper` (yedek `apify~instagram-scraper`) ve `clockworks~tiktok-profile-scraper`;
   sonuç raporu (3.20) gönderi ölçümü `apify~instagram-scraper` (`directUrls` + `resultsType: details`) ve `clockworks~tiktok-scraper` (`postURLs`). İkisi de sonuç

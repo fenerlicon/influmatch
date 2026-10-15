@@ -8,9 +8,10 @@ import { apiRequest } from '../../lib/api';
 import { COLLAB_STAGE_SHORT, loadApplicationCollabs } from '../../constants/collaborations';
 import { useFocusEffect } from '@react-navigation/native';
 import { formatBudget, formatCount, formatPercent, formatTRY, daysLeft } from '../../lib/format';
+import { ADVERT_CATEGORY_OPTIONS, ADVERT_GENERAL_CATEGORY, advertCategoryLabel, isGeneralAdvertCategory } from '../../constants/categories';
 import {
     Screen, LargeHeader, StackHeader, Text, Button, IconButton, Card, ListGroup, ListRow, IconBox, Avatar, NameWithTick, Chip,
-    Segment, SearchBar, TextField, Sheet, EmptyState, colors, ICON_STROKE,
+    Segment, SearchBar, TextField, Sheet, EmptyState, SelectField, OptionSheet, Checkbox, KeyValue, colors, ICON_STROKE,
 } from '../../components/ui';
 
 // Başvuru ve ilan durumları (lib/adverts.ts)
@@ -31,7 +32,7 @@ const ADV_STATUS_CFG = {
 // İlan formu web ile aynı alanları taşır (components/adverts/AdvertForm.tsx); kurallar sunucuda (lib/adverts.ts saveAdvertAs).
 const MAX_QUESTIONS = 5;
 const EMPTY_FORM = {
-    title: '', summary: '', category: '', location: 'Uzaktan', platforms: '', deliverables: '',
+    title: '', summary: '', category: ADVERT_GENERAL_CATEGORY, location: 'Uzaktan', platforms: '', deliverables: '',
     paymentType: 'cash', currency: 'TRY', budgetMin: '', budgetMax: '', deadline: '', status: 'open', questions: [],
 };
 const PAYMENT_OPTIONS = [{ key: 'cash', label: 'Nakit' }, { key: 'barter', label: 'Barter' }, { key: 'other', label: 'Diğer' }];
@@ -40,6 +41,9 @@ const STATUS_OPTIONS = [{ key: 'open', label: 'Yayında' }, { key: 'paused', lab
 const parseList = (value) => value.split(',').map((item) => item.trim()).filter(Boolean);
 const newQuestionId = () => `q${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 const onlyDigits = (v) => v.replace(/[^0-9]/g, '');
+const formatAnswer = (answer) => (Array.isArray(answer) ? answer.join(', ') : answer);
+// Başvuru listesinde okunan alanlar (web brand/advert/actions.ts ile aynı; yanıtlar 3.7-S6).
+const APPLICATION_COLUMNS = 'id, status, created_at, cover_letter, deliverable_idea, budget_expectation, answers';
 
 export default function BrandAdvertsScreen({ navigation, route }) {
     const [activeTab, setActiveTab] = useState('İlanlarım');
@@ -73,6 +77,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
     const [heroImageUrl, setHeroImageUrl] = useState(null);
     const [uploadingHero, setUploadingHero] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [categoryPicker, setCategoryPicker] = useState(false);
 
     // Action sheet (⋯ menu)
     const [actionSheetProject, setActionSheetProject] = useState(null); // project object or null
@@ -172,7 +177,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
             const { data } = await supabase
                 .from('advert_applications')
                 .select(`
-                    id, status, created_at, cover_letter, budget_expectation, payment_type,
+                    ${APPLICATION_COLUMNS},
                     advert:advert_id(id, title),
                     influencer:influencer_id(id, full_name, username, avatar_url, verification_status,
                         social_accounts(follower_count, engagement_rate, platform))
@@ -198,7 +203,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
         const { data } = await supabase
             .from('advert_applications')
             .select(`
-                id, status, created_at, cover_letter, budget_expectation, payment_type,
+                ${APPLICATION_COLUMNS},
                 influencer:influencer_id(id, full_name, username, avatar_url, verification_status,
                     social_accounts(follower_count, engagement_rate, platform))
             `)
@@ -228,6 +233,8 @@ export default function BrandAdvertsScreen({ navigation, route }) {
         setProjectApps(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
         // Update allApps too
         setAllApps(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+        // Kabulde iş birliği sunucuda açılır; aşaması hemen gösterilsin (3.14-S1).
+        if (newStatus === 'accepted') trackCollabs([{ id: appId, status: 'accepted' }]);
         if (newStatus !== 'pending') {
             setPendingCount(prev => Math.max(0, prev - 1));
         }
@@ -291,7 +298,8 @@ export default function BrandAdvertsScreen({ navigation, route }) {
         setForm({
             title: proj.title || '',
             summary: proj.summary || proj.description || '',
-            category: proj.category || '',
+            // Eski serbest metin değer listede yoksa olduğu gibi kalır (sunucu değiştirilmediyse kabul eder).
+            category: isGeneralAdvertCategory(proj.category) ? ADVERT_GENERAL_CATEGORY : proj.category,
             location: proj.location || 'Uzaktan',
             platforms: (proj.platforms || []).join(', '),
             deliverables: (proj.deliverables || []).join(', '),
@@ -306,6 +314,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                 type: q.type || 'text',
                 question: q.question || '',
                 options: (q.options || []).join('\n'),
+                required: q.required !== false,
             })),
         });
         // Show existing banner as preview (remote URL, not base64)
@@ -351,7 +360,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
 
     const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
     const setQuestion = (index, patch) => setForm((f) => ({ ...f, questions: f.questions.map((q, i) => (i === index ? { ...q, ...patch } : q)) }));
-    const addQuestion = () => setForm((f) => (f.questions.length >= MAX_QUESTIONS ? f : { ...f, questions: [...f.questions, { id: newQuestionId(), type: 'text', question: '', options: '' }] }));
+    const addQuestion = () => setForm((f) => (f.questions.length >= MAX_QUESTIONS ? f : { ...f, questions: [...f.questions, { id: newQuestionId(), type: 'text', question: '', options: '', required: true }] }));
     const removeQuestion = (index) => setForm((f) => ({ ...f, questions: f.questions.filter((_, i) => i !== index) }));
 
     const createProject = async () => {
@@ -369,7 +378,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
             const body = {
                 title: form.title.trim(),
                 summary: form.summary.trim(),
-                category: form.category.trim() || 'Genel',
+                category: form.category || ADVERT_GENERAL_CATEGORY,
                 location: form.location.trim() || 'Uzaktan',
                 platforms: parseList(form.platforms),
                 deliverables: parseList(form.deliverables),
@@ -386,6 +395,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                         type: q.type,
                         question: q.question.trim(),
                         options: q.type === 'text' ? [] : q.options.split('\n').map((o) => o.trim()).filter(Boolean),
+                        required: q.required !== false,
                     })),
             };
             // Uzun açıklama yalnızca yeni ilanda yazılır; düzenlemede (web ile aynı) mevcut açıklama ezilmez.
@@ -436,6 +446,14 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                     {app.budget_expectation ? <Text weight="semibold">{formatTRY(app.budget_expectation)}</Text> : <Chip label={s.label} tone={s.tone} />}
                 </View>
                 {app.cover_letter ? <Text variant="small" tone="fg2" numberOfLines={4} style={{ fontSize: 13.5 }}>{app.cover_letter}</Text> : null}
+                {app.deliverable_idea ? <Text variant="caption" tone="fg3">Teslimat önerisi: {app.deliverable_idea}</Text> : null}
+                {Array.isArray(app.answers) && app.answers.length ? (
+                    <Card padded={false} className="px-3.5">
+                        {app.answers.map((ans, i) => (
+                            <KeyValue key={`${ans.id}-${i}`} label={ans.question} value={formatAnswer(ans.answer)} last={i === app.answers.length - 1} />
+                        ))}
+                    </Card>
+                ) : null}
                 {app.budget_expectation ? <Chip label={s.label} tone={s.tone} /> : null}
                 {app.status === 'pending' || app.status === 'shortlisted' ? (
                     <View className="flex-row" style={{ gap: 8 }}>
@@ -513,7 +531,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                     <TextField label="İlan başlığı" value={form.title} maxLength={120} onChangeText={(v) => setField('title', v)} placeholder="ör. Kış içecekleri tanıtımı" />
                     <TextField label="Açıklama" multiline value={form.summary} onChangeText={(v) => setField('summary', v)} placeholder="Ne istiyorsun, kimden, hangi tonda?" />
                     <View className="flex-row" style={{ gap: 10 }}>
-                        <View className="flex-1"><TextField label="Kategori" maxLength={60} value={form.category} onChangeText={(v) => setField('category', v)} placeholder="ör. Yeme & İçme" /></View>
+                        <View className="flex-1"><SelectField label="Kategori" value={advertCategoryLabel(form.category)} onPress={() => setCategoryPicker(true)} /></View>
                         <View className="flex-1"><TextField label="Konum" maxLength={80} value={form.location} onChangeText={(v) => setField('location', v)} placeholder="Uzaktan" /></View>
                     </View>
                     <TextField label="Platformlar" hint="Virgülle ayır" value={form.platforms} onChangeText={(v) => setField('platforms', v)} placeholder="Instagram, TikTok" />
@@ -565,6 +583,9 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                                     <IconButton icon={Trash2} onPress={() => removeQuestion(i)} accessibilityLabel="Soruyu sil" />
                                 </View>
                                 <Segment options={QUESTION_TYPES} value={q.type} onChange={(v) => setQuestion(i, { type: v })} />
+                                <Checkbox checked={q.required !== false} onChange={(v) => setQuestion(i, { required: v })}>
+                                    <Text variant="small" tone="fg2">Yanıt zorunlu</Text>
+                                </Checkbox>
                                 {q.type !== 'text' ? (
                                     <TextField label="Seçenekler" hint="Her satıra bir seçenek (en az 2)" multiline value={q.options} onChangeText={(v) => setQuestion(i, { options: v })} placeholder={'Evet\nHayır'} />
                                 ) : null}
@@ -573,6 +594,17 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                     </View>
                     <Button title={editMode ? 'Kaydet' : 'İlanı yayınla'} onPress={createProject} loading={saving} disabled={uploadingHero} block />
                 </Sheet>
+
+                <OptionSheet
+                    visible={categoryPicker}
+                    onClose={() => setCategoryPicker(false)}
+                    title="İlan kategorisi"
+                    options={ADVERT_CATEGORY_OPTIONS.some((o) => o.value === form.category)
+                        ? ADVERT_CATEGORY_OPTIONS
+                        : [...ADVERT_CATEGORY_OPTIONS, { value: form.category, label: `${form.category} (eski)` }]}
+                    value={form.category}
+                    onSelect={(v) => setField('category', v)}
+                />
 
                 <Sheet visible={!!proj} onClose={() => setActionSheetProject(null)} title={proj?.title}>
                     {proj ? (
@@ -625,7 +657,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                                 <View className="flex-row flex-wrap" style={{ gap: 12 }}>
                                     <Text variant="small" tone="fg2">{formatBudget(proj.budget_min, proj.budget_max)}</Text>
                                     {proj.deadline ? <Text variant="small" tone="fg2">{daysLeft(proj.deadline)}</Text> : null}
-                                    {proj.category ? <Text variant="small" tone="fg2">{proj.category}</Text> : null}
+                                    <Text variant="small" tone="fg2">{advertCategoryLabel(proj.category)}</Text>
                                 </View>
                                 <View className="flex-row items-center justify-between pt-2.5 border-t border-line">
                                     <Text variant="small" tone={count ? 'fg' : 'fg3'}>{count ? `${count} başvuru` : 'Henüz başvuru yok'}</Text>

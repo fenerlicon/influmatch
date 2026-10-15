@@ -6,10 +6,11 @@ import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { COLLAB_STAGE_SHORT, loadApplicationCollabs } from '../../constants/collaborations';
 import { ADVERT_ALERT_LIMIT, ADVERT_ALERT_PLATFORMS, describeAlert } from '../../constants/advertAlerts';
+import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, advertCategoryLabel } from '../../constants/categories';
 import { formatBudget, formatTRY, formatDate, daysLeft } from '../../lib/format';
 import {
     Screen, LargeHeader, Text, Button, Card, ListGroup, ListRow, Avatar, Chip, FilterChip, ChipRow, Segment, SearchBar,
-    EmptyState, Sheet, TextField, KeyValue, Notice, colors, ICON_STROKE,
+    EmptyState, Sheet, TextField, KeyValue, Notice, SelectField, OptionSheet, colors, ICON_STROKE,
 } from '../../components/ui';
 
 // İlanlar: açık ilanlar, kayıtlılar, başvurularım ve ilan alarmları (design/mobile/influencer.html "İlanlar").
@@ -28,6 +29,42 @@ const SEGMENTS = [
     { key: 'applications', label: 'Başvurular' },
     { key: 'alerts', label: 'Alarmlar' },
 ];
+
+// Markanın soruları (web lib/adverts-shared.ts ile aynı): required alanı yoksa zorunlu.
+const questionsOf = (project) => (Array.isArray(project?.custom_questions) ? project.custom_questions : []).filter((q) => q && q.question && q.question.trim());
+const isRequired = (q) => q.required !== false;
+const optionsOf = (q) => (Array.isArray(q.options) ? q.options : []).filter((o) => o && o.trim());
+const formatAnswer = (answer) => (Array.isArray(answer) ? answer.join(', ') : answer);
+const ALERT_CATEGORY_OPTIONS = [{ value: '', label: 'Fark etmez' }, ...INFLUENCER_CATEGORY_KEYS.map((key) => ({ value: key, label: INFLUENCER_CATEGORIES[key] }))];
+const EMPTY_ALERT = { categoryKey: '', category: '', platform: '', minBudget: '' };
+
+// Tek sorunun yanıt alanı: metin, tek seçim (çiplerden biri) veya çoklu seçim. Kurallar sunucuda (validateAnswers).
+function QuestionField({ q, index, value, onChange }) {
+    const label = `${index + 1}. ${q.question}${isRequired(q) ? '' : ' (isteğe bağlı)'}`;
+    if (q.type !== 'single_select' && q.type !== 'multiple_choice') {
+        return <TextField label={label} multiline maxLength={1000} value={typeof value === 'string' ? value : ''} onChangeText={onChange} />;
+    }
+    const multiple = q.type === 'multiple_choice';
+    const selected = Array.isArray(value) ? value : value ? [value] : [];
+    return (
+        <View style={{ gap: 7 }}>
+            <Text variant="small" weight="medium" tone="fg2">{label}{multiple ? ' · birden fazla seçebilirsin' : ''}</Text>
+            <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                {optionsOf(q).map((option) => {
+                    const on = selected.includes(option);
+                    return (
+                        <FilterChip
+                            key={option}
+                            label={option}
+                            selected={on}
+                            onPress={() => onChange(multiple ? (on ? selected.filter((o) => o !== option) : [...selected, option]) : (on ? '' : option))}
+                        />
+                    );
+                })}
+            </View>
+        </View>
+    );
+}
 
 function SaveButton({ saved, onPress }) {
     return (
@@ -52,6 +89,7 @@ export default function ProposalsScreen({ route, navigation }) {
     const [deliveryItem, setDeliveryItem] = useState('');
     const [paymentType, setPaymentType] = useState('cash'); // 'cash' | 'barter'
     const [budgetExpectation, setBudgetExpectation] = useState('');
+    const [answers, setAnswers] = useState({});
 
     const [projects, setProjects] = useState([]);
     const [applications, setApplications] = useState([]);
@@ -60,8 +98,10 @@ export default function ProposalsScreen({ route, navigation }) {
     // Kaydedilen ilanlar ve ilan alarmları (web ile aynı uçlar: /api/mobile/saved-adverts, /api/mobile/advert-alerts)
     const [savedIds, setSavedIds] = useState(new Set());
     const [alerts, setAlerts] = useState([]);
-    const [alertForm, setAlertForm] = useState({ category: '', platform: '', minBudget: '' });
+    const [alertForm, setAlertForm] = useState(EMPTY_ALERT);
     const [alertBusy, setAlertBusy] = useState(false);
+    const [alertsInstant, setAlertsInstant] = useState(false);
+    const [categoryPicker, setCategoryPicker] = useState(false);
 
     // Ana sayfadan bir ilanla açıldıysa ayrıntıyı göster
     const incomingProject = route.params?.project;
@@ -85,7 +125,10 @@ export default function ProposalsScreen({ route, navigation }) {
 
             const [savedResult, alertsResult] = await Promise.all([apiRequest('saved-adverts'), apiRequest('advert-alerts')]);
             if (!savedResult.error) setSavedIds(new Set(savedResult.advertIds || []));
-            if (!alertsResult.error) setAlerts(alertsResult.alerts || []);
+            if (!alertsResult.error) {
+                setAlerts(alertsResult.alerts || []);
+                setAlertsInstant(!!alertsResult.instant);
+            }
 
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -133,7 +176,7 @@ export default function ProposalsScreen({ route, navigation }) {
             return;
         }
         setAlerts((prev) => [...prev, result.alert]);
-        setAlertForm({ category: '', platform: '', minBudget: '' });
+        setAlertForm(EMPTY_ALERT);
     };
 
     const deleteAlert = async (alertId) => {
@@ -158,12 +201,23 @@ export default function ProposalsScreen({ route, navigation }) {
     const closeProject = () => {
         setSelectedProject(null);
         setApplyStep(false);
+        setAnswers({});
     };
 
     const executeApply = async () => {
         if (!selectedProject) return;
         if (!coverLetter.trim()) {
             Alert.alert('Eksik Bilgi', 'Lütfen bir niyet mesajı yazın.');
+            return;
+        }
+        const questions = questionsOf(selectedProject);
+        const missing = questions.findIndex((q) => {
+            if (!isRequired(q)) return false;
+            const v = answers[q.id];
+            return Array.isArray(v) ? v.length === 0 : !(v || '').trim();
+        });
+        if (missing >= 0) {
+            Alert.alert('Eksik Bilgi', `${missing + 1}. soruyu yanıtlamalısın.`);
             return;
         }
         setIsApplying(true);
@@ -175,7 +229,8 @@ export default function ProposalsScreen({ route, navigation }) {
                     advertId: selectedProject.id,
                     coverLetter: coverLetter.trim(),
                     deliverableIdea: deliveryItem.trim() || null,
-                    budgetExpectation: budgetExpectation || null,
+                    budgetExpectation: paymentType === 'barter' ? 0 : budgetExpectation || null,
+                    answers,
                 },
             });
             if (result.error) throw new Error(result.error);
@@ -184,6 +239,7 @@ export default function ProposalsScreen({ route, navigation }) {
             setCoverLetter('');
             setDeliveryItem('');
             setBudgetExpectation('');
+            setAnswers({});
             Alert.alert('Başarılı', 'Başvurunuz markaya iletildi!');
             fetchData();
             setActiveTab('applications');
@@ -200,9 +256,9 @@ export default function ProposalsScreen({ route, navigation }) {
         const base = activeTab === 'saved' ? projects.filter((p) => savedIds.has(p.id)) : projects;
         const q = query.trim().toLocaleLowerCase('tr-TR');
         return base.filter((p) => {
-            if (platform && (p.platform || '').toLowerCase() !== platform) return false;
+            if (platform && ![p.platform, ...(Array.isArray(p.platforms) ? p.platforms : [])].some((v) => (v || '').toLowerCase() === platform)) return false;
             if (!q) return true;
-            return [p.title, p.brand_name, p.summary].some((v) => (v || '').toLocaleLowerCase('tr-TR').includes(q));
+            return [p.title, p.brand_name, p.summary, advertCategoryLabel(p.category)].some((v) => (v || '').toLocaleLowerCase('tr-TR').includes(q));
         });
     }, [projects, savedIds, activeTab, query, platform]);
 
@@ -220,6 +276,7 @@ export default function ProposalsScreen({ route, navigation }) {
                 <Text variant="small" tone="fg2" numberOfLines={2} style={{ fontSize: 14 }}>{item.summary || item.description}</Text>
             ) : null}
             <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+                <Chip label={advertCategoryLabel(item.category)} />
                 {item.platform ? <Chip label={item.platform} /> : null}
                 {item.location ? <Chip label={item.location} /> : null}
                 {appliedIds.has(item.id) ? <Chip label="Başvurdun" tone="success" /> : null}
@@ -281,11 +338,20 @@ export default function ProposalsScreen({ route, navigation }) {
                 tone="gold"
                 icon={BellRing}
                 title={`İlan alarmları (${alerts.length}/${ADVERT_ALERT_LIMIT})`}
-                text={'Koşullara uyan yeni ilan yayınlanınca bildirim alırsın; e-posta, ayarlardaki ilan başvuruları tercihine göre gider. Boş alan "fark etmez" demektir.'}
+                text={`${alertsInstant
+                    ? 'Spotlight üyeliğinle koşullara uyan ilan yayınlandığı anda bildirim alırsın.'
+                    : "Koşullara uyan yeni ilanlar saatte bir kontrol edilir; Spotlight Basic ve Pro'da bildirim ilan yayınlandığı anda gelir."} E-posta, ayarlardaki ilan başvuruları tercihine göre gider. Boş alan "fark etmez" demektir.`}
             />
             {alerts.length < ADVERT_ALERT_LIMIT ? (
                 <Card style={{ gap: 12 }}>
-                    <TextField label="Kategori / kelime" value={alertForm.category} onChangeText={(v) => setAlertForm((f) => ({ ...f, category: v }))} maxLength={60} placeholder="ör. kozmetik" />
+                    <SelectField
+                        label="Kategori"
+                        hint={'"Genel" ilanlar da uyar.'}
+                        value={alertForm.categoryKey ? INFLUENCER_CATEGORIES[alertForm.categoryKey] : ''}
+                        placeholder="Fark etmez"
+                        onPress={() => setCategoryPicker(true)}
+                    />
+                    <TextField label="Anahtar kelime" hint="İlan başlığında veya kategorisinde aranır." value={alertForm.category} onChangeText={(v) => setAlertForm((f) => ({ ...f, category: v }))} maxLength={60} placeholder="ör. kahve" />
                     <View style={{ gap: 7 }}>
                         <Text variant="small" weight="medium" tone="fg2">Platform</Text>
                         <View className="flex-row flex-wrap" style={{ gap: 8 }}>
@@ -314,6 +380,14 @@ export default function ProposalsScreen({ route, navigation }) {
                     ))}
                 </ListGroup>
             ) : <Text variant="small" tone="fg3" style={{ textAlign: 'center' }}>Henüz alarm kurmadın.</Text>}
+            <OptionSheet
+                visible={categoryPicker}
+                onClose={() => setCategoryPicker(false)}
+                title="Kategori"
+                options={ALERT_CATEGORY_OPTIONS}
+                value={alertForm.categoryKey}
+                onSelect={(v) => setAlertForm((f) => ({ ...f, categoryKey: v }))}
+            />
         </>
     );
 
@@ -353,6 +427,7 @@ export default function ProposalsScreen({ route, navigation }) {
                             <SaveButton saved={savedIds.has(p.id)} onPress={() => toggleSave(p.id)} />
                         </View>
                         <Card padded={false} className="px-4">
+                            <KeyValue label="Kategori" value={advertCategoryLabel(p.category)} />
                             <KeyValue label="Bütçe" value={formatBudget(p.budget_min, p.budget_max)} />
                             {p.platform ? <KeyValue label="Platform" value={p.platform} /> : null}
                             {p.deliverables?.length ? <KeyValue label="Teslimatlar" value={p.deliverables.join(', ')} /> : null}
@@ -365,6 +440,15 @@ export default function ProposalsScreen({ route, navigation }) {
                             </View>
                         ) : null}
                         {p.summary || p.description ? <Text tone="fg2" style={{ fontSize: 14.5, lineHeight: 22 }}>{p.description || p.summary}</Text> : null}
+                        {questionsOf(p).length ? (
+                            <View style={{ gap: 4 }}>
+                                <Text variant="eyebrow">Markanın soruları</Text>
+                                {questionsOf(p).map((q, i) => (
+                                    <Text key={q.id || i} variant="small" tone="fg2">{i + 1}. {q.question}{optionsOf(q).length ? ` (${optionsOf(q).join(' / ')})` : ''}</Text>
+                                ))}
+                                {!appliedIds.has(p.id) ? <Text variant="caption" tone="fg3">Başvururken yanıtlayacaksın.</Text> : null}
+                            </View>
+                        ) : null}
                         {appliedIds.has(p.id) ? (
                             <Chip label="Bu ilana başvurdun" tone="success" />
                         ) : (
@@ -376,6 +460,9 @@ export default function ProposalsScreen({ route, navigation }) {
                 {p && applyStep ? (
                     <>
                         <Text variant="small" tone="fg2">{p.title}{p.brand_name ? ` · ${p.brand_name}` : ''}</Text>
+                        {questionsOf(p).map((q, i) => (
+                            <QuestionField key={q.id || i} q={q} index={i} value={answers[q.id]} onChange={(v) => setAnswers((prev) => ({ ...prev, [q.id]: v }))} />
+                        ))}
                         <TextField label="Markaya notun" multiline value={coverLetter} onChangeText={setCoverLetter} placeholder="Kısaca neden uygun olduğundan bahset." />
                         <TextField label="Önerdiğin teslim" value={deliveryItem} onChangeText={setDeliveryItem} placeholder="ör. 1 Reels + 3 Hikâye" />
                         <View style={{ gap: 7 }}>
@@ -417,6 +504,13 @@ export default function ProposalsScreen({ route, navigation }) {
                                 onPress={() => { setSelectedApplication(null); navigation.navigate('CollaborationDetail', { id: a.collaboration.id }); }}
                                 block
                             />
+                        ) : null}
+                        {Array.isArray(a.answers) && a.answers.length ? (
+                            <Card padded={false} className="px-4">
+                                {a.answers.map((ans, i) => (
+                                    <KeyValue key={`${ans.id}-${i}`} label={ans.question} value={formatAnswer(ans.answer)} last={i === a.answers.length - 1} />
+                                ))}
+                            </Card>
                         ) : null}
                         {a.status === 'pending' || a.status === 'shortlisted' ? (
                             <Text variant="small" tone="fg2">Başvurun marka tarafından inceleniyor. Durum değişince bildirim alacaksın.</Text>

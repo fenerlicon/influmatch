@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import InfluencerAdverts from '@/components/adverts/InfluencerAdverts'
 import { Notice } from '@/components/ui'
-import type { AdvertApplication, AdvertProject } from '@/lib/adverts-shared'
+import { parseAnswers, type AdvertApplication, type AdvertProject } from '@/lib/adverts-shared'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
@@ -30,7 +30,7 @@ export default async function InfluencerAdvertPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('advert_applications')
-      .select(`id, advert_id, influencer_id, cover_letter, deliverable_idea, budget_expectation, status, created_at`)
+      .select(`id, advert_id, influencer_id, cover_letter, deliverable_idea, budget_expectation, status, created_at, answers`)
       .eq('influencer_id', user.id)
       .order('created_at', { ascending: false }),
     listSavedAdvertIdsAs(supabase, user.id),
@@ -219,6 +219,7 @@ export default async function InfluencerAdvertPage() {
       room_id: roomInfo?.id ?? null,
       has_messages: roomInfo?.hasMessages ?? false,
       collaboration: collabByApplication.get(row.id) ?? null,
+      answers: parseAnswers(row.answers),
     }
   })
 
@@ -246,6 +247,7 @@ export default async function InfluencerAdvertPage() {
       appliedIds={appliedAdvertIds}
       savedIds={savedAdvertIds}
       alerts={alertsResult.success ? alertsResult.alerts : []}
+      alertsInstant={alertsResult.success ? alertsResult.instant : false}
     />
   )
 }
