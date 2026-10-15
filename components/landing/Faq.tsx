@@ -20,8 +20,8 @@ const FAQS = [
     a: "Influencer'lar için Spotlight rozeti ve çerçevesi, keşifte öncelikli listeleme, profil görüntülenme sayıları ve anlık ilan alarmı (uygun ilan yayınlandığı anda bildirim); markalar için akıllı eşleştirme önerileri, kampanya uyum skoru, benzer profil keşfi ve ilanların topluluk listesinde öne çıkması. Influencer Pro paketinde ayrıca profilde tamamlanan iş birliklerinin ölçülen sonuçları (portföy) görünür; Marka Pro paketinde keşifte \"Verisi olanlar\" ve \"Mavi tikli\" filtreleri vardır.",
   },
   {
-    q: 'Ödemeler ve güvenlik nasıl sağlanıyor?',
-    a: 'Influmatch, markalarla influencer\'ları bir araya getiren bir eşleştirme platformudur. Anlaşma sağladığınızda ödeme koşullarını ve yöntemini kendi aranızda belirlersiniz. Biz aracı olmaz veya komisyon almayız; iki tarafın ödeme teyidi İşler sayfasında kayıt altına alınır.',
+    q: 'Ödemeler nasıl yapılıyor, platform süreçten sorumlu mu?',
+    a: 'Influmatch, markalarla influencer\'ları bir araya getiren bir eşleştirme platformudur. Anlaşma sağladığınızda ödeme koşullarını ve yöntemini kendi aranızda belirlersiniz. Biz aracı olmaz veya komisyon almayız; iki tarafın ödeme teyidi İşler sayfasında yalnızca kayıt olarak tutulur. Influmatch tarafları bir araya getirir; iş birliği sürecinden, paylaşılan içeriklerden ve taraflar arasındaki uyuşmazlıklardan sorumlu değildir, marka ve influencer kendi haklarını korur.',
   },
   {
     q: 'Hangi platformlar destekleniyor?',
