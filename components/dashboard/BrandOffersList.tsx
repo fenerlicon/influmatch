@@ -11,6 +11,8 @@ import { editOffer, withdrawOffer } from '@/app/dashboard/brand/offers/actions'
 import type { BrandOfferItem } from '@/lib/works'
 import { countUnreadInRoom } from '@/lib/unread-messages'
 import { OFFER_CAMPAIGN_TYPES, OFFER_EXPIRY_DAYS, effectiveOfferStatus } from '@/lib/offer-shared'
+import { COLLABORATION_STAGE_SHORT_LABELS, collaborationDetailHref, type CollaborationStageRef } from '@/lib/collaboration-shared'
+import { COLLABORATION_TONES } from '@/lib/works'
 import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, Field, Input, ListRow, Modal, Select, Textarea, VerifiedTick, type ChipTone } from '@/components/ui'
 
 interface BrandOffersListProps {
@@ -18,6 +20,8 @@ interface BrandOffersListProps {
   currentUserId: string
   dismissedReceiverIds?: string[]
   hideHeader?: boolean
+  /** Kabul edilen teklifin iş birliği (3.14-S1): "Kabul edildi" yerine aşama ve iş birliği bağlantısı. */
+  collaborationByOffer?: Record<string, CollaborationStageRef>
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -51,6 +55,22 @@ const editFormOf = (offer: BrandOfferItem): EditForm => ({
   budget: offer.budget === null || offer.budget === undefined ? '' : String(offer.budget),
   message: offer.message ?? '',
 })
+
+/** Teklif durumu; kabul edilen teklifte iş birliği varsa aşaması (3.14-S1). */
+function OfferStatusChip({ status, collab, fallback }: { status: string; collab?: CollaborationStageRef; fallback: string }) {
+  if (status === 'accepted' && collab) {
+    return (
+      <Chip tone={COLLABORATION_TONES[collab.status] ?? 'success'} dot>
+        {COLLABORATION_STAGE_SHORT_LABELS[collab.status]}
+      </Chip>
+    )
+  }
+  return (
+    <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
+      {fallback}
+    </Chip>
+  )
+}
 
 const daysLeft = (createdAt: string) => Math.max(0, OFFER_EXPIRY_DAYS - Math.floor((Date.now() - Date.parse(createdAt)) / 86_400_000))
 
@@ -88,6 +108,7 @@ export default function BrandOffersList({
   initialOffers,
   currentUserId,
   dismissedReceiverIds = [],
+  collaborationByOffer,
 }: BrandOffersListProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
@@ -497,9 +518,11 @@ export default function BrandOffersList({
                   {group.offers.length > 1 && <span>· {group.offers.length} teklif</span>}
                 </div>
               </div>
-              <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
-                {status === 'pending' ? `${daysLeft(latestOffer.created_at)} gün içinde düşer` : STATUS_LABELS[status] ?? latestOffer.status}
-              </Chip>
+              <OfferStatusChip
+                status={status}
+                collab={collaborationByOffer?.[latestOffer.id]}
+                fallback={status === 'pending' ? `${daysLeft(latestOffer.created_at)} gün içinde düşer` : STATUS_LABELS[status] ?? latestOffer.status}
+              />
               <div className="ml-auto flex items-center gap-1.5">
                 <Button variant="ghost" size="sm" onClick={() => setSelectedGroup(group)}>
                   Ayrıntı
@@ -562,10 +585,13 @@ export default function BrandOffersList({
                 <div key={offer.id} className="rounded-xl border border-line bg-surface-2 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="font-medium text-ink">{offer.campaign_name ?? 'İsimsiz kampanya'}</div>
-                    <Chip tone={STATUS_TONES[status] ?? 'neutral'} dot>
-                      {STATUS_LABELS[status] ?? offer.status}
-                    </Chip>
+                    <OfferStatusChip status={status} collab={collaborationByOffer?.[offer.id]} fallback={STATUS_LABELS[status] ?? offer.status} />
                   </div>
+                  {status === 'accepted' && collaborationByOffer?.[offer.id] && (
+                    <Link href={collaborationDetailHref(collaborationByOffer[offer.id].id)} className="mt-1 inline-block text-xs text-gold hover:underline">
+                      İş birliğine git
+                    </Link>
+                  )}
                   <dl className="mt-2 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1 text-[13px]">
                     {offer.campaign_type && (
                       <>

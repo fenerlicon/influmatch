@@ -5,6 +5,7 @@ import { decode } from 'base64-arraybuffer';
 import { Plus, ChevronRight, Pause, Play, Trash2, Pencil, Ellipsis, ImagePlus, Inbox, Megaphone, Bookmark } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
+import { COLLAB_STAGE_SHORT, loadApplicationCollabs } from '../../constants/collaborations';
 import { useFocusEffect } from '@react-navigation/native';
 import { formatBudget, formatCount, formatPercent, formatTRY, daysLeft } from '../../lib/format';
 import {
@@ -181,6 +182,7 @@ export default function BrandAdvertsScreen({ navigation, route }) {
 
             const apps = data || [];
             setAllApps(apps);
+            trackCollabs(apps);
             setPendingCount(apps.filter(a => a.status === 'pending').length);
         } catch (e) {
             console.error('[BrandAdverts] fetchAllApplications', e);
@@ -203,7 +205,17 @@ export default function BrandAdvertsScreen({ navigation, route }) {
             .eq('advert_id', project.id)
             .order('created_at', { ascending: false });
         setProjectApps(data || []);
+        trackCollabs(data || []);
         setLoadingApps(false);
+    };
+
+    // Kabul edilen başvuruların iş birliği aşaması (3.14-S1): Map<application_id, { id, status }>.
+    const [appCollabs, setAppCollabs] = useState(new Map());
+    const trackCollabs = async (apps) => {
+        const accepted = (apps || []).filter((a) => a.status === 'accepted').map((a) => a.id);
+        if (!accepted.length) return;
+        const found = await loadApplicationCollabs(accepted);
+        if (found.size) setAppCollabs((prev) => new Map([...prev, ...found]));
     };
 
     const updateAppStatus = async (appId, newStatus) => {
@@ -405,7 +417,8 @@ export default function BrandAdvertsScreen({ navigation, route }) {
     const renderApplication = (app, showAdvert = false) => {
         const inf = app.influencer;
         const social = inf?.social_accounts?.find((s) => s.platform === 'instagram') || inf?.social_accounts?.[0];
-        const s = STATUS_CFG[app.status] || STATUS_CFG.pending;
+        const collab = app.status === 'accepted' ? appCollabs.get(app.id) : null;
+        const s = (collab && COLLAB_STAGE_SHORT[collab.status]) || STATUS_CFG[app.status] || STATUS_CFG.pending;
         return (
             <Card key={app.id} style={{ gap: 10 }}>
                 <View className="flex-row items-center" style={{ gap: 12 }}>
@@ -436,6 +449,9 @@ export default function BrandAdvertsScreen({ navigation, route }) {
                 ) : null}
                 {app.status === 'pending' ? (
                     <Text variant="caption" tone="fg3" onPress={() => updateAppStatus(app.id, 'rejected')} suppressHighlighting>Başvuruyu reddet</Text>
+                ) : null}
+                {collab ? (
+                    <Button title="İş birliğine git" variant="secondary" size="md" onPress={() => navigation.navigate('CollaborationDetail', { id: collab.id })} block />
                 ) : null}
             </Card>
         );

@@ -60,6 +60,8 @@ export interface AdvertApplication {
   created_at: string
   room_id?: string | null
   has_messages?: boolean
+  /** Kabul edilen başvurunun iş birliği (3.14-S1): listede aşama ve detay bağlantısı. */
+  collaboration?: { id: string; status: 'agreed' | 'in_progress' | 'published' | 'completed' | 'cancelled' } | null
 }
 
 export const APPLICATION_STATUS: Record<ApplicationStatus, { label: string; tone: ChipTone }> = {

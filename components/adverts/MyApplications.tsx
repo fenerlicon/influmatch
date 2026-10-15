@@ -7,8 +7,9 @@ import { toast } from 'sonner'
 import { FileText, MessageSquare } from 'lucide-react'
 import { cancelApplication } from '@/app/dashboard/influencer/advert/actions'
 import { Avatar, Button, ButtonLink, Card, Chip, ConfirmDialog, EmptyState, ListRow, VerifiedTick } from '@/components/ui'
-import { worksHref } from '@/lib/works'
+import { worksHref, COLLABORATION_TONES } from '@/lib/works'
 import { APPLICATION_STATUS, formatExpectation, relativeDay, type AdvertApplication } from '@/lib/adverts-shared'
+import { COLLABORATION_STAGE_SHORT_LABELS, collaborationDetailHref } from '@/lib/collaboration-shared'
 
 /** Influencer'ın başvuruları: durum, mesaj, bekleyen başvuruyu geri çekme. */
 export default function MyApplications({ applications, onBrowse }: { applications: AdvertApplication[]; onBrowse: () => void }) {
@@ -63,9 +64,15 @@ export default function MyApplications({ applications, onBrowse }: { application
               <div className="min-w-0 flex-[1_1_220px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[13.5px] font-medium text-ink">{a.advert_title}</span>
-                  <Chip tone={status.tone} dot>
-                    {status.label}
-                  </Chip>
+                  {a.status === 'accepted' && a.collaboration ? (
+                    <Chip tone={COLLABORATION_TONES[a.collaboration.status]} dot>
+                      {COLLABORATION_STAGE_SHORT_LABELS[a.collaboration.status]}
+                    </Chip>
+                  ) : (
+                    <Chip tone={status.tone} dot>
+                      {status.label}
+                    </Chip>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-1 text-xs text-ink-faint">
                   {a.brand?.username ? (
@@ -79,7 +86,11 @@ export default function MyApplications({ applications, onBrowse }: { application
                   <span>· {relativeDay(a.created_at)}</span>
                   {expectation && <span>· Beklenti {expectation}</span>}
                 </div>
-                {a.status === 'accepted' && <div className="mt-1 text-[12.5px] text-ink-muted">İş başladı; ayrıntılar İşler sayfasında.</div>}
+                {a.status === 'accepted' && (
+                  <div className="mt-1 text-[12.5px] text-ink-muted">
+                    {a.collaboration ? 'İş birliği aşaması yukarıda; ayrıntılar iş birliği sayfasında.' : 'İş başladı; ayrıntılar İşler sayfasında.'}
+                  </div>
+                )}
               </div>
               <div className="ml-auto flex flex-wrap gap-1.5">
                 {a.status === 'pending' && (
@@ -93,8 +104,8 @@ export default function MyApplications({ applications, onBrowse }: { application
                   </ButtonLink>
                 )}
                 {a.status === 'accepted' && (
-                  <ButtonLink size="sm" variant="primary" href={worksHref('active')}>
-                    İşe git
+                  <ButtonLink size="sm" variant="primary" href={a.collaboration ? collaborationDetailHref(a.collaboration.id) : worksHref('active')}>
+                    {a.collaboration ? 'İş birliğine git' : 'İşe git'}
                   </ButtonLink>
                 )}
               </div>
