@@ -1,10 +1,12 @@
 'use client'
 
 import Image from 'next/image'
-import { type ReactNode, useState, useTransition, useEffect, useCallback } from 'react'
+import { useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Building2, Globe, Instagram, Linkedin, MapPin, Upload, FileText, Info, Edit2, CheckCircle } from 'lucide-react'
+import { ExternalLink, ImagePlus, Pencil, Upload } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button, ButtonLink, buttonClasses, Card, CardBody, CardHeader, Field, Input, Notice, PageHeader, Select, Textarea } from '@/components/ui'
 import { updateBrandProfile } from '@/app/dashboard/brand/profile/actions'
 import { validateInstagram, validateLinkedIn, validateWebsite, validateKick, validateTwitter, validateTwitch } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
@@ -75,7 +77,6 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
   const [logoUrl, setLogoUrl] = useState<string | null>(initialData.logoUrl ?? null)
   const [isUploading, setIsUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [validationErrors, setValidationErrors] = useState<{
     username?: string
@@ -342,8 +343,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         })
 
         if (result?.success) {
-          setToast('Profil başarıyla güncellendi!')
-          setTimeout(() => setToast(null), 3000)
+          toast.success('Profil güncellendi.')
           setIsEditing(false) // Exit edit mode after successful save
           // Don't refresh - form state is already correct
           // The revalidatePath in the action will handle cache invalidation
@@ -357,423 +357,257 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
     })
   }
 
-  const renderInput = (label: string, name: string, value: string, icon: ReactNode, placeholder?: string, disabled?: boolean, type: string = 'text') => (
-    <label className="space-y-2 text-sm text-gray-300">
-      <span>{label}</span>
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-        <span className="text-soft-gold">{icon}</span>
-        <input
+  const renderInput = (label: string, name: string, value: string, placeholder?: string, disabled?: boolean, type: string = 'text', error?: string) => (
+    <Field label={label} error={error}>
+      {(props) => (
+        <Input
+          {...props}
           type={type}
           name={name}
           value={value}
           onChange={handleChange}
           disabled={disabled !== undefined ? disabled : !isEditing}
           placeholder={placeholder}
-          className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         />
-      </div>
-    </label>
+      )}
+    </Field>
   )
 
-  const renderCitySelect = (label: string, name: string, value: string, icon: ReactNode, customDisabled?: boolean) => (
-    <label className="space-y-2 text-sm text-gray-300">
-      <span>{label}</span>
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-        <span className="text-soft-gold">{icon}</span>
-        <select
-          name={name}
-          value={value}
-          onChange={handleChange}
-          disabled={customDisabled !== undefined ? customDisabled : !isEditing}
-          className="w-full bg-transparent text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">Şehir Seçin</option>
+  const renderCitySelect = (label: string, name: string, value: string, customDisabled?: boolean) => (
+    <Field label={label}>
+      {(props) => (
+        <Select {...props} name={name} value={value} onChange={handleChange} disabled={customDisabled !== undefined ? customDisabled : !isEditing}>
+          <option value="">Şehir seçin</option>
           {TURKISH_CITIES.map((city) => (
-            <option key={city} value={city}>
-              {city}
-            </option>
+            <option key={city} value={city}>{city}</option>
           ))}
-        </select>
-      </div>
-    </label>
+        </Select>
+      )}
+    </Field>
   )
 
   const taxIdValidation = formState.taxId.trim() ? validateTaxNumber(formState.taxId) : null
   const taxIdError = taxIdValidation && !taxIdValidation.isValid ? taxIdValidation.error : null
 
+  // Kurumsal kimlik ayrı kaydedilir (vergi no girilince vergi dairesi ve il zorunlu)
+  const saveCorporate = () => {
+    setErrorMsg(null)
+    if (formState.taxId.trim()) {
+      const taxValidation = validateTaxNumber(formState.taxId)
+      if (!taxValidation.isValid) {
+        setErrorMsg(taxValidation.error)
+        return
+      }
+      if (!formState.taxOffice.trim()) {
+        setErrorMsg('Vergi numarası girildiğinde vergi dairesi girmek zorunludur.')
+        return
+      }
+      if (!formState.taxOfficeCity.trim()) {
+        setErrorMsg('Vergi numarası girildiğinde şirketin bağlı olduğu il seçilmelidir.')
+        return
+      }
+    }
+    startTransition(async () => {
+      try {
+        const result = await updateBrandProfile({
+          brandName: formState.brandName,
+          username: formState.username,
+          city: formState.city,
+          bio: formState.bio,
+          category: formState.category,
+          logoUrl,
+          website: formState.website.trim() || '',
+          linkedin: formState.linkedin.trim() || '',
+          instagram: formState.instagram.trim() || '',
+          kick: formState.kick?.trim() || null,
+          twitter: formState.twitter?.trim() || null,
+          twitch: formState.twitch?.trim() || null,
+          displayedBadges: selectedBadges,
+          companyLegalName: formState.companyLegalName.trim() || null,
+          taxId: formState.taxId.trim() || null,
+          taxOffice: formState.taxOffice.trim() || null,
+          taxOfficeCity: formState.taxOfficeCity.trim() || null,
+        })
+        if (!result.success) throw new Error(result.error)
+        toast.success('Kurumsal bilgiler güncellendi.')
+        setIsEditingCorporate(false)
+        router.refresh()
+      } catch (error) {
+        console.error('Corporate update failed:', error)
+        setErrorMsg(error instanceof Error ? error.message : 'Güncelleme başarısız.')
+      }
+    })
+  }
+
+  const cancelCorporate = () => {
+    setIsEditingCorporate(false)
+    setFormState((prev) => ({
+      ...prev,
+      companyLegalName: initialData.companyLegalName ?? '',
+      taxId: initialData.taxId ?? '',
+      taxOffice: initialData.taxOffice ?? '',
+      taxOfficeCity: initialData.taxOfficeCity ?? '',
+    }))
+    setErrorMsg(null)
+  }
+
+  const resetForm = () => {
+    setIsEditing(false)
+    setFormState({
+      brandName: initialData.brandName ?? '',
+      username: initialData.username ?? '',
+      city: initialData.city ?? '',
+      bio: initialData.bio ?? '',
+      category: initialData.category ?? BRAND_CATEGORY_KEYS[0],
+      website: initialData.website ?? '',
+      linkedin: initialData.linkedin ?? '',
+      instagram: initialData.instagram ?? '',
+      kick: initialData.kick ?? '',
+      twitter: initialData.twitter ?? '',
+      twitch: initialData.twitch ?? '',
+      companyLegalName: initialData.companyLegalName ?? '',
+      taxId: initialData.taxId ?? '',
+      taxOffice: initialData.taxOffice ?? '',
+      taxOfficeCity: initialData.taxOfficeCity ?? '',
+    })
+    setLogoUrl(initialData.logoUrl ?? null)
+    setSelectedBadges(initialData.displayedBadges ?? [])
+    setErrorMsg(null)
+    setValidationErrors({})
+    setUsernameStatus('idle')
+  }
+
+  const usernameLocked = Boolean(initialData.username && initialData.username.trim() !== '')
+  const usernameHint = usernameLocked
+    ? 'Kullanıcı adı bir kez belirlendikten sonra değiştirilemez.'
+    : usernameStatus === 'checking' ? 'Kontrol ediliyor…'
+      : usernameStatus === 'available' ? 'Kullanılabilir'
+        : undefined
+  const usernameError = validationErrors.username || (!usernameLocked && usernameStatus === 'taken' ? 'Bu kullanıcı adı kullanılıyor' : undefined)
+  const daysRemaining = initialData.socialLinksLastUpdated
+    ? 30 - Math.floor((Date.now() - new Date(initialData.socialLinksLastUpdated).getTime()) / 86_400_000)
+    : 0
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#101117] to-[#090a0f] p-6 text-white shadow-glow">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Kurumsal Profil</p>
-            <h1 className="mt-3 text-3xl font-semibold">Kurumsal Profil Ayarları</h1>
-            <p className="mt-2 max-w-3xl text-sm text-gray-300">
-              Markanı influencer topluluğuna güven veren bir dille tanıt. Logo, temel kimlik bilgileri ve iletişim noktaların burada yönetilir.
-            </p>
-          </div>
-          {!isEditing && (
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="rounded-full border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-            >
-              Profili Düzenle
-            </button>
-          )}
-        </div>
-      </section>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-5 rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Şirket Logosu</p>
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#11121A] p-6">
-            <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-white/10 bg-black/30">
-              {logoUrl ? (
-                <Image src={logoUrl} alt="Şirket Logosu" fill sizes="112px" className="object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">Logo yükleyin</div>
+    <form onSubmit={handleSubmit} className="grid gap-5">
+      <PageHeader
+        title="Marka profili"
+        description="Influencer'lar markanı bu bilgilerle tanır. Logo, kimlik bilgileri ve iletişim noktaların burada."
+        actions={
+          !isEditing ? (
+            <>
+              {formState.username && (
+                <ButtonLink href={`/profile/${formState.username}`} target="_blank" rel="noopener noreferrer" leftIcon={<ExternalLink />}>
+                  Profilimi gör
+                </ButtonLink>
               )}
-            </div>
-            <label className={`inline-flex items-center gap-2 rounded-2xl border border-white/15 px-4 py-2 text-sm text-white transition ${isEditing
-              ? 'cursor-pointer hover:border-soft-gold hover:text-soft-gold'
-              : 'cursor-not-allowed opacity-50'
-              }`}>
-              <Upload className="h-4 w-4" />
-              {isUploading ? 'Yükleniyor...' : 'Logo Yükle'}
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={handleLogoUpload}
-                disabled={isUploading || !isEditing}
-              />
-            </label>
-          </div>
+              <Button variant="primary" onClick={() => setIsEditing(true)} leftIcon={<Pencil />}>Düzenle</Button>
+            </>
+          ) : undefined
+        }
+      />
 
-          {renderInput('Marka Adı', 'brandName', formState.brandName, <Building2 className="h-4 w-4" />, 'Örn: Influmatch Studios')}
-
-          <div>
-            <label className="space-y-2 text-sm text-gray-300">
-              <span>Kullanıcı Adı</span>
-              <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${validationErrors.username || usernameStatus === 'taken'
-                ? 'border-red-500/60 bg-red-500/10'
-                : usernameStatus === 'available'
-                  ? 'border-emerald-500/60 bg-emerald-500/10'
-                  : 'border-white/10 bg-white/5'
-                }`}>
-                <span className="text-soft-gold"><Building2 className="h-4 w-4" /></span>
-                <input
-                  type="text"
-                  name="username"
-                  value={formState.username}
-                  onChange={handleChange}
-                   disabled={!isEditing || Boolean(initialData.username && initialData.username.trim() !== '')}
-                  placeholder="@marka"
-                  className="w-full bg-transparent text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Marka bilgileri" />
+          <CardBody className="grid gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative grid h-20 w-20 flex-none place-items-center overflow-hidden rounded-2xl border border-line-strong bg-surface-2 text-ink-faint">
+                {logoUrl ? <Image src={logoUrl} alt="Marka logosu" fill sizes="80px" className="object-cover" /> : <ImagePlus className="h-6 w-6" aria-hidden />}
               </div>
-              {initialData.username && initialData.username.trim() !== '' && (
-                <p className="mt-1 text-xs text-gray-400">Kullanıcı adı bir kez belirlendikten sonra değiştirilemez.</p>
-              )}
-              {validationErrors.username && (
-                <p className="mt-1 text-xs text-red-400">{validationErrors.username}</p>
-              )}
-              {!validationErrors.username && !initialData.username && usernameStatus === 'checking' && (
-                <p className="mt-1 text-xs text-gray-400">Kullanıcı adı kontrol ediliyor...</p>
-              )}
-              {!validationErrors.username && !initialData.username && usernameStatus === 'available' && (
-                <p className="mt-1 text-xs text-emerald-400">Kullanıcı adı müsait</p>
-              )}
-              {!validationErrors.username && !initialData.username && usernameStatus === 'taken' && (
-                <p className="mt-1 text-xs text-red-400">Bu kullanıcı adı kullanılmakta</p>
-              )}
-            </label>
-          </div>
-
-          <label className="space-y-2 text-sm text-gray-300">
-            <span>Sektör</span>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <select
-                name="category"
-                value={formState.category}
-                onChange={handleChange}
-                disabled={!isEditing}
-                className="w-full bg-transparent text-white focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {BRAND_CATEGORY_KEYS.map((key) => (
-                  <option key={key} value={key} className="bg-[#1B1C24] text-white">
-                    {BRAND_CATEGORIES[key]}
-                  </option>
-                ))}
-              </select>
+              <label className={buttonClasses({ size: 'sm', className: !isEditing || isUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer' })}>
+                <Upload aria-hidden />
+                {isUploading ? 'Yükleniyor…' : 'Logo yükle'}
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleLogoUpload} disabled={isUploading || !isEditing} />
+              </label>
             </div>
-          </label>
-        </div>
+            {renderInput('Marka adı', 'brandName', formState.brandName, 'Ör. Nara Kahve')}
+            <Field label="Kullanıcı adı" error={usernameError} hint={usernameError ? undefined : usernameHint}>
+              {(props) => (
+                <Input {...props} name="username" value={formState.username} onChange={handleChange} disabled={!isEditing || usernameLocked} placeholder="marka" />
+              )}
+            </Field>
+            <Field label="Sektör">
+              {(props) => (
+                <Select {...props} name="category" value={formState.category} onChange={handleChange} disabled={!isEditing}>
+                  {BRAND_CATEGORY_KEYS.map((key) => (
+                    <option key={key} value={key}>{BRAND_CATEGORIES[key]}</option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            {renderInput('Web sitesi', 'website', formState.website, 'www.ornek.com', undefined, 'text', validationErrors.website)}
+            {renderCitySelect('Şehir', 'city', formState.city)}
+            <Field label="Hakkında">
+              {(props) => (
+                <Textarea {...props} name="bio" value={formState.bio} onChange={handleChange} disabled={!isEditing} rows={5} placeholder="Markan hakkında kısa bir bilgi…" />
+              )}
+            </Field>
+          </CardBody>
+        </Card>
 
-        <div className="space-y-5 rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">DETAYLAR</p>
-
-          <div>
-            {renderInput('Web Sitesi', 'website', formState.website, <Globe className="h-4 w-4" />, 'www.ornek.com')}
-            {validationErrors.website && (
-              <p className="mt-1 text-xs text-red-300">{validationErrors.website}</p>
+        <Card>
+          <CardHeader title="Sosyal medya" description="En az bir sosyal medya hesabı ya da web sitesi gerekli." />
+          <CardBody className="grid gap-4">
+            {daysRemaining > 0 && (
+              <Notice tone="info">Sosyal medya hesaplarını 30 günde bir değiştirebilirsin. {daysRemaining} gün sonra tekrar değiştirebilirsin.</Notice>
             )}
-          </div>
-
-          {renderCitySelect('Şehir', 'city', formState.city, <MapPin className="h-4 w-4" />)}
-
-          <label className="space-y-2 text-sm text-gray-300">
-            <span>Hakkında</span>
-            <textarea
-              name="bio"
-              value={formState.bio}
-              onChange={handleChange}
-              disabled={!isEditing}
-              rows={6}
-              placeholder="Markanız hakkında kısa bir bilgi..."
-              className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-white placeholder:text-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </label>
-
-          {initialData.socialLinksLastUpdated && (() => {
-            const lastUpdated = new Date(initialData.socialLinksLastUpdated)
-            const now = new Date()
-            const daysSinceLastUpdate = Math.floor((now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24))
-            const daysRemaining = 30 - daysSinceLastUpdate
-
-            if (daysRemaining > 0) {
-              return (
-                <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 mb-5">
-                  <p className="text-sm text-yellow-200">
-                    <strong>Bilgi:</strong> Sosyal medya hesaplarınızı 30 günde sadece 1 kez değiştirebilirsiniz.
-                    {daysRemaining > 0 && (
-                      <span className="ml-1"> {daysRemaining} gün sonra tekrar değiştirebilirsiniz.</span>
-                    )}
-                  </p>
-                </div>
-              )
-            }
-            return null
-          })()}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              {renderInput('LinkedIn', 'linkedin', formState.linkedin, <Linkedin className="h-4 w-4" />, 'https://linkedin.com/company/...')}
-              {validationErrors.linkedin && (
-                <p className="mt-1 text-xs text-red-300">{validationErrors.linkedin}</p>
-              )}
-            </div>
-            <div>
-              {renderInput('Instagram', 'instagram', formState.instagram, <Instagram className="h-4 w-4" />, '@kullaniciadi veya https://instagram.com/...')}
-              {validationErrors.instagram && (
-                <p className="mt-1 text-xs text-red-300">{validationErrors.instagram}</p>
-              )}
-            </div>
-            <div>
-              {renderInput('Kick', 'kick', formState.kick, <Globe className="h-4 w-4" />, '@kullaniciadi veya https://kick.com/...')}
-              {validationErrors.kick && (
-                <p className="mt-1 text-xs text-red-300">{validationErrors.kick}</p>
-              )}
-            </div>
-            <div>
-              {renderInput('Twitter/X', 'twitter', formState.twitter, <Globe className="h-4 w-4" />, '@kullaniciadi veya https://twitter.com/...')}
-              {validationErrors.twitter && (
-                <p className="mt-1 text-xs text-red-300">{validationErrors.twitter}</p>
-              )}
-            </div>
-            <div>
-              {renderInput('Twitch', 'twitch', formState.twitch, <Globe className="h-4 w-4" />, '@kullaniciadi veya https://twitch.tv/...')}
-              {validationErrors.twitch && (
-                <p className="mt-1 text-xs text-red-300">{validationErrors.twitch}</p>
-              )}
-            </div>
-          </div>
-        </div>
+            {renderInput('LinkedIn', 'linkedin', formState.linkedin, 'linkedin.com/company/…', undefined, 'text', validationErrors.linkedin)}
+            {renderInput('Instagram', 'instagram', formState.instagram, '@kullaniciadi veya instagram.com/…', undefined, 'text', validationErrors.instagram)}
+            {renderInput('Kick', 'kick', formState.kick, 'kick.com/…', undefined, 'text', validationErrors.kick)}
+            {renderInput('Twitter / X', 'twitter', formState.twitter, '@kullaniciadi', undefined, 'text', validationErrors.twitter)}
+            {renderInput('Twitch', 'twitch', formState.twitch, 'twitch.tv/…', undefined, 'text', validationErrors.twitch)}
+          </CardBody>
+        </Card>
       </div>
 
-      {/* Kurumsal Kimlik Section */}
-      <div className="space-y-5 rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.3em] text-soft-gold">Kurumsal Kimlik</p>
-              {!isEditingCorporate && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditingCorporate(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-soft-gold/40 bg-soft-gold/10 px-3 py-1.5 text-xs font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20"
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                  Düzenle
-                </button>
-              )}
+      {/* Kurumsal kimlik */}
+      <Card>
+        <CardHeader
+          title="Kurumsal kimlik"
+          description='Bu bilgileri dolduran markalar güvenlik kontrolünden sonra "Resmi İşletme" rozeti alır; rozet profilinde görünür.'
+          action={!isEditingCorporate ? <Button size="sm" onClick={() => setIsEditingCorporate(true)} leftIcon={<Pencil />}>Düzenle</Button> : undefined}
+        />
+        <CardBody className="grid gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {renderInput('Resmi şirket unvanı', 'companyLegalName', formState.companyLegalName, 'İsteğe bağlı', !isEditingCorporate ? true : undefined)}
+            {renderInput('Vergi numarası', 'taxId', formState.taxId, 'Vergi numaranızı girin', !isEditingCorporate ? true : undefined, 'text', taxIdError ?? undefined)}
+            {renderInput('Vergi dairesi', 'taxOffice', formState.taxOffice, 'Vergi dairesini girin', !isEditingCorporate ? true : undefined)}
+            {renderCitySelect('Şirketin bağlı olduğu il (vergi levhası ili)', 'taxOfficeCity', formState.taxOfficeCity, !isEditingCorporate)}
+          </div>
+
+          {initialData.taxIdVerified && <Notice tone="success">Vergi numaranız doğrulandı.</Notice>}
+
+          {isEditingCorporate ? (
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={cancelCorporate} disabled={isPending}>Vazgeç</Button>
+              <Button variant="primary" onClick={saveCorporate} loading={isPending}>Kaydet</Button>
             </div>
-            <p className="mt-2 text-sm text-gray-400">
-              Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="text-soft-gold">"Resmi İşletme"</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
-            </p>
-          </div>
-        </div>
-
-        {renderInput(
-          'Resmi Şirket Unvanı',
-          'companyLegalName',
-          formState.companyLegalName,
-          <FileText className="h-4 w-4" />,
-          'Opsiyonel',
-          !isEditingCorporate ? true : undefined
-        )}
-
-        {renderInput(
-          'Vergi Numarası',
-          'taxId',
-          formState.taxId,
-          <FileText className="h-4 w-4" />,
-          'Vergi numaranızı girin',
-          !isEditingCorporate ? true : undefined
-        )}
-        {taxIdError && <p className="-mt-3 text-xs text-red-300">{taxIdError}</p>}
-
-        {renderInput(
-          'Vergi Dairesi',
-          'taxOffice',
-          formState.taxOffice,
-          <FileText className="h-4 w-4" />,
-          'Vergi dairesini girin',
-          !isEditingCorporate ? true : undefined
-        )}
-
-        {renderCitySelect(
-          'Şirketin Bağlı Olduğu İl (Vergi Levhası İli)',
-          'taxOfficeCity',
-          formState.taxOfficeCity,
-          <MapPin className="h-4 w-4" />,
-          !isEditingCorporate
-        )}
-
-        {/* Vergi Numarası Durumu */}
-        {initialData.taxIdVerified && (
-          <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
-            <CheckCircle className="h-4 w-4 text-emerald-400" />
-            <span className="text-xs font-semibold text-emerald-300">Vergi numaranız doğrulandı.</span>
-          </div>
-        )}
-
-        {!isEditingCorporate && (
-          <CorporateEmailVerification
-            initialEmail={initialData.corporateEmail ?? null}
-            verified={!!initialData.corporateEmailVerified}
-            website={initialData.website}
-          />
-        )}
-
-        {!isEditingCorporate && (
-          <TaxCertificateUpload
-            userId={userId}
-            taxIdVerified={!!initialData.taxIdVerified}
-            canSubmit={
-              !!initialData.companyLegalName?.trim() &&
-              !!initialData.taxId &&
-              validateTaxNumber(initialData.taxId).isValid &&
-              !!initialData.taxOffice &&
-              !!initialData.taxOfficeCity
-            }
-            latest={initialData.latestTaxVerification ?? null}
-          />
-        )}
-
-        {isEditingCorporate && (
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={async () => {
-                setErrorMsg(null)
-                if (formState.taxId.trim()) {
-                  const taxValidation = validateTaxNumber(formState.taxId)
-                  if (!taxValidation.isValid) {
-                    setErrorMsg(taxValidation.error)
-                    return
-                  }
-                  if (!formState.taxOffice.trim()) {
-                    setErrorMsg('Vergi numarası girildiğinde vergi dairesi girmek zorunludur.')
-                    return
-                  }
-                  if (!formState.taxOfficeCity.trim()) {
-                    setErrorMsg('Vergi numarası girildiğinde şirketin bağlı olduğu il seçilmelidir.')
-                    return
-                  }
+          ) : (
+            <div className="grid gap-4">
+              <CorporateEmailVerification
+                initialEmail={initialData.corporateEmail ?? null}
+                verified={!!initialData.corporateEmailVerified}
+                website={initialData.website}
+              />
+              <TaxCertificateUpload
+                userId={userId}
+                taxIdVerified={!!initialData.taxIdVerified}
+                canSubmit={
+                  !!initialData.companyLegalName?.trim() &&
+                  !!initialData.taxId &&
+                  validateTaxNumber(initialData.taxId).isValid &&
+                  !!initialData.taxOffice &&
+                  !!initialData.taxOfficeCity
                 }
-                startTransition(async () => {
-                  try {
-                    const result = await updateBrandProfile({
-                      brandName: formState.brandName,
-                      username: formState.username,
-                      city: formState.city,
-                      bio: formState.bio,
-                      category: formState.category,
-                      logoUrl,
-                      website: formState.website.trim() || '',
-                      linkedin: formState.linkedin.trim() || '',
-                      instagram: formState.instagram.trim() || '',
-                      kick: formState.kick?.trim() || null,
-                      twitter: formState.twitter?.trim() || null,
-                      twitch: formState.twitch?.trim() || null,
-                      displayedBadges: selectedBadges,
-                      companyLegalName: formState.companyLegalName.trim() || null,
-                      taxId: formState.taxId.trim() || null,
-                      taxOffice: formState.taxOffice.trim() || null,
-                      taxOfficeCity: formState.taxOfficeCity.trim() || null,
-                    })
-                    if (!result.success) throw new Error(result.error)
-                    setToast('Kurumsal bilgiler güncellendi!')
-                    setIsEditingCorporate(false)
-                    router.refresh()
-                  } catch (error) {
-                    console.error('Corporate update failed:', error)
-                    setErrorMsg(error instanceof Error ? error.message : 'Güncelleme başarısız.')
-                  }
-                })
-              }}
-              disabled={isPending}
-              className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isPending ? 'Kaydediliyor...' : 'Kaydet'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsEditingCorporate(false)
-                setFormState((prev) => ({
-                  ...prev,
-                  companyLegalName: initialData.companyLegalName ?? '',
-                  taxId: initialData.taxId ?? '',
-                  taxOffice: initialData.taxOffice ?? '',
-                  taxOfficeCity: initialData.taxOfficeCity ?? '',
-                }))
-                setErrorMsg(null)
-              }}
-              disabled={isPending}
-              className="rounded-2xl border border-gray-500/60 bg-gray-500/10 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:border-gray-500 hover:bg-gray-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              İptal
-            </button>
-          </div>
-        )}
-
-        <div className="rounded-2xl border border-soft-gold/20 bg-soft-gold/5 p-4">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-soft-gold flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-gray-300">
-              <p className="font-medium text-soft-gold mb-1">Neden bu bilgileri paylaşmalıyım?</p>
-              <p className="text-gray-400">
-                Bu bilgileri dolduran markalar, güvenlik kontrolünden sonra <span className="text-soft-gold">"Resmi İşletme"</span> rozeti kazanır ve influencerlar tarafından daha çok tercih edilir.
-              </p>
+                latest={initialData.latestTaxVerification ?? null}
+              />
             </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </CardBody>
+      </Card>
 
-      <div className="rounded-3xl border border-white/10 bg-[#0C0D10] p-6 shadow-glow">
+      <Card padded>
         <BadgeSelector
           userRole="brand"
           selectedBadgeIds={selectedBadges}
@@ -781,59 +615,16 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
           onSelectionChange={setSelectedBadges}
           userId={userId}
         />
-      </div>
+      </Card>
 
-      {errorMsg ? <p className="text-sm text-red-300">{errorMsg}</p> : null}
+      {errorMsg && <Notice tone="danger">{errorMsg}</Notice>}
 
       {isEditing && (
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={() => {
-              setIsEditing(false)
-              // Reset form to initial data
-              setFormState({
-                brandName: initialData.brandName ?? '',
-                username: initialData.username ?? '',
-                city: initialData.city ?? '',
-                bio: initialData.bio ?? '',
-                category: initialData.category ?? BRAND_CATEGORY_KEYS[0],
-                website: initialData.website ?? '',
-                linkedin: initialData.linkedin ?? '',
-                instagram: initialData.instagram ?? '',
-                kick: initialData.kick ?? '',
-                twitter: initialData.twitter ?? '',
-                twitch: initialData.twitch ?? '',
-                companyLegalName: initialData.companyLegalName ?? '',
-                taxId: initialData.taxId ?? '',
-                taxOffice: initialData.taxOffice ?? '',
-                taxOfficeCity: initialData.taxOfficeCity ?? '',
-              })
-              setLogoUrl(initialData.logoUrl ?? null)
-              setSelectedBadges(initialData.displayedBadges ?? [])
-              setErrorMsg(null)
-              setValidationErrors({})
-              setUsernameStatus('idle')
-            }}
-            className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="flex-1 rounded-2xl border border-soft-gold/60 bg-soft-gold/20 px-4 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/30 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPending ? 'Kaydediliyor...' : 'Kaydet'}
-          </button>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={resetForm}>Vazgeç</Button>
+          <Button type="submit" variant="primary" loading={isPending}>Kaydet</Button>
         </div>
       )}
-
-      {toast ? (
-        <div className="fixed right-6 bottom-6 z-50 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-3 text-sm text-soft-gold shadow-glow">
-          {toast}
-        </div>
-      ) : null}
     </form>
   )
 }

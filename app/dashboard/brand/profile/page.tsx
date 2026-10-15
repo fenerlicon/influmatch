@@ -93,7 +93,7 @@ export default async function BrandProfileSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl">
       <BrandProfileForm initialData={initialData} />
     </div>
   )
