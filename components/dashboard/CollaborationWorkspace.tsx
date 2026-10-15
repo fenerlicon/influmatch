@@ -1,11 +1,12 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
+import { Check, ExternalLink, History, MessageCircle, Pencil, Plus, Send, X } from 'lucide-react'
 import CampaignBriefView from '@/components/campaigns/CampaignBriefView'
 import DeliverableMetricsPanel from '@/components/dashboard/DeliverableMetricsPanel'
+import { Avatar, Button, ButtonLink, Card, CardBody, CardHeader, Chip, Field, Input, Notice, Select, Textarea, type ChipTone } from '@/components/ui'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { workspaceAction } from '@/app/dashboard/collaborations/[id]/actions'
 import { collaborationAction } from '@/app/dashboard/collaborations/actions'
@@ -32,20 +33,20 @@ interface Props {
   currentUserId: string
 }
 
-const STATUS_STYLES: Record<CollaborationStatus, string> = {
-  agreed: 'text-sky-200 border-sky-400/60 bg-sky-400/10',
-  in_progress: 'text-yellow-200 border-yellow-400/60 bg-yellow-400/10',
-  published: 'text-purple-200 border-purple-400/60 bg-purple-400/10',
-  completed: 'text-emerald-200 border-emerald-400/60 bg-emerald-400/10',
-  cancelled: 'text-red-200 border-red-400/60 bg-red-400/10',
+const STATUS_TONE: Record<CollaborationStatus, ChipTone> = {
+  agreed: 'info',
+  in_progress: 'warning',
+  published: 'gold',
+  completed: 'success',
+  cancelled: 'danger',
 }
 
-const DELIVERABLE_STYLES: Record<DeliverableStatus, string> = {
-  pending: 'text-gray-300 border-white/20 bg-white/5',
-  draft_submitted: 'text-sky-200 border-sky-400/60 bg-sky-400/10',
-  revision_requested: 'text-yellow-200 border-yellow-400/60 bg-yellow-400/10',
-  approved: 'text-emerald-200 border-emerald-400/60 bg-emerald-400/10',
-  published: 'text-purple-200 border-purple-400/60 bg-purple-400/10',
+const DELIVERABLE_TONE: Record<DeliverableStatus, ChipTone> = {
+  pending: 'neutral',
+  draft_submitted: 'info',
+  revision_requested: 'warning',
+  approved: 'success',
+  published: 'gold',
 }
 
 const formatDate = (value: string | null | undefined) =>
@@ -70,16 +71,17 @@ interface AgreementDraft {
   deliverables: DraftRow[]
 }
 
-const inputClass = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-soft-gold/50'
-const buttonClass = (tone: 'gold' | 'emerald' | 'yellow' | 'purple' | 'red' | 'plain') =>
-  ({
-    gold: 'rounded-xl bg-soft-gold px-4 py-2 text-xs font-semibold text-black transition hover:bg-soft-gold/90 disabled:opacity-50',
-    emerald: 'rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-4 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-400/20 disabled:opacity-50',
-    yellow: 'rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 py-2 text-xs font-semibold text-yellow-100 transition hover:bg-yellow-400/20 disabled:opacity-50',
-    purple: 'rounded-xl border border-purple-400/40 bg-purple-400/10 px-4 py-2 text-xs font-semibold text-purple-100 transition hover:bg-purple-400/20 disabled:opacity-50',
-    red: 'rounded-xl border border-red-400/30 px-4 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-400/10 disabled:opacity-50',
-    plain: 'rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-gray-200 transition hover:border-soft-gold hover:text-soft-gold disabled:opacity-50',
-  })[tone]
+/** Etiket + değer satırı (anlaşma ve ödeme özetleri). */
+function Fact({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={className}>
+      <dt className="text-[11.5px] text-ink-faint">{label}</dt>
+      <dd className="mt-0.5 text-[14px] text-ink">{children}</dd>
+    </div>
+  )
+}
+
+const linkClass = 'break-all text-gold hover:underline'
 
 export default function CollaborationWorkspaceView({ workspace, currentUserId }: Props) {
   const router = useRouter()
@@ -198,483 +200,469 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
   const lockedIds = new Set(deliverables.filter((d) => d.status !== 'pending' || d.draft_submitted_at || d.revisions_used > 0).map((d) => d.id))
 
   return (
-    <div className="space-y-6 text-white">
+    <div className="grid gap-5">
       {/* Başlık */}
-      <header className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521] to-[#0C0D10] p-6 shadow-glow">
+      <Card padded className="grid gap-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-              {other?.avatar_url ? (
-                <Image src={other.avatar_url} alt={otherName} fill sizes="56px" className="object-cover" unoptimized />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-soft-gold">{otherName[0]}</div>
-              )}
-            </div>
+          <div className="flex min-w-0 items-center gap-3.5">
+            <Avatar name={otherName} src={other?.avatar_url} size="lg" />
             <div className="min-w-0">
-              <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">İş birliği</p>
-              <h1 className="mt-1 truncate text-2xl font-semibold">{collab.title}</h1>
-              <p className="truncate text-sm text-gray-400">
+              <h1 className="truncate font-display text-[24px] leading-tight tracking-tight text-ink">{collab.title}</h1>
+              <p className="mt-0.5 truncate text-[13px] text-ink-muted">
                 {other?.username ? (
-                  <Link href={`/profile/${other.username}`} className="hover:text-soft-gold">
+                  <Link href={`/profile/${other.username}`} className="text-ink hover:text-gold">
                     {otherName}
                   </Link>
                 ) : (
                   otherName
                 )}
-                <span className="text-gray-500"> · {collab.source === 'offer' ? 'Teklif' : 'İlan başvurusu'} · {formatDate(collab.created_at)}</span>
+                <span className="text-ink-faint"> · {collab.source === 'offer' ? 'Teklif' : 'İlan başvurusu'} · {formatDate(collab.created_at)}</span>
               </p>
               {!isBrand && (
-                <p className="mt-1 text-xs text-gray-400">
-                  Marka geçmişi: <span className="text-gray-200">{reliabilityText(brandReliability.completed, brandReliability.confirmed)}</span>
+                <p className="mt-0.5 text-xs text-ink-faint">
+                  Marka geçmişi: <span className="text-ink-muted">{reliabilityText(brandReliability.completed, brandReliability.confirmed)}</span>
                 </p>
               )}
             </div>
           </div>
-          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[collab.status]}`}>
-            {COLLABORATION_STATUS_LABELS[collab.status]}
-          </span>
+          <Chip tone={STATUS_TONE[collab.status]} dot>{COLLABORATION_STATUS_LABELS[collab.status]}</Chip>
         </div>
 
-        {collab.auto_complete_at && (
-          <p className="mt-4 text-xs text-gray-400">
-            {isBrand
-              ? `Onaylamazsanız ${formatDate(collab.auto_complete_at)} tarihinde otomatik tamamlanır (${AUTO_COMPLETE_DAYS} gün).`
-              : `Marka yanıt vermezse ${formatDate(collab.auto_complete_at)} tarihinde otomatik tamamlanır.`}
-          </p>
-        )}
-        {collab.completed_at && (
-          <p className="mt-2 text-xs text-gray-400">
-            Tamamlandı: {formatDate(collab.completed_at)}
-            {collab.auto_completed ? ' (otomatik)' : ''}
-          </p>
-        )}
-        {collab.cancelled_at && (
-          <p className="mt-2 text-xs text-gray-400">
-            İptal: {formatDate(collab.cancelled_at)} · {collab.cancelled_by === currentUserId ? 'sizin tarafınızdan' : 'karşı tarafça'}
-            {collab.cancel_reason ? ` · ${collab.cancel_reason}` : ''}
-          </p>
+        {(collab.auto_complete_at || collab.completed_at || collab.cancelled_at) && (
+          <div className="grid gap-1 text-xs text-ink-muted">
+            {collab.auto_complete_at && (
+              <p>
+                {isBrand
+                  ? `Onaylamazsan ${formatDate(collab.auto_complete_at)} tarihinde otomatik tamamlanır (${AUTO_COMPLETE_DAYS} gün).`
+                  : `Marka yanıt vermezse ${formatDate(collab.auto_complete_at)} tarihinde otomatik tamamlanır.`}
+              </p>
+            )}
+            {collab.completed_at && (
+              <p>
+                Tamamlandı: {formatDate(collab.completed_at)}
+                {collab.auto_completed ? ' (otomatik)' : ''}
+              </p>
+            )}
+            {collab.cancelled_at && (
+              <p>
+                İptal: {formatDate(collab.cancelled_at)} · {collab.cancelled_by === currentUserId ? 'senin tarafından' : 'karşı tarafça'}
+                {collab.cancel_reason ? ` · ${collab.cancel_reason}` : ''}
+              </p>
+            )}
+          </div>
         )}
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {collab.room_id ? (
-            <Link href={`/dashboard/messages?roomId=${collab.room_id}`} className={buttonClass('plain')}>
+            <ButtonLink href={`/dashboard/messages?roomId=${collab.room_id}`} size="sm" leftIcon={<MessageCircle />}>
               Sohbete git
-            </Link>
+            </ButtonLink>
           ) : (
             collab.actions.includes('open_room') && (
-              <button type="button" disabled={busy} onClick={() => runCollab('open_room')} className={buttonClass('plain')}>
+              <Button size="sm" disabled={busy} onClick={() => runCollab('open_room')} leftIcon={<MessageCircle />}>
                 Sohbeti aç
-              </button>
+              </Button>
             )
           )}
           {collab.actions.includes('publish') && (
-            <button type="button" disabled={busy} onClick={() => openForm('collab_publish')} className={buttonClass('purple')}>
+            <Button size="sm" variant="primary" disabled={busy} onClick={() => openForm('collab_publish')}>
               Yayın linkini gir
-            </button>
+            </Button>
           )}
           {collab.actions.includes('approve') && (
-            <button type="button" disabled={busy} onClick={() => runCollab('approve')} className={buttonClass('emerald')}>
+            <Button size="sm" variant="primary" disabled={busy} onClick={() => runCollab('approve')} leftIcon={<Check />}>
               Onayla ve tamamla
-            </button>
+            </Button>
           )}
           {collab.actions.includes('cancel') && (
-            <button type="button" disabled={busy} onClick={() => openForm('collab_cancel')} className={buttonClass('red')}>
+            <Button size="sm" variant="danger" disabled={busy} onClick={() => openForm('collab_cancel')}>
               İptal et
-            </button>
+            </Button>
           )}
         </div>
 
         {form?.key === 'collab_publish' && (
           <form
-            className="mt-4 flex flex-col gap-2 sm:flex-row"
+            className="flex flex-col gap-2 sm:flex-row"
             onSubmit={(e) => {
               e.preventDefault()
               runCollab('publish', { url: form.url })
             }}
           >
-            <input
+            <Input
               type="url"
               required
               maxLength={500}
+              aria-label="Yayın linki"
               placeholder="https://www.instagram.com/p/..."
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
-              className={inputClass}
             />
-            <button type="submit" disabled={busy} className={buttonClass('gold')}>
-              Gönder
-            </button>
+            <Button type="submit" variant="primary" loading={busy} leftIcon={<Send />}>Gönder</Button>
           </form>
         )}
         {form?.key === 'collab_cancel' && (
           <form
-            className="mt-4 space-y-2"
+            className="grid gap-2"
             onSubmit={(e) => {
               e.preventDefault()
               runCollab('cancel', { reason: form.note })
             }}
           >
-            <textarea
+            <Textarea
               maxLength={500}
               rows={2}
+              aria-label="İptal gerekçesi"
               placeholder="Gerekçe (isteğe bağlı, karşı tarafa iletilir)"
               value={form.note}
               onChange={(e) => setForm({ ...form, note: e.target.value })}
-              className={inputClass}
             />
-            <button type="submit" disabled={busy} className="rounded-xl bg-red-500/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50">
-              İş birliğini iptal et
-            </button>
+            <div>
+              <Button type="submit" variant="danger" loading={busy}>İş birliğini iptal et</Button>
+            </div>
           </form>
         )}
-      </header>
+      </Card>
 
-      {message && (
-        <div
-          className={`rounded-2xl border px-4 py-3 text-sm ${
-            message.type === 'error' ? 'border-red-500/30 bg-red-500/10 text-red-200' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
+      {message && <Notice tone={message.type === 'error' ? 'danger' : 'success'}>{message.text}</Notice>}
 
-      {/* Kampanya brief'i (3.19, salt okunur) */}
-      {workspace.campaignBrief && (
-        <section className="rounded-3xl border border-white/10 bg-[#0F1014] p-6">
-          <CampaignBriefView brief={workspace.campaignBrief} />
-        </section>
-      )}
-
-      {/* Anlaşma özeti */}
-      <section className="rounded-3xl border border-white/10 bg-[#0F1014] p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Anlaşma özeti</h2>
-          {agreement && (
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                workspace.agreementConfirmed ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-200' : 'border-yellow-400/60 bg-yellow-400/10 text-yellow-200'
-              }`}
-            >
-              {workspace.agreementConfirmed ? 'İki taraf onayladı' : 'Onay bekliyor'}
-            </span>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid min-w-0 gap-5">
+          {/* Kampanya brief'i (3.19, salt okunur) */}
+          {workspace.campaignBrief && (
+            <Card padded>
+              <CampaignBriefView brief={workspace.campaignBrief} />
+            </Card>
           )}
-        </div>
 
-        {editing && draft ? (
-          <div className="mt-4 space-y-4">
-            {workspace.agreementConfirmed && (
-              <p className="rounded-xl border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-100">
-                Kaydettiğinizde iki onay da sıfırlanır; kaydınız yeni hali onayınız sayılır, karşı taraf yeniden onaylar.
-              </p>
-            )}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="space-y-1 text-xs text-gray-400">
-                <span>Ödeme türü</span>
-                <select
-                  value={draft.payment_type}
-                  onChange={(e) => setDraft({ ...draft, payment_type: e.target.value as AgreementPaymentType })}
-                  className={inputClass}
-                >
-                  {(Object.keys(PAYMENT_TYPE_LABELS) as AgreementPaymentType[]).map((t) => (
-                    <option key={t} value={t} className="bg-[#0F1014]">
-                      {PAYMENT_TYPE_LABELS[t]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1 text-xs text-gray-400">
-                <span>Anlaşılan ücret (₺){draft.payment_type === 'barter' ? ', isteğe bağlı' : ''}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={AGREEMENT_LIMITS.maxFee}
-                  step={1}
-                  inputMode="numeric"
-                  value={draft.fee_amount}
-                  onChange={(e) => setDraft({ ...draft, fee_amount: e.target.value })}
-                  className={inputClass}
-                />
-              </label>
-              <label className="space-y-1 text-xs text-gray-400">
-                <span>Revize sayısı</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={AGREEMENT_LIMITS.maxRevisions}
-                  step={1}
-                  value={draft.revision_limit}
-                  onChange={(e) => setDraft({ ...draft, revision_limit: e.target.value })}
-                  className={inputClass}
-                />
-              </label>
-            </div>
-            <label className="block space-y-1 text-xs text-gray-400">
-              <span>Kullanım hakkı (kısa)</span>
-              <textarea
-                rows={2}
-                maxLength={AGREEMENT_LIMITS.usageRightsMax}
-                placeholder="Ör. içerik markanın hesabında 3 ay kullanılabilir"
-                value={draft.usage_rights}
-                onChange={(e) => setDraft({ ...draft, usage_rights: e.target.value })}
-                className={inputClass}
-              />
-            </label>
+          {/* Anlaşma özeti */}
+          <Card>
+            <CardHeader
+              title="Anlaşma özeti"
+              action={
+                agreement ? (
+                  <Chip tone={workspace.agreementConfirmed ? 'success' : 'warning'} dot>
+                    {workspace.agreementConfirmed ? 'İki taraf onayladı' : 'Onay bekliyor'}
+                  </Chip>
+                ) : undefined
+              }
+            />
+            <CardBody>
+              {editing && draft ? (
+                <div className="grid gap-4">
+                  {workspace.agreementConfirmed && (
+                    <Notice tone="warning">Kaydettiğinde iki onay da sıfırlanır; kaydın yeni hali onayın sayılır, karşı taraf yeniden onaylar.</Notice>
+                  )}
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Field label="Ödeme türü">
+                      {(props) => (
+                        <Select {...props} value={draft.payment_type} onChange={(e) => setDraft({ ...draft, payment_type: e.target.value as AgreementPaymentType })}>
+                          {(Object.keys(PAYMENT_TYPE_LABELS) as AgreementPaymentType[]).map((t) => (
+                            <option key={t} value={t}>
+                              {PAYMENT_TYPE_LABELS[t]}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </Field>
+                    <Field label={`Anlaşılan ücret (₺)${draft.payment_type === 'barter' ? ', isteğe bağlı' : ''}`}>
+                      {(props) => (
+                        <Input
+                          {...props}
+                          type="number"
+                          min={0}
+                          max={AGREEMENT_LIMITS.maxFee}
+                          step={1}
+                          inputMode="numeric"
+                          value={draft.fee_amount}
+                          onChange={(e) => setDraft({ ...draft, fee_amount: e.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <Field label="Revize sayısı">
+                      {(props) => (
+                        <Input
+                          {...props}
+                          type="number"
+                          min={0}
+                          max={AGREEMENT_LIMITS.maxRevisions}
+                          step={1}
+                          value={draft.revision_limit}
+                          onChange={(e) => setDraft({ ...draft, revision_limit: e.target.value })}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                  <Field label="Kullanım hakkı (kısa)">
+                    {(props) => (
+                      <Textarea
+                        {...props}
+                        rows={2}
+                        maxLength={AGREEMENT_LIMITS.usageRightsMax}
+                        placeholder="Ör. içerik markanın hesabında 3 ay kullanılabilir"
+                        value={draft.usage_rights}
+                        onChange={(e) => setDraft({ ...draft, usage_rights: e.target.value })}
+                      />
+                    )}
+                  </Field>
 
-            <div className="space-y-2">
-              <p className="text-xs text-gray-400">Teslimatlar</p>
-              {draft.deliverables.map((row, index) => (
-                <div key={row.id ?? `new-${index}`} className="grid gap-2 rounded-2xl border border-white/10 p-3 sm:grid-cols-[1fr_80px_150px_auto]">
-                  <select value={row.kind} onChange={(e) => updateRow(index, { kind: e.target.value as DeliverableKind })} className={inputClass}>
-                    {DELIVERABLE_KINDS.map((k) => (
-                      <option key={k} value={k} className="bg-[#0F1014]">
-                        {DELIVERABLE_KIND_LABELS[k]}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min={1}
-                    max={AGREEMENT_LIMITS.maxQuantity}
-                    aria-label="Adet"
-                    value={row.quantity}
-                    onChange={(e) => updateRow(index, { quantity: e.target.value })}
-                    className={inputClass}
-                  />
-                  <input type="date" aria-label="Teslim tarihi" value={row.due_date} onChange={(e) => updateRow(index, { due_date: e.target.value })} className={inputClass} />
-                  <button
-                    type="button"
-                    disabled={!!row.id && lockedIds.has(row.id)}
-                    title={row.id && lockedIds.has(row.id) ? 'Taslağı gönderilmiş teslimat çıkarılamaz' : undefined}
-                    onClick={() => setDraft({ ...draft, deliverables: draft.deliverables.filter((_, i) => i !== index) })}
-                    className={buttonClass('red')}
-                  >
-                    Çıkar
-                  </button>
-                  <input
-                    maxLength={AGREEMENT_LIMITS.deliverableNoteMax}
-                    placeholder="Kısa not (isteğe bağlı)"
-                    value={row.note}
-                    onChange={(e) => updateRow(index, { note: e.target.value })}
-                    className={`${inputClass} sm:col-span-4`}
-                  />
+                  <div className="grid gap-2">
+                    <p className="text-[13px] text-ink-muted">Teslimatlar</p>
+                    {draft.deliverables.map((row, index) => {
+                      const locked = !!row.id && lockedIds.has(row.id)
+                      return (
+                        <div key={row.id ?? `new-${index}`} className="grid gap-2 rounded-xl border border-line bg-surface-2 p-3 sm:grid-cols-[1fr_80px_150px_auto]">
+                          <Select aria-label="Teslimat türü" value={row.kind} onChange={(e) => updateRow(index, { kind: e.target.value as DeliverableKind })}>
+                            {DELIVERABLE_KINDS.map((k) => (
+                              <option key={k} value={k}>
+                                {DELIVERABLE_KIND_LABELS[k]}
+                              </option>
+                            ))}
+                          </Select>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={AGREEMENT_LIMITS.maxQuantity}
+                            aria-label="Adet"
+                            value={row.quantity}
+                            onChange={(e) => updateRow(index, { quantity: e.target.value })}
+                          />
+                          <Input type="date" aria-label="Teslim tarihi" value={row.due_date} onChange={(e) => updateRow(index, { due_date: e.target.value })} />
+                          <Button
+                            variant="ghost"
+                            iconOnly
+                            aria-label="Teslimatı çıkar"
+                            disabled={locked}
+                            title={locked ? 'Taslağı gönderilmiş teslimat çıkarılamaz' : undefined}
+                            onClick={() => setDraft({ ...draft, deliverables: draft.deliverables.filter((_, i) => i !== index) })}
+                          >
+                            <X />
+                          </Button>
+                          <Input
+                            maxLength={AGREEMENT_LIMITS.deliverableNoteMax}
+                            aria-label="Teslimat notu"
+                            placeholder="Kısa not (isteğe bağlı)"
+                            value={row.note}
+                            onChange={(e) => updateRow(index, { note: e.target.value })}
+                            className="sm:col-span-4"
+                          />
+                        </div>
+                      )
+                    })}
+                    {draft.deliverables.length < AGREEMENT_LIMITS.maxDeliverables && (
+                      <div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          leftIcon={<Plus />}
+                          onClick={() => setDraft({ ...draft, deliverables: [...draft.deliverables, { id: null, kind: 'story', quantity: '1', note: '', due_date: '' }] })}
+                        >
+                          Teslimat ekle
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button variant="ghost" disabled={busy} onClick={() => setEditing(false)}>Vazgeç</Button>
+                    <Button variant="primary" loading={busy} onClick={saveAgreement}>Kaydet</Button>
+                  </div>
                 </div>
-              ))}
-              {draft.deliverables.length < AGREEMENT_LIMITS.maxDeliverables && (
-                <button
-                  type="button"
-                  onClick={() => setDraft({ ...draft, deliverables: [...draft.deliverables, { id: null, kind: 'story', quantity: '1', note: '', due_date: '' }] })}
-                  className={buttonClass('plain')}
-                >
-                  + Teslimat ekle
-                </button>
+              ) : agreement ? (
+                <div className="grid gap-4">
+                  <dl className="grid gap-3 sm:grid-cols-2">
+                    <Fact label="Ücret">
+                      {formatTry(agreement.fee_amount)} · {PAYMENT_TYPE_LABELS[agreement.payment_type]}
+                    </Fact>
+                    <Fact label="Revize sayısı">{agreement.revision_limit}</Fact>
+                    <Fact label="Kullanım hakkı" className="sm:col-span-2">
+                      <span className="whitespace-pre-line">{agreement.usage_rights || '—'}</span>
+                    </Fact>
+                  </dl>
+                  {deliverables.length > 0 && (
+                    <ul className="grid gap-1 text-[13.5px] text-ink">
+                      {deliverables.map((d) => (
+                        <li key={d.id}>
+                          {DELIVERABLE_KIND_LABELS[d.kind]} ×{d.quantity}
+                          {d.due_date ? <span className="text-ink-faint"> · teslim {formatDate(d.due_date)}</span> : null}
+                          {d.note ? <span className="text-ink-faint"> · {d.note}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="grid gap-1 text-xs text-ink-faint sm:grid-cols-2">
+                    <p>
+                      Marka onayı:{' '}
+                      <span className="text-ink-muted">{agreement.brand_confirmed_at ? formatDateTime(agreement.brand_confirmed_at) : 'bekleniyor'}</span>
+                    </p>
+                    <p>
+                      Influencer onayı:{' '}
+                      <span className="text-ink-muted">{agreement.influencer_confirmed_at ? formatDateTime(agreement.influencer_confirmed_at) : 'bekleniyor'}</span>
+                    </p>
+                  </div>
+                  <p className="text-xs text-ink-faint">{AGREEMENT_SUMMARY_NOTE}</p>
+                  {(permissions.canConfirmAgreement || permissions.canEditAgreement) && (
+                    <div className="flex flex-wrap gap-2">
+                      {permissions.canConfirmAgreement && (
+                        <Button size="sm" variant="primary" disabled={busy} onClick={() => run({ action: 'confirm_agreement', version: agreement.version })} leftIcon={<Check />}>
+                          Özeti onayla
+                        </Button>
+                      )}
+                      {permissions.canEditAgreement && (
+                        <Button size="sm" disabled={busy} onClick={startEditing} leftIcon={<Pencil />}>
+                          Düzenle
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  <p className="text-[13.5px] text-ink-muted">
+                    Henüz anlaşma özeti yok. Teslimatları, ücreti, tarihleri, kullanım hakkını ve revize sayısını bir taraf yazar, diğeri onaylar.
+                  </p>
+                  {permissions.canEditAgreement && (
+                    <div>
+                      <Button variant="primary" onClick={startEditing}>Anlaşma özeti hazırla</Button>
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
+            </CardBody>
+          </Card>
 
-            <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={busy} onClick={saveAgreement} className={buttonClass('gold')}>
-                Kaydet
-              </button>
-              <button type="button" disabled={busy} onClick={() => setEditing(false)} className={buttonClass('plain')}>
-                Vazgeç
-              </button>
-            </div>
-          </div>
-        ) : agreement ? (
-          <div className="mt-4 space-y-4">
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-xs text-gray-500">Ücret</dt>
-                <dd>
-                  {formatTry(agreement.fee_amount)} · {PAYMENT_TYPE_LABELS[agreement.payment_type]}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-500">Revize sayısı</dt>
-                <dd>{agreement.revision_limit}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-xs text-gray-500">Kullanım hakkı</dt>
-                <dd className="whitespace-pre-line">{agreement.usage_rights || '—'}</dd>
-              </div>
-            </dl>
-            <ul className="space-y-1 text-sm">
-              {deliverables.map((d) => (
-                <li key={d.id} className="text-gray-200">
-                  • {DELIVERABLE_KIND_LABELS[d.kind]} ×{d.quantity}
-                  {d.due_date ? <span className="text-gray-400"> · teslim {formatDate(d.due_date)}</span> : null}
-                  {d.note ? <span className="text-gray-400"> · {d.note}</span> : null}
-                </li>
-              ))}
-            </ul>
-            <div className="grid gap-1 text-xs text-gray-400 sm:grid-cols-2">
-              <p>
-                Marka onayı:{' '}
-                <span className="text-gray-200">{agreement.brand_confirmed_at ? formatDateTime(agreement.brand_confirmed_at) : 'bekleniyor'}</span>
-              </p>
-              <p>
-                Influencer onayı:{' '}
-                <span className="text-gray-200">{agreement.influencer_confirmed_at ? formatDateTime(agreement.influencer_confirmed_at) : 'bekleniyor'}</span>
-              </p>
-            </div>
-            <p className="text-xs text-gray-500">{AGREEMENT_SUMMARY_NOTE}</p>
-            <div className="flex flex-wrap gap-2">
-              {permissions.canConfirmAgreement && (
-                <button type="button" disabled={busy} onClick={() => run({ action: 'confirm_agreement', version: agreement.version })} className={buttonClass('emerald')}>
-                  Özeti onayla
-                </button>
-              )}
-              {permissions.canEditAgreement && (
-                <button type="button" disabled={busy} onClick={startEditing} className={buttonClass('plain')}>
-                  Düzenle
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-3 text-sm text-gray-300">
-            <p>
-              Henüz anlaşma özeti yok. Teslimatları, ücreti, tarihleri, kullanım hakkını ve revize sayısını bir taraf yazar, diğeri onaylar.
-            </p>
-            {permissions.canEditAgreement && (
-              <button type="button" onClick={startEditing} className={buttonClass('gold')}>
-                Anlaşma özeti hazırla
-              </button>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Teslimatlar */}
-      {deliverables.length > 0 && (
-        <section className="rounded-3xl border border-white/10 bg-[#0F1014] p-6">
-          <h2 className="text-lg font-semibold">Teslimatlar</h2>
-          {!workspace.agreementConfirmed && ['agreed', 'in_progress'].includes(collab.status) && (
-            <p className="mt-2 text-xs text-gray-400">Teslimatlar, anlaşma özeti iki tarafça onaylanınca başlar.</p>
-          )}
-          <ul className="mt-4 space-y-4">
-            {deliverables.map((d) => (
-              <DeliverableCard
-                key={d.id}
-                d={d}
-                collaborationId={collab.id}
-                revisionLimit={agreement?.revision_limit ?? 0}
-                isBrand={isBrand}
-                busy={busy}
-                form={form}
-                setForm={setForm}
-                openForm={openForm}
-                historyOpen={!!historyOpen[d.id]}
-                toggleHistory={() => setHistoryOpen((h) => ({ ...h, [d.id]: !h[d.id] }))}
-                run={run}
+          {/* Teslimatlar */}
+          {deliverables.length > 0 && (
+            <Card>
+              <CardHeader
+                title="Teslimatlar"
+                description={
+                  !workspace.agreementConfirmed && ['agreed', 'in_progress'].includes(collab.status)
+                    ? 'Teslimatlar, anlaşma özeti iki tarafça onaylanınca başlar.'
+                    : undefined
+                }
               />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Ödeme */}
-      <section className="rounded-3xl border border-white/10 bg-[#0F1014] p-6">
-        <h2 className="text-lg font-semibold">Ödeme</h2>
-        <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-          <p className="text-gray-400">
-            Marka:{' '}
-            <span className="text-gray-200">
-              {payment?.brand_paid_at ? `Ödeme yapıldı (${formatDate(payment.brand_paid_date) ?? formatDate(payment.brand_paid_at)})` : 'işaretlenmedi'}
-            </span>
-            {payment?.brand_note ? <span className="block text-xs text-gray-500">{payment.brand_note}</span> : null}
-          </p>
-          <p className="text-gray-400">
-            Influencer:{' '}
-            <span className="text-gray-200">
-              {payment?.influencer_received_at
-                ? `Ödeme alındı (${formatDate(payment.influencer_received_date) ?? formatDate(payment.influencer_received_at)})`
-                : 'teyit edilmedi'}
-            </span>
-            {payment?.influencer_note ? <span className="block text-xs text-gray-500">{payment.influencer_note}</span> : null}
-          </p>
-        </div>
-        {payment?.nonpayment_reported_at && (
-          <p className="mt-3 text-xs text-yellow-200">Ödeme alınamadı bildirimi {formatDate(payment.nonpayment_reported_at)} tarihinde destek ekibine iletildi.</p>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {permissions.canMarkPaid && (
-            <button type="button" disabled={busy} onClick={() => openForm('mark_paid')} className={buttonClass('emerald')}>
-              {payment?.brand_paid_at ? 'Ödeme bilgisini güncelle' : 'Ödeme yapıldı'}
-            </button>
-          )}
-          {permissions.canUnmarkPaid && (
-            <button type="button" disabled={busy} onClick={() => run({ action: 'unmark_paid' })} className={buttonClass('plain')}>
-              İşareti kaldır
-            </button>
-          )}
-          {permissions.canConfirmPayment && (
-            <button type="button" disabled={busy} onClick={() => openForm('confirm_payment')} className={buttonClass('emerald')}>
-              {payment?.influencer_received_at ? 'Ödeme bilgisini güncelle' : 'Ödeme alındı'}
-            </button>
-          )}
-          {permissions.canUnconfirmPayment && (
-            <button type="button" disabled={busy} onClick={() => run({ action: 'unconfirm_payment' })} className={buttonClass('plain')}>
-              Teyidi kaldır
-            </button>
-          )}
-          {permissions.canReportNonpayment && (
-            <button type="button" disabled={busy} onClick={() => openForm('report_nonpayment')} className={buttonClass('red')}>
-              Ödeme alamadım
-            </button>
+              <ul>
+                {deliverables.map((d) => (
+                  <DeliverableCard
+                    key={d.id}
+                    d={d}
+                    collaborationId={collab.id}
+                    revisionLimit={agreement?.revision_limit ?? 0}
+                    isBrand={isBrand}
+                    busy={busy}
+                    form={form}
+                    setForm={setForm}
+                    openForm={openForm}
+                    historyOpen={!!historyOpen[d.id]}
+                    toggleHistory={() => setHistoryOpen((h) => ({ ...h, [d.id]: !h[d.id] }))}
+                    run={run}
+                  />
+                ))}
+              </ul>
+            </Card>
           )}
         </div>
-        {!permissions.canReportNonpayment && permissions.nonpaymentAvailableAt && !payment?.nonpayment_reported_at && (
-          <p className="mt-3 text-xs text-gray-500">
-            Ödemeyi alamazsanız {formatDate(permissions.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan {NONPAYMENT_REPORT_DAYS} gün sonra açılır).
-          </p>
-        )}
 
-        {(form?.key === 'mark_paid' || form?.key === 'confirm_payment') && (
-          <form
-            className="mt-4 grid gap-2 sm:grid-cols-[170px_1fr_auto]"
-            onSubmit={(e) => {
-              e.preventDefault()
-              run({ action: form.key, date: form.date, note: form.note })
-            }}
-          >
-            <input type="date" required max={today()} aria-label="Ödeme tarihi" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className={inputClass} />
-            <input
-              maxLength={AGREEMENT_LIMITS.paymentNoteMax}
-              placeholder="Not (isteğe bağlı)"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              className={inputClass}
-            />
-            <button type="submit" disabled={busy} className={buttonClass('gold')}>
-              Kaydet
-            </button>
-          </form>
-        )}
-        {form?.key === 'report_nonpayment' && (
-          <form
-            className="mt-4 space-y-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              run({ action: 'report_nonpayment', note: form.note })
-            }}
-          >
-            <p className="text-xs text-gray-400">Bildiriminiz destek ekibine iletilir ve markaya haber verilir.</p>
-            <textarea
-              rows={2}
-              maxLength={500}
-              placeholder="Kısa açıklama (isteğe bağlı)"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              className={inputClass}
-            />
-            <button type="submit" disabled={busy} className="rounded-xl bg-red-500/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50">
-              Destek ekibine bildir
-            </button>
-          </form>
-        )}
-      </section>
+        {/* Ödeme */}
+        <Card as="aside">
+          <CardHeader title="Ödeme" description="Ödeme taraflar arasında yapılır; burada yalnızca kaydı tutulur." />
+          <CardBody className="grid gap-4">
+            <dl className="grid gap-3">
+              <Fact label="Marka">
+                {payment?.brand_paid_at ? `Ödeme yapıldı (${formatDate(payment.brand_paid_date) ?? formatDate(payment.brand_paid_at)})` : 'İşaretlenmedi'}
+                {payment?.brand_note ? <span className="block text-xs text-ink-faint">{payment.brand_note}</span> : null}
+              </Fact>
+              <Fact label="Influencer">
+                {payment?.influencer_received_at
+                  ? `Ödeme alındı (${formatDate(payment.influencer_received_date) ?? formatDate(payment.influencer_received_at)})`
+                  : 'Teyit edilmedi'}
+                {payment?.influencer_note ? <span className="block text-xs text-ink-faint">{payment.influencer_note}</span> : null}
+              </Fact>
+            </dl>
+            {payment?.nonpayment_reported_at && (
+              <Notice tone="warning">Ödeme alınamadı bildirimi {formatDate(payment.nonpayment_reported_at)} tarihinde destek ekibine iletildi.</Notice>
+            )}
+
+            {(permissions.canMarkPaid || permissions.canUnmarkPaid || permissions.canConfirmPayment || permissions.canUnconfirmPayment || permissions.canReportNonpayment) && (
+              <div className="flex flex-wrap gap-2">
+                {permissions.canMarkPaid && (
+                  <Button size="sm" variant="primary" disabled={busy} onClick={() => openForm('mark_paid')}>
+                    {payment?.brand_paid_at ? 'Ödeme bilgisini güncelle' : 'Ödeme yapıldı'}
+                  </Button>
+                )}
+                {permissions.canUnmarkPaid && (
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => run({ action: 'unmark_paid' })}>
+                    İşareti kaldır
+                  </Button>
+                )}
+                {permissions.canConfirmPayment && (
+                  <Button size="sm" variant="primary" disabled={busy} onClick={() => openForm('confirm_payment')}>
+                    {payment?.influencer_received_at ? 'Ödeme bilgisini güncelle' : 'Ödeme alındı'}
+                  </Button>
+                )}
+                {permissions.canUnconfirmPayment && (
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => run({ action: 'unconfirm_payment' })}>
+                    Teyidi kaldır
+                  </Button>
+                )}
+                {permissions.canReportNonpayment && (
+                  <Button size="sm" variant="danger" disabled={busy} onClick={() => openForm('report_nonpayment')}>
+                    Ödeme alamadım
+                  </Button>
+                )}
+              </div>
+            )}
+            {!permissions.canReportNonpayment && permissions.nonpaymentAvailableAt && !payment?.nonpayment_reported_at && (
+              <p className="text-xs text-ink-faint">
+                Ödemeyi alamazsan {formatDate(permissions.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsin (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan {NONPAYMENT_REPORT_DAYS} gün sonra açılır).
+              </p>
+            )}
+
+            {(form?.key === 'mark_paid' || form?.key === 'confirm_payment') && (
+              <form
+                className="grid gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  run({ action: form.key, date: form.date, note: form.note })
+                }}
+              >
+                <Field label="Ödeme tarihi">
+                  {(props) => <Input {...props} type="date" required max={today()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />}
+                </Field>
+                <Field label="Not (isteğe bağlı)">
+                  {(props) => <Input {...props} maxLength={AGREEMENT_LIMITS.paymentNoteMax} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />}
+                </Field>
+                <div>
+                  <Button type="submit" size="sm" variant="primary" loading={busy}>Kaydet</Button>
+                </div>
+              </form>
+            )}
+            {form?.key === 'report_nonpayment' && (
+              <form
+                className="grid gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  run({ action: 'report_nonpayment', note: form.note })
+                }}
+              >
+                <p className="text-xs text-ink-muted">Bildirimin destek ekibine iletilir ve markaya haber verilir.</p>
+                <Textarea
+                  rows={2}
+                  maxLength={500}
+                  aria-label="Açıklama"
+                  placeholder="Kısa açıklama (isteğe bağlı)"
+                  value={form.note}
+                  onChange={(e) => setForm({ ...form, note: e.target.value })}
+                />
+                <div>
+                  <Button type="submit" size="sm" variant="danger" loading={busy}>Destek ekibine bildir</Button>
+                </div>
+              </form>
+            )}
+          </CardBody>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -707,165 +695,165 @@ function DeliverableCard({
   const key = (name: string) => `${name}:${d.id}`
   const limitReached = d.revisions_used >= revisionLimit
   return (
-    <li className="rounded-2xl border border-white/10 p-4">
+    <li className="grid gap-3 border-b border-line px-5 py-4 last:border-b-0">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold">
+        <div className="min-w-0">
+          <p className="text-[14.5px] font-medium text-ink">
             {DELIVERABLE_KIND_LABELS[d.kind]} ×{d.quantity}
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-ink-faint">
             {d.due_date ? `Teslim: ${formatDate(d.due_date)} · ` : ''}
             {revisionUsageText(d.revisions_used, revisionLimit)}
           </p>
-          {d.note && <p className="mt-1 text-xs text-gray-400">{d.note}</p>}
+          {d.note && <p className="mt-1 text-xs text-ink-muted">{d.note}</p>}
         </div>
-        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${DELIVERABLE_STYLES[d.status]}`}>{DELIVERABLE_STATUS_LABELS[d.status]}</span>
+        <Chip tone={DELIVERABLE_TONE[d.status]} dot>{DELIVERABLE_STATUS_LABELS[d.status]}</Chip>
       </div>
 
-      {d.draft_url && (
-        <p className="mt-3 text-sm">
-          <span className="text-xs text-gray-500">Son taslak: </span>
-          <a href={d.draft_url} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-soft-gold hover:underline">
-            {d.draft_url}
-          </a>
-          {d.draft_note && <span className="block text-xs text-gray-400">{d.draft_note}</span>}
-        </p>
-      )}
-      {d.status === 'revision_requested' && d.review_note && <p className="mt-2 text-xs text-yellow-200">Revize isteği: {d.review_note}</p>}
-      {d.publish_url && (
-        <p className="mt-2 text-sm">
-          <span className="text-xs text-gray-500">Yayın: </span>
-          <a href={d.publish_url} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-soft-gold hover:underline">
-            {d.publish_url}
-          </a>
-        </p>
+      {(d.draft_url || d.publish_url || (d.status === 'revision_requested' && d.review_note)) && (
+        <div className="grid gap-1.5 text-[13px]">
+          {d.draft_url && (
+            <p>
+              <span className="text-xs text-ink-faint">Son taslak: </span>
+              <a href={d.draft_url} target="_blank" rel="noopener noreferrer nofollow" className={linkClass}>
+                {d.draft_url}
+              </a>
+              {d.draft_note && <span className="block text-xs text-ink-muted">{d.draft_note}</span>}
+            </p>
+          )}
+          {d.status === 'revision_requested' && d.review_note && <Notice tone="warning">Revize isteği: {d.review_note}</Notice>}
+          {d.publish_url && (
+            <p>
+              <span className="text-xs text-ink-faint">Yayın: </span>
+              <a href={d.publish_url} target="_blank" rel="noopener noreferrer nofollow" className={linkClass}>
+                {d.publish_url}
+              </a>
+            </p>
+          )}
+        </div>
       )}
       {d.metrics && <DeliverableMetricsPanel collaborationId={collaborationId} metrics={d.metrics} />}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {d.actions.includes('submit_draft') && (
-          <button type="button" disabled={busy} onClick={() => openForm(key('submit_draft'))} className={buttonClass('purple')}>
+          <Button size="sm" variant="primary" disabled={busy} onClick={() => openForm(key('submit_draft'))}>
             {d.status === 'pending' ? 'Taslak gönder' : 'Yeni taslak gönder'}
-          </button>
+          </Button>
         )}
         {d.actions.includes('approve_draft') && (
-          <button type="button" disabled={busy} onClick={() => run({ action: 'approve_draft', deliverableId: d.id })} className={buttonClass('emerald')}>
+          <Button size="sm" variant="primary" disabled={busy} onClick={() => run({ action: 'approve_draft', deliverableId: d.id })} leftIcon={<Check />}>
             Taslağı onayla
-          </button>
+          </Button>
         )}
         {d.actions.includes('request_revision') && (
-          <button type="button" disabled={busy} onClick={() => openForm(key('request_revision'))} className={buttonClass('yellow')}>
+          <Button size="sm" disabled={busy} onClick={() => openForm(key('request_revision'))}>
             Revize iste
-          </button>
+          </Button>
         )}
-        {isBrand && d.status === 'draft_submitted' && limitReached && <span className="self-center text-xs text-gray-500">Revize hakkı doldu.</span>}
+        {isBrand && d.status === 'draft_submitted' && limitReached && <span className="text-xs text-ink-faint">Revize hakkı doldu.</span>}
         {d.actions.includes('publish_deliverable') && (
-          <button type="button" disabled={busy} onClick={() => openForm(key('publish_deliverable'))} className={buttonClass('gold')}>
+          <Button size="sm" variant="primary" disabled={busy} onClick={() => openForm(key('publish_deliverable'))} leftIcon={<ExternalLink />}>
             Yayın linkini gir
-          </button>
+          </Button>
         )}
         {d.submissions.length > 0 && (
-          <button type="button" onClick={toggleHistory} className={buttonClass('plain')}>
+          <Button size="sm" variant="ghost" onClick={toggleHistory} leftIcon={<History />} aria-expanded={historyOpen}>
             Geçmiş ({d.submissions.length})
-          </button>
+          </Button>
         )}
       </div>
 
       {form?.key === key('submit_draft') && (
         <form
-          className="mt-3 space-y-2"
+          className="grid gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             run({ action: 'submit_draft', deliverableId: d.id, url: form.url, note: form.note })
           }}
         >
-          <input
+          <Input
             type="url"
             required
             maxLength={500}
+            aria-label="Taslak linki"
             placeholder="https://drive.google.com/... veya WeTransfer / önizleme linki"
             value={form.url}
             onChange={(e) => setForm({ ...form, url: e.target.value })}
-            className={inputClass}
           />
-          <textarea
+          <Textarea
             rows={2}
             maxLength={AGREEMENT_LIMITS.draftNoteMax}
+            aria-label="Not"
             placeholder="Not (isteğe bağlı)"
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
-            className={inputClass}
           />
-          <button type="submit" disabled={busy} className={buttonClass('gold')}>
-            Gönder
-          </button>
+          <div>
+            <Button type="submit" size="sm" variant="primary" loading={busy} leftIcon={<Send />}>Gönder</Button>
+          </div>
         </form>
       )}
       {form?.key === key('request_revision') && (
         <form
-          className="mt-3 space-y-2"
+          className="grid gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             run({ action: 'request_revision', deliverableId: d.id, note: form.note })
           }}
         >
-          <p className="text-xs text-gray-400">
-            Bu istekle {revisionUsageText(d.revisions_used + 1, revisionLimit)}.
-          </p>
-          <textarea
+          <p className="text-xs text-ink-muted">Bu istekle {revisionUsageText(d.revisions_used + 1, revisionLimit)}.</p>
+          <Textarea
             rows={2}
             required
             minLength={3}
             maxLength={AGREEMENT_LIMITS.reviewNoteMax}
+            aria-label="Revize notu"
             placeholder="Ne değişmeli?"
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
-            className={inputClass}
           />
-          <button type="submit" disabled={busy} className={buttonClass('gold')}>
-            Revize iste
-          </button>
+          <div>
+            <Button type="submit" size="sm" variant="primary" loading={busy}>Revize iste</Button>
+          </div>
         </form>
       )}
       {form?.key === key('publish_deliverable') && (
         <form
-          className="mt-3 flex flex-col gap-2 sm:flex-row"
+          className="flex flex-col gap-2 sm:flex-row"
           onSubmit={(e) => {
             e.preventDefault()
             run({ action: 'publish_deliverable', deliverableId: d.id, url: form.url })
           }}
         >
-          <input
+          <Input
             type="url"
             required
             maxLength={500}
+            aria-label="Yayın linki"
             placeholder="https://www.instagram.com/p/..."
             value={form.url}
             onChange={(e) => setForm({ ...form, url: e.target.value })}
-            className={inputClass}
           />
-          <button type="submit" disabled={busy} className={buttonClass('gold')}>
-            Gönder
-          </button>
+          <Button type="submit" variant="primary" loading={busy} leftIcon={<Send />}>Gönder</Button>
         </form>
       )}
 
       {historyOpen && (
-        <ol className="mt-3 space-y-2 border-l border-white/10 pl-3 text-xs text-gray-400">
+        <ol className="grid gap-1.5 border-l border-line pl-3 text-xs text-ink-muted">
           {d.submissions.map((s) => (
             <li key={s.id}>
-              <span className="text-gray-300">{formatDateTime(s.created_at)}</span>
+              <span className="text-ink">{formatDateTime(s.created_at)}</span>
               {s.url && (
                 <>
                   {' · '}
-                  <a href={s.url} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-soft-gold hover:underline">
+                  <a href={s.url} target="_blank" rel="noopener noreferrer nofollow" className={linkClass}>
                     taslak
                   </a>
                 </>
               )}
               {s.note ? ` · ${s.note}` : ''}
-              {s.review === 'approved' && <span className="text-emerald-300"> · onaylandı</span>}
-              {s.review === 'revision_requested' && <span className="text-yellow-200"> · revize: {s.review_note}</span>}
+              {s.review === 'approved' && <span className="text-success"> · onaylandı</span>}
+              {s.review === 'revision_requested' && <span className="text-warning"> · revize: {s.review_note}</span>}
             </li>
           ))}
         </ol>
