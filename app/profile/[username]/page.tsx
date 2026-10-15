@@ -1,7 +1,8 @@
-import Image from 'next/image'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronLeft, BadgeCheck } from 'lucide-react'
+import {
+  ArrowLeft, ArrowRight, AtSign, BadgeCheck, Briefcase, Building2, ExternalLink, Instagram, MapPin, Music2, ShieldCheck, Sparkles,
+} from 'lucide-react'
+import { Avatar, ButtonLink, buttonClasses, Card, CardBody, CardHeader, Chip, EmptyState, Tabs, VerifiedTick } from '@/components/ui'
 import OfferModal from '@/components/profile/OfferModal'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { resolveSubscriptionTier, type SubscriptionTier } from '@/lib/subscription-tier'
@@ -24,14 +25,28 @@ import PortfolioResults from '@/components/profile/PortfolioResults'
 
 interface ProfilePageProps {
   params: { username: string }
-  searchParams?: { teklif?: string; kampanya?: string }
+  searchParams?: { teklif?: string; kampanya?: string; tab?: string }
 }
 
 const SOCIAL_LABELS: Record<string, string> = {
   instagram: 'Instagram',
   youtube: 'YouTube',
   tiktok: 'TikTok',
-  website: 'Website',
+  website: 'Web sitesi',
+}
+
+const compact = (n: number | null | undefined) =>
+  !n ? '—' : n >= 1_000_000 ? `${(n / 1_000_000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}M` : n >= 1000 ? `${(n / 1000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}B` : String(n)
+
+function LockedFrame({ backHref, children }: { backHref: string; children: React.ReactNode }) {
+  return (
+    <div className="max-w-[1180px]">
+      <ButtonLink href={backHref} variant="ghost" size="sm" leftIcon={<ArrowLeft />} className="-ml-2 mb-3">
+        Geri
+      </ButtonLink>
+      {children}
+    </div>
+  )
 }
 
 export default async function ProfileDetailPage({ params, searchParams }: ProfilePageProps) {
@@ -50,42 +65,22 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
 
   if (access.status === 'brand_unverified') {
     return (
-      <div className="text-white">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <div className="relative">
-            <Link
-              href="/dashboard/brand/discover"
-              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
-            >
-              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
-            </Link>
-          </div>
-          <BrandLockScreen status={access.viewer.verification_status === 'rejected' ? 'rejected' : 'pending'} />
-        </div>
-      </div>
+      <LockedFrame backHref="/dashboard/brand/discover">
+        <BrandLockScreen status={access.viewer.verification_status === 'rejected' ? 'rejected' : 'pending'} />
+      </LockedFrame>
     )
   }
 
   if (access.status === 'wheel_blocked') {
     return (
-      <div className="text-white">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <div className="relative">
-            <Link
-              href="/dashboard/brand/discover"
-              className="group inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold z-10"
-            >
-              <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
-            </Link>
-          </div>
-          <DiscoveryWheelCard
-            variant="profile"
-            profilesPerSpin={access.wheel.profilesPerSpin}
-            windowHours={access.wheel.windowHours}
-            expiresAt={access.wheel.spin?.expires_at ?? null}
-          />
-        </div>
-      </div>
+      <LockedFrame backHref="/dashboard/brand/discover">
+        <DiscoveryWheelCard
+          variant="profile"
+          profilesPerSpin={access.wheel.profilesPerSpin}
+          windowHours={access.wheel.windowHours}
+          expiresAt={access.wheel.spin?.expires_at ?? null}
+        />
+      </LockedFrame>
     )
   }
 
@@ -185,199 +180,216 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
   // Get all badge IDs for this user (only pass IDs, not badge objects)
   const badgeIds = userBadges?.map((ub) => ub.badge_id).filter((id): id is string => typeof id === 'string') ?? []
 
+  const name = profile.full_name ?? profile.username ?? 'Profil'
+  const roleLabel = isInfluencer
+    ? profile.creator_type === 'ugc' ? 'UGC' : profile.creator_type === 'both' ? 'UGC ve Influencer' : 'Influencer'
+    : isBrand ? 'Marka' : 'Kullanıcı'
+  const hasTick = badgeIds.includes('verified-account') || (isBrand && badgeIds.includes('official-business'))
+  const platforms = [instagramAccount, tiktokAccount].filter((a): a is NonNullable<typeof a> => !!a && !!(a.is_verified || a.has_stats))
+  const hasStats = !!(instagramData || tiktokData)
+
+  // Sekmeler (?tab=): yalnızca içeriği olanlar
+  const tabs = [
+    { value: 'genel', label: 'Genel bakış' },
+    ...(isInfluencer ? [{ value: 'istatistik', label: 'İstatistikler' }] : []),
+    ...(badgeIds.length ? [{ value: 'rozetler', label: 'Rozetler', count: badgeIds.length }] : []),
+    ...(portfolio ? [{ value: 'is-gecmisi', label: 'İş geçmişi', count: portfolio.items.length || undefined }] : []),
+  ]
+  const requested = typeof searchParams?.tab === 'string' ? searchParams.tab : 'genel'
+  const activeTab = tabs.some((t) => t.value === requested) ? requested : 'genel'
+  const tabHref = (value: string) => (value === 'genel' ? `/profile/${profile.username}` : `/profile/${profile.username}?tab=${value}`)
+
   return (
-    <div className="text-white">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* Header Profile Card */}
-        <section className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-[#15161F] to-[#0C0D10] p-6 sm:p-10 shadow-glow">
-          <Link
-            href={backHref}
-            className="group absolute -left-3 -top-3 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:border-soft-gold hover:text-soft-gold lg:-left-4 lg:-top-4 z-10"
-          >
-            <ChevronLeft className="h-5 w-5 transition group-hover:-translate-x-0.5" />
-          </Link>
+    <div className="max-w-[1180px]">
+      <ButtonLink href={backHref} variant="ghost" size="sm" leftIcon={<ArrowLeft />} className="-ml-2 mb-3">
+        Geri
+      </ButtonLink>
 
-          <div className="flex flex-col gap-8 md:flex-row md:items-start">
-            {/* Avatar */}
-            <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl">
-              {profile.avatar_url ? (
-                <Image
-                  src={profile.avatar_url}
-                  alt={profile.full_name ?? profile.username ?? 'Profil'}
-                  fill
-                  sizes="128px"
-                  className="object-cover"
-                  unoptimized
-                  style={{ imageOrientation: 'from-image' }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-xl font-semibold text-soft-gold">
-                  {profile.full_name?.[0] ?? 'I'}
-                </div>
-              )}
+      {/* Başlık kartı */}
+      <Card as="section" padded className="grid gap-5 p-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-start md:p-7">
+        <Avatar name={name} src={profile.avatar_url ?? undefined} size="xl" square={isBrand} />
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            <Chip>{roleLabel}</Chip>
+            {profile.category && <Chip>{getCategoryLabel(profile.category)}</Chip>}
+            {profile.spotlight_active && <Chip tone="gold"><Sparkles aria-hidden />Spotlight</Chip>}
+          </div>
+          <h1 className="flex items-center gap-2 font-display text-[32px] font-normal leading-[1.1] md:text-[38px]">
+            <span className="truncate">{name}</span>
+            {hasTick && (
+              <VerifiedTick
+                tone={isBrand ? 'gold' : 'blue'}
+                className="h-5 w-5"
+                label={isBrand ? 'Onaylanmış işletme' : 'Mavi tik: doğrulanmış içerik üreticisi'}
+              />
+            )}
+          </h1>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-ink-muted">
+            <span className="inline-flex items-center gap-1.5"><AtSign className="h-3.5 w-3.5" aria-hidden />{profile.username}</span>
+            {profile.city && <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" aria-hidden />{profile.city}</span>}
+            {isInfluencer && (
+              <span className="inline-flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" aria-hidden />{completedCollaborations} tamamlanan iş</span>
+            )}
+            {reliability && (
+              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" aria-hidden />{reliabilityText(reliability.completed, reliability.confirmed)}</span>
+            )}
+          </div>
+          {availability && (
+            <div className="mt-3">
+              <Chip tone={availability.status === 'busy' ? 'warning' : 'success'} dot>
+                {availabilityText(availability)}
+                {availability.status === 'busy' && availability.note ? ` · ${availability.note}` : ''}
+              </Chip>
             </div>
+          )}
+          {profile.bio && <p className="mt-3.5 max-w-[640px] whitespace-pre-line text-[14px] text-ink-muted">{profile.bio}</p>}
+        </div>
+        {canSendOffer && (
+          <div className="grid gap-2 md:w-[220px]">
+            <OfferModal
+              receiverId={profile.id}
+              receiverName={profile.full_name || profile.username || ''}
+              isViewerVerified={isViewerVerified}
+              quotaText={offerQuotaText}
+              defaultOpen={searchParams?.teklif === '1'}
+              busyWarning={availability ? busyOfferWarning(availability, profile.full_name || profile.username) : null}
+              campaigns={campaignOptions}
+              defaultCampaignId={typeof searchParams?.kampanya === 'string' ? searchParams.kampanya : null}
+              block
+            />
+            {offerQuotaText && <p className="text-center text-xs text-ink-faint">{offerQuotaText}</p>}
+          </div>
+        )}
+      </Card>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                <p className="text-xs uppercase tracking-[0.4em] text-soft-gold font-bold">
-                  {isInfluencer 
-                    ? profile.creator_type === 'ugc' 
-                      ? 'UGC' 
-                      : profile.creator_type === 'both' 
-                        ? 'UGC & Influencer' 
-                        : 'Influencer' 
-                    : isBrand 
-                      ? 'Marka' 
-                      : 'Kullanıcı'}
-                </p>
-                {profile.category && (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-0.5 text-[10px] uppercase tracking-wider text-gray-300">
-                    {getCategoryLabel(profile.category)}
-                  </span>
-                )}
-              </div>
+      <Tabs className="mb-5 mt-5" label="Profil bölümleri" value={activeTab} items={tabs.map((t) => ({ ...t, href: tabHref(t.value) }))} />
 
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-3xl font-bold text-white truncate">{profile.full_name ?? profile.username}</h1>
-                {badgeIds.includes('verified-account') && (
-                  <div className="group/verify relative flex-shrink-0">
-                    <BadgeCheck className={`h-6 w-6 transition-all hover:scale-110 cursor-pointer ${isBrand ? 'text-soft-gold hover:text-soft-gold/80' : 'text-blue-500 hover:text-blue-400'}`} />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 invisible group-hover/verify:opacity-100 group-hover/verify:visible transition-all duration-200 z-50 pointer-events-none">
-                      <div className="whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg border border-white/10">
-                        {isBrand ? 'Onaylanmış İşletme' : 'Mavi Tik: seçkin içerik üreticisi'}
-                        <div className="absolute left-1/2 top-full -translate-x-1/2 -mt-px">
-                          <div className="h-2 w-2 rotate-45 border-r border-b border-white/10 bg-gray-900"></div>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid min-w-0 gap-5">
+          {activeTab === 'genel' && (
+            <>
+              {platforms.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {platforms.map((account) => (
+                    <Card key={account.platform} padded>
+                      <div className="flex items-center gap-2 text-[14px] font-medium">
+                        {account.platform === 'instagram' ? <Instagram className="h-4 w-4" aria-hidden /> : <Music2 className="h-4 w-4" aria-hidden />}
+                        {account.platform === 'instagram' ? 'Instagram' : 'TikTok'}
+                        {account.is_verified && <Chip tone="success" className="ml-auto"><ShieldCheck aria-hidden />Doğrulandı</Chip>}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-ink-faint">Takipçi</div>
+                          <div className="text-[20px] font-semibold tabular-nums">{compact(account.follower_count)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-ink-faint">Etkileşim</div>
+                          <div className="text-[20px] font-semibold tabular-nums">
+                            {account.engagement_rate ? `%${Number(account.engagement_rate).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}` : '—'}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : isInfluencer ? (
+                <Card>
+                  <EmptyState icon={BadgeCheck} title="Veri doğrulanmadı" description="Bu kullanıcı henüz Instagram veya TikTok hesabını doğrulamadığı için istatistikler görüntülenemiyor." />
+                </Card>
+              ) : null}
 
-              <p className="text-base text-gray-400 font-medium mb-4">@{profile.username}</p>
-
-              {profile.bio && (
-                <p className="text-sm text-gray-300 leading-relaxed max-w-2xl">
-                  {profile.bio}
-                </p>
+              {badgeIds.length > 0 && (
+                <Card>
+                  <CardHeader
+                    title="Öne çıkan rozetler"
+                    action={badgeIds.length > 3 ? <ButtonLink href={tabHref('rozetler')} variant="ghost" size="sm" rightIcon={<ArrowRight />}>Tümü</ButtonLink> : undefined}
+                  />
+                  <CardBody>
+                    <BadgeDetailList badgeIds={badgeIds} userRole={isInfluencer ? 'influencer' : 'brand'} limit={3} />
+                  </CardBody>
+                </Card>
               )}
 
-              <div className="mt-6 flex flex-wrap gap-3 text-sm text-gray-300">
-                {availability && (
-                  <div
-                    className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs ${availability.status === 'busy' ? 'bg-amber-500/10 text-amber-200' : 'bg-emerald-500/10 text-emerald-200'}`}
-                  >
-                    <span>{availabilityText(availability)}</span>
-                    {availability.status === 'busy' && availability.note && <span className="text-gray-400">· {availability.note}</span>}
-                  </div>
-                )}
-                {isInfluencer && (
-                  <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
-                    <span className="font-semibold text-white">{completedCollaborations}</span>
-                    <span>tamamlanan iş birliği</span>
-                  </div>
-                )}
-                {reliability && (
-                  <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
-                    <span>{reliabilityText(reliability.completed, reliability.confirmed)}</span>
-                  </div>
-                )}
-                {profile.city && (
-                  <div className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-gray-300">
-                    <span>📍</span>
-                    <span>{profile.city}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+              {isBrand && !badgeIds.length && !profile.bio && (
+                <Card>
+                  <EmptyState icon={Building2} title="Henüz bilgi yok" description="Marka profilini tamamladıkça burada görünecek." />
+                </Card>
+              )}
+            </>
+          )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Column: Stats & Analysis (Span 2) */}
-          <div className="lg:col-span-2 space-y-6">
-            {instagramData || tiktokData ? (
+          {activeTab === 'istatistik' &&
+            (hasStats ? (
               <InfluencerStats
                 instagramData={instagramData}
                 tiktokData={tiktokData}
                 mode="brand-view"
-                hideAnalysisText={false} // Enable AI analysis here
+                hideAnalysisText={false}
                 subscriptionTier={viewerTier}
                 viewerRole={viewerRole ?? undefined}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-10 text-center shadow-glow">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
-                  <BadgeCheck className="h-8 w-8 text-gray-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">Veri Doğrulanmadı</h3>
-                <p className="mt-2 text-sm text-gray-400 max-w-xs">
-                  Bu kullanıcı henüz Instagram veya TikTok verilerini doğrulamadığı için detaylı istatistikler görüntülenemiyor.
-                </p>
-              </div>
-            )}
+              <Card>
+                <EmptyState icon={BadgeCheck} title="Veri doğrulanmadı" description="Hesap doğrulanınca istatistikler burada görünür." />
+              </Card>
+            ))}
 
-            {portfolio && <PortfolioResults view={portfolio} />}
+          {activeTab === 'rozetler' && (
+            <Card padded>
+              <BadgeDetailList badgeIds={badgeIds} userRole={isInfluencer ? 'influencer' : 'brand'} />
+            </Card>
+          )}
 
-            {badgeIds.length > 0 && (
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Rozetler</h3>
-                <BadgeDetailList badgeIds={badgeIds} userRole={isInfluencer ? 'influencer' : 'brand'} />
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Social Media & Actions */}
-          <div className="space-y-6">
-            {/* Social Media Card */}
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 h-fit">
-              <p className="text-xs uppercase tracking-[0.4em] text-soft-gold mb-4">Sosyal Medya</p>
-              {socialLinksEntries.length === 0 ? (
-                <p className="text-sm text-gray-400">Sosyal bağlantı paylaşılmamış.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {socialLinksEntries.map(([key, url]) => (
-                    <li key={key}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200 transition hover:border-soft-gold hover:text-soft-gold hover:bg-white/10"
-                      >
-                        <span className="font-semibold">
-                          {SOCIAL_LABELS[key] ?? key}
-                        </span>
-                        <span className="text-xs uppercase tracking-[0.3em] text-gray-400">Git</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {isInfluencer && rateCard && <RateCardView rateCard={rateCard} isOwner={isOwnProfile} />}
-
-            {/* Offer CTA (if applicable) */}
-            {canSendOffer && (
-              <div className="rounded-3xl border border-soft-gold/30 bg-soft-gold/10 p-6 text-center">
-                <h3 className="text-lg font-semibold text-white mb-2">İş Birliği Yap</h3>
-                <p className="text-sm text-gray-300 mb-4">Bu influencer ile çalışmak için teklif gönder.</p>
-                {offerQuotaText && <p className="mb-4 text-xs text-soft-gold">{offerQuotaText}</p>}
-                <OfferModal
-                  receiverId={profile.id}
-                  receiverName={profile.full_name || profile.username || ''}
-                  isViewerVerified={isViewerVerified}
-                  quotaText={offerQuotaText}
-                  defaultOpen={searchParams?.teklif === '1'}
-                  busyWarning={availability ? busyOfferWarning(availability, profile.full_name || profile.username) : null}
-                  campaigns={campaignOptions}
-                  defaultCampaignId={typeof searchParams?.kampanya === 'string' ? searchParams.kampanya : null}
-                />
-              </div>
-            )}
-          </div>
+          {activeTab === 'is-gecmisi' && portfolio && (
+            <Card padded>
+              <PortfolioResults view={portfolio} />
+            </Card>
+          )}
         </div>
+
+        <aside className="grid gap-5">
+          {isInfluencer && rateCard && <RateCardView rateCard={rateCard} isOwner={isOwnProfile} />}
+
+          {(isInfluencer || reliability) && (
+            <Card padded>
+              <h2 className="text-[17px] font-semibold tracking-tight">Güvenilirlik</h2>
+              <dl className="mt-2 text-[13.5px]">
+                <div className="flex justify-between border-b border-line py-2.5">
+                  <dt className="text-ink-muted">Tamamlanan iş</dt>
+                  <dd className="font-semibold tabular-nums">{isInfluencer ? completedCollaborations : reliability?.completed ?? 0}</dd>
+                </div>
+                {reliability && (
+                  <div className="flex justify-between py-2.5">
+                    <dt className="text-ink-muted">Ödemesi teyitli iş</dt>
+                    <dd className="font-semibold tabular-nums">{reliability.confirmed}</dd>
+                  </div>
+                )}
+                {isInfluencer && (
+                  <div className="flex justify-between py-2.5">
+                    <dt className="text-ink-muted">Doğrulanmış hesap</dt>
+                    <dd className="font-semibold">{platforms.filter((p) => p.is_verified).map((p) => (p.platform === 'instagram' ? 'Instagram' : 'TikTok')).join(', ') || '—'}</dd>
+                  </div>
+                )}
+              </dl>
+            </Card>
+          )}
+
+          {socialLinksEntries.length > 0 && (
+            <Card padded>
+              <h2 className="text-[17px] font-semibold tracking-tight">Hesaplar</h2>
+              <ul className="mt-3 grid gap-2">
+                {socialLinksEntries.map(([key, url]) => (
+                  <li key={key}>
+                    <a href={url} target="_blank" rel="noreferrer" className={buttonClasses({ block: true, className: 'justify-between' })}>
+                      {SOCIAL_LABELS[key] ?? key}
+                      <ExternalLink aria-hidden />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </aside>
       </div>
     </div>
   )

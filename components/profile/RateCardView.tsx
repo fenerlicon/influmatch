@@ -1,4 +1,6 @@
+import { Lock } from 'lucide-react'
 import { RATE_CARD_ITEMS, formatTry, type RateCard } from '@/lib/rate-card-shared'
+import { Card, Chip } from '@/components/ui'
 
 interface Props {
   rateCard: RateCard
@@ -11,19 +13,25 @@ export default function RateCardView({ rateCard, isOwner = false }: Props) {
   const rows = RATE_CARD_ITEMS.filter((item) => typeof rateCard.prices[item.key] === 'number')
   if (rows.length === 0) return null
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-      <p className="text-xs uppercase tracking-[0.4em] text-soft-gold">Fiyat Kartı</p>
-      <p className="mb-4 mt-1 text-xs text-gray-400">Teslimat başına başlangıç fiyatları</p>
-      <ul className="space-y-2">
-        {rows.map((item) => (
-          <li key={item.key} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
-            <span className="font-semibold text-gray-200">{item.label}</span>
-            <span className="text-white">{formatTry(rateCard.prices[item.key] as number)}+</span>
-          </li>
-        ))}
-      </ul>
-      {rateCard.negotiable && <p className="mt-3 text-xs text-emerald-300">Pazarlığa açık</p>}
-      {isOwner && <p className="mt-3 text-xs text-gray-500">Fiyat kartınızı yalnızca doğrulanmış markalar görür.</p>}
-    </div>
+    <Card padded>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-[17px] font-semibold tracking-tight">Fiyat kartı</h2>
+        {rateCard.negotiable && <Chip>Pazarlığa açık</Chip>}
+      </div>
+      <table className="mt-2 w-full text-[13.5px]">
+        <tbody>
+          {rows.map((item) => (
+            <tr key={item.key} className="border-b border-line last:border-b-0">
+              <td className="py-2.5 text-ink-muted">{item.label}</td>
+              <td className="py-2.5 text-right tabular-nums text-ink">{formatTry(rateCard.prices[item.key] as number)}&apos;den</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-faint">
+        <Lock className="h-3 w-3" aria-hidden />
+        {isOwner ? 'Fiyat kartını yalnızca doğrulanmış markalar görür.' : 'Yalnızca doğrulanmış markalar görür.'}
+      </p>
+    </Card>
   )
 }
