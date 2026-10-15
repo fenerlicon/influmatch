@@ -264,7 +264,7 @@ export default async function InfluencerDashboardPage() {
           {!spotlightActive && (
             <Card accent padded as="section">
               <div className="text-[15px] font-semibold text-gold">Spotlight</div>
-              <p className="mb-3.5 mt-1.5 text-[12.5px] text-ink-muted">Vitrinde öncelikli listelen, profilini kimlerin incelediğini gör.</p>
+              <p className="mb-3.5 mt-1.5 text-[12.5px] text-ink-muted">Keşfet’te öncelikli listelen, profilini kimlerin incelediğini gör.</p>
               <ButtonLink href="/dashboard/spotlight/influencer" size="sm">
                 Paketleri gör
               </ButtonLink>

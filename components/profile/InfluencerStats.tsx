@@ -340,7 +340,7 @@ export default function InfluencerStats({
                             <div className="grid justify-items-center gap-2">
                                 <Lock className="h-8 w-8 text-gold" aria-hidden />
                                 <p className="text-[15px] font-medium text-ink">Bu özellik pakete dahil</p>
-                                <p className="max-w-sm text-[13px] text-ink-muted">Kampanya ROI analizi Spotlight Pro marka paketine dahildir.</p>
+                                <p className="max-w-sm text-[13px] text-ink-muted">Kampanya ROI analizi markalar için Spotlight Pro paketine dahildir.</p>
                                 <div className="mt-2 flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => setShowPaywall(null)}>Vazgeç</Button>
                                     <Button size="sm" variant="primary" onClick={handleUpgrade}>Paketleri gör</Button>

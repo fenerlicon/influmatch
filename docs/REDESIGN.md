@@ -23,7 +23,7 @@ Yeni hesapta / yeni oturumda iş buradan devam eder; kullanıcıya "nerede kald�
 
 | Alan | Dosyalar | Durum | Sıradaki |
 |---|---|---|---|
-| **Web panel** (3. aşama) | `app/dashboard/**`, `app/profile/**`, `app/spotlight/**`, `app/badges/**`; `components/{adverts,discover,messages,dashboard,profile,settings,badges,spotlight,showcase,brand,influencer}/**` | 🔒 devralındı (2026-10-15; `claude/redesign-phase3-*`, `C:\projeler\influmatch-admin`). Bitti: İşler, ana sayfalar, İlanlar, Keşfet, Mesajlar, Profil (sayfa + düzenleme), Rozetler, Ayarlar, İş birliği detayı, İstatistikler, Spotlight | Terim ve ölü arayüz temizliği |
+| **Web panel** (3. aşama) | `app/dashboard/**`, `app/profile/**`, `app/spotlight/**`, `app/badges/**`; `components/{adverts,discover,messages,dashboard,profile,settings,badges,spotlight,showcase,brand,influencer}/**` | ✅ bitti (2026-10-15): İşler, ana sayfalar, İlanlar, Keşfet, Mesajlar, Profil, Rozetler, Ayarlar, İş birliği detayı, İstatistikler, Spotlight, terim/ölü arayüz temizliği | Kalan yok. Bilinçli istisna: yazdırılabilir kampanya raporu (`/dashboard/brand/campaigns/[id]/report`, beyaz zemin) |
 | **Admin** (5. aşama) | `app/admin/**`, `components/admin/**` | ✅ kabuk, destek/sistem panelleri, kullanıcılar, içerik (`/admin/adverts`, `/admin/notifications`) | Kalan yok. |
 | **Tanıtım + giriş** (4. aşama) | `app/page.tsx`, `app/{login,signup,signup-role,forgot-password,onboarding,legal,feedback}/**`, `components/{landing,onboarding,consent}/**` | ✅ bitti (2026-10-15): ana sayfa, giriş/kayıt/şifre, onboarding, yasal, geri bildirim, çerez bandı | Kalan yok (Instagram/TikTok bağlama kutuları web panel Profil işiyle). |
 | **Mobil** | `mobile-app/**`, `design/mobile/**` | ✅ yeni görünüm bitti (#68–#77). Mobil özellik işleri ayrı oturumlarda (`claude/open-*`) | Aşağıdaki "Mobil uygulama" bölümü |
@@ -173,6 +173,11 @@ Spotlight menüsü doğrudan kullanıcının rolüne ait paket sayfasını açar
      Paket adları iki rolde de "Spotlight Basic / Spotlight Pro" ("Brand Basic/Pro", "Edition" adları kalktı; kod zaten "Spotlight Pro"
      diyordu). Satın alma kapalı notu tek `Notice`. `/spotlight` herkese açık sayfa tanıtım kabuğunda. Yalnızca admin'in gördüğü seçim
      sayfası sadeleşti; mor çerçeve vb. gerçeğe uymayan animasyonlu `SpotlightShowcase` ve `SpotlightSelectionCard` silindi.
+   - ✅ Terim ve ölü arayüz temizliği (2026-10-15): kabuktaki bildirim penceresi token'lara geçti ("Tümünü temizle" tarayıcı
+     `confirm()` yerine pencere içi onay). Marka onay bekleme (`BrandLockScreen`), askı (`RejectedScreen`) ve profil yüklenemedi
+     ekranları UI kit ile. Admin `BadgeCompactList` sadeleşti. Kullanılmayan `BadgeDisplay` ve `components/ui/DeleteConfirmationModal`
+     silindi. "Influencer vitrini" → "Keşfet"; "Vitrinde öncelikli listelen" → "Keşfet'te"; "Spotlight Pro marka paketi" → "markalar için
+     Spotlight Pro". Web panelde eski renk sınıfı kalmadı (yalnızca yazdırılabilir rapor).
    - Kalanlar ve sıra: yukarıdaki "Paralel oturumlar" tablosunda (Web panel satırı).
 4. **Tanıtım sayfaları** + giriş/kayıt/onboarding. ✅ Bitti (2026-10-15).
    - ✅ Ana sayfa (2026-10-14): `app/page.tsx` + `components/landing/{LandingHeader,LandingFooter,HowItWorks,Faq,FeaturedProfiles}`.
