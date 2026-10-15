@@ -114,6 +114,10 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
   2026-10-14: influencer "uyum skoru analizi" ve "profil koçu" çalışmadığı için paketlerden çıktı (SYSTEM_MAP 4.3-S6); bugün influencer
   Basic ve Pro listesi aynı (rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri; 4.3-S7):
 
+2026-10-15 kararı: fiyatlar (aylık / yıllık) Influencer Basic 149 / 1.490 ₺, Pro 299 / 2.990 ₺; Marka Basic 990 / 9.900 ₺, Pro 2.490 / 24.900 ₺
+(satıştan önce son kez gözden geçirilir). Marka Basic sınırı: günde 10 / ayda 60 teklif, 3 aktif ilan (ücretsiz 3 / 15 / 1, Pro sınırsız; bayrak açılınca).
+Kampanya ROI analizi Marka Pro listesinde.
+
 | | Basic | Pro |
 |---|---|---|
 | Influencer | Rozet/çerçeve, öncelikli listeleme, profil görüntülenmeleri, **anlık ilan alarmı** | Basic + **portföyde sonuç raporları** (✅ 2026-10-14, listede), haftalık özette detaylı istatistik (veri hazır, gönderim Resend ücretli planla), (ileride, çalışınca) profil koçu |

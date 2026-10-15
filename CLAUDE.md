@@ -66,6 +66,9 @@ kullanıcıya tekrar sorma; karar burada yazıyorsa ona uy.
    - **2026-10-14:** marka teklifini geri çekince teklif sohbeti kapanır (sistem mesajı, iki taraf için salt okunur; reddedilen teklifte
      değişiklik yok). Çalışmayan influencer "uyum skoru" / "profil koçu" paketlerden çıktı; arayüzde kaynaksız sayısal/karşılaştırmalı iddia yok.
      "Kampanya sihirbazı ve toplu davet" satış başlayınca (bayrak açıldığı anda) Marka Pro listesine eklenir; kampanya silme yok, yalnızca arşiv.
+   - **2026-10-15:** Spotlight fiyatları (aylık / yıllık): Influencer Basic 149 / 1.490 ₺, Pro 299 / 2.990 ₺; Marka Basic 990 / 9.900 ₺,
+     Pro 2.490 / 24.900 ₺ (satıştan önce son kez gözden geçirilir). Marka Basic sınırı günde 10 / ayda 60 teklif, 3 aktif ilan (bayrak açılınca).
+     Kampanya ROI analizi Marka Pro listesinde.
    - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi, yayından sonra); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`

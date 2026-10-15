@@ -38,7 +38,7 @@
   durum `lib/first-steps.ts` (web sayfaları + `/api/mobile/first-steps`), "Gizle" web'de çerez, mobilde AsyncStorage. Şema değişikliği yok.
 - **Yol haritası adım 3 (`claude/free-brand-limits`, SYSTEM_MAP 3.17):** ücretsiz marka sınırları + keşif çarkı **kapalı bayrakla**.
   Ayarlar `platform_settings` (yalnızca service role), admin `/admin/limits` (panelde "Marka Sınırları"): bayrak, çark 10 profil / 24 saat,
-  ücretsiz teklif günde 3 / ayda 15, 1 aktif ilan; Basic değerleri boş (= sınırsız, kullanıcı kararı bekliyor), Pro sınırsız. Bayrak açılınca ücretsiz
+  ücretsiz teklif günde 3 / ayda 15, 1 aktif ilan; Basic günde 10 / ayda 60 teklif, 3 aktif ilan (2026-10-15 kararı, canlıda `20261015000010`), Pro sınırsız. Bayrak açılınca ücretsiz
   marka keşifte (web + mobil) yalnızca çarktaki profilleri görür, profil sayfası çark/ilişki dışında kapalı; teklif ve ilan sınırları `lib/offers.ts`,
   `lib/adverts.ts` ve DB tetikleyicileriyle. **Bayrak KAPALI; satış (POS) başlayınca admin açar.** 3.17-S2 (profil okuma daraltması) canlıda. Tablolar canlıda (`20261010000020`), rollback'li denemeyle doğrulandı.
 - **`claude/free-brand-favorites` (SYSTEM_MAP 3.17-N5, 3.13-N5):** aynı bayrakla ücretsiz markada favori ve liste (Inflist) kilitli, yalnızca Spotlight
