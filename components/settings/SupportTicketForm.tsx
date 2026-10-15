@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import { createSupportTicket } from '@/app/dashboard/influencer/settings/support/actions'
-import { HelpCircle, Upload, X, CheckCircle } from 'lucide-react'
+import { Upload, X } from 'lucide-react'
+import { Button, Card, CardBody, CardHeader, Field, Notice, Select, Textarea } from '@/components/ui'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 
 interface SupportTicket {
@@ -175,150 +176,80 @@ export default function SupportTicketForm({ onTicketCreated }: SupportTicketForm
     })
   }
 
+  const busy = isPending || uploading
+
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="rounded-xl border border-soft-gold/30 bg-soft-gold/10 p-2">
-          <HelpCircle className="h-5 w-5 text-soft-gold" />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold text-white">Yardım ve Destek</h2>
-          <p className="mt-1 text-sm text-gray-400">Sorunlarınız için bizimle iletişime geçin</p>
-        </div>
-      </div>
-
-      {success && (
-        <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-          <div className="flex items-start gap-3">
-            <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-400" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-emerald-200">Destek talebiniz alındı!</p>
-              <p className="mt-1 text-xs text-emerald-300/80">Talep No: #{success.ticketCode}</p>
-              <p className="mt-2 text-xs text-emerald-300/70">
-                Talebiniz en kısa sürede incelenecek ve size geri dönüş yapılacaktır.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Subject */}
-        <div>
-          <label htmlFor="subject" className="mb-2 block text-sm font-medium text-gray-300">
-            Konu <span className="text-red-400">*</span>
-          </label>
-          <select
-            id="subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value as typeof subject)}
-            disabled={isPending || uploading}
-            className="w-full rounded-xl border border-white/10 bg-[#11121A] px-4 py-3 text-white transition focus:border-soft-gold/50 focus:outline-none focus:ring-2 focus:ring-soft-gold/20 disabled:opacity-50 disabled:cursor-not-allowed [&>option]:bg-[#11121A] [&>option]:text-white"
-            required
-          >
-            <option value="" className="bg-[#11121A] text-gray-400">Konu seçin</option>
-            <option value="Ödeme Sorunu" className="bg-[#11121A] text-white">Ödeme Sorunu</option>
-            <option value="Teknik Hata" className="bg-[#11121A] text-white">Teknik Hata</option>
-            <option value="Şikayet/Bildirim" className="bg-[#11121A] text-white">Şikayet/Bildirim</option>
-            <option value="Öneri" className="bg-[#11121A] text-white">Öneri</option>
-          </select>
-        </div>
-
-        {/* Priority */}
-        <div>
-          <label htmlFor="priority" className="mb-2 block text-sm font-medium text-gray-300">
-            Öncelik <span className="text-red-400">*</span>
-          </label>
-          <select
-            id="priority"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as typeof priority)}
-            disabled={isPending || uploading}
-            className="w-full rounded-xl border border-white/10 bg-[#11121A] px-4 py-3 text-white transition focus:border-soft-gold/50 focus:outline-none focus:ring-2 focus:ring-soft-gold/20 disabled:opacity-50 disabled:cursor-not-allowed [&>option]:bg-[#11121A] [&>option]:text-white"
-            required
-          >
-            <option value="Düşük" className="bg-[#11121A] text-white">Düşük</option>
-            <option value="Orta" className="bg-[#11121A] text-white">Orta</option>
-            <option value="Acil" className="bg-[#11121A] text-white">Acil</option>
-          </select>
-        </div>
-
-        {/* Message */}
-        <div>
-          <label htmlFor="message" className="mb-2 block text-sm font-medium text-gray-300">
-            Mesaj <span className="text-red-400">*</span>
-          </label>
-          <textarea
-            id="message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            disabled={isPending || uploading}
-            rows={6}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 transition focus:border-soft-gold/50 focus:outline-none focus:ring-2 focus:ring-soft-gold/20 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
-            placeholder="Lütfen sorununuzu veya talebinizi detaylı bir şekilde açıklayın (en az 10 karakter)..."
-            required
-            minLength={10}
-          />
-          <p className="mt-1 text-xs text-gray-400">{message.length} / 10+ karakter</p>
-        </div>
-
-        {/* File Upload */}
-        <div>
-          <label htmlFor="file" className="mb-2 block text-sm font-medium text-gray-300">
-            Dosya Ekle (Opsiyonel)
-          </label>
-          {!filePreview ? (
-            <label
-              htmlFor="file"
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center transition hover:border-soft-gold/50 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Upload className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Ekran görüntüsü yüklemek için tıklayın (Max 5MB)</span>
-              <input
-                id="file"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={isPending || uploading}
-                className="hidden"
-              />
-            </label>
-          ) : (
-            <div className="relative rounded-xl border border-white/10 bg-white/5 p-4">
-              <button
-                type="button"
-                onClick={handleRemoveFile}
-                disabled={isPending || uploading}
-                className="absolute right-2 top-2 rounded-lg border border-white/20 bg-black/60 p-1 text-gray-400 transition hover:border-white/40 hover:text-white disabled:opacity-50"
-                aria-label="Dosyayı kaldır"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <Image src={filePreview} alt="Preview" width={400} height={192} className="max-h-48 w-full rounded-lg object-contain" />
-              <p className="mt-2 text-xs text-gray-400">{file?.name}</p>
-            </div>
-          )}
-        </div>
-
-        {error && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-            {error}
-          </div>
+    <Card>
+      <CardHeader title="Destek talebi oluştur" description="Sorununu yaz; ekip yanıtladığında burada ve e-postada görürsün." />
+      <CardBody>
+        {success && (
+          <Notice tone="success" className="mb-4">
+            Talebin alındı (No: #{success.ticketCode}). En kısa sürede yanıtlanacak.
+          </Notice>
         )}
-
-        <button
-          type="submit"
-          disabled={isPending || uploading || !subject || !message.trim()}
-          className="w-full rounded-xl border border-soft-gold/60 bg-soft-gold/10 px-6 py-3 text-sm font-semibold text-soft-gold transition hover:border-soft-gold hover:bg-soft-gold/20 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {uploading
-            ? 'Dosya yükleniyor...'
-            : isPending
-              ? 'Gönderiliyor...'
-              : 'Destek Talebi Gönder'}
-        </button>
-      </form>
-    </section>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Konu">
+              {(props) => (
+                <Select {...props} value={subject} onChange={(e) => setSubject(e.target.value as typeof subject)} disabled={busy} required>
+                  <option value="">Konu seçin</option>
+                  <option value="Ödeme Sorunu">Ödeme sorunu</option>
+                  <option value="Teknik Hata">Teknik hata</option>
+                  <option value="Şikayet/Bildirim">Şikayet / bildirim</option>
+                  <option value="Öneri">Öneri</option>
+                </Select>
+              )}
+            </Field>
+            <Field label="Öncelik">
+              {(props) => (
+                <Select {...props} value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)} disabled={busy} required>
+                  <option value="Düşük">Düşük</option>
+                  <option value="Orta">Orta</option>
+                  <option value="Acil">Acil</option>
+                </Select>
+              )}
+            </Field>
+          </div>
+          <Field label="Mesaj" hint={`${message.length} karakter · en az 10`}>
+            {(props) => (
+              <Textarea
+                {...props}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                disabled={busy}
+                rows={6}
+                placeholder="Sorununu ya da talebini ayrıntılı anlat…"
+                required
+                minLength={10}
+              />
+            )}
+          </Field>
+          <div>
+            <p className="mb-1.5 text-[13px] text-ink-muted">Ekran görüntüsü (isteğe bağlı)</p>
+            {!filePreview ? (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong bg-surface-2 px-4 py-6 text-[13px] text-ink-muted transition-colors hover:border-gold/50 hover:text-ink">
+                <Upload className="h-4 w-4" aria-hidden />
+                Görsel seç (en fazla 5 MB)
+                <input type="file" accept="image/*" onChange={handleFileChange} disabled={busy} className="sr-only" />
+              </label>
+            ) : (
+              <div className="relative rounded-xl border border-line bg-surface-2 p-3">
+                <Button variant="ghost" size="sm" iconOnly aria-label="Dosyayı kaldır" onClick={handleRemoveFile} disabled={busy} className="absolute right-2 top-2">
+                  <X />
+                </Button>
+                <Image src={filePreview} alt="Seçilen görsel" width={400} height={192} className="max-h-48 w-full rounded-lg object-contain" />
+                <p className="mt-2 truncate text-xs text-ink-faint">{file?.name}</p>
+              </div>
+            )}
+          </div>
+          {error && <Notice tone="danger">{error}</Notice>}
+          <div className="flex justify-end">
+            <Button type="submit" variant="primary" loading={busy} disabled={!subject || !message.trim()}>
+              {uploading ? 'Dosya yükleniyor…' : 'Talebi gönder'}
+            </Button>
+          </div>
+        </form>
+      </CardBody>
+    </Card>
   )
 }
-

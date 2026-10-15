@@ -1,6 +1,6 @@
-'use client'
-
-import { useState } from 'react'
+import type { ReactNode } from 'react'
+import { Bell, LifeBuoy, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { PageHeader, Tabs } from '@/components/ui'
 import EmailNotificationSettings from './EmailNotificationSettings'
 import AccountSettings from './AccountSettings'
 import SupportSection from './SupportSection'
@@ -17,6 +17,10 @@ interface SupportTicket {
 }
 
 interface SettingsTabsProps {
+  /** Sayfanın adresi (ör. /dashboard/influencer/settings); bölümler ?bolum= ile açılır. */
+  basePath: string
+  /** ?bolum= değeri. */
+  section?: string
   userId: string
   emailSettings: {
     offers: boolean
@@ -26,50 +30,35 @@ interface SettingsTabsProps {
     updates: boolean
   }
   supportTickets?: SupportTicket[]
+  /** Role özel tercihler (müsaitlik, portföy). Yoksa "Tercihler" bölümü gösterilmez. */
+  preferences?: ReactNode
 }
 
-const tabs = [
-  { key: 'notifications', label: 'Bildirimler', icon: '🔔' },
-  { key: 'account', label: 'Hesap', icon: '⚙️' },
-  { key: 'support', label: 'Yardım ve Destek', icon: '💬' },
+const SECTIONS = [
+  { value: 'tercihler', label: 'Tercihler', icon: <SlidersHorizontal /> },
+  { value: 'bildirimler', label: 'Bildirimler', icon: <Bell /> },
+  { value: 'guvenlik', label: 'Güvenlik', icon: <ShieldCheck /> },
+  { value: 'destek', label: 'Yardım ve destek', icon: <LifeBuoy /> },
 ] as const
 
-export default function SettingsTabs({ userId, emailSettings, supportTickets = [] }: SettingsTabsProps) {
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['key']>('notifications')
+export default function SettingsTabs({ basePath, section, userId, emailSettings, supportTickets = [], preferences }: SettingsTabsProps) {
+  const sections = SECTIONS.filter((s) => s.value !== 'tercihler' || preferences)
+  const active = sections.find((s) => s.value === section)?.value ?? sections[0].value
 
   return (
-    <div className="space-y-6">
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-[#0c0d13] p-1">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.key
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                isActive
-                  ? 'bg-soft-gold/20 text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.25)]'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Tab Content */}
-      <div>
-        {activeTab === 'notifications' && (
-          <EmailNotificationSettings userId={userId} initialSettings={emailSettings} />
-        )}
-        {activeTab === 'account' && <AccountSettings />}
-        {activeTab === 'support' && <SupportSection userId={userId} initialTickets={supportTickets} />}
+    <div className="grid gap-5">
+      <PageHeader title="Ayarlar" description="Tercihlerini, bildirimlerini ve hesap güvenliğini buradan yönetirsin." />
+      <Tabs
+        label="Ayar bölümleri"
+        value={active}
+        items={sections.map((s) => ({ ...s, href: `${basePath}?bolum=${s.value}` }))}
+      />
+      <div className="grid gap-5">
+        {active === 'tercihler' && preferences}
+        {active === 'bildirimler' && <EmailNotificationSettings userId={userId} initialSettings={emailSettings} />}
+        {active === 'guvenlik' && <AccountSettings />}
+        {active === 'destek' && <SupportSection userId={userId} initialTickets={supportTickets} />}
       </div>
     </div>
   )
 }
-

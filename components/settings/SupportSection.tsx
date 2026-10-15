@@ -28,11 +28,9 @@ export default function SupportSection({ userId, initialTickets }: SupportSectio
   }, [])
 
   return (
-    <div className="space-y-6">
-      {/* Support Ticket Form */}
+    <div className="grid gap-5">
       <SupportTicketForm onTicketCreated={handleTicketCreated} />
 
-      {/* Support Tickets List - Only show if user has tickets */}
       {tickets.length > 0 && <SupportTicketsList userId={userId} initialTickets={tickets} />}
     </div>
   )
