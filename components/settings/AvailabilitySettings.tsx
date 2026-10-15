@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { Button, Card, CardBody, CardHeader, Field, Input, Segmented } from '@/components/ui'
 import { updateAvailability } from '@/app/dashboard/influencer/settings/actions'
 import { AVAILABILITY_NOTE_MAX, availabilityText, istanbulToday, type Availability } from '@/lib/availability-shared'
 
@@ -34,69 +35,51 @@ export default function AvailabilitySettings({ initial }: { initial: Availabilit
   }
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white">
-      <h2 className="text-xl font-semibold">Müsaitlik</h2>
-      <p className="mt-1 text-sm text-gray-400">
-        Markalar keşifte ve profilinde durumunu görür. &quot;Şu an dolu&quot; iken keşifte alt sırada görünürsün; markalar yine teklif gönderebilir.
-      </p>
-      <p className="mt-2 text-xs text-gray-500">Şu anki durum: {availabilityText(saved)}</p>
+    <Card>
+      <CardHeader
+        title="Müsaitlik"
+        description={'Markalar keşifte ve profilinde durumunu görür. "Şu an dolu" iken keşifte alt sırada görünürsün; markalar yine teklif gönderebilir.'}
+      />
+      <CardBody className="grid gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Segmented
+            label="Müsaitlik durumu"
+            value={status}
+            onSelect={(v) => !pending && choose(v as 'open' | 'busy')}
+            items={[
+              { value: 'open', label: 'İş alıyorum' },
+              { value: 'busy', label: 'Şu an dolu' },
+            ]}
+          />
+          <span className="text-xs text-ink-faint">Şu anki durum: {availabilityText(saved)}</span>
+        </div>
 
-      <div className="mt-4 inline-flex rounded-2xl border border-white/10 bg-[#0c0d13] p-1" role="radiogroup" aria-label="Müsaitlik durumu">
-        {(['open', 'busy'] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={status === value}
-            disabled={pending}
-            onClick={() => choose(value)}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-              status === value ? (value === 'open' ? 'bg-emerald-500/20 text-emerald-200' : 'bg-amber-500/20 text-amber-200') : 'text-gray-400 hover:text-white'
-            }`}
+        {status === 'busy' && (
+          <form
+            className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
+            onSubmit={(e) => {
+              e.preventDefault()
+              save({ status: 'busy', note, until })
+            }}
           >
-            {value === 'open' ? 'İş alıyorum' : 'Şu an dolu'}
-          </button>
-        ))}
-      </div>
-
-      {status === 'busy' && (
-        <form
-          className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
-          onSubmit={(e) => {
-            e.preventDefault()
-            save({ status: 'busy', note, until })
-          }}
-        >
-          <label className="block text-sm text-gray-400">
-            Not (isteğe bağlı)
-            <input
-              type="text"
-              value={note}
-              maxLength={AVAILABILITY_NOTE_MAX}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Örn. Ay sonuna kadar takvimim dolu"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none transition focus:border-soft-gold/60"
-            />
-          </label>
-          <label className="block text-sm text-gray-400">
-            Bitiş (isteğe bağlı)
-            <input
-              type="date"
-              value={until}
-              min={istanbulToday()}
-              onChange={(e) => setUntil(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none transition focus:border-soft-gold/60"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-xl border border-soft-gold/60 bg-soft-gold/10 px-4 py-2 text-sm font-semibold text-soft-gold transition hover:bg-soft-gold/20 disabled:opacity-60"
-          >
-            {pending ? 'Kaydediliyor…' : 'Kaydet'}
-          </button>
-        </form>
-      )}
-    </section>
+            <Field label="Not (isteğe bağlı)">
+              {(props) => (
+                <Input
+                  {...props}
+                  value={note}
+                  maxLength={AVAILABILITY_NOTE_MAX}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Ör. Ay sonuna kadar takvimim dolu"
+                />
+              )}
+            </Field>
+            <Field label="Bitiş (isteğe bağlı)">
+              {(props) => <Input {...props} type="date" value={until} min={istanbulToday()} onChange={(e) => setUntil(e.target.value)} />}
+            </Field>
+            <Button type="submit" variant="primary" loading={pending}>Kaydet</Button>
+          </form>
+        )}
+      </CardBody>
+    </Card>
   )
 }

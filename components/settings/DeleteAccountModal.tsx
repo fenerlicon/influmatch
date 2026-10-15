@@ -1,14 +1,17 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { deleteAccount } from '@/app/dashboard/influencer/settings/actions'
-import { X, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { deleteAccount } from '@/app/dashboard/influencer/settings/actions'
+import PasswordInput from '@/components/auth/PasswordInput'
+import { Button, Field, Input, Modal, Notice } from '@/components/ui'
 
 interface DeleteAccountModalProps {
   isOpen: boolean
   onClose: () => void
 }
+
+const CONFIRM_TEXT = 'SİL'
 
 export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps) {
   const [confirmText, setConfirmText] = useState('')
@@ -16,14 +19,19 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
-
-  const CONFIRM_TEXT = 'SİL'
   const isConfirmed = confirmText === CONFIRM_TEXT
+
+  const close = () => {
+    if (isPending) return
+    setConfirmText('')
+    setPassword('')
+    setError(null)
+    onClose()
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-
     if (!isConfirmed) {
       setError(`Onaylamak için "${CONFIRM_TEXT}" yazın`)
       return
@@ -32,12 +40,9 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
       setError('Şifrenizi girin')
       return
     }
-
     startTransition(async () => {
       const result = await deleteAccount(password)
-
       if (result.success) {
-        // Redirect to login
         if (result.redirect) {
           router.push(result.redirect)
           router.refresh()
@@ -50,106 +55,41 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
     })
   }
 
-  if (!isOpen) return null
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <Modal
+      open={isOpen}
+      onClose={close}
+      dismissible={!isPending}
+      size="sm"
+      title="Hesabı sil"
+      description="Bu işlem geri alınamaz."
+      footer={
+        <>
+          <Button variant="ghost" size="sm" onClick={close} disabled={isPending} data-autofocus>Vazgeç</Button>
+          <Button variant="danger" size="sm" type="submit" form="delete-account" loading={isPending} disabled={!isConfirmed || !password}>
+            Hesabı sil
+          </Button>
+        </>
+      }
     >
-      <div
-        className="relative w-full max-w-md rounded-3xl border border-red-500/30 bg-[#0E0F15] p-6 shadow-glow"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/60 text-gray-400 transition hover:border-white/50 hover:bg-black/80 hover:text-white"
-          aria-label="Kapat"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-2">
-            <AlertTriangle className="h-5 w-5 text-red-400" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-red-200">Hesabı Sil</h2>
-            <p className="mt-1 text-sm text-red-300/70">Bu işlem geri alınamaz</p>
-          </div>
-        </div>
-
-        <div className="mb-6 space-y-4">
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
-            <p className="text-sm text-red-200">
-              Hesabınızı silmek istediğinizden emin misiniz?
-            </p>
-            <ul className="mt-2 space-y-1 text-xs text-red-300/80">
-              <li>• Tüm verileriniz kalıcı olarak silinecektir.</li>
-              <li>• Profiliniz artık görüntülenemeyecektir.</li>
-              <li>• Aktif Spotlight üyeliğiniz varsa hesabınızla birlikte sona erer.</li>
-              <li>• Bu işlem geri alınamaz.</li>
-            </ul>
-          </div>
-
-          <div>
-            <label htmlFor="confirmText" className="mb-2 block text-sm font-medium text-gray-300">
-              Onaylamak için <span className="font-mono font-bold text-red-400">SİL</span> yazın
-            </label>
-            <input
-              id="confirmText"
-              type="text"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
-              disabled={isPending}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 transition focus:border-red-500/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 disabled:opacity-50"
-              placeholder="SİL"
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="deletePassword" className="mb-2 block text-sm font-medium text-gray-300">
-              Şifreniz
-            </label>
-            <input
-              id="deletePassword"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isPending}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 transition focus:border-red-500/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 disabled:opacity-50"
-              placeholder="Mevcut şifreniz"
-              autoComplete="current-password"
-            />
-          </div>
-        </div>
-
-        {error && (
-          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isPending}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/10 disabled:opacity-50"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            disabled={isPending || !isConfirmed || !password}
-            className="flex-1 rounded-xl border border-red-500/60 bg-red-500/20 px-4 py-3 text-sm font-semibold text-red-200 transition hover:border-red-500 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isPending ? 'Siliniyor...' : 'Hesabı Sil'}
-          </button>
-        </form>
-      </div>
-    </div>
+      <form id="delete-account" onSubmit={handleSubmit} className="grid gap-4">
+        <ul className="grid gap-1 text-[13px] text-ink-muted">
+          <li>• Tüm verileriniz kalıcı olarak silinecektir.</li>
+          <li>• Profiliniz artık görüntülenemeyecektir.</li>
+          <li>• Aktif Spotlight üyeliğiniz varsa hesabınızla birlikte sona erer.</li>
+        </ul>
+        <Field label={`Onaylamak için "${CONFIRM_TEXT}" yazın`}>
+          {(props) => (
+            <Input {...props} value={confirmText} onChange={(e) => setConfirmText(e.target.value.toLocaleUpperCase('tr-TR'))} disabled={isPending} placeholder={CONFIRM_TEXT} autoComplete="off" />
+          )}
+        </Field>
+        <Field label="Şifreniz">
+          {(props) => (
+            <PasswordInput {...props} value={password} onChange={(e) => setPassword(e.target.value)} disabled={isPending} placeholder="Mevcut şifreniz" autoComplete="current-password" />
+          )}
+        </Field>
+        {error && <Notice tone="danger">{error}</Notice>}
+      </form>
+    </Modal>
   )
 }
