@@ -6,7 +6,7 @@
 ## Hedef
 
 - **Aralık son haftasına kadar** web, mobil ve **Akademi** tam hazır; bu sürede kitle yavaş yavaş toplanır.
-- **Aralık son hafta:** "Her şey 0₺" yılbaşı kampanyası (Akademi hariç). Ayrıntılar henüz netleşmedi (kullanıcıda).
+- **Aralık son hafta:** "Her şey 0₺" yılbaşı kampanyası (Akademi hariç). Ayrıntılar aşağıda ("0₺ kampanyası", 2026-10-15 kararları).
 - **Şirket 1 Ocak'ta açılır** (şahıs şirketi; vergi dönemi avantajı için daha önce açılmayacak — kesin karar).
   POS başvurusu şirketle birlikte → **satış Ocak ortası–sonu**. Öneri: 0₺ kampanyası POS açılana kadar uzatılır, ücretsiz
   dönem bitişi = satış başlangıcı (bitişten önce "üyeliğin bitiyor" bildirimi + e-postası kurulmalı).
@@ -17,19 +17,30 @@
 | Dönem | Kod (Claude) | Kullanıcı |
 |---|---|---|
 | Ekim sonu | Açık liste biter; çok hesaplı toplu test | Eğitim yüzü, Akademi metinleri |
-| Kasım | **Akademi** (kurs, video, ilerleme, sınav, sertifika) + **R2 "Drive"** (videolar ve görseller) | Video çekimi/kurgu, Cloudflare hesabı, **bireysel** Apple/Google geliştirici hesapları, `eas init` + FCM |
-| Aralık 1–2. hafta | Mağazaya gönderim, kampanya altyapısı, üyelik bitiş hatırlatmaları | Kampanya ayrıntıları, POS sağlayıcı seçimi ve evrak hazırlığı, **Resend ücretli plan** (ücretsiz plan günde 100 e-posta; kampanya bunu aşar) |
+| Kasım | **Akademi** (kurs, video, ilerleme, sınav, sertifika) + **R2 "Drive"** (videolar ve görseller) | Video çekimi/kurgu; **5 Kasım:** Cloudflare hesabı, **bireysel** Apple/Google geliştirici hesapları, `eas init` + FCM |
+| Aralık 1–2. hafta | Mağazaya gönderim, kampanya altyapısı, üyelik bitiş hatırlatmaları | Kampanya ayrıntıları, POS sağlayıcı seçimi ve evrak hazırlığı, **5 Aralık: Resend ücretli plan** (ücretsiz plan günde 100 e-posta; kampanya bunu aşar) |
 | Aralık son hafta | 0₺ kampanyası yayında | |
 | 1 Ocak | | Şirket kuruluşu, POS başvurusu, D-U-N-S başvurusu |
 | Ocak ortası–sonu | POS entegrasyonu canlı (test ortamında önceden hazırlanır), satış başlar | Avukattan yasal metinler (mesafeli satış, ön bilgilendirme, iptal/iade, KVKK) şirket bilgisiyle |
 | Şirket + D-U-N-S sonrası | Uygulamalar bireysel hesaptan şirket hesabına taşınır (Apple ve Google destekliyor, kullanıcı/yorum korunur) | Şirket geliştirici hesapları |
+
+## 0₺ kampanyası (2026-10-15, kullanıcı kararı)
+
+- **Kapsam:** **herkese Spotlight Pro** (marka ve influencer/UGC; Akademi hariç). Mevcut kullanıcılar ve kampanyada kayıt olanlar, **herkes**.
+- **Bitiş:** **POS açılıp satış başladığı gün.** Bitişten **7 gün önce** "üyeliğin bitiyor" bildirimi + e-postası (Resend ücretli plan 5 Aralık'ta).
+- **Geçiş avantajı:** 0₺ döneminde Pro kullananlara satış başlayınca **ilk ay %50 indirim** ("kurucu üye").
+- Bayrak (`free_brand_limits_enabled`) satış günü açılır; kampanya süresince kapalı kalır.
+- Kod işi (Aralık 1–2. hafta): toplu Pro verme ve süre sonu, bitiş hatırlatmaları, ilk ay indirimi (POS entegrasyonuyla).
 
 ## Akademi (kararlar)
 
 - **Kime:** yalnızca **hesabını doğrulamış influencer/UGC'ler** satın alabilir.
 - **İçerik:** temel taktik ve eğitim videoları; ayrıca işinde iyi UGC/influencer'larla kısa görüşmeler (tanıtım/vitrin içeriği
   olarak ücretsiz kullanılabilir). Metinleri kullanıcı yazar, bir eğitmen anlatır, kurguyu kullanıcı yapar.
-- **Satış:** **tek seferlik, ömür boyu** erişim (abonelik yok). Fiyatı kullanıcı belirler. 0₺ kampanyasına dahil değil.
+- **Satış:** **tek seferlik, ömür boyu** erişim (abonelik yok). 0₺ kampanyasına dahil değil.
+- **Fiyat (2026-10-15):** **1.490 ₺**. Üniversite öğrencisi influencer/UGC (**25 yaşına kadar**) **yarı fiyat (745 ₺)**.
+  Öğrencilik **öğrenci belgesi yüklemeyle** (e-Devlet belgesi; doğum tarihi belgeden), **admin elle onaylar**. Belge özel dosya
+  (imzalı bağlantı, vergi levhası gibi kendi altyapımızda). İndirim hakkı onaydan sonra satın almada uygulanır; fiyatlar admin panelinden değiştirilebilir.
 - **İzleme:** **sıralı** — bir video bitmeden ve bölüm sonu testi geçilmeden sonraki açılmaz.
 - **Final sınavı:** geçme notu **%80**, **sınırsız hak**, denemeler arası **24 saat**; sorular havuzdan karışık gelir.
   Değerler admin panelinden değiştirilebilir olsun.
@@ -106,7 +117,7 @@ Sıra (birbirine bağlı): **1 → 2 → 3 → 4**. Çok hesaplı toplu test 1. 
   bildirim (+ e-posta tercihine göre).
 - **Haftalık e-postalar:** kişisel özet (takipçi değişimi, profil görüntülenmesi) + eşleşme özeti (influencer: uygun yeni ilanlar;
   marka: sektöründe yeni doğrulanmış profiller). **Resend ücretli plana geçilecek** (kullanıcı onayladı; kampanyadan önce).
-- **Ekip hesabı:** bir marka hesabına birden çok kişi; ileride **ajanslara özel** bir yapı da geliştirilebilir (InfluAct'e zemin).
+- **Ekip hesabı:** bir marka hesabına birden çok kişi; ileride **ajanslara özel** bir yapı da geliştirilebilir (InfluAct'e zemin). **2026-10-15: satıştan sonra.**
 - **Ödeme teyidi + teslim kilidi + marka güvenilirliği, davet kodu (Spotlight günü), admin metrik paneli:** kabul edildi (önceki tur).
 - **İlk adımlar kontrol listesi:** kabul edildi 2026-10-10 (web + mobil panelde yapıldı, SYSTEM_MAP 3.16).
 - **Spotlight paketleri:** karşılığı olmayan maddeler kaldırıldı (PR #50). Boşalan yerler **yalnızca çalışan özelliklerle** doldurulur;
@@ -131,4 +142,4 @@ Kampanya ROI analizi Marka Pro listesinde.
 5. Akademi + R2 "Drive" (Kasım)
 6. ✅ Sonuç raporu (2026-10-14, SYSTEM_MAP 3.20) + ✅ Influencer Pro "portföyde sonuç raporları" (4.3-S7). Haftalık özette detaylı istatistik: veri + önizleme hazır, gönderim Resend ücretli planla. UGC portföyü (örnek videolar) R2 ile
 7. ✅ Kampanya sihirbazı + müsaitlik (2026-10-14, öne çekildi, SYSTEM_MAP 3.19); kalan: davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
-8. Ekip hesabı / ajans yapısı (yayından sonra da olabilir)
+8. Ekip hesabı / ajans yapısı (2026-10-15 kararı: satış başladıktan sonra)
