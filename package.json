@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "ESLINT_NO_DEV_ERRORS=true ESLINT_SKIP=true next build",
     "start": "next start",
-    "lint": "next lint --fix"
+    "lint": "next lint --fix",
+    "lint:check": "next lint --quiet",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/auth-helpers-react": "^0.5.0",
@@ -36,6 +39,7 @@
     "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.4"
   }
 }

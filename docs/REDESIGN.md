@@ -36,7 +36,7 @@ Yeni hesapta / yeni oturumda iş buradan devam eder; kullanıcıya "nerede kald�
 | Hava | **Sakin premium**: aynı renkler (koyu zemin + soft gold + champagne). Düz yüzeyler; altın yalnızca ana eylem ve vurguda. Glow, blur ve radial gradient neredeyse yok. |
 | İş akışı | **Teklifler + İş Birlikleri tek sayfa** (teklif → anlaşıldı → içerik → yayın → tamamlandı/iptal). Mesajlar ayrı sayfa olarak kalır. |
 | Influencer "Vitrin" | **"Keşfet"** adıyla kalır. "Vitrin" sözcüğü yalnızca Spotlight/görünürlük için kullanılır. |
-| Terim | **İlan.** Brief / Proje / Kampanya arayüzden kalkar (koddaki `Project` adları ayrı iş). |
+| Terim | **İlan.** Brief / Proje arayüzden kalkar (koddaki `Project` adları ayrı iş). **İstisna (2026-10-16):** marka panelindeki toplu davet menüsü "Kampanyalar" adıyla kalır; 0₺ duyurusunda bu kelime yerine başka ad ("yılbaşı fırsatı" gibi) kullanılır. |
 | Influencer ana sayfa | Doluluk %, İlk adımlar, Güven skoru, Mavi tik ve eksik profil bandı **tek "Hesap durumu" kartında** toplanır; kart sıradaki tek adımı gösterir. |
 | Bantlar | Panelin üstündeki 4 bant **tek bildirim alanı** olur (öncelik sırasıyla). MVP bandı kalır, bu alanın içine girer. |
 | Rozetler | Menüden çıkar, profil sayfasında sekme olur. |

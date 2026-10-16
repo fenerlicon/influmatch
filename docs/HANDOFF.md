@@ -190,6 +190,11 @@
 | 0₺ kampanyası (15 Ekim) | Herkese (mevcut + yeni) Spotlight Pro; POS açılınca biter, 7 gün önce hatırlatma; geçenlere ilk ay %50 indirim. Ayrıntı `docs/ROADMAP.md`. |
 | Akademi fiyatı (15 Ekim) | 1.490 ₺ tek seferlik; 25 yaş altı üniversite öğrencisi yarı fiyat, öğrenci belgesi yükleme + admin onayı. |
 | Ekip hesabı (15 Ekim) | Satış başladıktan sonra. |
+| Akademi (16 Ekim) | POS açıldıktan sonra (Ocak ötesi). Kasım işi R2 + toplu test düzeltmeleri. |
+| Aracı platform (16 Ekim) | Influmatch yalnızca aracı; ödeme taraflar arasında. Emanet ödeme/yaptırım yok; sorumluluk sınırı kullanıcı sözleşmesinde (avukat). |
+| "Kampanyalar" (16 Ekim) | Marka menüsünde bu adla kalır (REDESIGN terim istisnası). |
+| 0₺ döneminde Spotlight (16 Ekim) | Liyakatli listeleme; mavi tik için ek şart; Kurucu Üye rozeti 0₺ öncesi gelenlere; admin görevleri fikri. Ayrıntı `docs/ROADMAP.md`, onay bekliyor. |
+| Test (16 Ekim) | Claude otomatik testleri yazar ve çalıştırır; manuel toplu testi kullanıcı yapar. |
 
 ## 4. Karar bekleyenler
 
@@ -253,6 +258,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 | 2.9-S1, 3.5-S2, 5.3-S2, 6.7-S1, 3.13-N6, 9.1-S2, 9.1-S3 | — | 2026-10-10'da yapıldı. |
 
 ## 7. Teknik notlar (tekrar keşfetmemek için)
+
+- **Otomatik testler (2026-10-16):** `npm test` (vitest, `tests/`), `npm run typecheck`, `npm run lint:check`. GitHub Actions `CI` her PR'da üçünü çalıştırır. Testler saf iş kurallarını (`lib/*-shared.ts`, vergi no, kurumsal e-posta, mavi tik, keşif filtreleri, ilan alarmı, platform ayarları) ve **web ↔ mobil sabit eşitliğini** (`tests/mobile-parity.test.ts`) denetler; web'de bir sabit değişince mobil kopyası da değişmezse CI kırılır. Yeni saf kural ekleyen oturum testini de ekler.
 
 - **Supabase:**
   - MCP `execute_sql` çoklu ifadede yalnızca son sonucu döndürür.
