@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Button, ButtonLink, Card } from '@/components/ui'
 import { Lock, Mail, UserCheck, ShieldAlert, ArrowRight } from 'lucide-react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 
@@ -30,95 +30,54 @@ export default function BrandLockScreen({ status = 'pending' }: BrandLockScreenP
   const isPending = status === 'pending'
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center p-4 text-center">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#141521]/90 to-[#0C0D10]/95 p-8 backdrop-blur-md shadow-glow">
-        
-        {/* Glow Effects */}
-        {isPending ? (
-          <div className="absolute -top-20 -left-20 h-40 w-40 rounded-full bg-soft-gold/10 blur-3xl pointer-events-none"></div>
-        ) : (
-          <div className="absolute -top-20 -left-20 h-40 w-40 rounded-full bg-red-500/10 blur-3xl pointer-events-none"></div>
+    <div className="grid min-h-[60vh] place-items-center p-4">
+      <Card className="w-full max-w-lg p-7 text-center">
+        <span className={`mx-auto grid h-14 w-14 place-items-center rounded-2xl border ${isPending ? 'border-gold/30 bg-gold/10 text-gold' : 'border-danger/30 bg-danger/10 text-danger'}`}>
+          {isPending ? <Lock className="h-6 w-6" aria-hidden /> : <ShieldAlert className="h-6 w-6" aria-hidden />}
+        </span>
+        <h2 className="mt-4 font-display text-[24px] leading-tight tracking-tight text-ink">
+          {isPending ? 'Hesap onayı bekleniyor' : 'Erişim engellendi'}
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-[13.5px] leading-relaxed text-ink-muted">
+          {isPending
+            ? 'Keşfet’i, ayrıntılı istatistikleri ve iş birliği tekliflerini görmek için hesabının onaylanması gerekiyor. Güvenli bir topluluk için markaları tek tek inceliyoruz.'
+            : 'Hesabın onaylanmadı ya da kullanım koşullarına aykırılık nedeniyle askıya alındı. Ayrıntılar için destek ekibine yazabilirsin.'}
+        </p>
+
+        {isPending && (
+          <ol className="mt-5 grid gap-2.5 rounded-xl border border-line bg-surface-2 p-4 text-left text-[13px]">
+            <li className="flex items-center gap-2.5 text-ink">
+              <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-success/15 text-success">
+                <UserCheck className="h-3.5 w-3.5" aria-hidden />
+              </span>
+              Hesap kaydı ve profil kurulumu
+              <span className="ml-auto text-xs text-success">Tamamlandı</span>
+            </li>
+            <li className="flex items-center gap-2.5 text-ink">
+              <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-gold/15">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold" />
+              </span>
+              Yönetici incelemesi
+              <span className="ml-auto text-xs text-gold">Bekleniyor</span>
+            </li>
+          </ol>
         )}
-        <div className="absolute -bottom-20 -right-20 h-40 w-40 rounded-full bg-[#1e2030]/20 blur-3xl pointer-events-none"></div>
 
-        <div className="relative z-10 flex flex-col items-center gap-6">
-          {/* Main Icon */}
-          <div className={`rounded-full p-5 ring-1 ${
-            isPending 
-              ? 'bg-soft-gold/10 ring-soft-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.15)]' 
-              : 'bg-red-500/10 ring-red-500/30'
-          }`}>
-            {isPending ? (
-              <Lock className="h-10 w-10 text-soft-gold" />
-            ) : (
-              <ShieldAlert className="h-10 w-10 text-red-500" />
-            )}
-          </div>
-
-          {/* Heading */}
-          <div className="space-y-3">
-            <h2 className="text-2xl font-bold text-white tracking-wide">
-              {isPending ? 'Hesap Onayı Bekleniyor' : 'Erişim Engellendi'}
-            </h2>
-            <p className="text-sm text-gray-300 max-w-md mx-auto leading-relaxed">
-              {isPending 
-                ? 'Influencer vitrinini, detaylı istatistikleri ve iş birliği tekliflerini görüntülemek için hesabınızın yönetici tarafından onaylanması gerekmektedir. Güvenli bir topluluk sağlamak adına markaları manuel olarak onaylıyoruz.'
-                : 'Hesabınız onaylanmamış veya kullanım koşullarına aykırı hareket nedeniyle askıya alınmıştır. Ayrıntılar için destek ekibimiz ile iletişime geçebilirsiniz.'}
-            </p>
-          </div>
-
-          {/* Verification Steps Visual (Only for Pending) */}
-          {isPending && (
-            <div className="w-full rounded-2xl bg-white/5 border border-white/5 p-5 text-left space-y-4 my-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-soft-gold">Onay Süreci</h4>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                    <UserCheck className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-200">Hesap Kaydı & Profil Kurulumu (Tamamlandı)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-6 w-6 animate-pulse items-center justify-center rounded-full bg-soft-gold/20 text-soft-gold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-soft-gold"></span>
-                  </div>
-                  <span className="text-xs font-medium text-gray-200">Yönetici İncelemesi & Onay (Bekleniyor)</span>
-                </div>
-              </div>
-            </div>
+        <div className="mt-6 grid gap-2">
+          {isPending ? (
+            <ButtonLink href="/dashboard/brand/profile" variant="primary" rightIcon={<ArrowRight />}>
+              Profilini tamamla
+            </ButtonLink>
+          ) : (
+            <ButtonLink href="mailto:destek@influmatch.net" leftIcon={<Mail />}>
+              destek@influmatch.net
+            </ButtonLink>
           )}
-
-          {/* Actions */}
-          <div className="w-full space-y-3 pt-2">
-            {isPending ? (
-              <Link
-                href="/dashboard/brand/profile"
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-soft-gold/60 bg-soft-gold/10 py-3 text-sm font-semibold text-soft-gold shadow-[0_0_20px_rgba(212,175,55,0.15)] transition hover:border-soft-gold hover:bg-soft-gold/20"
-              >
-                <span>Profil Ayarlarına Git</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            ) : (
-              <a
-                href="mailto:destek@influmatch.net"
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                <Mail className="h-4 w-4" />
-                <span>İletişime Geç (destek@influmatch.net)</span>
-              </a>
-            )}
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={isLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 py-3 text-sm font-semibold text-gray-400 transition hover:bg-white/5 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Çıkış Yapılıyor...' : 'Çıkış Yap'}
-            </button>
-          </div>
+          <Button variant="ghost" onClick={handleSignOut} loading={isLoading}>
+            Çıkış yap
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

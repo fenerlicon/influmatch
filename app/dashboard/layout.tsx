@@ -6,16 +6,17 @@ import { SHELL_USER_COLUMNS, buildShellUser } from '@/lib/shell-user'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 import RejectedScreen from '@/components/dashboard/RejectedScreen'
+import { buttonClasses } from '@/components/ui'
 
 const PROFILE_SELECT = `${SHELL_USER_COLUMNS}, verification_status, social_links, bio, category, city`
 
 function ProfileLoadError() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-white">
-      <div className="max-w-md rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
-        <h1 className="mb-4 text-2xl font-bold text-red-400">Profil yüklenemedi</h1>
-        <p className="mb-6 text-gray-300">Hesap bilgilerinize şu anda ulaşamıyoruz. Lütfen birkaç saniye sonra tekrar deneyin.</p>
-        <a href="/dashboard" className="rounded-xl bg-white/10 px-6 py-3 font-semibold transition hover:bg-white/20">
+    <div className="grid min-h-screen place-items-center bg-background p-4">
+      <div className="w-full max-w-md rounded-2xl border border-line bg-surface-1 p-7 text-center">
+        <h1 className="font-display text-[24px] leading-tight text-ink">Profil yüklenemedi</h1>
+        <p className="mt-2 text-[13.5px] text-ink-muted">Hesap bilgilerine şu anda ulaşamıyoruz. Birkaç saniye sonra tekrar dene.</p>
+        <a href="/dashboard" className={buttonClasses({ variant: 'primary', className: 'mt-5' })}>
           Tekrar dene
         </a>
       </div>
