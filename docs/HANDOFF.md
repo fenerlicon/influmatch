@@ -259,6 +259,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 
 ## 7. Teknik notlar (tekrar keşfetmemek için)
 
+- **Otomatik testler (2026-10-16):** `npm test` (vitest, `tests/`), `npm run typecheck`, `npm run lint:check`. GitHub Actions `CI` her PR'da üçünü çalıştırır. Testler saf iş kurallarını (`lib/*-shared.ts`, vergi no, kurumsal e-posta, mavi tik, keşif filtreleri, ilan alarmı, platform ayarları) ve **web ↔ mobil sabit eşitliğini** (`tests/mobile-parity.test.ts`) denetler; web'de bir sabit değişince mobil kopyası da değişmezse CI kırılır. Yeni saf kural ekleyen oturum testini de ekler.
+
 - **Supabase:**
   - MCP `execute_sql` çoklu ifadede yalnızca son sonucu döndürür.
   - `storage.objects` üzerinde politika oluşturma, silme ve yeniden adlandırma yetkisi yok ("must be owner"). ALTER POLICY ... WITH CHECK/USING ise çalışıyor.

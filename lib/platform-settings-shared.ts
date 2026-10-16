@@ -33,9 +33,10 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   free_offers_per_day: 3,
   free_offers_per_month: 15,
   free_active_adverts: 1,
-  basic_offers_per_day: null,
-  basic_offers_per_month: null,
-  basic_active_adverts: null,
+  // Marka Basic (2026-10-15 kararı; canlıda 20261015000010). Pro sınırsız.
+  basic_offers_per_day: 10,
+  basic_offers_per_month: 60,
+  basic_active_adverts: 3,
 }
 
 export const WHEEL_PROFILES_RANGE = { min: 1, max: 50 } as const
