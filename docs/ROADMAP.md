@@ -5,7 +5,7 @@
 
 ## Hedef
 
-- **Aralık son haftasına kadar** web, mobil ve **Akademi** tam hazır; bu sürede kitle yavaş yavaş toplanır.
+- **Aralık son haftasına kadar** web ve mobil tam hazır; bu sürede kitle yavaş yavaş toplanır. **Akademi POS sonrasına ertelendi** (2026-10-16 kararı; Ocak ötesi).
 - **Aralık son hafta:** "Her şey 0₺" yılbaşı kampanyası (Akademi hariç). Ayrıntılar aşağıda ("0₺ kampanyası", 2026-10-15 kararları).
 - **Şirket 1 Ocak'ta açılır** (şahıs şirketi; vergi dönemi avantajı için daha önce açılmayacak — kesin karar).
   POS başvurusu şirketle birlikte → **satış Ocak ortası–sonu**. Öneri: 0₺ kampanyası POS açılana kadar uzatılır, ücretsiz
@@ -16,8 +16,8 @@
 
 | Dönem | Kod (Claude) | Kullanıcı |
 |---|---|---|
-| Ekim sonu | Açık liste biter; çok hesaplı toplu test | Eğitim yüzü, Akademi metinleri |
-| Kasım | **Akademi** (kurs, video, ilerleme, sınav, sertifika) + **R2 "Drive"** (videolar ve görseller) | Video çekimi/kurgu; **5 Kasım:** Cloudflare hesabı, **bireysel** Apple/Google geliştirici hesapları, `eas init` + FCM |
+| Ekim sonu | Açık liste biter; çok hesaplı toplu test | Çok hesaplı manuel toplu test (`docs/TOPLU_TEST.md`) |
+| Kasım | **R2 "Drive"** (görseller, UGC portföy videoları, teslim kilidi), toplu test düzeltmeleri, mağaza hazırlığı. Akademi POS sonrasına ertelendi | Video çekimi/kurgu; **5 Kasım:** Cloudflare hesabı, **bireysel** Apple/Google geliştirici hesapları, `eas init` + FCM |
 | Aralık 1–2. hafta | Mağazaya gönderim, kampanya altyapısı, üyelik bitiş hatırlatmaları | Kampanya ayrıntıları, POS sağlayıcı seçimi ve evrak hazırlığı, **5 Aralık: Resend ücretli plan** (ücretsiz plan günde 100 e-posta; kampanya bunu aşar) |
 | Aralık son hafta | 0₺ kampanyası yayında | |
 | 1 Ocak | | Şirket kuruluşu, POS başvurusu, D-U-N-S başvurusu |
@@ -32,7 +32,20 @@
 - Bayrak (`free_brand_limits_enabled`) satış günü açılır; kampanya süresince kapalı kalır.
 - Kod işi (Aralık 1–2. hafta): toplu Pro verme ve süre sonu, bitiş hatırlatmaları, ilk ay indirimi (POS entegrasyonuyla).
 
-## Akademi (kararlar)
+## 0₺ döneminde Spotlight'ın değeri (2026-10-16, kullanıcı yönü; ayrıntı onay bekliyor)
+
+- **Liyakatli listeleme:** ücretsiz Spotlight döneminde keşif sıralaması Spotlight'a göre değil, performans / güven / tamamlanan iş /
+  profil doluluğuna göre yapılır.
+- **Mavi tik:** Spotlight şartı kalır ama 0₺ döneminde verilen Spotlight tek başına yetmez; ek (zorlu) şartlar gerekir.
+  Örneğin admin görevlerinden en az birini tamamlamak (aşağıda). Ücretli Spotlight'ta mevcut kural.
+- **Kurucu Üye rozeti (öneri, kullanıcı olumlu):** 0₺ kampanyası **başlamadan önce** kayıt olmuş ve doğrulanmış kullanıcılara kalıcı rozet.
+  0₺ döneminde gelenler bunu almaz (onlara satışta ilk ay %50).
+- **Görevler (fikir aşamasında):** admin herkese ya da seçili kullanıcılara görev verir (ör. Influmatch'i tanıtan video paylaş);
+  kullanıcı gönderi linkini girer, mevcut sonuç ölçümü (Apify, 3.20) izlenme/beğeni şartını kontrol eder, admin onaylar, ödül otomatik işlenir
+  (rozet, mavi tik şartı, satış sonrası Spotlight süresi, indirim). Ödüllü paylaşımda reklam etiketi (#işbirliği / #reklam) zorunlu olmalı
+  (Reklam Kurulu sosyal medya etkileyicileri kılavuzu). **Ödül türleri ve görev listesi kullanıcıda.**
+
+## Akademi (kararlar; 2026-10-16: POS açıldıktan sonra yapılır)
 
 - **Kime:** yalnızca **hesabını doğrulamış influencer/UGC'ler** satın alabilir.
 - **İçerik:** temel taktik ve eğitim videoları; ayrıca işinde iyi UGC/influencer'larla kısa görüşmeler (tanıtım/vitrin içeriği
@@ -139,7 +152,7 @@ Kampanya ROI analizi Marka Pro listesinde.
 2. Cevapsız teklif süresi, teklif şablonu, kaydedilen ilanlar + ilan alarmı
 3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır); aynı bayrakla ücretsiz markada favori ve liste yok, yalnızca Spotlight (3.17-N5)
 4. ✅ İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + marka güvenilirliği (SYSTEM_MAP 3.18, `claude/collab-workspace`). **Teslim kilidi bekliyor** (R2 ile Kasım'da; veri modeli hazır, 3.18-N4)
-5. Akademi + R2 "Drive" (Kasım)
+5. R2 "Drive" (Kasım). Akademi POS sonrasına ertelendi (2026-10-16)
 6. ✅ Sonuç raporu (2026-10-14, SYSTEM_MAP 3.20) + ✅ Influencer Pro "portföyde sonuç raporları" (4.3-S7). Haftalık özette detaylı istatistik: veri + önizleme hazır, gönderim Resend ücretli planla. UGC portföyü (örnek videolar) R2 ile
 7. ✅ Kampanya sihirbazı + müsaitlik (2026-10-14, öne çekildi, SYSTEM_MAP 3.19); kalan: davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
 8. Ekip hesabı / ajans yapısı (2026-10-15 kararı: satış başladıktan sonra)

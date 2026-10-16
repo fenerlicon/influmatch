@@ -190,6 +190,11 @@
 | 0₺ kampanyası (15 Ekim) | Herkese (mevcut + yeni) Spotlight Pro; POS açılınca biter, 7 gün önce hatırlatma; geçenlere ilk ay %50 indirim. Ayrıntı `docs/ROADMAP.md`. |
 | Akademi fiyatı (15 Ekim) | 1.490 ₺ tek seferlik; 25 yaş altı üniversite öğrencisi yarı fiyat, öğrenci belgesi yükleme + admin onayı. |
 | Ekip hesabı (15 Ekim) | Satış başladıktan sonra. |
+| Akademi (16 Ekim) | POS açıldıktan sonra (Ocak ötesi). Kasım işi R2 + toplu test düzeltmeleri. |
+| Aracı platform (16 Ekim) | Influmatch yalnızca aracı; ödeme taraflar arasında. Emanet ödeme/yaptırım yok; sorumluluk sınırı kullanıcı sözleşmesinde (avukat). |
+| "Kampanyalar" (16 Ekim) | Marka menüsünde bu adla kalır (REDESIGN terim istisnası). |
+| 0₺ döneminde Spotlight (16 Ekim) | Liyakatli listeleme; mavi tik için ek şart; Kurucu Üye rozeti 0₺ öncesi gelenlere; admin görevleri fikri. Ayrıntı `docs/ROADMAP.md`, onay bekliyor. |
+| Test (16 Ekim) | Claude otomatik testleri yazar ve çalıştırır; manuel toplu testi kullanıcı yapar. |
 
 ## 4. Karar bekleyenler
 
