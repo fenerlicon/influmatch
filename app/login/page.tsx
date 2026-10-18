@@ -54,7 +54,9 @@ function LoginPageContent() {
       // Yalnızca site içi yollar (açık yönlendirme olmasın).
       const from = searchParams.get('redirectedFrom')
       const target = from && from.startsWith('/') && !from.startsWith('//') && !from.startsWith('/\\') ? from : '/dashboard'
-      router.push(target)
+      // Tam sayfa geçiş (2026-10-19): istemci yönlendirmesi (router.push) girişten önce önbelleğe alınmış "giriş sayfasına git"
+      // yanıtını kullanıp paneli boş bırakıyordu; kullanıcı bir yere tıklayana kadar sayfa açılmıyordu.
+      window.location.assign(target)
     }
   }
 

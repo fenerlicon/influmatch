@@ -1,5 +1,6 @@
 'use client'
 
+import { compressImage } from '@/lib/image-compress'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AvatarUploader from '@/components/onboarding/AvatarUploader'
@@ -245,14 +246,15 @@ export default function OnboardingPage() {
   const handleAvatarUpload = async (file: File) => {
     if (!session) return
     setIsUploadingAvatar(true)
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}.${fileExt}`
+    // Yüklemeden önce küçültülür (512 px, WebP).
+    const compressed = await compressImage(file, { maxSide: 512, skipBelowBytes: 80 * 1024 })
+    const fileName = `${Date.now()}.${compressed.extension}`
     const filePath = `${session.user.id}/${fileName}`
 
-    const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file, {
+    const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, compressed.file, {
       upsert: true,
-      contentType: file.type,
-      cacheControl: '3600',
+      contentType: compressed.file.type || file.type,
+      cacheControl: '31536000',
     })
 
     if (uploadError) {
