@@ -7,9 +7,7 @@ import LandingHeader from '@/components/landing/LandingHeader'
 import LandingFooter from '@/components/landing/LandingFooter'
 import HowItWorks from '@/components/landing/HowItWorks'
 import Faq from '@/components/landing/Faq'
-import FeaturedProfiles, { type FeaturedProfile } from '@/components/landing/FeaturedProfiles'
 import { Avatar, ButtonLink, Card, Chip, Eyebrow, Notice, VerifiedTick } from '@/components/ui'
-import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -31,82 +29,6 @@ export default async function Home({ searchParams }: HomeProps) {
       errorMessage = 'verification_denied'
     }
     redirect(`/login?error=${errorMessage}`)
-  }
-
-  // Fetch real influencers from DB for landing page showcase.
-  // Uses admin client (service_role) to bypass RLS — landing page is public.
-  let featured: FeaturedProfile[] = []
-
-  try {
-    const supabase = createSupabaseAdminClient()
-    if (!supabase) {
-      console.error('[Home] Admin client is null — SUPABASE_SERVICE_ROLE_KEY missing?')
-    } else {
-      // Step 1: Fetch influencers — minimal filters, no joins
-      const { data: influencers, error: usersError } = await supabase
-        .from('users')
-        .select('id, full_name, username, category, city, avatar_url, spotlight_active, verification_status')
-        .eq('role', 'influencer')
-        .eq('verification_status', 'verified')
-        .eq('spotlight_active', true)
-        .eq('is_showcase_visible', true) // vitrinden gizlenen profiller ana sayfada da çıkmaz
-        .not('username', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10)
-
-      if (usersError) {
-        console.error('[Home] Users query error:', usersError)
-      } else if (influencers && influencers.length > 0) {
-        // Step 2: Fetch social accounts for these users (Instagram & TikTok)
-        const userIds = influencers.map((u: any) => u.id)
-
-        const { data: socialAccounts } = await supabase
-          .from('social_accounts')
-          .select('user_id, platform, follower_count, engagement_rate, is_verified')
-          .in('user_id', userIds)
-          .in('platform', ['instagram', 'tiktok'])
-
-        const { data: userBadges } = await supabase
-          .from('user_badges')
-          .select('user_id, badge_id')
-          .in('user_id', userIds)
-
-        // Map social accounts, gathering all platforms for each user (only verified ones)
-        const socialMap = new Map<string, { platform: string; follower_count: number | null; engagement_rate: number | null }[]>()
-        socialAccounts?.forEach((sa: any) => {
-          if (sa.is_verified === true) {
-            if (!socialMap.has(sa.user_id)) {
-              socialMap.set(sa.user_id, [])
-            }
-            socialMap.get(sa.user_id)!.push({
-              platform: sa.platform,
-              follower_count: sa.follower_count,
-              engagement_rate: sa.engagement_rate
-            })
-          }
-        })
-
-        const badgeMap = new Map<string, string[]>()
-        userBadges?.forEach((ub: any) => {
-          if (!badgeMap.has(ub.user_id)) badgeMap.set(ub.user_id, [])
-          badgeMap.get(ub.user_id)!.push(ub.badge_id)
-        })
-
-        featured = influencers.map((u: any) => ({
-          id: u.id,
-          full_name: u.full_name,
-          username: u.username,
-          category: u.category,
-          city: u.city,
-          avatar_url: u.avatar_url,
-          has_verified_badge: badgeMap.get(u.id)?.includes('verified-account') ?? false,
-          // Instagram önce, sonra TikTok
-          platforms: [...(socialMap.get(u.id) || [])].sort((a, b) => (a.platform === 'instagram' ? -1 : b.platform === 'instagram' ? 1 : 0)),
-        }))
-      }
-    }
-  } catch (err) {
-    console.error('[Home] Failed to fetch spotlight influencers:', err)
   }
 
   return (
@@ -220,18 +142,6 @@ export default async function Home({ searchParams }: HomeProps) {
             </div>
           </div>
         </section>
-
-        {/* Öne çıkan profiller (gerçek veri) */}
-        {featured.length > 0 && (
-          <section className="border-t border-line py-16 md:py-[88px]">
-            <div className="mx-auto max-w-[1160px] px-4 sm:px-6">
-              <SectionHead eyebrow="Vitrin" title={<>Öne çıkan <em className="text-gold">profiller</em></>}>
-                Spotlight&apos;taki doğrulanmış içerik üreticileri.
-              </SectionHead>
-              <FeaturedProfiles profiles={featured} />
-            </div>
-          </section>
-        )}
 
         {/* Spotlight */}
         <section id="spotlight" className="scroll-mt-4 border-t border-line py-16 md:py-[88px]">
