@@ -87,6 +87,20 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Bildirimler: zil, okundu; e-posta tercihleri kapalıyken ilgili e-posta gelmiyor.
 - [ ] Destek talebi aç → admin yanıtlasın → kullanıcıya bildirim.
 
+## 7b. Görevler (SQL `20261018000010_tasks_module.sql` çalıştırıldıktan sonra)
+
+- [ ] **A** `/admin/tasks`: 6 varsayılan görev **kapalı** geliyor; birini düzenle, aç, kaydet. Yeni görev oluştur (tarih, hedef kullanıcı ID'si).
+- [ ] **I1** `/dashboard/tasks` ve mobil Profil → Görevler: açık görevler, davet kodu + bağlantı (kopyala / paylaş).
+- [ ] Davet: çıkış yap, `/signup?davet=KOD` ile yeni hesap aç (kod alanı dolu gelir); mobilde kodu elle yaz. I1'de "kodunla kaydoldu" sayısı artıyor;
+  davetli onaylanınca "onaylandı" sayısı artıyor.
+- [ ] Tanıtım videosu: Reels/TikTok linki gönder → "Ölçülüyor"; aynı link ikinci hesaptan reddediliyor; story ya da kısa link kabul edilmiyor.
+  (Hızlı deneme: admin görevde bekleme süresini 1 gün yap.) Ölçümden sonra eşik üstü → incelemede, altı → reddedildi + bildirim.
+- [ ] Story: ekran görüntüsü yükle → admin incelemede görüntüyü görüyor → reddet (not zorunlu) → kullanıcı notu görüyor, tekrar gönderebiliyor.
+- [ ] Otomatik görev (M1 ilk ilan + 3 teklif): koşullar tamamlanınca "Ödülü talep et" → admin onaylar → "Ödüllerim"de "Satış başlayınca" + indirim kodu.
+- [ ] Bir görev ikinci kez gönderilemiyor (kişi başı bir kez; davet görevi 3 tur).
+- [ ] 0₺ dönemi anahtarını aç → mavi tikli I1'in tiki (görev + 1 tamamlanan iş yoksa) kalkıyor, panel kartında iki yeni şart görünüyor; **kapat** → geri geliyor.
+- [ ] "Ödülleri hesaplara işle"yi **satış başlamadan deneme** (Spotlight süreleri gerçekten eklenir). Gerekirse yalnızca test hesabının ödülüyle dene, sonra Spotlight'ı admin panelinden düzelt.
+
 ## 8. Ücretsiz marka sınırları (kısa süre, canlıyı etkiler)
 
 - [ ] A `/admin/limits`'te bayrağı aç → M1 (Spotlight'sız): keşif çarkı, teklif günlük/aylık sınırı, aktif ilan sınırı, favori/liste kilidi.

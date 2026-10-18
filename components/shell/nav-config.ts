@@ -1,6 +1,6 @@
 import {
   Bell, Briefcase, CalendarDays, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
-  MessagesSquare, SlidersHorizontal, Target, UserRound, Users, type LucideIcon,
+  MessagesSquare, SlidersHorizontal, Target, Trophy, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
 export type ShellRole = 'influencer' | 'brand' | 'admin'
@@ -47,6 +47,8 @@ const INFLUENCER: NavGroup[] = [
     items: [
       { id: 'profile', label: 'Profilim', href: '/dashboard/influencer/profile', icon: UserRound, alsoActive: ['/dashboard/influencer/badges'] },
       { id: 'stats', label: 'İstatistikler', href: '/dashboard/influencer/stats', icon: LineChart },
+      // Görevler (2026-10-18): tanıtım, davet ve ilk iş görevleri; ödül satış başlayınca.
+      { id: 'tasks', label: 'Görevler', href: '/dashboard/tasks', icon: Trophy },
     ],
   },
 ]
@@ -80,6 +82,7 @@ const BRAND: NavGroup[] = [
     label: 'Marka',
     items: [
       { id: 'profile', label: 'Profilim', href: '/dashboard/brand/profile', icon: Building2, alsoActive: ['/dashboard/brand/badges'] },
+      { id: 'tasks', label: 'Görevler', href: '/dashboard/tasks', icon: Trophy },
     ],
   },
 ]
@@ -100,6 +103,7 @@ const ADMIN: NavGroup[] = [
     items: [
       { id: 'adverts', label: 'İlanlar', href: '/admin/adverts', icon: Megaphone },
       { id: 'notify', label: 'Bildirim Gönder', href: '/admin/notifications', icon: Bell },
+      { id: 'tasks', label: 'Görevler', href: '/admin/tasks', icon: Trophy },
       { id: 'weekly-preview', label: 'Haftalık Özet Önizleme', href: '/admin/weekly-preview', icon: CalendarDays },
     ],
   },

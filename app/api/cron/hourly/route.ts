@@ -12,6 +12,7 @@ import { expireStaleOffers } from '@/lib/offers'
 import { resetExpiredAvailability } from '@/lib/availability'
 import { processAdvertAlerts } from '@/lib/advert-alerts'
 import { processDueMetrics } from '@/lib/post-metrics'
+import { processDueTaskMeasurements } from '@/lib/tasks'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -135,9 +136,11 @@ export async function GET(req: Request) {
   // 2026-10-08). İkisi paralel çalışır (ölçüm tek koşu: istatistiğin 3 eşzamanlı koşusuna en fazla 1 ekler). Taramalar uzun
   // sürdüyse bu turda yapılmaz; istatistiği günlük cron, ölçümü bir sonraki saat sürdürür.
   const statsDeadline = startedAt + HOURLY_STATS_START_BUDGET_MS
-  const [stats, metrics] = await Promise.allSettled([
+  // Görev ölçümü (tanıtım videoları, lib/tasks.ts) de aynı turda: tek koşu, en fazla 10 gönderi.
+  const [stats, metrics, taskMetrics] = await Promise.allSettled([
     refreshStaleAccounts(admin, { deadline: statsDeadline, limit: 10 }),
     processDueMetrics(admin, { deadline: statsDeadline }),
+    processDueTaskMeasurements(admin, { deadline: statsDeadline }),
   ])
   if (stats.status === 'fulfilled') result.statsRefresh = stats.value
   else {
@@ -148,6 +151,11 @@ export async function GET(req: Request) {
   else {
     console.error('[cron/hourly] Gönderi ölçümleri alınamadı:', metrics.reason)
     result.postMetricsError = metrics.reason instanceof Error ? metrics.reason.message : String(metrics.reason)
+  }
+  if (taskMetrics.status === 'fulfilled') result.taskMetrics = taskMetrics.value
+  else {
+    console.error('[cron/hourly] Görev ölçümleri alınamadı:', taskMetrics.reason)
+    result.taskMetricsError = taskMetrics.reason instanceof Error ? taskMetrics.reason.message : String(taskMetrics.reason)
   }
 
   return NextResponse.json(result)

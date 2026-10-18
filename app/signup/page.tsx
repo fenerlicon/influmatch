@@ -34,6 +34,8 @@ function SignupPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isAgreed, setIsAgreed] = useState(false)
+  // Görevler: davet bağlantısı /signup?davet=KOD; kod isteğe bağlı, elle de yazılabilir.
+  const [inviteCode, setInviteCode] = useState(() => (searchParams.get('davet') ?? '').trim().toUpperCase().slice(0, 12))
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { signUpWithEmail, isSubmitting } = useSupabaseAuth()
 
@@ -54,6 +56,7 @@ function SignupPageContent() {
         fullName,
         role,
         creatorType: kind === 'brand' ? undefined : kind,
+        inviteCode: /^[A-Z0-9]{6,12}$/.test(inviteCode) ? inviteCode : undefined,
       })
       if (response.error) {
         const message = response.error.message?.toLowerCase() || ''
@@ -124,6 +127,18 @@ function SignupPageContent() {
         <Field label="Şifre">
           {(props) => (
             <PasswordInput {...props} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="En az 6 karakter" minLength={6} required />
+          )}
+        </Field>
+
+        <Field label="Davet kodu" hint="İsteğe bağlı">
+          {(props) => (
+            <Input
+              {...props}
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12))}
+              placeholder="Örn. AB3K9QXZ"
+              autoComplete="off"
+            />
           )}
         </Field>
 

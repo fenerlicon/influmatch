@@ -781,6 +781,27 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ---
 
+### 3.21 Görevler (2026-10-18; ROADMAP "Görevler", `claude/tasks-module`)
+
+- **Veri:** `platform_tasks` (görev tanımı), `task_submissions` (gönderim; görev + kullanıcı + tur başına tek canlı/onaylı kayıt),
+  `task_rewards` (bekleyen ödül), `invite_codes`, `user_invites`, özel kova `task-proofs`, ayar `promo_period_enabled`
+  (`supabase/migrations/20261018000010_tasks_module.sql`). Tablolar istemci rollerine tamamen kapalı; okuma/yazma yalnızca `lib/tasks.ts` (service role).
+- **Davet:** kayıtta `user_metadata.invite_code` (web `/signup?davet=KOD` + isteğe bağlı alan, mobil kayıt formu) → `record_user_invite` tetikleyicisi
+  (`on_auth_user_invite`, kaydı asla engellemez). Davet, davetlinin hesabı `verification_status = 'verified'` olunca doğrulanmış sayılır (`lib/invites.ts`).
+- **Akış:** web `/dashboard/tasks` (menüde "Görevler", iki rol), mobil `Tasks` ekranı (Profil → Görevler), `/api/mobile/tasks`. Tanıtım videosu: link →
+  `hold_days` sonra saatlik görev Apify ile ölçer (`processDueTaskMeasurements`; eşik takipçinin `view_ratio`'su, en az `min_views`; altı reddedilir,
+  3 kez ulaşılamazsa reddedilir; reklam etiketi kontrolü admin'e not). Story: ekran görüntüsü (imzalı yükleme) → inceleme. Otomatik görevler: koşullar
+  sağlanınca "Ödülü talep et" → sunucu yeniden kontrol eder → inceleme. **Her ödül admin onayından geçer** (`/admin/tasks`).
+- **Ödüller:** onayda `task_rewards` (indirimde `IM-XXXXXXXX` kodu). Satış başlayınca admin "Ödülleri hesaplara işle": Spotlight süresi
+  (planın yükseği, mevcut bitişten itibaren; süresiz plana dokunulmaz), kodlar kullanılabilir. Kodun POS'ta kullanımı ve ilk ay %50 ile birleşmeme kuralı POS işiyle.
+- **0₺ dönemi:** `/admin/tasks` anahtarı; açıkken mavi tikte ek şart (onaylı tanıtım videosu + ≥1 tamamlanan iş birliği), güven skorunda Spotlight puanı yok
+  (`lib/blue-tick-rules.ts`, `lib/tasks-promo.ts`; anahtar değişince mavi tik taraması hemen çalışır).
+  - **3.21-N1 [AÇIK]** Liyakatli listeleme (0₺ döneminde keşifte Spotlight önceliği kalksın) yapılmadı: sıralama web panel alanındaki dosyalarda
+    (`components/discover/DiscoverGrid.tsx`, `utils/fetchInfluencers.ts`, `lib/profile-reads.ts`, `lib/discover-filters.ts`).
+  - **3.21-N2** "Profil %100" koşulu `utils/profileCompletion.ts` ölçüsüyle (en az 2 sosyal bağlantı dahil) + fiyat kartı + ≥1 tamamlanan iş; portföy R2 ile.
+  - **3.21-N3** Kurucu Üye rozeti (0₺ öncesi gelenlere) karar aşamasında; kod yok.
+  - **3.21-S1 [DÜŞÜK]** Story kanıtı yalnızca ekran görüntüsü; gerçekten paylaşıldığı admin gözüyle kontrol edilir.
+
 ## 4. Ortak: rozetler, Spotlight, profil
 
 ### 4.1 Rozet kataloğu ve otomatik verme

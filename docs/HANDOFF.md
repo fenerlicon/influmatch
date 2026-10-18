@@ -195,7 +195,7 @@
 | "Kampanyalar" (16 Ekim) | Marka menüsünde bu adla kalır (REDESIGN terim istisnası). |
 | 0₺ döneminde Spotlight (16 Ekim) | Liyakatli listeleme; mavi tik için ek şart; Kurucu Üye rozeti 0₺ öncesi gelenlere; admin görevleri fikri. Ayrıntı `docs/ROADMAP.md`, onay bekliyor. |
 | Test (16 Ekim) | Claude otomatik testleri yazar ve çalıştırır; manuel toplu testi kullanıcı yapar. |
-| Görevler (18 Ekim) | Ödül yalnızca satış sonrası Spotlight süresi + indirim kodu; 4 influencer + 2 marka görevi, kişi başı bir kez, admin onaylı. 0₺ döneminde mavi tik = mevcut şartlar + tanıtım görevi + 1 tamamlanan iş. Tablo `docs/ROADMAP.md`. Kod yok. |
+| Görevler (18 Ekim) | Ödül yalnızca satış sonrası Spotlight süresi + indirim kodu; 4 influencer + 2 marka görevi, kişi başı bir kez, admin onaylı. 0₺ döneminde mavi tik = mevcut şartlar + tanıtım görevi + 1 tamamlanan iş. Tablo `docs/ROADMAP.md`. 19 Ekim'de kodlandı (SYSTEM_MAP 3.21); SQL `20261018000010_tasks_module.sql` kullanıcı çalıştırır. Görevler KAPALI gelir, admin `/admin/tasks`'tan açar. |
 
 ## 4. Karar bekleyenler
 

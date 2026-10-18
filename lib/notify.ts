@@ -49,6 +49,7 @@ export type NotificationEvent =
   | 'offer_edited'
   | 'advert_alert'
   | 'account_status'
+  | 'task_update'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -87,6 +88,8 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   advert_alert: { preference: 'advert_applications', email: true },
   // Hesap onayı / reddi (admin kararı): önemli olay, "Platform Güncellemeleri" tercihine bağlı.
   account_status: { preference: 'updates', email: true },
+  // Görev sonucu (ölçüm, admin onayı/reddi, ödülün hesaba işlenmesi): "Platform Güncellemeleri" tercihine bağlı.
+  task_update: { preference: 'updates', email: true },
 }
 
 /** E-postası alıcı + bağlantı başına saatte en fazla bir kez giden olaylar (site içi bildirim her seferinde yazılır). */

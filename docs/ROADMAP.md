@@ -42,7 +42,7 @@
   0₺ döneminde gelenler bunu almaz (onlara satışta ilk ay %50).
 - **Mavi tik (0₺ döneminde, 2026-10-18 kararı):** mevcut şartlar (takipçi, güven, tazelik, doğrulama) + **bir tanıtım görevi + en az 1 tamamlanan iş birliği**.
   Not: güven skoru Spotlight'a +10 veriyor (`utils/matching.ts`); 0₺ döneminde verilen Spotlight bu puanı ve keşif önceliğini kazandırmamalı.
-- **Görevler (2026-10-18 kararları; kod yazılmadı):** admin herkese ya da seçili kullanıcılara görev açar. Kullanıcı gönderiyi/kanıtı girer,
+- **Görevler (2026-10-18 kararları; ✅ kodlandı 2026-10-19, SYSTEM_MAP 3.21 — liyakatli listeleme ve Kurucu Üye hariç):** admin herkese ya da seçili kullanıcılara görev açar. Kullanıcı gönderiyi/kanıtı girer,
   sistem ölçer, **admin onaylar**, ödül hesaba işlenir. Her görev **kişi başı bir kez** (davet görevi en fazla 3 tur); yeni dönemde admin yeni görev açar.
   Ödül miktarları admin panelinden değiştirilebilir; aşağıdakiler başlangıç değerleri.
 
