@@ -8,6 +8,8 @@ import { cn } from '@/utils/cn'
 
 interface Props {
   onSend: (message: string) => void
+  /** Yazarken çağrılır (karşı tarafa "yazıyor…"; çağıran taraf seyreltir). */
+  onTyping?: () => void
   onFileSelect: (file: File) => void
   disabled?: boolean
   placeholder?: string
@@ -16,7 +18,7 @@ interface Props {
 }
 
 /** Mesaj yazma alanı: görsel ekleme, emoji, Enter ile gönder (Shift+Enter yeni satır). */
-export default function Composer({ onSend, onFileSelect, disabled, placeholder = 'Mesaj yaz', notice }: Props) {
+export default function Composer({ onSend, onTyping, onFileSelect, disabled, placeholder = 'Mesaj yaz', notice }: Props) {
   const [message, setMessage] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -108,7 +110,10 @@ export default function Composer({ onSend, onFileSelect, disabled, placeholder =
           disabled={disabled || !!file}
           aria-label="Mesaj"
           placeholder={file ? 'Görsel gönderilmeye hazır' : placeholder}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+            setMessage(e.target.value)
+            if (e.target.value.trim()) onTyping?.()
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()

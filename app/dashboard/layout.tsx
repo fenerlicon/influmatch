@@ -6,6 +6,8 @@ import { SHELL_USER_COLUMNS, buildShellUser } from '@/lib/shell-user'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 import RejectedScreen from '@/components/dashboard/RejectedScreen'
+import AdminNoticeDialog from '@/components/shell/AdminNoticeDialog'
+import { ADMIN_NOTICE_PARAM, type AdminNotice } from '@/lib/admin-notices-shared'
 import { buttonClasses } from '@/components/ui'
 
 const PROFILE_SELECT = `${SHELL_USER_COLUMNS}, verification_status, social_links, bio, category, city`
@@ -103,20 +105,31 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   // Influencer / UGC hesapları Instagram veya TikTok hesaplarından en az birini
   // doğrulamadan panele giremez (yeni ve mevcut kullanıcılar için aynı kural).
-  if (finalUserProfile.role === 'influencer') {
-    const { data: verifiedAccount } = await supabase
-      .from('social_accounts')
-      .select('id')
+  // Admin duyuruları (ör. kaldırılan ilan, lib/admin-notices-shared.ts) aynı anda okunur: ek bekleme yok.
+  const [verifiedAccountResult, adminNoticeResult] = await Promise.all([
+    finalUserProfile.role === 'influencer'
+      ? supabase
+          .from('social_accounts')
+          .select('id')
+          .eq('user_id', user.id)
+          .in('platform', ['instagram', 'tiktok'])
+          .eq('is_verified', true)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: { id: 'not-required' } }),
+    supabase
+      .from('notifications')
+      .select('id, title, message, created_at')
       .eq('user_id', user.id)
-      .in('platform', ['instagram', 'tiktok'])
-      .eq('is_verified', true)
-      .limit(1)
-      .maybeSingle()
-
-    if (!verifiedAccount) {
-      redirect('/onboarding/verify')
-    }
+      .eq('is_read', false)
+      .like('link', `%${ADMIN_NOTICE_PARAM}=%`)
+      .order('created_at', { ascending: true })
+      .limit(5),
+  ])
+  if (finalUserProfile.role === 'influencer' && !verifiedAccountResult.data) {
+    redirect('/onboarding/verify')
   }
+  const adminNotices = (adminNoticeResult.data ?? []) as AdminNotice[]
 
   // Rol her zaman DB'den: user_metadata.role kullanıcı tarafından değiştirilebilir.
   const shellUser = buildShellUser(user, finalUserProfile)
@@ -135,6 +148,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <AppShell user={shellUser} notices={<ShellNotices notices={notices} />}>
       {children}
+      {adminNotices.length > 0 && <AdminNoticeDialog notices={adminNotices} />}
     </AppShell>
   )
 }

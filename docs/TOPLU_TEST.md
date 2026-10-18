@@ -22,7 +22,7 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 ## 1. Tanıtım, kayıt, giriş (web)
 
 - [ ] `/` ana sayfa masaüstü ve telefonda: başlık, "Nasıl çalışır" sekmeleri (Markalar / İçerik üreticileri), S.S.S. açılıp kapanıyor, alt bağlantılar çalışıyor.
-- [ ] Öne çıkan profiller bölümü: Spotlight'ta doğrulanmış influencer varsa görünür, yoksa bölüm hiç görünmez.
+- [ ] Ana sayfada "Öne çıkan profiller" bölümü ve Social Art ibaresi yok (2026-10-19 kararı).
 - [ ] `/signup`: Marka / Influencer / UGC seçimi; koşullar kutusu işaretlenmeden "Hesap oluştur" pasif.
 - [ ] Eski bağlantı `/signup-role?role=brand` → `/signup`'a gider, Marka seçili gelir.
 - [ ] Kayıt → `/auth/check-email`: 6 haneli kod; yanlış kodda hata; 60 sn sonra "Tekrar gönder".
@@ -86,6 +86,19 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Mesajlar: arama, Okunmamış / Süren işler, görsel gönderme, raporla, engelle; okundu bilgisi iki cihazda.
 - [ ] Bildirimler: zil, okundu; e-posta tercihleri kapalıyken ilgili e-posta gelmiyor.
 - [ ] Destek talebi aç → admin yanıtlasın → kullanıcıya bildirim.
+
+## 7c. 2026-10-19 düzeltmeleri
+
+- [ ] Giriş yapınca panel (marka / influencer / admin) boş ekranda kalmadan açılıyor; çıkış giriş sayfasına götürüyor.
+- [ ] Menüde sayfa değiştirince içerik alanında hemen yükleme iskeleti görünüyor.
+- [ ] Avatarlar ve profil fotoğrafları hızlı açılıyor; yeni yüklenen fotoğraf / logo / ilan kapağı küçültülmüş (WebP) yükleniyor.
+- [ ] **A** `/admin/adverts`: ilan silerken neden zorunlu → marka bildirimi alıyor; **M1** panele girince pencere açılıyor, "Anladım" deyince bir daha açılmıyor (web + mobil ana sayfa). Başvuranlar "ilan kaldırıldı" bildirimi alıyor.
+- [ ] **A** `/admin`: "Şu an çevrimiçi" kartına basınca yalnızca çevrimiçi hesaplar listeleniyor; tekrar basınca / sekme değiştirince filtre kapanıyor.
+- [ ] Yeni hesap: onboarding'i birkaç kez kaydet → destekten yalnızca **bir** hoş geldin mesajı.
+- [ ] Mesajlar (web ↔ web, web ↔ mobil): mesaj anında görünüyor ("Gönderiliyor…" → "Gönderildi"); karşı taraf açınca "Görüldü"; yazarken karşıda "… yazıyor".
+- [ ] Sohbette görsel gönder: büyük fotoğraf küçültülerek gidiyor, karşı tarafta hızlı açılıyor.
+- [ ] Spotlight'lı profil kartlarında "Spotlight" yazısı yok; isim yanında altın parıltı ikonu ve kartın üstünde ince altın çizgi / hafif parlama var (web + mobil).
+- [ ] Admin elle mavi tik ver / kaldır / otomatiğe döndür çalışıyor.
 
 ## 8. Ücretsiz marka sınırları (kısa süre, canlıyı etkiler)
 

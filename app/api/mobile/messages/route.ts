@@ -1,8 +1,19 @@
 import { getBearerContext, mobileJson } from '@/lib/mobile-auth'
 import { sendMessageAs } from '@/lib/messages'
 import { markRoomsRead } from '@/lib/room-reads'
+import { participantLastReadAs } from '@/lib/chat-reads'
 
 export const dynamic = 'force-dynamic'
+
+/** Karşı tarafın son okuma zamanı ("Görüldü"): ?participantId=&roomIds=a,b → { lastReadAt } */
+export async function GET(request: Request) {
+  const ctx = await getBearerContext(request)
+  if (!ctx) return mobileJson({ success: false, error: 'Oturum gerekli.' }, 401)
+  const params = new URL(request.url).searchParams
+  const roomIds = (params.get('roomIds') ?? '').split(',').filter(Boolean)
+  const lastReadAt = await participantLastReadAs(ctx.supabase, ctx.user.id, params.get('participantId'), roomIds)
+  return mobileJson({ success: true, lastReadAt })
+}
 
 /** Mesaj gönderir. Gövde: { roomId, content } */
 export async function POST(request: Request) {

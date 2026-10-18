@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { participantLastReadAs } from '@/lib/chat-reads'
 import { getLastReadMap } from '@/lib/room-reads'
 
 export async function getTotalUnreadCount() {
@@ -52,4 +53,15 @@ export async function getTotalUnreadCount() {
     console.error('Error calculating total unread count:', error)
     return 0
   }
+}
+
+
+/** Karşı tarafın bu sohbetteki son okuma zamanı ("Görüldü"; lib/chat-reads.ts). */
+export async function getParticipantLastRead(participantId: string, roomIds: string[]): Promise<string | null> {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+  return participantLastReadAs(supabase, user.id, participantId, roomIds)
 }

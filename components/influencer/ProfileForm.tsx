@@ -1,5 +1,6 @@
 'use client'
 
+import { compressImage } from '@/lib/image-compress'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Image from 'next/image'
 import { useState, useTransition, useEffect, useCallback } from 'react'
@@ -235,11 +236,14 @@ export default function ProfileForm({ initialData, connectedPlatforms = [] }: Pr
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) throw new Error('Oturum bulunamadı')
-      const fileExt = file.name.split('.').pop()
+      // Profil fotoğrafı yüklemeden önce küçültülür (512 px, WebP): kartlarda ve mesajlarda hızlı açılır.
+      const compressed = await compressImage(file, { maxSide: 512, skipBelowBytes: 80 * 1024 })
       // Kullanıcı klasörü: depo kuralı ve hesap silmede dosya temizliği bu yola dayanır.
-      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`
-      const { error: uploadError } = await supabase.storage.from(AVATAR_BUCKET).upload(filePath, file, {
+      const filePath = `${user.id}/${crypto.randomUUID()}.${compressed.extension}`
+      const { error: uploadError } = await supabase.storage.from(AVATAR_BUCKET).upload(filePath, compressed.file, {
         upsert: true,
+        cacheControl: '31536000',
+        contentType: compressed.file.type || file.type,
       })
       if (uploadError) {
         throw uploadError

@@ -50,12 +50,24 @@ Herhangi bir sorun olursa veya desteğe ihtiyacın olursa buradan bize ulaşabil
     }
 
     // 3. Create or Get Room
-    // Check if room already exists (unlikely for new user, but good practice)
-    const { data: existingRoom } = await adminSupabase
+    // Hoş geldin mesajı yalnızca bir kez gider (2026-10-19 hatası: onboarding her kaydedildiğinde oda bulunuyor ama mesaj yeniden
+    // yazılıyordu; aynı çift arasında birden çok oda varken maybeSingle hata verip her seferinde yeni oda da açılıyordu).
+    const { data: pairRooms } = await adminSupabase
         .from('rooms')
         .select('id')
         .or(`and(brand_id.eq.${adminId},influencer_id.eq.${userId}),and(brand_id.eq.${userId},influencer_id.eq.${adminId})`)
-        .maybeSingle()
+        .order('created_at', { ascending: true })
+        .limit(20)
+    const roomIds = ((pairRooms ?? []) as Array<{ id: string }>).map((r) => r.id)
+    if (roomIds.length > 0) {
+        const { count: alreadySent } = await adminSupabase
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .in('room_id', roomIds)
+            .eq('sender_id', adminId)
+        if ((alreadySent ?? 0) > 0) return
+    }
+    const existingRoom = roomIds.length > 0 ? { id: roomIds[0] } : null
 
     let roomId = existingRoom?.id
 

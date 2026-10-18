@@ -235,13 +235,12 @@ export default function InfluencerDetailScreen({ navigation, route }) {
             <View className="items-center" style={{ gap: 10 }}>
                 <Avatar name={name} uri={resolveAvatar(influencer.avatar_url) ? getThumbnailUrl(influencer.avatar_url) : null} size="xl" />
                 <View className="items-center">
-                    <NameWithTick name={name} verified={influencer.isVerified} variant="heading" />
+                    <NameWithTick name={name} verified={influencer.isVerified} spotlight={!!influencer.spotlight_active} variant="heading" />
                     <Text variant="small" tone="fg2">
                         {[influencer.username && `@${influencer.username}`, influencerCategoryLabel(influencer.category), influencer.city].filter(Boolean).join(' · ')}
                     </Text>
                 </View>
                 <View className="flex-row flex-wrap justify-center" style={{ gap: 6 }}>
-                    {influencer.spotlight_active ? <Chip label="Spotlight" tone="gold" /> : null}
                     {availability?.status === 'busy' ? <Chip label="Şu an dolu" tone="warning" dot /> : null}
                     {rateCard?.negotiable ? <Chip label="Pazarlığa açık" /> : null}
                     <Chip label={`${completedCount} tamamlanan iş birliği`} />

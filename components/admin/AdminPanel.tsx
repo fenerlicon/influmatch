@@ -12,7 +12,7 @@ import { influencerBadges, brandBadges } from '@/app/badges/data'
 import { getLastSeenMap } from '@/app/admin/presence/actions'
 import { isOnline } from '@/lib/presence'
 import {
-  Avatar, Button, Card, Chip, ConfirmDialog, EmptyState, Field, Input, Modal, PageHeader, Select, StatCard, Tabs,
+  Avatar, Button, Card, Chip, ConfirmDialog, EmptyState, Field, Input, Modal, PageHeader, Select, StatCard, Tabs, Notice,
 } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import UserDetail from '@/components/admin/users/UserDetail'
@@ -81,6 +81,8 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     }
   }, [])
   const onlineCount = Object.values(lastSeen).filter((iso) => isOnline(iso, now)).length
+  // "Şu an çevrimiçi" kartı filtre de olur (2026-10-19): açıkken sekmelerden bağımsız, yalnızca çevrimiçi hesaplar.
+  const [onlineOnly, setOnlineOnly] = useState(false)
 
   // Sunucu verisi yenilenirse (router.refresh) listeyi eşitle
   useEffect(() => {
@@ -130,14 +132,20 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
   const rows = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('tr-TR')
     return all
-      .filter((u) => inTab(u, activeTab))
+      .filter((u) => (onlineOnly ? isOnline(lastSeen[u.id], now) : inTab(u, activeTab)))
       .filter((u) => !q || [u.full_name, u.email, u.username, u.id].some((v) => v?.toLocaleLowerCase('tr-TR').includes(q)))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-  }, [all, activeTab, query])
+      .sort((a, b) =>
+        onlineOnly
+          ? new Date(lastSeen[b.id] ?? 0).getTime() - new Date(lastSeen[a.id] ?? 0).getTime()
+          : new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all, activeTab, query, onlineOnly, lastSeen, now])
 
   const selected = all.find((u) => u.id === selectedId) ?? null
 
   const changeTab = (tab: TabKey) => {
+    setOnlineOnly(false)
     setActiveTab(tab)
     setChecked(new Set())
     setSelectedId(null)
@@ -320,11 +328,23 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
     <div className="max-w-[1320px]">
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Toplam kullanıcı" value={totalUsers} detail={`${influencerCount} influencer · ${brandCount} marka`} />
-        <StatCard
-          label="Şu an çevrimiçi"
-          value={<span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-success" aria-hidden />{onlineCount}</span>}
-          detail="Son 5 dakika"
-        />
+        <button
+          type="button"
+          aria-pressed={onlineOnly}
+          onClick={() => {
+            setOnlineOnly((v) => !v)
+            setChecked(new Set())
+            setSelectedId(null)
+          }}
+          className={`rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 ${onlineOnly ? 'ring-1 ring-success/60' : 'hover:opacity-90'}`}
+        >
+          <StatCard
+            label="Şu an çevrimiçi"
+            value={<span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-success" aria-hidden />{onlineCount}</span>}
+            detail={onlineOnly ? 'Filtre açık · kapatmak için tıkla' : 'Son 5 dakika · listelemek için tıkla'}
+            className="h-full"
+          />
+        </button>
         <StatCard label="Onay bekleyen" value={counts.pending} detail={`${pendingBrands} marka`} />
         <StatCard label="Reddedilen" value={counts.rejected} />
       </div>
@@ -346,6 +366,20 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         onSelect={(value) => changeTab(value as TabKey)}
         items={TABS.map((t) => ({ value: t.key, label: t.label, count: counts[t.key] }))}
       />
+      {onlineOnly && (
+        <Notice
+          className="mb-3"
+          tone="success"
+          title={`Çevrimiçi hesaplar (${onlineCount})`}
+          action={
+            <Button size="sm" variant="ghost" onClick={() => setOnlineOnly(false)}>
+              Filtreyi kapat
+            </Button>
+          }
+        >
+          Son 5 dakikada aktif olan tüm hesaplar, son görülmeye göre sıralı. Liste dakikada bir tazelenir.
+        </Notice>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <div className="relative min-w-[220px] flex-1">

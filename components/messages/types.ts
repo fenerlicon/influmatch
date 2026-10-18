@@ -26,6 +26,8 @@ export interface ChatMessage {
   /** Sunucunun yazdığı sistem mesajı (ör. teklif geri çekildi, 3.6-S8); ortada ayrı gösterilir. */
   is_system?: boolean
   room_id?: string
+  /** İyimser gönderim: sunucu henüz onaylamadı ("Gönderiliyor…"). */
+  pending?: boolean
 }
 
 /** Karşı tarafın tiki: yönetici / onaylı marka altın, mavi tik mavi. */

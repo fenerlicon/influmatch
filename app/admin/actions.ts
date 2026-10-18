@@ -11,6 +11,7 @@ import { syncBlueTick, sweepBlueTicks, type BlueTickOverride } from '@/lib/blue-
 import { grantOfficialBusiness, loadLatestTaxVerifications, TAX_DOCUMENTS_BUCKET } from '@/lib/tax-verification'
 import { evaluateOfficialBusiness, syncOfficialBusiness } from '@/lib/official-business'
 import { notifyUser } from '@/lib/notify'
+import { adminNoticeLink, cleanRemovalReason } from '@/lib/admin-notices-shared'
 
 /**
  * Hesap onayı / reddi bildirimi (site içi + push + e-posta, "Platform Güncellemeleri" tercihine bağlı).
@@ -872,7 +873,9 @@ export async function getAllAdverts() {
 }
 
 // Delete any advert (Admin only)
-export async function deleteAdvertAdmin(advertId: string) {
+// Kaldırma nedeni zorunlu (2026-10-19): marka bildirim + panele ilk girişte pencere (lib/admin-notices-shared.ts) alır,
+// başvuran influencerlar site içi bildirim alır.
+export async function deleteAdvertAdmin(advertId: string, reasonInput?: string) {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -895,6 +898,9 @@ export async function deleteAdvertAdmin(advertId: string) {
     return { error: 'Bu işlem için yetkiniz yok.' }
   }
 
+  const reason = cleanRemovalReason(reasonInput)
+  if (!reason) return { error: 'Kaldırma nedenini yazın (markaya gösterilir).' }
+
   // Use Admin Client to bypass RLS
   const supabaseAdmin = createSupabaseAdminClient()
 
@@ -902,12 +908,18 @@ export async function deleteAdvertAdmin(advertId: string) {
     return { error: 'Sistem yapılandırma hatası: Admin yetkisi alınamadı.' }
   }
 
-  // Get hero image to delete from storage
-  const { data: advert } = await supabase
+  // Get hero image to delete from storage; marka ve başvuranlar bildirim için silmeden önce okunur.
+  const { data: advert } = await supabaseAdmin
     .from('advert_projects')
-    .select('hero_image')
+    .select('hero_image, title, brand_id, brand_user_id')
     .eq('id', advertId)
-    .single()
+    .maybeSingle()
+  if (!advert) return { error: 'İlan bulunamadı.' }
+  const { data: applicantRows } = await supabaseAdmin
+    .from('advert_applications')
+    .select('influencer_user_id')
+    .eq('advert_id', advertId)
+    .limit(1000)
 
   if (advert?.hero_image) {
     try {
@@ -929,6 +941,36 @@ export async function deleteAdvertAdmin(advertId: string) {
   if (error) {
     console.error('[deleteAdvertAdmin] Supabase error:', error)
     return { error: `İlan silme hatası: ${error.message}` }
+  }
+
+  const brandId = (advert.brand_user_id ?? advert.brand_id) as string | null
+  const title = String(advert.title ?? 'İlan').slice(0, 120)
+  if (brandId) {
+    await notifyUser(
+      {
+        userId: brandId,
+        event: 'advert_removed',
+        title: 'İlanın kaldırıldı',
+        message: `"${title}" ilanın Influmatch ekibi tarafından kaldırıldı. Neden: ${reason}`,
+        link: adminNoticeLink('ilan-kaldirildi'),
+        type: 'warning',
+      },
+      supabaseAdmin,
+    )
+  }
+  const applicants = Array.from(new Set(((applicantRows ?? []) as Array<{ influencer_user_id: string }>).map((r) => r.influencer_user_id)))
+  for (const applicantId of applicants) {
+    await notifyUser(
+      {
+        userId: applicantId,
+        event: 'application_status',
+        title: 'Başvurduğun ilan kaldırıldı',
+        message: `"${title}" ilanı yayından kaldırıldı; başvurun da kapandı.`,
+        link: '/dashboard/influencer/advert',
+        type: 'info',
+      },
+      supabaseAdmin,
+    )
   }
 
   revalidatePath('/admin')
