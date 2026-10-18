@@ -40,10 +40,26 @@
   Örneğin admin görevlerinden en az birini tamamlamak (aşağıda). Ücretli Spotlight'ta mevcut kural.
 - **Kurucu Üye rozeti (öneri, kullanıcı olumlu):** 0₺ kampanyası **başlamadan önce** kayıt olmuş ve doğrulanmış kullanıcılara kalıcı rozet.
   0₺ döneminde gelenler bunu almaz (onlara satışta ilk ay %50).
-- **Görevler (fikir aşamasında):** admin herkese ya da seçili kullanıcılara görev verir (ör. Influmatch'i tanıtan video paylaş);
-  kullanıcı gönderi linkini girer, mevcut sonuç ölçümü (Apify, 3.20) izlenme/beğeni şartını kontrol eder, admin onaylar, ödül otomatik işlenir
-  (rozet, mavi tik şartı, satış sonrası Spotlight süresi, indirim). Ödüllü paylaşımda reklam etiketi (#işbirliği / #reklam) zorunlu olmalı
-  (Reklam Kurulu sosyal medya etkileyicileri kılavuzu). **Ödül türleri ve görev listesi kullanıcıda.**
+- **Mavi tik (0₺ döneminde, 2026-10-18 kararı):** mevcut şartlar (takipçi, güven, tazelik, doğrulama) + **bir tanıtım görevi + en az 1 tamamlanan iş birliği**.
+  Not: güven skoru Spotlight'a +10 veriyor (`utils/matching.ts`); 0₺ döneminde verilen Spotlight bu puanı ve keşif önceliğini kazandırmamalı.
+- **Görevler (2026-10-18 kararları; kod yazılmadı):** admin herkese ya da seçili kullanıcılara görev açar. Kullanıcı gönderiyi/kanıtı girer,
+  sistem ölçer, **admin onaylar**, ödül hesaba işlenir. Her görev **kişi başı bir kez** (davet görevi en fazla 3 tur); yeni dönemde admin yeni görev açar.
+  Ödül miktarları admin panelinden değiştirilebilir; aşağıdakiler başlangıç değerleri.
+
+  | Kim | Görev | Kontrol | Ödül |
+  |---|---|---|---|
+  | Influencer/UGC | Influmatch tanıtım Reels/TikTok videosu (#reklam veya #işbirliği etiketi, en az 7 gün yayında) | 7. gün Apify: izlenme ≥ takipçinin %10'u (en az 500) + admin onayı | **+1 ay Pro** |
+  | Influencer/UGC | Davet bağlantılı story | Ekran görüntüsü + admin onayı (story Apify ile ölçülemiyor) | **%20 indirim kodu** |
+  | Influencer/UGC | 3 doğrulanmış davet (kişiye özel davet kodu; davetli kaydolup hesabını doğrulayınca sayılır) | Otomatik | **+1 ay Basic** (en fazla 3 kez) |
+  | Influencer/UGC | Profil %100 + ilk tamamlanan iş birliği | Otomatik | **%20 indirim kodu** |
+  | Marka | İlk ilan + 3 teklif gönder | Otomatik | **%20 indirim kodu** |
+  | Marka | İlk tamamlanan iş birliği | Otomatik | **+1 ay Basic** |
+
+  - **Ödül türleri:** yalnızca **satış sonrası Spotlight süresi** ve **indirim kodu** (rozet ödülü yok). POS açılana kadar ödüller hesapta
+    "bekleyen ödül" olarak durur; satış günü süreler hesaba eklenir, kodlar kullanılabilir olur.
+  - **İndirim kodu + ilk ay %50 birleşmez:** büyük olan geçer; kod 2. aydan itibaren ya da yıllık planda kullanılır.
+  - Ödüllü paylaşımda reklam etiketi zorunlu (Reklam Kurulu sosyal medya etkileyicileri kılavuzu); görev kurallarında yazılır.
+  - Sahte etkileşime karşı admin onayı her zaman kalır. Davet kodu yol haritasındaki "davet kodu" maddesiyle birleşir.
 
 ## Akademi (kararlar; 2026-10-16: POS açıldıktan sonra yapılır)
 
