@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, BadgeCheck } from 'lucide-react-native';
+import { ChevronRight, BadgeCheck, Sparkles } from 'lucide-react-native';
 import Text from './Text';
 import { Touchable } from './Button';
 import { colors, ICON_STROKE, AVATAR_TONES } from './theme';
 
 // Düz yüzey kart. accent: altın kenarlı vurgulu kart (ör. Spotlight).
-export function Card({ children, padded = true, accent = false, onPress, className = '', style }) {
+// spotlight: Spotlight üyesinin kartı (2026-10-19, web .spotlight-card ile aynı fikir): üst kenarda ince altın çizgi.
+export function Card({ children, padded = true, accent = false, spotlight = false, onPress, className = '', style }) {
     return (
         <Touchable
             onPress={onPress}
@@ -16,6 +17,9 @@ export function Card({ children, padded = true, accent = false, onPress, classNa
         >
             {accent ? (
                 <LinearGradient colors={[colors.goldSoft, 'transparent']} locations={[0, 0.75]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+            ) : null}
+            {spotlight ? (
+                <LinearGradient colors={['transparent', colors.gold, 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1 }} />
             ) : null}
             {children}
         </Touchable>
@@ -134,11 +138,13 @@ export function Avatar({ name, uri, size = 'md', square = false }) {
 }
 
 // Ad + mavi tik
-export function NameWithTick({ name, verified, variant = 'body', weight = 'semibold', numberOfLines = 1 }) {
+// spotlight: "Spotlight" yazısı yerine isim yanında küçük altın parıltı (2026-10-19).
+export function NameWithTick({ name, verified, spotlight = false, variant = 'body', weight = 'semibold', numberOfLines = 1 }) {
     return (
         <View className="flex-row items-center min-w-0" style={{ gap: 5 }}>
             <Text variant={variant} weight={weight} numberOfLines={numberOfLines} style={{ flexShrink: 1 }}>{name}</Text>
             {verified ? <BadgeCheck size={variant === 'heading' ? 18 : 15} color={colors.info} strokeWidth={ICON_STROKE} /> : null}
+            {spotlight ? <Sparkles size={variant === 'heading' ? 17 : 14} color={colors.gold} strokeWidth={ICON_STROKE} accessibilityLabel="Spotlight üyesi" /> : null}
         </View>
     );
 }

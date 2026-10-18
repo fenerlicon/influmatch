@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import AdminNoticeSheet from '../components/AdminNoticeSheet';
 import { View, Alert, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Bell, Sparkles, Eye, EyeOff, ShieldAlert, Hourglass, Megaphone, Store } from 'lucide-react-native';
@@ -170,6 +171,8 @@ export default function DashboardScreen({ navigation }) {
                     />
                 </ListGroup>
             </Section>
+            {/* Admin duyurusu (ör. kaldırılan ilan) */}
+            <AdminNoticeSheet />
         </Screen>
     );
 }

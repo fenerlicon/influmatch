@@ -10,7 +10,7 @@ import { getCategoryLabel } from '@/utils/categories'
 import { calculateTrustScore } from '@/utils/matching'
 import type { DiscoverInfluencer } from '@/types/influencer'
 import { availabilityText } from '@/lib/availability-shared'
-import { Avatar, Button, ButtonLink, Card, Chip, VerifiedTick } from '@/components/ui'
+import { Avatar, Button, ButtonLink, Card, Chip, SpotlightMark, VerifiedTick } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import AddToListModal from './AddToListModal'
 import SimilarProfilesModal from './SimilarProfilesModal'
@@ -87,7 +87,7 @@ export default function ProfileCard({
   }
 
   return (
-    <Card as="article" className={cn('flex flex-col gap-3.5 p-4 transition-colors hover:border-line-strong', matchScore !== undefined && matchScore >= 70 && 'border-gold/30')}>
+    <Card as="article" className={cn('flex flex-col gap-3.5 p-4 transition-colors hover:border-line-strong', matchScore !== undefined && matchScore >= 70 && 'border-gold/30', influencer.spotlight_active && 'spotlight-card')}>
       <div className="flex items-start gap-3">
         <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-3">
           <Avatar name={name} src={influencer.avatar_url} size="lg" />
@@ -95,12 +95,12 @@ export default function ProfileCard({
             <div className="flex items-center gap-1.5 font-semibold text-ink">
               <span className="truncate">{name}</span>
               {influencer.displayed_badges?.includes('verified-account') && <VerifiedTick />}
+              {influencer.spotlight_active && <SpotlightMark />}
             </div>
             {influencer.username && <div className="truncate text-xs text-ink-faint">@{influencer.username}</div>}
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {influencer.category && <Chip>{getCategoryLabel(influencer.category)}</Chip>}
               {influencer.creator_type && influencer.creator_type !== 'influencer' && <Chip>{CREATOR_LABEL[influencer.creator_type]}</Chip>}
-              {influencer.spotlight_active && <Chip tone="gold">Spotlight</Chip>}
               {influencer.availability?.status === 'busy' && (
                 <Chip tone="warning" dot title={availabilityText(influencer.availability)}>
                   Şu an dolu

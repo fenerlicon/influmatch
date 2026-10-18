@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { ExternalLink, FileText, Megaphone, RefreshCw, Trash2 } from 'lucide-react'
 import { deleteAdvertAdmin, getAllAdverts, getAllApplications } from '@/app/admin/actions'
 import { APPLICATION_STATUS, type ApplicationStatus } from '@/lib/adverts-shared'
-import { Avatar, Button, buttonClasses, Card, Chip, ConfirmDialog, EmptyState, PageHeader, Tabs } from '@/components/ui'
+import { Avatar, Button, buttonClasses, Card, Chip, ConfirmDialog, EmptyState, PageHeader, Tabs, Field, Textarea } from '@/components/ui'
 
 interface AdminAdvert {
   id: string
@@ -41,6 +41,7 @@ export default function AdvertsAdminPanel() {
   const [adverts, setAdverts] = useState<AdminAdvert[] | null>(null)
   const [applications, setApplications] = useState<AdminApplication[] | null>(null)
   const [toDelete, setToDelete] = useState<AdminAdvert | null>(null)
+  const [removeReason, setRemoveReason] = useState('')
   const [isPending, startTransition] = useTransition()
 
   const load = useCallback((which: 'adverts' | 'applications') => {
@@ -71,7 +72,7 @@ export default function AdvertsAdminPanel() {
     if (!toDelete) return
     const id = toDelete.id
     startTransition(async () => {
-      const result = await deleteAdvertAdmin(id)
+      const result = await deleteAdvertAdmin(id, removeReason)
       if (result.error) {
         toast.error(result.error)
         return
@@ -79,6 +80,7 @@ export default function AdvertsAdminPanel() {
       toast.success(result.message || 'İlan silindi.')
       setAdverts((prev) => prev?.filter((a) => a.id !== id) ?? prev)
       setToDelete(null)
+      setRemoveReason('')
     })
   }
 
@@ -183,7 +185,13 @@ export default function AdvertsAdminPanel() {
         title="İlan kalıcı olarak silinsin mi?"
         description={toDelete ? `"${toDelete.title}" ve başvuruları silinir. Bu işlem geri alınamaz.` : undefined}
         confirmLabel="Sil"
-      />
+      >
+        <Field label="Kaldırma nedeni" hint="Markaya bildirim ve panele girişte pencere olarak gösterilir.">
+          {(props) => (
+            <Textarea {...props} rows={3} maxLength={300} value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} placeholder="Örn. İlan topluluk kurallarına aykırı içerik barındırıyor." />
+          )}
+        </Field>
+      </ConfirmDialog>
     </div>
   )
 }

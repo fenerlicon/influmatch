@@ -16,6 +16,9 @@ const nextConfig = {
     ],
     // Optimize edilmiş görseller 31 gün önbellekte kalır; aynı görsel tekrar dönüştürülmez.
     minimumCacheTTL: 2678400,
+    // Avatar boyutları (28–96 px, 2x ekran dahil) için küçük genişlikler: her görsel az sayıda varyantla dönüştürülür.
+    imageSizes: [32, 48, 64, 96, 128, 192, 256, 384],
+    formats: ['image/webp'],
   },
   async rewrites() {
     return [

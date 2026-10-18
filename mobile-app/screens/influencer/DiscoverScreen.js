@@ -70,15 +70,14 @@ const InfluencerCard = memo(({ item, onPress, canFavorite, favoritesLocked, onTo
     const social = item.social_accounts?.[0];
     const category = item.category ? influencerCategoryLabel(item.category) : null;
     return (
-        <Card onPress={() => onPress(item)} style={{ gap: 12 }} className="mb-3">
+        <Card onPress={() => onPress(item)} style={{ gap: 12 }} className="mb-3" spotlight={!!item.spotlight_active}>
             <View className="flex-row items-center" style={{ gap: 12 }}>
                 <Avatar name={item.full_name || item.username} uri={item.avatar_url ? getThumbnailUrl(item.avatar_url) : null} size="lg" />
                 <View className="flex-1 min-w-0" style={{ gap: 2 }}>
-                    <NameWithTick name={item.full_name || item.username || 'Influencer'} verified={item.isVerified} />
+                    <NameWithTick name={item.full_name || item.username || 'Influencer'} verified={item.isVerified} spotlight={!!item.spotlight_active} />
                     <Text variant="small" tone="fg2" numberOfLines={1}>{[category, item.city].filter(Boolean).join(' · ') || 'Influencer'}</Text>
-                    {item.spotlight_active || item.availability?.status === 'busy' ? (
+                    {item.availability?.status === 'busy' ? (
                         <View className="mt-1 flex-row flex-wrap" style={{ gap: 6 }}>
-                            {item.spotlight_active ? <Chip label="Spotlight" tone="gold" /> : null}
                             {/* Müsaitlik (3.19); sunucu geçerli durumu gönderir */}
                             {item.availability?.status === 'busy' ? <Chip label="Şu an dolu" tone="warning" dot /> : null}
                         </View>

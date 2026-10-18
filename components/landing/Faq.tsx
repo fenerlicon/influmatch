@@ -31,10 +31,6 @@ const FAQS = [
     q: 'Üye olmak ücretli mi?',
     a: "Influmatch'e üye olmak ve profil oluşturmak ücretsizdir. Influencer'lar için ilanlara başvurmak, markalar için ilan oluşturmak ücretsizdir. Daha fazla görünürlük ve gelişmiş özellikler için Spotlight paketlerini tercih edebilirsiniz.",
   },
-  {
-    q: "Influmatch'in arkasında kim var?",
-    a: "Influmatch, İstanbul'daki 360° dijital pazarlama, kreatif prodüksiyon ve reklam ajansı Social Art Medya tarafından geliştirilmiş ve desteklenen bir platformdur.",
-  },
 ]
 
 export default function Faq() {

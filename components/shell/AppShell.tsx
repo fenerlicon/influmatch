@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
 import { LogOut, Menu, Settings, Sparkles, X } from 'lucide-react'
 import { Avatar } from '@/components/ui'
@@ -58,7 +58,6 @@ function NavLink({ item, active, unread, onNavigate }: { item: NavItem; active: 
 }
 
 function SignOutLink({ className }: { className?: string }) {
-  const router = useRouter()
   const { signOut } = useSupabaseAuth()
   const [busy, setBusy] = useState(false)
   return (
@@ -71,7 +70,8 @@ function SignOutLink({ className }: { className?: string }) {
         setBusy(true)
         try {
           await signOut()
-          router.replace('/login')
+          // Tam sayfa geçiş: istemci önbelleğindeki oturumlu sayfalar temizlenir (girişteki boş ekran sorunuyla aynı neden).
+          window.location.assign('/login')
         } finally {
           setBusy(false)
         }

@@ -1,5 +1,6 @@
 'use client'
 
+import { compressImage } from '@/lib/image-compress'
 import Image from 'next/image'
 import { useMemo, useState, useTransition, type ChangeEvent, type FormEvent } from 'react'
 import { ImagePlus, Plus, Trash2 } from 'lucide-react'
@@ -81,9 +82,13 @@ export default function AdvertForm({ open, onClose, project, onSaved }: Props) {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) throw new Error('Oturumun bulunamadı. Yeniden giriş yap.')
+      // Yüklemeden önce küçültülür (en uzun kenar 1600 px, WebP): ilan kartları hızlı açılır, depo kotası korunur.
+      const compressed = await compressImage(file, { maxSide: 1600 })
       // Dosyalar kullanıcının kendi klasörüne yazılır (kova yükleme politikası bunu ister).
-      const path = `${user.id}/${crypto.randomUUID()}.${file.name.split('.').pop()}`
-      const { error: uploadError } = await supabase.storage.from(HERO_IMAGE_BUCKET).upload(path, file, { upsert: true })
+      const path = `${user.id}/${crypto.randomUUID()}.${compressed.extension}`
+      const { error: uploadError } = await supabase.storage
+        .from(HERO_IMAGE_BUCKET)
+        .upload(path, compressed.file, { upsert: true, contentType: compressed.file.type || file.type, cacheControl: '31536000' })
       if (uploadError) throw uploadError
       set('heroImage', supabase.storage.from(HERO_IMAGE_BUCKET).getPublicUrl(path).data.publicUrl)
     } catch (e) {

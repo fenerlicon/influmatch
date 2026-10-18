@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
 import {
-  ArrowLeft, ArrowRight, AtSign, BadgeCheck, Briefcase, Building2, ExternalLink, Instagram, MapPin, Music2, ShieldCheck, Sparkles,
+  ArrowLeft, ArrowRight, AtSign, BadgeCheck, Briefcase, Building2, ExternalLink, Instagram, MapPin, Music2, ShieldCheck,
 } from 'lucide-react'
-import { Avatar, ButtonLink, buttonClasses, Card, CardBody, CardHeader, Chip, EmptyState, Tabs, VerifiedTick } from '@/components/ui'
+import { Avatar, ButtonLink, buttonClasses, Card, CardBody, CardHeader, Chip, EmptyState, SpotlightMark, Tabs, VerifiedTick } from '@/components/ui'
 import OfferModal from '@/components/profile/OfferModal'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { resolveSubscriptionTier, type SubscriptionTier } from '@/lib/subscription-tier'
@@ -206,13 +206,12 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
       </ButtonLink>
 
       {/* Başlık kartı */}
-      <Card as="section" padded className="grid gap-5 p-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-start md:p-7">
+      <Card as="section" padded className={`grid gap-5 p-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-start md:p-7${profile.spotlight_active ? ' spotlight-card' : ''}`}>
         <Avatar name={name} src={profile.avatar_url ?? undefined} size="xl" square={isBrand} />
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap gap-1.5">
             <Chip>{roleLabel}</Chip>
             {profile.category && <Chip>{getCategoryLabel(profile.category)}</Chip>}
-            {profile.spotlight_active && <Chip tone="gold"><Sparkles aria-hidden />Spotlight</Chip>}
           </div>
           <h1 className="flex items-center gap-2 font-display text-[32px] font-normal leading-[1.1] md:text-[38px]">
             <span className="truncate">{name}</span>
@@ -223,6 +222,7 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
                 label={isBrand ? 'Onaylanmış işletme' : 'Mavi tik: doğrulanmış içerik üreticisi'}
               />
             )}
+            {profile.spotlight_active && <SpotlightMark className="[&_svg]:h-5 [&_svg]:w-5" />}
           </h1>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-ink-muted">
             <span className="inline-flex items-center gap-1.5"><AtSign className="h-3.5 w-3.5" aria-hidden />{profile.username}</span>

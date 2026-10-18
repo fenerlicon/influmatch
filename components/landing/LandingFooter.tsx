@@ -9,13 +9,7 @@ export default function LandingFooter() {
           <div className="text-[13px] font-bold tracking-[0.02em] text-ink">
             INFLU<span className="text-gold">MATCH</span>
           </div>
-          <p className="mt-1">
-            © {new Date().getFullYear()} Influmatch · Gücünü{' '}
-            <a href="https://www.socialartmedya.com" target="_blank" rel="noopener noreferrer" className="text-ink-muted hover:text-gold">
-              Social Art Medya
-            </a>
-            &apos;dan alır.
-          </p>
+          <p className="mt-1">© {new Date().getFullYear()} Influmatch</p>
         </div>
         <nav className="flex flex-wrap gap-x-[18px] gap-y-2" aria-label="Alt bağlantılar">
           <Link href="/spotlight" className="hover:text-ink">Spotlight</Link>

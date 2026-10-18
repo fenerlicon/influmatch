@@ -1,5 +1,6 @@
 'use client'
 
+import { compressImage } from '@/lib/image-compress'
 import Image from 'next/image'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -229,12 +230,14 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) throw new Error('Oturum bulunamadı')
-      const fileExt = file.name.split('.').pop()
+      // Logo yüklemeden önce küçültülür (512 px, WebP): her kartta küçük gösterilir.
+      const compressed = await compressImage(file, { maxSide: 512, skipBelowBytes: 80 * 1024 })
       // Kullanıcı klasörü: depo kuralı ve hesap silmede dosya temizliği bu yola dayanır.
-      const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`
-      const { error: uploadError } = await supabase.storage.from(LOGO_BUCKET).upload(fileName, file, {
-        cacheControl: '3600',
+      const fileName = `${user.id}/${crypto.randomUUID()}.${compressed.extension}`
+      const { error: uploadError } = await supabase.storage.from(LOGO_BUCKET).upload(fileName, compressed.file, {
+        cacheControl: '31536000',
         upsert: true,
+        contentType: compressed.file.type || file.type,
       })
       if (uploadError) {
         throw uploadError

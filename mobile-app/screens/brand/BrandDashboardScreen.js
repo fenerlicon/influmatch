@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import AdminNoticeSheet from '../../components/AdminNoticeSheet';
 import { View, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Bell, Plus, ShieldAlert, Inbox, Target } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
@@ -205,6 +206,8 @@ export default function BrandDashboardScreen({ navigation }) {
                     </Card>
                 )}
             </Section>
+            {/* Admin duyurusu (ör. kaldırılan ilan) */}
+            <AdminNoticeSheet />
         </Screen>
     );
 }

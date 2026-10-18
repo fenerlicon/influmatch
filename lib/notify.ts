@@ -50,6 +50,7 @@ export type NotificationEvent =
   | 'advert_alert'
   | 'account_status'
   | 'task_update'
+  | 'advert_removed'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -90,6 +91,8 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   account_status: { preference: 'updates', email: true },
   // Görev sonucu (ölçüm, admin onayı/reddi, ödülün hesaba işlenmesi): "Platform Güncellemeleri" tercihine bağlı.
   task_update: { preference: 'updates', email: true },
+  // Admin ilanı kaldırdı (neden yazılır): önemli olay; panelde pencere olarak da açılır (lib/admin-notices-shared.ts).
+  advert_removed: { preference: 'updates', email: true },
 }
 
 /** E-postası alıcı + bağlantı başına saatte en fazla bir kez giden olaylar (site içi bildirim her seferinde yazılır). */

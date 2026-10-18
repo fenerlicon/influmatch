@@ -34,6 +34,12 @@ interface AvatarProps {
   className?: string
 }
 
+// Kendi depomuzdaki (Supabase herkese açık kova) görseller Next görsel optimizasyonundan geçer (2026-10-19): eskiden orijinal
+// dosya (çoğu zaman birkaç MB'lık telefon fotoğrafı) 36 px'lik avatar için olduğu gibi iniyordu. Dönüştürülen görsel 31 gün
+// önbellekte kalır (next.config.js minimumCacheTTL). Dış kaynaklar (Instagram/TikTok CDN, süreli bağlantılar) olduğu gibi gösterilir.
+const OWN_STORAGE_PREFIX = `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '')}/storage/v1/object/public/`
+const isOwnStorage = (src: string) => OWN_STORAGE_PREFIX.length > 30 && src.startsWith(OWN_STORAGE_PREFIX)
+
 export function Avatar({ name, src, size = 'md', square, className }: AvatarProps) {
   const s = sizes[size]
   const radius = square ? (size === 'xl' ? 'rounded-[20px]' : 'rounded-[10px]') : 'rounded-full'
@@ -43,7 +49,7 @@ export function Avatar({ name, src, size = 'md', square, className }: AvatarProp
       style={src ? undefined : { backgroundColor: tintFor(name) }}
     >
       {src ? (
-        <Image src={src} alt={name ?? ''} fill sizes={`${s.px}px`} className="object-cover" unoptimized style={{ imageOrientation: 'from-image' }} />
+        <Image src={src} alt={name ?? ''} fill sizes={`${s.px}px`} quality={70} className="object-cover" unoptimized={!isOwnStorage(src)} style={{ imageOrientation: 'from-image' }} />
       ) : (
         <span aria-hidden>{initials(name)}</span>
       )}
