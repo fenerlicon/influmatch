@@ -33,4 +33,6 @@ export interface DiscoverInfluencer {
     availability?: Availability | null
     matchScore?: number
     matchReasons?: string[]
+    /** Liyakat puanı; yalnızca 0₺ döneminde dolu (lib/merit-ranking.ts). Doluysa ızgara Spotlight önceliği uygulamaz. */
+    merit_score?: number
 }

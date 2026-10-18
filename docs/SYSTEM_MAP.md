@@ -796,8 +796,10 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   (planın yükseği, mevcut bitişten itibaren; süresiz plana dokunulmaz), kodlar kullanılabilir. Kodun POS'ta kullanımı ve ilk ay %50 ile birleşmeme kuralı POS işiyle.
 - **0₺ dönemi:** `/admin/tasks` anahtarı; açıkken mavi tikte ek şart (onaylı tanıtım videosu + ≥1 tamamlanan iş birliği), güven skorunda Spotlight puanı yok
   (`lib/blue-tick-rules.ts`, `lib/tasks-promo.ts`; anahtar değişince mavi tik taraması hemen çalışır).
-  - **3.21-N1 [AÇIK]** Liyakatli listeleme (0₺ döneminde keşifte Spotlight önceliği kalksın) yapılmadı: sıralama web panel alanındaki dosyalarda
-    (`components/discover/DiscoverGrid.tsx`, `utils/fetchInfluencers.ts`, `lib/profile-reads.ts`, `lib/discover-filters.ts`).
+  - ✅ ~~**3.21-N1**~~ (2026-10-19) Liyakatli listeleme: bayrak açıkken keşifte Spotlight önceliği yok. Puan `lib/merit-ranking.ts`
+    (güven skoru Spotlight puanı hariç + tamamlanan iş birliği başına 5, en fazla 50); web ızgarası (`components/discover/DiscoverGrid.tsx`,
+    sunucu puanı `utils/fetchInfluencers.ts`), mobil keşif (`lib/profile-reads.ts listDiscoverProfiles`), sıralama `lib/discover-filters.ts` (`merit`),
+    öneriler/uyum skorunda Spotlight +10 sayılmaz. "Dolu" profiller yine sonda; bayrak kapalıyken davranış aynı. Ana sayfadaki "Öne çıkan profiller" Spotlight'a göre kalır.
   - **3.21-N2** "Profil %100" koşulu `utils/profileCompletion.ts` ölçüsüyle (en az 2 sosyal bağlantı dahil) + fiyat kartı + ≥1 tamamlanan iş; portföy R2 ile.
   - **3.21-N3** Kurucu Üye rozeti (0₺ öncesi gelenlere) karar aşamasında; kod yok.
   - **3.21-S1 [DÜŞÜK]** Story kanıtı yalnızca ekran görüntüsü; gerçekten paylaşıldığı admin gözüyle kontrol edilir.

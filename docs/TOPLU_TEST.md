@@ -98,6 +98,7 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Story: ekran görüntüsü yükle → admin incelemede görüntüyü görüyor → reddet (not zorunlu) → kullanıcı notu görüyor, tekrar gönderebiliyor.
 - [ ] Otomatik görev (M1 ilk ilan + 3 teklif): koşullar tamamlanınca "Ödülü talep et" → admin onaylar → "Ödüllerim"de "Satış başlayınca" + indirim kodu.
 - [ ] Bir görev ikinci kez gönderilemiyor (kişi başı bir kez; davet görevi 3 tur).
+- [ ] 0₺ dönemi açıkken M1 keşfinde (web + mobil) Spotlight'lı profiller artık önde değil; dolu profiller sonda; kapatınca Spotlight yine önde.
 - [ ] 0₺ dönemi anahtarını aç → mavi tikli I1'in tiki (görev + 1 tamamlanan iş yoksa) kalkıyor, panel kartında iki yeni şart görünüyor; **kapat** → geri geliyor.
 - [ ] "Ödülleri hesaplara işle"yi **satış başlamadan deneme** (Spotlight süreleri gerçekten eklenir). Gerekirse yalnızca test hesabının ödülüyle dene, sonra Spotlight'ı admin panelinden düzelt.
 

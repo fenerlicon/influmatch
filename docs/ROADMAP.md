@@ -35,7 +35,7 @@
 ## 0₺ döneminde Spotlight'ın değeri (2026-10-16, kullanıcı yönü; ayrıntı onay bekliyor)
 
 - **Liyakatli listeleme:** ücretsiz Spotlight döneminde keşif sıralaması Spotlight'a göre değil, performans / güven / tamamlanan iş /
-  profil doluluğuna göre yapılır.
+  profil doluluğuna göre yapılır. ✅ 2026-10-19 (SYSTEM_MAP 3.21-N1; 0₺ dönemi anahtarıyla).
 - **Mavi tik:** Spotlight şartı kalır ama 0₺ döneminde verilen Spotlight tek başına yetmez; ek (zorlu) şartlar gerekir.
   Örneğin admin görevlerinden en az birini tamamlamak (aşağıda). Ücretli Spotlight'ta mevcut kural.
 - **Kurucu Üye rozeti (öneri, kullanıcı olumlu):** 0₺ kampanyası **başlamadan önce** kayıt olmuş ve doğrulanmış kullanıcılara kalıcı rozet.
