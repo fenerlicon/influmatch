@@ -108,8 +108,7 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
     }
 
     const handleDeleteAll = async () => {
-        if (!confirm('Tüm bildirimleri silmek istediğinizden emin misiniz?')) return
-
+        setConfirmClear(false)
         // Optimistic update
         setNotifications([])
         setUnreadCount(0)
@@ -117,18 +116,20 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
         await deleteAllNotifications(userId)
     }
 
+    const [confirmClear, setConfirmClear] = useState(false)
+
     const getIcon = (type: string) => {
         switch (type) {
             case 'success':
-                return <CheckCircle className="h-5 w-5 text-emerald-400" />
+                return <CheckCircle className="h-5 w-5 text-success" />
             case 'warning':
-                return <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                return <AlertTriangle className="h-5 w-5 text-warning" />
             case 'info':
-                return <Info className="h-5 w-5 text-blue-400" />
+                return <Info className="h-5 w-5 text-info" />
             case 'system':
-                return <Bell className="h-5 w-5 text-soft-gold" />
+                return <Bell className="h-5 w-5 text-gold" />
             default:
-                return <Bell className="h-5 w-5 text-gray-400" />
+                return <Bell className="h-5 w-5 text-ink-faint" />
         }
     }
 
@@ -158,67 +159,70 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
                         transition={{ duration: 0.2 }}
                         className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] origin-top-right rounded-2xl border border-line-strong bg-surface-1 shadow-modal"
                     >
-                        <div className="flex items-center justify-between border-b border-white/5 p-4">
-                            <h3 className="text-sm font-semibold text-white">Bildirimler</h3>
+                        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                            <h3 className="text-sm font-semibold text-ink">Bildirimler</h3>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={handleMarkAllAsRead}
-                                    className="text-xs text-soft-gold hover:text-soft-gold/80 hover:underline"
+                                    type="button" className="text-xs text-gold hover:underline"
                                 >
                                     Tümünü okundu işaretle
                                 </button>
                             )}
                         </div>
 
-                        <div className="max-h-[400px] overflow-y-auto py-2">
+                        <div className="max-h-[400px] overflow-y-auto">
                             {isLoading ? (
-                                <div className="flex items-center justify-center py-8 text-gray-400">
+                                <div className="flex items-center justify-center py-8 text-ink-faint">
                                     <Loader2 className="h-6 w-6 animate-spin" />
                                 </div>
                             ) : notifications.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-8 text-center text-gray-400">
+                                <div className="flex flex-col items-center justify-center py-8 text-center text-ink-faint">
                                     <Bell className="mb-2 h-8 w-8 opacity-20" />
-                                    <p className="text-sm">Henüz bildiriminiz yok</p>
+                                    <p className="text-sm">Henüz bildirimin yok</p>
                                 </div>
                             ) : (
-                                <div className="space-y-1">
+                                <div>
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification.id}
-                                            className={`relative flex gap-4 px-4 py-3 transition hover:bg-white/5 ${!notification.is_read ? 'bg-white/[0.02]' : ''
-                                                }`}
+                                            className={`relative flex gap-3 border-b border-line px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-2 ${!notification.is_read ? 'bg-gold/[0.03]' : ''}`}
                                         >
                                             <div className="flex-shrink-0 pt-1">
                                                 {getIcon(notification.type)}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2">
-                                                    <p className={`text-sm font-medium ${!notification.is_read ? 'text-white' : 'text-gray-300'}`}>
+                                                    <p className={`text-sm font-medium ${!notification.is_read ? 'text-ink' : 'text-ink-muted'}`}>
                                                         {notification.title}
                                                     </p>
                                                     <div className="flex items-center gap-1">
                                                         {!notification.is_read && (
                                                             <button
+                                                                type="button"
                                                                 onClick={() => handleMarkAsRead(notification.id)}
-                                                                className="flex-shrink-0 rounded-full p-1 text-soft-gold hover:bg-soft-gold/10"
+                                                                className="flex-shrink-0 rounded-full p-1 hover:bg-gold/10"
                                                                 title="Okundu işaretle"
+                                                                aria-label="Okundu işaretle"
                                                             >
-                                                                <div className="h-2 w-2 rounded-full bg-soft-gold" />
+                                                                <div className="h-2 w-2 rounded-full bg-gold" />
                                                             </button>
                                                         )}
                                                         <button
+                                                            type="button"
                                                             onClick={() => handleDelete(notification.id, notification.is_read)}
-                                                            className="flex-shrink-0 rounded-full p-1 text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                                                            className="flex-shrink-0 rounded-full p-1 text-ink-faint transition-colors hover:bg-danger/10 hover:text-danger"
                                                             title="Sil"
+                                                            aria-label="Bildirimi sil"
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <p className="mt-0.5 text-xs text-gray-400 line-clamp-2">
+                                                <p className="mt-0.5 line-clamp-2 text-xs text-ink-muted">
                                                     {notification.message}
                                                 </p>
-                                                <p className="mt-1.5 text-[10px] text-gray-500">
+                                                <p className="mt-1 text-[11px] text-ink-faint">
                                                     {new Date(notification.created_at).toLocaleDateString('tr-TR', {
                                                         day: 'numeric',
                                                         month: 'short',
@@ -230,7 +234,7 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
                                                     <Link
                                                         href={notification.link}
                                                         onClick={() => setIsOpen(false)}
-                                                        className="mt-2 inline-flex items-center text-xs font-medium text-soft-gold hover:underline"
+                                                        className="mt-1.5 inline-flex items-center text-xs font-medium text-gold hover:underline"
                                                     >
                                                         Detayları gör →
                                                     </Link>
@@ -243,14 +247,25 @@ export default function NotificationsPopover({ userId }: NotificationsPopoverPro
                         </div>
 
                         {notifications.length > 0 && (
-                            <div className="border-t border-white/5 p-2">
-                                <button
-                                    onClick={handleDeleteAll}
-                                    className="flex w-full items-center justify-center gap-2 rounded-xl p-2 text-xs text-gray-400 transition hover:bg-white/5 hover:text-white"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    Tümünü Temizle
-                                </button>
+                            <div className="border-t border-line p-2">
+                                {confirmClear ? (
+                                    <div className="flex items-center justify-between gap-2 px-2 text-xs">
+                                        <span className="text-ink-muted">Tüm bildirimler silinsin mi?</span>
+                                        <span className="flex gap-1">
+                                            <button type="button" onClick={() => setConfirmClear(false)} className="rounded-lg px-2.5 py-1.5 text-ink-muted hover:bg-surface-2 hover:text-ink">Vazgeç</button>
+                                            <button type="button" onClick={handleDeleteAll} className="rounded-lg px-2.5 py-1.5 text-danger hover:bg-danger/10">Sil</button>
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfirmClear(true)}
+                                        className="flex w-full items-center justify-center gap-2 rounded-lg p-2 text-xs text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Tümünü temizle
+                                    </button>
+                                )}
                             </div>
                         )}
                     </motion.div>
