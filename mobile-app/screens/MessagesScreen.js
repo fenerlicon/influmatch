@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { CHAT_READ_EVENT, CHAT_TYPING_EVENT, CHAT_TYPING_SHOW_MS, CHAT_TYPING_THROTTLE_MS, chatLiveChannel, isSeenBy } from '../constants/chatLive';
 import { View, ScrollView, Image, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -85,7 +86,6 @@ export default function MessagesScreen({ route, navigation }) {
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [imageUrls, setImageUrls] = useState({});
     const [inputText, setInputText] = useState('');
-    const [sending, setSending] = useState(false);
     // Açık sohbet kapalıysa nedeni (null = yazılabilir)
     const [closedReason, setClosedReason] = useState(null);
 
@@ -95,11 +95,57 @@ export default function MessagesScreen({ route, navigation }) {
     const userIdRef = useRef(null);
     const openedRoomRef = useRef(null);
     const openRoomIdRef = useRef(null);
+    // Canlı durum (web ile aynı kanal, constants/chatLive.js): karşı tarafın son okuma zamanı ve "yazıyor…".
+    const [otherReadAt, setOtherReadAt] = useState(null);
+    const [otherTyping, setOtherTyping] = useState(false);
+    const liveRef = useRef(null);
+    const typingSentAt = useRef(0);
+    const typingTimer = useRef(null);
+
+    const startLive = (partnerId) => {
+        if (liveRef.current) supabase.removeChannel(liveRef.current);
+        liveRef.current = null;
+        setOtherTyping(false);
+        if (!partnerId || !userIdRef.current) return;
+        liveRef.current = supabase
+            .channel(chatLiveChannel(userIdRef.current, partnerId), { config: { broadcast: { self: false } } })
+            .on('broadcast', { event: CHAT_TYPING_EVENT }, ({ payload }) => {
+                if (payload?.userId !== partnerId) return;
+                setOtherTyping(true);
+                if (typingTimer.current) clearTimeout(typingTimer.current);
+                typingTimer.current = setTimeout(() => setOtherTyping(false), CHAT_TYPING_SHOW_MS);
+            })
+            .on('broadcast', { event: CHAT_READ_EVENT }, ({ payload }) => {
+                if (payload?.userId !== partnerId || typeof payload?.at !== 'string') return;
+                setOtherReadAt((prev) => (prev && prev > payload.at ? prev : payload.at));
+            })
+            .subscribe();
+    };
+
+    const stopLive = () => {
+        if (typingTimer.current) clearTimeout(typingTimer.current);
+        if (liveRef.current) supabase.removeChannel(liveRef.current);
+        liveRef.current = null;
+        setOtherTyping(false);
+        setOtherReadAt(null);
+    };
+
+    const notifyTyping = () => {
+        const now = Date.now();
+        if (now - typingSentAt.current < CHAT_TYPING_THROTTLE_MS) return;
+        typingSentAt.current = now;
+        liveRef.current?.send({ type: 'broadcast', event: CHAT_TYPING_EVENT, payload: { userId: userIdRef.current } });
+    };
 
     // Odayı okundu işaretler (web ile aynı room_reads, sunucu ucu üzerinden).
     const markRead = (roomId) => {
         if (!roomId) return;
-        apiRequest('messages', { method: 'PATCH', body: { roomIds: [roomId] } });
+        apiRequest('messages', { method: 'PATCH', body: { roomIds: [roomId] } }).then((r) => {
+            // Karşı tarafa "Görüldü" sinyali (sohbet açıkken).
+            if (!r?.error && openRoomIdRef.current === roomId) {
+                liveRef.current?.send({ type: 'broadcast', event: CHAT_READ_EVENT, payload: { userId: userIdRef.current, at: new Date().toISOString() } });
+            }
+        });
     };
 
     // Bağlı iş bilgisi ayrı sorguda: okunamazsa sohbet listesi yine açılır, yalnızca etiket görünmez.
@@ -234,6 +280,14 @@ export default function MessagesScreen({ route, navigation }) {
         setClosedReason(conv.closedReason || null);
         setLoadingMessages(true);
         roomSubRef.current?.unsubscribe();
+        const partnerId = conv.partner?.id || null;
+        startLive(partnerId);
+        setOtherReadAt(null);
+        if (partnerId) {
+            apiRequest(`messages?participantId=${encodeURIComponent(partnerId)}&roomIds=${encodeURIComponent(conv.id)}`).then((r) => {
+                if (openRoomIdRef.current === conv.id && r?.lastReadAt) setOtherReadAt((prev) => (prev && prev > r.lastReadAt ? prev : r.lastReadAt));
+            });
+        }
 
         const [{ data }, { data: roomRow }] = await Promise.all([
             supabase
@@ -254,7 +308,10 @@ export default function MessagesScreen({ route, navigation }) {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${conv.id}` }, (payload) => {
                 const nm = payload.new;
                 setMessages((prev) => prev.some((m) => m.id === nm.id) ? prev : [...prev, nm]);
-                if (nm.sender_id !== userIdRef.current) markRead(conv.id);
+                if (nm.sender_id !== userIdRef.current) {
+                    setOtherTyping(false);
+                    markRead(conv.id);
+                }
                 signImages([nm]);
                 setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
             })
@@ -271,22 +328,37 @@ export default function MessagesScreen({ route, navigation }) {
         setClosedReason(null);
         openRoomIdRef.current = null;
         roomSubRef.current?.unsubscribe();
+        stopLive();
         fetchConversations();
     };
 
+    // İyimser gönderim (web ile aynı): mesaj hemen görünür ("Gönderiliyor…"), sunucu yanıtıyla gerçek kayda dönüşür.
     const sendMessage = async () => {
         const text = inputText.trim();
-        if (!text || !selectedChat || sending || closedReason) return;
-        setSending(true);
+        if (!text || !selectedChat || closedReason) return;
+        const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        setInputText('');
+        setMessages((prev) => [...prev, { id: tempId, sender_id: userIdRef.current, content: text, created_at: new Date().toISOString(), pending: true }]);
         const result = await apiRequest('messages', { method: 'POST', body: { roomId: selectedChat.id, content: text } });
-        setSending(false);
         if (!result.success) {
+            setMessages((prev) => prev.filter((m) => m.id !== tempId));
+            setInputText((current) => current || text);
             Alert.alert('Mesaj gönderilemedi', result.error || 'Lütfen tekrar deneyin.');
             return;
         }
-        setInputText('');
-        setMessages((prev) => prev.some((m) => m.id === result.data.id) ? prev : [...prev, result.data]);
+        setMessages((prev) => {
+            const rest = prev.filter((m) => m.id !== tempId);
+            return rest.some((m) => m.id === result.data.id) ? rest : [...rest, result.data];
+        });
     };
+
+    // "Görüldü / Gönderildi" yalnızca son kendi mesajının altında.
+    const lastOwnId = useMemo(() => {
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].sender_id === userIdRef.current && !messages[i].is_system) return messages[i].id;
+        }
+        return null;
+    }, [messages]);
 
     // İş kartından iş birliği detayına: önce sohbet kapanır, dönüşte liste yenilenir
     const openCollaboration = (id) => {
@@ -464,9 +536,13 @@ export default function MessagesScreen({ route, navigation }) {
                                 }
                                 const mine = msg.sender_id === userIdRef.current;
                                 const path = attachmentPath(msg.content);
+                                const status = msg.id === lastOwnId
+                                    ? (msg.pending ? 'Gönderiliyor…' : isSeenBy(otherReadAt, msg.created_at) ? 'Görüldü' : 'Gönderildi')
+                                    : null;
                                 return (
+                                    <React.Fragment key={item.key}>
                                     <View
-                                        key={item.key}
+                                        style={msg.pending ? { opacity: 0.7 } : undefined}
                                         className={`max-w-[78%] border rounded-[18px] ${mine ? 'self-end bg-s3 border-line-strong rounded-br-md' : 'self-start bg-s2 border-line rounded-bl-md'} ${path ? 'p-1' : 'px-[13px] py-2.5'}`}
                                     >
                                         {path ? (
@@ -480,8 +556,19 @@ export default function MessagesScreen({ route, navigation }) {
                                             {formatTime(msg.created_at)}
                                         </Text>
                                     </View>
+                                    {status ? (
+                                        <Text variant="caption" tone={status === 'Görüldü' ? 'gold' : 'fg3'} style={{ fontSize: 11, alignSelf: 'flex-end', marginTop: -4, marginRight: 4 }}>
+                                            {status}
+                                        </Text>
+                                    ) : null}
+                                    </React.Fragment>
                                 );
                             })}
+                            {otherTyping ? (
+                                <View className="self-start px-3 py-2 rounded-[18px] rounded-bl-md bg-s2 border border-line">
+                                    <Text variant="caption" tone="fg2">{partnerName(chat?.partner, fallbackName).split(' ')[0]} yazıyor…</Text>
+                                </View>
+                            ) : null}
                         </ScrollView>
 
                         {/* Yazma alanı; kapalı sohbette yerine açıklama */}
@@ -494,7 +581,10 @@ export default function MessagesScreen({ route, navigation }) {
                             <View className="flex-1 min-h-[44px] max-h-[120px] rounded-[22px] bg-s2 border border-line-strong px-4 justify-center">
                                 <TextInput
                                     value={inputText}
-                                    onChangeText={setInputText}
+                                    onChangeText={(t) => {
+                                        setInputText(t);
+                                        if (t.trim()) notifyTyping();
+                                    }}
                                     placeholder="Mesaj yaz"
                                     placeholderTextColor={colors.fg3}
                                     selectionColor={colors.gold}
@@ -506,14 +596,12 @@ export default function MessagesScreen({ route, navigation }) {
                             </View>
                             <Pressable
                                 onPress={sendMessage}
-                                disabled={!inputText.trim() || sending}
+                                disabled={!inputText.trim()}
                                 accessibilityRole="button"
                                 accessibilityLabel="Gönder"
                                 className={`w-11 h-11 rounded-full items-center justify-center ${inputText.trim() ? 'bg-gold' : 'bg-s3'}`}
                             >
-                                {sending
-                                    ? <ActivityIndicator size="small" color={colors.goldInk} />
-                                    : <ArrowUp size={20} color={inputText.trim() ? colors.goldInk : colors.fg3} strokeWidth={2} />}
+                                <ArrowUp size={20} color={inputText.trim() ? colors.goldInk : colors.fg3} strokeWidth={2} />
                             </Pressable>
                         </View>
                         )}

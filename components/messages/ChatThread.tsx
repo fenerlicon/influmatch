@@ -1,11 +1,22 @@
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { toast } from 'sonner'
 import { ArrowLeft, Briefcase, MessageSquare, UserRound } from 'lucide-react'
 import { isUserBlocked } from '@/app/dashboard/users/block/actions'
 import { sendMessage } from '@/app/dashboard/messages/send/actions'
+import { getParticipantLastRead } from '@/app/dashboard/messages/actions'
+import { compressImage } from '@/lib/image-compress'
+import {
+  CHAT_READ_EVENT,
+  CHAT_TYPING_EVENT,
+  CHAT_TYPING_SHOW_MS,
+  CHAT_TYPING_THROTTLE_MS,
+  chatLiveChannel,
+  isSeenBy,
+} from '@/lib/chat-live-shared'
 import { chatAttachmentPath, parseChatImageUrl } from '@/lib/chat-image'
 import { markRoomsRead } from '@/lib/room-reads'
 import { JOB_KIND_LABEL, type ConversationJob } from '@/lib/conversation-jobs'
@@ -58,6 +69,12 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
   const [blockCheck, setBlockCheck] = useState(0)
   const [profileOpen, setProfileOpen] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Canlı durum (lib/chat-live-shared.ts): karşı tarafın son okuma zamanı ve "yazıyor…".
+  const [otherReadAt, setOtherReadAt] = useState<string | null>(null)
+  const [otherTyping, setOtherTyping] = useState(false)
+  const liveRef = useRef<RealtimeChannel | null>(null)
+  const typingSentAt = useRef(0)
+  const typingTimer = useRef<number | null>(null)
   const tick = participantTick(participant)
   const restricted = currentUserRole === 'brand' && !isSenderVerified
   const roomsKey = roomIds.join(',')
@@ -114,29 +131,84 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
     return () => channels.forEach((c) => supabase.removeChannel(c))
   }, [roomId, roomsKey, supabase])
 
-  // Birleşik gösterilen bütün odalar okundu sayılır (room_reads).
+  // Karşı tarafın okuma zamanı (açılışta sunucudan; sonra yayın kanalından).
   useEffect(() => {
-    markRoomsRead(supabase, currentUserId, roomsKey ? roomsKey.split(',') : [roomId])
+    let active = true
+    getParticipantLastRead(participant.id, roomsKey ? roomsKey.split(',') : [roomId])
+      .then((at) => active && setOtherReadAt((prev) => (prev && at && prev > at ? prev : at)))
+      .catch(() => null)
+    return () => {
+      active = false
+    }
+  }, [participant.id, roomId, roomsKey])
+
+  // "yazıyor…" ve "Görüldü" için iki kişiye özel yayın kanalı (veritabanına yazılmaz; mobil aynı kanalı kullanır).
+  useEffect(() => {
+    const channel = supabase
+      .channel(chatLiveChannel(currentUserId, participant.id), { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: CHAT_TYPING_EVENT }, ({ payload }) => {
+        if (payload?.userId !== participant.id) return
+        setOtherTyping(true)
+        if (typingTimer.current) window.clearTimeout(typingTimer.current)
+        typingTimer.current = window.setTimeout(() => setOtherTyping(false), CHAT_TYPING_SHOW_MS)
+      })
+      .on('broadcast', { event: CHAT_READ_EVENT }, ({ payload }) => {
+        if (payload?.userId !== participant.id || typeof payload?.at !== 'string') return
+        setOtherReadAt((prev) => (prev && prev > payload.at ? prev : payload.at))
+      })
+      .subscribe()
+    liveRef.current = channel
+    return () => {
+      if (typingTimer.current) window.clearTimeout(typingTimer.current)
+      liveRef.current = null
+      supabase.removeChannel(channel)
+    }
+  }, [currentUserId, participant.id, supabase])
+
+  // Birleşik gösterilen bütün odalar okundu sayılır (room_reads); karşı tarafa "Görüldü" sinyali gider.
+  useEffect(() => {
+    markRoomsRead(supabase, currentUserId, roomsKey ? roomsKey.split(',') : [roomId]).then((ok) => {
+      if (ok && document.visibilityState === 'visible') {
+        liveRef.current?.send({ type: 'broadcast', event: CHAT_READ_EVENT, payload: { userId: currentUserId, at: new Date().toISOString() } })
+      }
+    })
   }, [roomId, roomsKey, currentUserId, messages.length, supabase])
+
+  // Karşı taraf yeni mesaj gönderince "yazıyor…" kapanır.
+  const lastMessageSender = messages[messages.length - 1]?.sender_id
+  useEffect(() => {
+    if (lastMessageSender === participant.id) setOtherTyping(false)
+  }, [lastMessageSender, participant.id, messages.length])
+
+  const notifyTyping = () => {
+    const now = Date.now()
+    if (now - typingSentAt.current < CHAT_TYPING_THROTTLE_MS) return
+    typingSentAt.current = now
+    liveRef.current?.send({ type: 'broadcast', event: CHAT_TYPING_EVENT, payload: { userId: currentUserId } })
+  }
 
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages])
+  }, [messages, otherTyping])
 
+  // İyimser gönderim (2026-10-19): mesaj hemen ekranda görünür ("Gönderiliyor…"), sunucu yanıtıyla gerçek kayda dönüşür.
   const send = async (content: string) => {
-    setIsSending(true)
-    const result = await sendMessage(roomId, content)
-    setIsSending(false)
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const temp: ChatMessage = { id: tempId, sender_id: currentUserId, content, created_at: new Date().toISOString(), room_id: roomId, pending: true }
+    setMessages((prev) => [...prev, temp])
+    const result = await sendMessage(roomId, content).catch(() => ({ success: false as const, error: 'Bağlantı hatası. Mesaj gönderilemedi.' }))
     if (!result.success) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId))
       if (result.error?.includes('engelle') || result.error?.includes('block')) setBlockedByThem(true)
       toast.error(result.error || 'Mesaj gönderilemedi.')
       return
     }
-    if (result.data) {
-      const msg = result.data as ChatMessage
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]))
-    }
+    const msg = result.data as ChatMessage
+    setMessages((prev) => {
+      const withoutTemp = prev.filter((m) => m.id !== tempId)
+      return withoutTemp.some((m) => m.id === msg.id) ? withoutTemp : [...withoutTemp, msg]
+    })
   }
 
   const upload = async (file: File) => {
@@ -144,8 +216,10 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
     if (file.size > 5 * 1024 * 1024) return toast.error('Görsel en fazla 5 MB olabilir.')
     setIsSending(true)
     try {
-      const path = `${roomId}/${currentUserId}/${Date.now()}_${Math.random().toString(36).slice(2, 11)}.${file.name.split('.').pop()}`
-      const { error } = await supabase.storage.from('chat-attachments').upload(path, file)
+      // Yüklemeden önce küçültülür (en uzun kenar 1600 px, WebP): depolama ve indirme kotası korunur, görsel hızlı açılır.
+      const compressed = await compressImage(file)
+      const path = `${roomId}/${currentUserId}/${Date.now()}_${Math.random().toString(36).slice(2, 11)}.${compressed.extension}`
+      const { error } = await supabase.storage.from('chat-attachments').upload(path, compressed.file, { contentType: compressed.file.type || file.type, cacheControl: '31536000' })
       if (error) throw error
       const {
         data: { publicUrl },
@@ -156,6 +230,15 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
       toast.error('Görsel yüklenemedi. Tekrar dene.')
     } finally {
       setIsSending(false)
+    }
+  }
+
+  // "Görüldü / Gönderildi" yalnızca son kendi mesajının altında.
+  let lastOwnIndex = -1
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].sender_id === currentUserId && !messages[i].is_system) {
+      lastOwnIndex = i
+      break
     }
   }
 
@@ -233,7 +316,7 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
             return (
               <Fragment key={m.id}>
                 {newDay && <div className="my-1.5 self-center text-[11.5px] text-ink-faint">{dayLabel(m.created_at)}</div>}
-                <div className={cn('group flex max-w-[84%] items-center gap-1 md:max-w-[64%]', own ? 'self-end' : 'self-start')}>
+                <div className={cn('group flex max-w-[84%] items-center gap-1 md:max-w-[64%]', own ? 'self-end' : 'self-start', m.pending && 'opacity-70')}>
                   <div
                     className={cn(
                       'rounded-[14px] border px-[13px] py-2.5 text-[13.5px] leading-normal',
@@ -256,6 +339,7 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
                     )}
                     <time className={cn('mt-1 block text-[11px]', own ? 'text-right text-champagne/50' : 'text-ink-faint', stored && 'px-1')}>{timeOf(m.created_at)}</time>
                   </div>
+
                   {!own && (
                     <div className="transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100">
                       <MessageMenu
@@ -270,14 +354,30 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
                     </div>
                   )}
                 </div>
+                {i === lastOwnIndex && (
+                  <div className="-mt-1.5 self-end pr-1 text-[11px] text-ink-faint" aria-live="polite">
+                    {m.pending ? 'Gönderiliyor…' : isSeenBy(otherReadAt, m.created_at) ? <span className="text-gold">Görüldü</span> : 'Gönderildi'}
+                  </div>
+                )}
               </Fragment>
             )
           })
+        )}
+        {otherTyping && (
+          <div className="flex items-center gap-2 self-start rounded-[14px] rounded-bl-[4px] border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-ink-muted" aria-live="polite">
+            <span className="flex gap-1" aria-hidden>
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-faint [animation-delay:-0.3s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-faint [animation-delay:-0.15s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-faint" />
+            </span>
+            {participant.fullName.split(' ')[0]} yazıyor…
+          </div>
         )}
       </div>
 
       <Composer
         onSend={send}
+        onTyping={notifyTyping}
         onFileSelect={upload}
         disabled={isSending || !!closedNotice || blockedByThem || blockedByMe || restricted}
         notice={notice}

@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
 import { parseChatImageUrl } from '@/lib/chat-image'
+import { runInBackground } from '@/lib/background'
 
 const MAX_MESSAGE_LENGTH = 5000
 
@@ -28,16 +29,14 @@ export async function sendMessageAs(
   if (!content) return { success: false, error: 'Mesaj içeriği boş olamaz.' }
   if (content.length > MAX_MESSAGE_LENGTH) return { success: false, error: 'Mesaj çok uzun.' }
 
-  const { data: sender } = await supabase.from('users').select('role, verification_status').eq('id', userId).maybeSingle()
+  // Gönderen ve oda kontrolleri aynı anda (2026-10-19: sırayla üç sorgu gönderimi yavaşlatıyordu).
+  const [{ data: sender }, { data: room }] = await Promise.all([
+    supabase.from('users').select('role, verification_status').eq('id', userId).maybeSingle(),
+    supabase.from('rooms').select('brand_id, influencer_id, closed_at').eq('id', roomId).maybeSingle(),
+  ])
   if (sender?.role === 'brand' && sender.verification_status !== 'verified') {
     return { success: false, error: 'Mesaj göndermek için hesabınızın onaylanması gerekmektedir.' }
   }
-
-  const { data: room } = await supabase
-    .from('rooms')
-    .select('brand_id, influencer_id, closed_at')
-    .eq('id', roomId)
-    .maybeSingle()
   if (!room) return { success: false, error: 'Sohbet bulunamadı.' }
   if (room.brand_id !== userId && room.influencer_id !== userId) {
     return { success: false, error: 'Bu sohbete erişim yetkiniz yok.' }
@@ -70,19 +69,22 @@ export async function sendMessageAs(
   }
 
   // Alıcıya bildirim: oda başına saatte en fazla bir; alıcı çevrimiçiyse e-posta gitmez; içerik e-postaya konmaz.
-  const admin = createSupabaseAdminClient()
-  const senderName = await displayNameOf(admin, userId)
-  await notifyUser(
-    {
-      userId: otherUserId,
-      event: 'message_new',
-      title: `${senderName} size mesaj gönderdi`,
-      message: parseChatImageUrl(content) ? '📷 Fotoğraf' : content.slice(0, 140),
-      link: `/dashboard/messages?roomId=${roomId}`,
-      email: { subject: 'Yeni mesajınız var', text: `${senderName} size Influmatch üzerinden mesaj gönderdi.` },
-    },
-    admin,
-  )
+  // Yanıttan sonra arka planda (bildirim + push + e-posta gönderimi mesajın görünmesini bekletmesin).
+  await runInBackground('message-notify', async () => {
+    const admin = createSupabaseAdminClient()
+    const senderName = await displayNameOf(admin, userId)
+    await notifyUser(
+      {
+        userId: otherUserId,
+        event: 'message_new',
+        title: `${senderName} size mesaj gönderdi`,
+        message: parseChatImageUrl(content) ? '📷 Fotoğraf' : content.slice(0, 140),
+        link: `/dashboard/messages?roomId=${roomId}`,
+        email: { subject: 'Yeni mesajınız var', text: `${senderName} size Influmatch üzerinden mesaj gönderdi.` },
+      },
+      admin,
+    )
+  })
 
   return { success: true, data: data as SentMessage }
 }

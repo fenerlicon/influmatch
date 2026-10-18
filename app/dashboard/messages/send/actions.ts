@@ -1,6 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { sendMessageAs } from '@/lib/messages'
 import { markRoomsRead } from '@/lib/room-reads'
@@ -16,8 +15,8 @@ export async function sendMessage(roomId: string, content: string) {
   if (!result.success) return result
 
   // Gönderen için oda okundu sayılır (room_reads, lib/room-reads.ts).
+  // revalidatePath yok (2026-10-19): sohbet istemcide anında güncellenir (iyimser gönderim + Realtime); sayfayı her
+  // mesajda sunucuda baştan üretmek gönderimi yavaşlatıyordu.
   await markRoomsRead(supabase, user.id, [roomId])
-
-  revalidatePath('/dashboard/messages')
   return result
 }
