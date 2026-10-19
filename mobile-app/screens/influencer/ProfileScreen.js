@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-    Settings, Sparkles, Award, ShieldCheck, UserPen, BarChart3, Store, LogOut, Tags,
+    Settings, Sparkles, Award, ShieldCheck, UserPen, BarChart3, Store, LogOut, Tags, Trophy,
 } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { signOutAndClearPush } from '../../utils/notifications';
@@ -109,6 +109,7 @@ export default function ProfileScreen({ navigation }) {
             <Section title="Görünürlük ve performans">
                 <ListGroup>
                     <ListRow onPress={() => navigation.navigate('Spotlight')} left={<IconBox icon={Sparkles} tone="gold" />} title="Spotlight" subtitle={isSpotlight ? 'Aktif planı görüntüle' : 'Keşfette öne çık'} right={isSpotlight ? <Chip label="Aktif" tone="gold" /> : null} chevron />
+                    <ListRow onPress={() => navigation.navigate('Tasks')} left={<IconBox icon={Trophy} tone="gold" />} title="Görevler" subtitle="Tanıtım, davet ve ilk iş görevleri" chevron />
                     <ListRow onPress={() => navigation.navigate('Statistics')} left={<IconBox icon={BarChart3} />} title="İstatistikler" subtitle="Görüntülenme, teklif ve kazanç" chevron />
                     <ListRow onPress={() => navigation.navigate('Badges')} left={<IconBox icon={Award} />} title="Rozetler" subtitle={`${badges.length} rozet kazanıldı`} chevron />
                     {/* Vitrin alt sekmeden kalktı (5 sekme); buradan açılır */}

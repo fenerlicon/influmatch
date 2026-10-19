@@ -31,6 +31,11 @@ export interface DiscoverFilters {
    */
   budget?: number | null
   sort?: DiscoverSort | null
+  /**
+   * Liyakatli listeleme (0₺ dönemi, lib/merit-ranking.ts): Spotlight önceliği yok; sıralama seçilmemişse liyakat puanına göre.
+   * Sunucu belirler (bayrak), sorgu parametresinden okunmaz.
+   */
+  merit?: boolean
 }
 
 export interface FilterableAccount {
@@ -46,6 +51,8 @@ export interface FilterableProfile {
   spotlight_active?: boolean | null
   /** Geçerli müsaitlik (lib/availability-shared.ts effectiveAvailability); yoksa "iş alıyorum" sayılır. */
   availability_status?: 'open' | 'busy' | null
+  /** Liyakat puanı (merit modunda sıralama için; lib/merit-ranking.ts). */
+  merit_score?: number | null
   accounts: FilterableAccount[]
 }
 
@@ -158,8 +165,9 @@ export function sortDiscoverProfiles<T>(items: T[], filters: DiscoverFilters, pr
   return mapped
     .sort((a, b) => {
       if (isBusy(a.profile) !== isBusy(b.profile)) return isBusy(a.profile) ? 1 : -1
-      if (!sort) return a.index - b.index
-      if (!!a.profile.spotlight_active !== !!b.profile.spotlight_active) return a.profile.spotlight_active ? -1 : 1
+      if (!sort) return filters.merit ? (b.profile.merit_score ?? 0) - (a.profile.merit_score ?? 0) || a.index - b.index : a.index - b.index
+      // 0₺ döneminde (merit) herkes Spotlight'ta: öncelik yok, yalnızca seçilen ölçüt.
+      if (!filters.merit && !!a.profile.spotlight_active !== !!b.profile.spotlight_active) return a.profile.spotlight_active ? -1 : 1
       switch (sort) {
         case 'followers_desc':
           return bestMetric(b.profile, filters, 'follower_count') - bestMetric(a.profile, filters, 'follower_count')

@@ -5,6 +5,7 @@ import AccountStatusCard, { type StatusStep } from '@/components/dashboard/Accou
 import OfferActionButtons from '@/components/dashboard/OfferActionButtons'
 import { Avatar, ButtonLink, Card, CardHeader, Chip, EmptyState, ListRow, PageHeader, StatCard, VerifiedTick } from '@/components/ui'
 import { BLUE_TICK_BADGE_ID, evaluateBlueTick, type BlueTickAccount } from '@/lib/blue-tick-rules'
+import { loadOwnBlueTickPromo } from '@/lib/tasks'
 import { listCollaborationsFor } from '@/lib/collaborations'
 import { COLLABORATION_STATUS_LABELS } from '@/lib/collaboration-shared'
 import { getFirstStepsStatus } from '@/lib/first-steps'
@@ -85,6 +86,9 @@ export default async function InfluencerDashboardPage() {
       spotlight_expires_at: profile?.spotlight_expires_at ?? null,
     },
     (accounts ?? []) as BlueTickAccount[],
+    Date.now(),
+    // 0₺ dönemi: tanıtım görevi + tamamlanan iş birliği şartı (lib/tasks-promo.ts); kapalıyken null.
+    await loadOwnBlueTickPromo(user.id),
   )
 
   const collaborations = collabResult.success ? collabResult.collaborations : []

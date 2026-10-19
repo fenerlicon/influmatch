@@ -12,7 +12,9 @@ import {
   evaluateBlueTick,
   type BlueTickAccount,
   type BlueTickProfile,
+  type BlueTickPromo,
 } from '@/lib/blue-tick-rules'
+import { loadBlueTickPromo } from '@/lib/tasks-promo'
 
 export type BlueTickOverride = 'granted' | 'revoked' | null
 
@@ -28,11 +30,11 @@ const ACCOUNT_COLUMNS = 'user_id, platform, is_verified, has_stats, follower_cou
 const MAX_DISPLAYED_BADGES = 3
 const CHUNK_SIZE = 200
 
-export function shouldHaveBlueTick(profile: ProfileRow, accounts: BlueTickAccount[]) {
+export function shouldHaveBlueTick(profile: ProfileRow, accounts: BlueTickAccount[], promo: BlueTickPromo | null = null) {
   if (profile.role !== 'influencer') return false
   if (profile.blue_tick_override === 'granted') return true
   if (profile.blue_tick_override === 'revoked') return false
-  return evaluateBlueTick(profile, accounts).eligible
+  return evaluateBlueTick(profile, accounts, Date.now(), promo).eligible
 }
 
 /** Rozeti ve vitrin alanını beklenen duruma getirir. Rozet durumu değiştiyse 'granted' / 'revoked' döner. */
@@ -41,8 +43,9 @@ async function applyBlueTick(
   profile: ProfileRow,
   accounts: BlueTickAccount[],
   hasBadge: boolean,
+  promo: BlueTickPromo | null = null,
 ): Promise<'granted' | 'revoked' | null> {
-  const shouldHave = shouldHaveBlueTick(profile, accounts)
+  const shouldHave = shouldHaveBlueTick(profile, accounts, promo)
   const displayed = profile.displayed_badges ?? []
   const isDisplayed = displayed.includes(BLUE_TICK_BADGE_ID)
 
@@ -80,7 +83,8 @@ export async function syncBlueTick(userId: string, admin: SupabaseClient | null 
       admin.from('user_badges').select('id').eq('user_id', userId).eq('badge_id', BLUE_TICK_BADGE_ID).maybeSingle(),
     ])
     if (profileError || !profile) return null
-    return await applyBlueTick(admin, profile as ProfileRow, (accounts ?? []) as BlueTickAccount[], !!badge)
+    const promo = (await loadBlueTickPromo(admin, [userId]))?.get(userId) ?? null
+    return await applyBlueTick(admin, profile as ProfileRow, (accounts ?? []) as BlueTickAccount[], !!badge, promo)
   } catch (error) {
     console.error(`[blue-tick] ${userId} güncellenemedi:`, error)
     return null
@@ -117,12 +121,14 @@ export async function sweepBlueTicks(admin: SupabaseClient) {
       admin.from('social_accounts').select(ACCOUNT_COLUMNS).in('user_id', chunk).in('platform', ['instagram', 'tiktok']),
     ])
     if (profileError || accountError) throw new Error(`Mavi tik verileri okunamadı: ${(profileError ?? accountError)!.message}`)
+    // 0₺ dönemi kapalıyken null (ek şart yok).
+    const promoByUser = await loadBlueTickPromo(admin, chunk)
 
     for (const profile of (profiles ?? []) as ProfileRow[]) {
       summary.checked++
       try {
         const userAccounts = ((accounts ?? []) as (BlueTickAccount & { user_id: string })[]).filter((a) => a.user_id === profile.id)
-        const change = await applyBlueTick(admin, profile, userAccounts, holderIds.has(profile.id))
+        const change = await applyBlueTick(admin, profile, userAccounts, holderIds.has(profile.id), promoByUser?.get(profile.id) ?? null)
         if (change === 'granted') summary.granted++
         if (change === 'revoked') summary.revoked++
       } catch (error) {

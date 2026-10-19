@@ -98,6 +98,14 @@ function isMeasurable(platform: MetricPlatform, url: string, kind?: string | nul
   return false
 }
 
+/** Görevler (lib/tasks.ts): bağlantı ölçülebilir bir Instagram gönderisi / Reels ya da TikTok videosu mu. */
+export function isMeasurablePostUrl(url: string): boolean {
+  const platform = platformOfUrl(url)
+  if (platform === 'instagram') return !!instagramCode(url)
+  if (platform === 'tiktok') return !!tiktokId(url)
+  return false
+}
+
 /** Instagram gönderi kısa kodu: /p/{kod}, /reel/{kod}, /reels/{kod}, /tv/{kod} (kullanıcı adı önekli biçim dahil). */
 function instagramCode(url: string | null | undefined): string | null {
   if (!url) return null
@@ -116,7 +124,10 @@ const normalizeUrl = (url: string | null | undefined) => (url ? url.trim().repla
 
 // --- Apify -----------------------------------------------------------------------------------------
 
-type PostResult = { ok: true; likes: number | null; comments: number | null; views: number | null; shares: number | null } | { ok: false }
+/** caption: gönderi metni (görevlerde reklam etiketi kontrolü için; ölçüm kayıtlarına yazılmaz). */
+export type PostResult =
+  | { ok: true; likes: number | null; comments: number | null; views: number | null; shares: number | null; caption?: string | null }
+  | { ok: false }
 
 const count = (value: unknown): number | null => {
   const n = typeof value === 'string' ? Number(value) : value
@@ -127,7 +138,7 @@ const count = (value: unknown): number | null => {
  * Bağlantıların herkese açık sayılarını tek Apify koşusuyla alır. Dönen harita her bağlantı için sonuç içerir;
  * bulunamayan / hata kaydı dönen gönderi { ok: false }. Servis ve anahtar hataları fırlatılır (gönderiye yazılmaz).
  */
-async function fetchPostMetrics(platform: 'instagram' | 'tiktok', urls: string[]): Promise<Map<string, PostResult>> {
+export async function fetchPostMetrics(platform: 'instagram' | 'tiktok', urls: string[]): Promise<Map<string, PostResult>> {
   const out = new Map<string, PostResult>()
   if (!urls.length) return out
 
@@ -153,6 +164,7 @@ async function fetchPostMetrics(platform: 'instagram' | 'tiktok', urls: string[]
             comments: count(item.commentsCount),
             views: count(item.videoPlayCount) ?? count(item.videoViewCount),
             shares: null,
+            caption: typeof item.caption === 'string' ? item.caption : null,
           }
       const code = item.shortCode ?? instagramCode(item.url) ?? instagramCode(item.inputUrl)
       if (code) byCode.set(String(code), result)
@@ -183,7 +195,14 @@ async function fetchPostMetrics(platform: 'instagram' | 'tiktok', urls: string[]
     const result: PostResult =
       item.error || (item.playCount === undefined && item.diggCount === undefined)
         ? { ok: false }
-        : { ok: true, likes: count(item.diggCount), comments: count(item.commentCount), views: count(item.playCount), shares: count(item.shareCount) }
+        : {
+            ok: true,
+            likes: count(item.diggCount),
+            comments: count(item.commentCount),
+            views: count(item.playCount),
+            shares: count(item.shareCount),
+            caption: typeof item.text === 'string' ? item.text : null,
+          }
     const id = item.id ? String(item.id) : tiktokId(item.webVideoUrl)
     if (id) byId.set(id, result)
     if (item.submittedVideoUrl) byInput.set(normalizeUrl(item.submittedVideoUrl), result)

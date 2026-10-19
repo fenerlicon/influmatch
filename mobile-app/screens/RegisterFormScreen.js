@@ -25,6 +25,8 @@ export default function RegisterFormScreen({ route, navigation }) {
         password: '',
         confirmPassword: '',
         isAgreed: false,
+        // Görevler: davet eden kullanıcının kodu (isteğe bağlı; kayıtta tetikleyici davet kaydını yazar).
+        inviteCode: '',
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -74,6 +76,7 @@ export default function RegisterFormScreen({ route, navigation }) {
                 data: {
                     full_name: formData.fullName,
                     role: role,
+                    invite_code: /^[A-Z0-9]{6,12}$/.test(formData.inviteCode) ? formData.inviteCode : null,
                 }
             }
         });
@@ -151,6 +154,15 @@ export default function RegisterFormScreen({ route, navigation }) {
                 onChangeText={(t) => updateField('confirmPassword', t)}
                 error={mismatch ? 'Şifreler eşleşmiyor.' : undefined}
                 right={<EyeToggle shown={showConfirmPassword} onPress={() => setShowConfirmPassword(!showConfirmPassword)} />}
+            />
+            <TextField
+                label="Davet kodu"
+                hint="İsteğe bağlı"
+                placeholder="Örn. AB3K9QXZ"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                value={formData.inviteCode}
+                onChangeText={(t) => updateField('inviteCode', t.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12))}
             />
 
             <Checkbox checked={formData.isAgreed} onChange={(v) => updateField('isAgreed', v)}>

@@ -11,7 +11,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const PERMANENT_BAN = '876000h' // ~100 yıl
-const USER_FOLDER_BUCKETS = ['avatars', 'tax-documents'] as const
+const USER_FOLDER_BUCKETS = ['avatars', 'tax-documents', 'task-proofs'] as const
 
 export type AccountDeletionResult = { ok: true; authDeleted: boolean } | { ok: false; error: string }
 

@@ -17,6 +17,9 @@ import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { isProPlan } from '@/lib/subscription-tier'
 import { effectiveAvailability, type Availability } from '@/lib/availability-shared'
 import { visibleMinPrices } from '@/lib/rate-card'
+import { loadPromoPeriod } from '@/lib/tasks-promo'
+import { completedCollaborationCounts } from '@/lib/collaborations'
+import { meritScore, meritTrust } from '@/lib/merit-ranking'
 
 /** Liste kartı alanları (keşif, öne çıkanlar, çark). */
 export const PROFILE_CARD_COLUMNS =
@@ -256,6 +259,8 @@ export async function listDiscoverProfiles(
   try {
     // Filtreler çarkın (ücretsiz marka, sınırlar açıkken) gösterdiği küme içinde uygulanır; kümeyi genişletmez.
     const state = viewer.role === 'brand' ? await getWheelState(userId) : ({ limited: false } as WheelState)
+    // 0₺ dönemi: liyakatli listeleme (Spotlight önceliği yok; lib/merit-ranking.ts).
+    const merit = await loadPromoPeriod(reader)
     let cards: ProfileCard[]
     if (state.limited) {
       cards = await getWheelProfileCards(state)
@@ -271,10 +276,10 @@ export async function listDiscoverProfiles(
       if (filters.city) query = query.eq('city', filters.city)
       if (filters.creatorType === 'ugc') query = query.in('creator_type', ['ugc', 'both'])
       if (filters.creatorType === 'influencer') query = query.or('creator_type.is.null,creator_type.neq.ugc')
-      const { data, error } = await query
-        .order('spotlight_active', { ascending: false })
+      const ordered = merit ? query : query.order('spotlight_active', { ascending: false })
+      const { data, error } = await ordered
         .order('full_name', { ascending: true })
-        .limit(filtering || filters.sort ? DISCOVER_MAX : Math.min(DISCOVER_MAX, limit * 3))
+        .limit(filtering || filters.sort || merit ? DISCOVER_MAX : Math.min(DISCOVER_MAX, limit * 3))
       if (error) throw new Error(error.message)
       cards = (data ?? []) as unknown as ProfileCard[]
     }
@@ -302,7 +307,15 @@ export async function listDiscoverProfiles(
       const budget = filters.budget ?? 0
       if (budget > 0) candidates = candidates.filter((profile) => profile.min_price != null && profile.min_price <= budget)
     }
-    const profiles = sortDiscoverProfiles(candidates, filters, toFilterable).slice(0, limit)
+    let sortFilters = filters
+    let scoreOf: (profile: DiscoverProfile) => number | null = () => null
+    if (merit) {
+      const counts = await completedCollaborationCounts(reader, candidates.map((profile) => profile.id))
+      const scores = new Map(candidates.map((profile) => [profile.id, meritScore(meritTrust(profile, profile.social_accounts), counts.get(profile.id) ?? 0)]))
+      scoreOf = (profile) => scores.get(profile.id) ?? 0
+      sortFilters = { ...filters, merit: true }
+    }
+    const profiles = sortDiscoverProfiles(candidates, sortFilters, (profile) => ({ ...toFilterable(profile), merit_score: scoreOf(profile) })).slice(0, limit)
     return { ...wheelPayloadOf(state), locked: false, profiles, proFilters }
   } catch (error) {
     console.error('[profile-reads] keşif listesi okunamadı:', error)

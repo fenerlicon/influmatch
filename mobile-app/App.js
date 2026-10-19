@@ -20,6 +20,7 @@ import RegisterRoleScreen from './screens/RegisterRoleScreen';
 import RegisterFormScreen from './screens/RegisterFormScreen';
 import VerifyEmailScreen from './screens/VerifyEmailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import TasksScreen from './screens/TasksScreen';
 import { registerForPushNotificationsAsync, savePushToken, listenForNotificationTaps, routeForLink } from './utils/notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
@@ -268,6 +269,8 @@ export default function App() {
           <Stack.Screen name="Feedback" component={FeedbackScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="CollaborationDetail" component={CollaborationDetailScreen} />
+          {/* Görevler (2026-10-18) */}
+          <Stack.Screen name="Tasks" component={TasksScreen} />
 
           {/* ── Brand Sub-screens ── */}
           <Stack.Screen name="BrandVerification" component={BrandVerificationScreen} />

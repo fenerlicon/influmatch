@@ -54,6 +54,7 @@ function filterableOf(inf: DiscoverInfluencer): FilterableProfile {
     displayed_badges: inf.displayed_badges,
     spotlight_active: inf.spotlight_active,
     availability_status: inf.availability?.status ?? 'open',
+    merit_score: inf.merit_score ?? null,
     accounts,
   }
 }
@@ -106,6 +107,8 @@ export default function DiscoverGrid({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const budget = Number(budgetInput.replace(/\D/g, '')) || 0
   const favorites = useMemo(() => new Set(favoritedIds), [favoritedIds])
+  // 0₺ dönemi: sunucu (utils/fetchInfluencers.ts) yalnızca bayrak açıkken liyakat puanı gönderir.
+  const meritMode = useMemo(() => influencers.some((inf) => typeof inf.merit_score === 'number'), [influencers])
   const target = (category !== 'all' ? category : defaultCategory) || undefined
 
   const filters: DiscoverFilters = useMemo(
@@ -121,9 +124,11 @@ export default function DiscoverGrid({
       withData: isPro && withData,
       blueTick: isPro && blueOnly,
       availableOnly,
+      // 0₺ dönemi: sunucu liyakat puanı gönderdiyse Spotlight önceliği yok (lib/merit-ranking.ts).
+      merit: meritMode,
       sort: sortBy === 'followers_desc' || sortBy === 'followers_asc' || sortBy === 'engagement_desc' ? sortBy : null,
     }),
-    [city, platform, creatorType, minFollowersInput, maxFollowersInput, minEngagementInput, maxEngagementInput, isPro, withData, blueOnly, availableOnly, sortBy],
+    [city, platform, creatorType, minFollowersInput, maxFollowersInput, minEngagementInput, maxEngagementInput, isPro, withData, blueOnly, availableOnly, sortBy, meritMode],
   )
 
   const filtered = useMemo(() => {
@@ -145,7 +150,12 @@ export default function DiscoverGrid({
     if (sortBy === 'recommended') {
       return busyLast(
         result.sort((a, b) => {
-          // Spotlight profiller her sıralamada önde.
+          // Spotlight profiller her sıralamada önde (0₺ döneminde değil: herkes Spotlight'ta, liyakat puanı eşitliği bozar).
+          if (meritMode) {
+            const noSpot = (inf: DiscoverInfluencer) => ({ ...inf, spotlight_active: false })
+            const byMatch = calculateMatchScore(noSpot(b), { targetCategory: target }) - calculateMatchScore(noSpot(a), { targetCategory: target })
+            return byMatch || (b.merit_score ?? 0) - (a.merit_score ?? 0)
+          }
           if (!!a.spotlight_active !== !!b.spotlight_active) return a.spotlight_active ? -1 : 1
           return calculateMatchScore(b, { targetCategory: target }) - calculateMatchScore(a, { targetCategory: target })
         }),

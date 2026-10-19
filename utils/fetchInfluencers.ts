@@ -3,6 +3,9 @@ import { profileReader } from '@/lib/profile-reads'
 import { type DiscoverInfluencer } from '@/types/influencer'
 import { categoryQueryValues, influencerCategoriesForBrand } from '@/lib/category-map'
 import { effectiveAvailability } from '@/lib/availability-shared'
+import { loadPromoPeriod } from '@/lib/tasks-promo'
+import { completedCollaborationCounts } from '@/lib/collaborations'
+import { meritScore, meritTrust } from '@/lib/merit-ranking'
 
 // `.in(...)` listeleri URL'ye yazıldığı için kimlikler parça parça sorgulanır (3.5-S2).
 const ID_CHUNK = 100
@@ -29,6 +32,8 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
         .eq('verification_status', 'verified')
         .eq('is_showcase_visible', true)
 
+    // 0₺ dönemi: liyakatli listeleme (Spotlight önceliği yok; lib/merit-ranking.ts).
+    const merit = await loadPromoPeriod(supabase)
     let data: any[] = []
     if (filters?.ids && filters.ids.length > 0) {
         const ids = Array.from(new Set(filters.ids))
@@ -40,14 +45,15 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
             }
             data.push(...(result.data ?? []))
         }
-        data.sort((a, b) => Number(!!b.spotlight_active) - Number(!!a.spotlight_active) || String(a.full_name ?? '').localeCompare(String(b.full_name ?? ''), 'tr'))
+        data.sort((a, b) => (merit ? 0 : Number(!!b.spotlight_active) - Number(!!a.spotlight_active)) || String(a.full_name ?? '').localeCompare(String(b.full_name ?? ''), 'tr'))
         if (filters.limit) data = data.slice(0, filters.limit)
     } else {
         let query = baseQuery()
         if (filters?.limit) {
             query = query.limit(filters.limit)
         }
-        query = query.order('spotlight_active', { ascending: false }).order('full_name', { ascending: true })
+        if (!merit) query = query.order('spotlight_active', { ascending: false })
+        query = query.order('full_name', { ascending: true })
         const result = await query
         if (result.error) {
             console.error('Error fetching influencers:', result.error)
@@ -172,6 +178,16 @@ export async function getEnrichedInfluencers(filters?: { ids?: string[], limit?:
         }
     })
 
+    if (merit) {
+        const counts = await completedCollaborationCounts(supabase, influencers.map((inf) => inf.id))
+        for (const inf of influencers) {
+            const accounts = (socialAccountsMap[inf.id] || []) as Array<{ follower_count: number | null; engagement_rate: number | string | null; stats_payload?: Record<string, unknown> | null }>
+            inf.merit_score = meritScore(meritTrust(inf, accounts), counts.get(inf.id) ?? 0)
+        }
+        // Sunucu sırası da liyakate göre ("dolu" profiller ızgarada ayrıca sona alınır).
+        influencers.sort((a, b) => (b.merit_score ?? 0) - (a.merit_score ?? 0))
+    }
+
     return influencers
 }
 
@@ -218,10 +234,11 @@ export async function getAIRecommendations(
     // Yalnızca doğrulanmış sosyal hesabı olanlar önerilir (keşif listesiyle aynı kural).
     const influencers = await getEnrichedInfluencers({ ids, requireVerifiedAccount: true })
 
-    // Calculate Scores & Sort
+    // Calculate Scores & Sort. 0₺ döneminde (merit_score dolu) Spotlight güven puanına katılmaz: herkes Spotlight'ta.
     const scored = influencers.map(inf => {
-        const score = calculateMatchScore(inf, { targetCategory: filterCategory || undefined })
-        const reasons = getMatchReason(inf, { targetCategory: filterCategory || undefined })
+        const scoringInf = typeof inf.merit_score === 'number' ? { ...inf, spotlight_active: false } : inf
+        const score = calculateMatchScore(scoringInf, { targetCategory: filterCategory || undefined })
+        const reasons = getMatchReason(scoringInf, { targetCategory: filterCategory || undefined })
         return { ...inf, matchScore: score, matchReasons: reasons }
     })
 
