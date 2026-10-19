@@ -29,6 +29,8 @@ Yeni hesapta / yeni oturumda iş buradan devam eder; kullanıcıya "nerede kald�
 | **Görevler** (yeni özellik, ROADMAP "Görevler") | yeni dosyalar: `app/dashboard/tasks/**`, `app/admin/tasks/**`, `components/tasks/**`, `lib/tasks*.ts`, `lib/invites*.ts`, `app/api/mobile/tasks/**`, `mobile-app/screens/TasksScreen.js`, `mobile-app/constants/tasks.js`; ortak dosyalara yalnızca ekleme (menü, saatlik görev, mavi tik kuralı, keşif sıralaması, kayıt formuna davet kodu) | ✅ kodlandı (2026-10-19, `claude/tasks-module`): admin paneli, web + mobil görev ekranı, ölçüm, bekleyen ödüller, 0₺ dönemi mavi tik, liyakatli keşif sıralaması (`components/discover/DiscoverGrid.tsx` ve `utils/fetchInfluencers.ts`'e yalnızca ekleme) | Kalan yok (Kurucu Üye karar bekliyor) |
 | **Mobil** | `mobile-app/**`, `design/mobile/**` | ✅ yeni görünüm bitti (#68–#77). Mobil özellik işleri ayrı oturumlarda (`claude/open-*`) | Aşağıdaki "Mobil uygulama" bölümü |
 
+> **Ana sayfa (2026-10-19):** OpenDesign projesi "Influmatch Ana Sayfa Yönleri" (3 yön) içinden **Yön B · Ürün sahnesi** seçildi ve `app/page.tsx` + `components/landing/{landing.css,ProductStageHeader,RevealOnScroll}` olarak uygulandı. Örnek arayüzde uydurma rakam yok (gizli değer çubuğu). Eski `HowItWorks`, `Faq` kaldırıldı; `LandingHeader`/`LandingFooter` diğer tanıtım sayfalarında kalıyor.
+
 ## Kararlar
 
 | Konu | Karar |

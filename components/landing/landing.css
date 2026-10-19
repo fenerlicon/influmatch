@@ -1,0 +1,251 @@
+/*
+ * Ana sayfa (2026-10-19, OpenDesign "Influmatch Ana Sayfa Yönleri" → Yön B · Ürün sahnesi).
+ * Bütün kurallar .lp altında: yalnızca app/page.tsx'i etkiler. Yazı tipleri kök layout'taki next/font değişkenlerinden.
+ */
+.lp {
+  --bg: #0C0D10; --s1: #121318; --s2: #17191F; --s3: #1F2129;
+  --line: rgba(255,255,255,.07); --line2: rgba(255,255,255,.13);
+  --fg: #F3F1EC; --muted: #A3A29E; --gold: #D4AF37; --gold-h: #E2C25A; --champ: #F7E7CE;
+  --ink: #0C0D10; --ink-2: #5E5444;
+  --ok: #6FCB98; --live: #8FC2E8;
+  --serif: var(--font-display), "Times New Roman", Georgia, serif;
+  --sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --wrap: 1280px; --pad: clamp(20px, 4vw, 56px);
+  --sh: 0 1px 0 rgba(255,255,255,.04) inset, 0 28px 48px -28px rgba(0,0,0,.85), 0 2px 6px rgba(0,0,0,.25);
+  --ease: cubic-bezier(.2,0,0,1);
+  background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden; min-height: 100vh;
+}
+.lp *, .lp *::before, .lp *::after { box-sizing: border-box }
+.lp a { color: inherit }
+.lp svg { display: block }
+.lp .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--pad) }
+.lp em { font-style: italic; color: var(--champ) }
+.lp :focus-visible { outline: 2px solid var(--champ); outline-offset: 3px; border-radius: 6px }
+.lp .eyebrow { font: 500 12px/1.4 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+
+.lp .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 10px; font: 500 15px/1 var(--sans); letter-spacing: .02em; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: background-color .15s, border-color .15s, transform .1s }
+.lp .btn:active { transform: translateY(1px) }
+.lp .btn-primary { background: var(--gold); color: var(--ink) }
+.lp .btn-primary:hover { background: var(--gold-h) }
+.lp .btn-ghost { border-color: var(--line2); color: var(--fg); background: var(--s1) }
+.lp .btn-ghost:hover { background: var(--s3); border-color: rgba(255,255,255,.22) }
+.lp .btn svg { width: 16px; height: 16px }
+
+/* Üst menü */
+.lp .hdr { position: sticky; top: 0; z-index: 20; background: rgba(12,13,16,.94); border-bottom: 1px solid var(--line) }
+.lp .hdr .wrap { display: flex; align-items: center; gap: 32px; height: 68px }
+.lp .logo { font: 600 16px/1 var(--sans); letter-spacing: .14em; text-decoration: none }
+.lp .logo b { font-weight: 600; color: var(--gold) }
+.lp .nav { display: flex; gap: 4px; margin-left: 24px }
+.lp .nav a { font: 500 14px/1 var(--sans); text-decoration: none; color: var(--muted); padding: 12px; border-radius: 8px }
+.lp .nav a:hover { color: var(--fg); background: var(--s2) }
+.lp .hdr-cta { display: flex; align-items: center; gap: 8px; margin-left: auto }
+.lp .hdr-cta .login { font: 500 14px/1 var(--sans); text-decoration: none; padding: 14px 12px; border-radius: 8px }
+.lp .hdr-cta .login:hover { background: var(--s2) }
+.lp .hdr .btn { min-height: 42px; font-size: 14px }
+.lp .menu-btn { display: none; margin-left: auto; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line2); background: var(--s1); color: var(--fg); font: 500 14px/1 var(--sans); cursor: pointer }
+.lp .m-panel { display: none; border-top: 1px solid var(--line); padding: 8px var(--pad) 24px }
+.lp .m-panel a:not(.btn) { display: block; padding: 14px 0; border-bottom: 1px solid var(--line); text-decoration: none }
+.lp .m-panel .btn { width: 100%; margin-top: 16px }
+@media (max-width: 960px) { .lp .nav, .lp .hdr-cta { display: none } .lp .menu-btn { display: inline-flex; align-items: center } .lp .m-panel.open { display: block } }
+
+/* Örnek arayüz parçaları */
+.lp .win { background: var(--s1); border: 1px solid var(--line2); border-radius: 14px; box-shadow: var(--sh) }
+.lp .win-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line) }
+.lp .win-bar .t { font: 600 14px/1 var(--sans) }
+.lp .tabs { display: flex; gap: 4px; margin-left: auto }
+.lp .tabs span { font-size: 12px; padding: 6px 10px; border-radius: 6px; color: var(--muted) }
+.lp .tabs span.on { background: var(--s3); color: var(--fg) }
+.lp .chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--sans); padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line2); color: var(--fg); white-space: nowrap }
+.lp .chip .d { width: 6px; height: 6px; border-radius: 50%; background: var(--muted) }
+.lp .chip.prep .d { background: var(--champ) }
+.lp .chip.live .d { background: var(--live) }
+.lp .chip.ok .d { background: var(--ok) }
+.lp .chip.sel { background: var(--s3) }
+.lp .av { flex: none; width: 36px; height: 36px; border-radius: 8px; background: repeating-linear-gradient(135deg, rgba(247,231,206,.05) 0 1px, transparent 1px 7px), var(--s3); border: 1px solid var(--line) }
+.lp .row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line) }
+.lp .row:last-child { border-bottom: 0 }
+.lp .row .tt { font: 500 14px/1.3 var(--sans) }
+.lp .row .ss { font-size: 12px; color: var(--muted) }
+.lp .row .chip { margin-left: auto }
+.lp .mbtn { display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 0 14px; border-radius: 8px; font: 500 13px/1 var(--sans); border: 1px solid var(--line2) }
+.lp .mbtn.solid { background: var(--champ); color: var(--ink); border-color: var(--champ) }
+.lp .kv { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; padding: 8px 0; border-bottom: 1px dashed var(--line) }
+.lp .kv span:first-child { color: var(--muted) }
+/* Örnek değer: rakam yerine gizli değer çubuğu (uydurma sayı gösterilmez) */
+.lp .redact { display: inline-block; width: 64px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(90deg, rgba(247,231,206,.22) 0 6px, rgba(247,231,206,.1) 6px 9px) }
+.lp .redact.lg { width: 88px; height: 14px }
+.lp .redact.ink { background: repeating-linear-gradient(90deg, rgba(12,13,16,.35) 0 6px, rgba(12,13,16,.15) 6px 9px) }
+.lp .bub { max-width: 84%; padding: 10px 13px; border-radius: 14px; font-size: 13.5px; line-height: 1.45; margin-bottom: 6px }
+.lp .bub.in { background: var(--s3); border-bottom-left-radius: 4px }
+.lp .bub.out { background: var(--champ); color: var(--ink); margin-left: auto; border-bottom-right-radius: 4px }
+.lp .seen { text-align: right; font-size: 11.5px; color: var(--muted); margin: 0 0 8px }
+.lp .typing { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted) }
+.lp .dots { display: inline-flex; gap: 3px; background: var(--s3); padding: 9px 10px; border-radius: 12px }
+.lp .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: lp-blink 1.2s infinite }
+.lp .dots i:nth-child(2) { animation-delay: .15s }
+.lp .dots i:nth-child(3) { animation-delay: .3s }
+@keyframes lp-blink { 0%, 60%, 100% { opacity: .35 } 30% { opacity: 1 } }
+.lp .stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px }
+.lp .stg { overflow-wrap: break-word; hyphens: auto }
+.lp .stg { font: 500 11.5px/1.3 var(--sans); color: var(--muted) }
+.lp .stg::before { content: ""; display: block; height: 3px; border-radius: 2px; background: var(--s3); margin-bottom: 8px }
+.lp .stg.done { color: var(--fg) }
+.lp .stg.done::before { background: var(--champ) }
+.lp .stg.now { color: var(--fg) }
+.lp .stg.now::before { background: linear-gradient(90deg, var(--champ) 50%, var(--s3) 50%) }
+
+/* Hero */
+.lp .hero { padding: clamp(48px, 6vw, 88px) 0 clamp(64px, 8vw, 112px) }
+.lp .hero .wrap { display: grid; grid-template-columns: 5fr 7fr; gap: clamp(32px, 4vw, 64px); align-items: center }
+.lp .hero h1 { font: 400 clamp(48px, 6vw, 88px)/1 var(--serif); letter-spacing: -.025em; margin: 16px 0 20px; text-wrap: balance }
+.lp .lede { font-size: 18px; color: var(--muted); max-width: 42ch; margin: 0 0 28px }
+.lp .cta-row { display: flex; flex-wrap: wrap; gap: 12px }
+.lp .note { margin-top: 16px; font-size: 13px; color: var(--muted) }
+.lp .scene { position: relative; height: 640px }
+.lp .scene .label { position: absolute; left: 0; top: 18px; font-size: 12px; color: var(--muted) }
+.lp .s-jobs { position: absolute; left: 0; top: 52px; width: 62%; z-index: 1 }
+.lp .s-offer { position: absolute; right: 0; top: 0; width: 40%; padding: 16px; z-index: 2 }
+.lp .s-flow { position: absolute; right: 0; top: 318px; width: 40%; padding: 16px; z-index: 2 }
+.lp .s-chat { position: absolute; left: 12%; top: 410px; width: 48%; padding: 14px; z-index: 3 }
+.lp .s-offer .k, .lp .s-flow .k, .lp .s-chat .k { font: 500 11px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px }
+.lp .s-offer h3 { font: 400 24px/1.15 var(--serif); margin: 0 0 10px }
+.lp .s-offer .acts { display: flex; gap: 8px; margin-top: 14px }
+.lp .s-flow .cur { font: 500 14px/1.3 var(--sans); margin: 0 0 14px }
+@media (max-width: 1060px) {
+  .lp .hero .wrap { grid-template-columns: 1fr }
+  .lp .scene { height: auto; display: grid; gap: 14px; margin-top: 24px }
+  .lp .scene > * { position: static !important; width: auto !important }
+  .lp .scene .label { order: -2 }
+  .lp .s-jobs { order: -1 }
+  .lp .s-offer { margin-left: 14% }
+  .lp .s-chat { margin-right: 14% }
+}
+@media (max-width: 560px) { .lp .s-offer { margin-left: 8% } .lp .s-chat { margin-right: 0 } .lp .tabs { display: none } .lp .row .ss { display: none } }
+
+/* Bölümler */
+.lp section { scroll-margin-top: 76px }
+.lp .sec { padding: clamp(72px, 9vw, 128px) 0; border-top: 1px solid var(--line) }
+.lp .sec-head { max-width: 720px; margin-bottom: clamp(36px, 5vw, 64px) }
+.lp .sec-head h2 { font: 400 clamp(38px, 4.6vw, 64px)/1.04 var(--serif); letter-spacing: -.02em; margin: 14px 0; text-wrap: balance }
+.lp .sec-head p { color: var(--muted); margin: 0; font-size: 17px; max-width: 56ch }
+.lp .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; list-style: none; margin: 0; padding: 0 }
+.lp .steps li { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 22px }
+.lp .steps .n { font: 400 40px/1 var(--serif); color: var(--champ) }
+.lp .steps h3 { font: 600 16px/1.35 var(--sans); margin: 20px 0 8px }
+.lp .steps p { margin: 0; font-size: 14.5px; color: var(--muted) }
+@media (max-width: 1000px) { .lp .steps { grid-template-columns: 1fr 1fr } }
+@media (max-width: 560px) { .lp .steps { grid-template-columns: 1fr } }
+
+.lp .feat { display: grid; grid-template-columns: 5fr 7fr; gap: clamp(32px, 5vw, 80px); align-items: center; padding: clamp(40px, 5vw, 64px) 0 }
+.lp .feat + .feat { border-top: 1px solid var(--line) }
+.lp .feat.flip .copy { order: 2 }
+.lp .copy h3 { font: 400 clamp(32px, 3.4vw, 46px)/1.08 var(--serif); letter-spacing: -.015em; margin: 12px 0 14px }
+.lp .copy p { color: var(--muted); margin: 0 0 18px; max-width: 46ch }
+.lp .ticks { list-style: none; margin: 0; padding: 0 }
+.lp .ticks li { display: flex; gap: 10px; padding: 8px 0; font-size: 15px }
+.lp .ticks svg { flex: none; width: 18px; height: 18px; margin-top: 3px; color: var(--champ) }
+.lp .stage-ui { padding: clamp(16px, 2.4vw, 28px); background: var(--s2); border: 1px solid var(--line); border-radius: 18px }
+@media (max-width: 900px) { .lp .feat { grid-template-columns: 1fr } .lp .feat.flip .copy { order: 0 } }
+
+.lp .filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px; border-bottom: 1px solid var(--line) }
+.lp .grid-res { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px }
+.lp .res { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--s2) }
+.lp .res .img { aspect-ratio: 4/3; background: repeating-linear-gradient(135deg, rgba(247,231,206,.04) 0 1px, transparent 1px 9px), linear-gradient(160deg, var(--s3), var(--s1)); position: relative }
+.lp .res .img span { position: absolute; left: 8px; bottom: 8px; font: 500 10.5px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: rgba(12,13,16,.82); padding: 5px 6px; border-radius: 4px }
+.lp .res .m { padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px }
+.lp .res .m b { font-weight: 500 }
+.lp .vb { display: inline-flex; align-items: center; gap: 4px; color: var(--champ); font-size: 12px }
+.lp .vb svg { width: 12px; height: 12px }
+@media (max-width: 560px) { .lp .grid-res { grid-template-columns: 1fr 1fr } .lp .grid-res .res:nth-child(3) { display: none } }
+
+.lp .brief { padding: 18px }
+.lp .brief h4 { font: 400 24px/1.2 var(--serif); margin: 4px 0 12px }
+.lp .pick { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 16px }
+.lp .pick span { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; border: 1px solid var(--line2); border-radius: 999px; font-size: 12.5px }
+.lp .pick .av { width: 22px; height: 22px; border-radius: 50% }
+.lp .seg { display: flex; gap: 4px; padding: 4px; background: var(--s3); border-radius: 10px; margin: 16px 18px 0; width: max-content; max-width: calc(100% - 36px); overflow: hidden }
+.lp .seg span { font-size: 12.5px; padding: 7px 12px; border-radius: 7px; color: var(--muted); white-space: nowrap }
+.lp .seg span.on { background: var(--s1); color: var(--fg) }
+
+.lp .deal { padding: 18px; display: grid; gap: 16px }
+.lp .deal .h { display: flex; justify-content: space-between; align-items: center; gap: 12px }
+.lp .deal .h b { font: 400 22px/1.2 var(--serif) }
+.lp .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px }
+.lp .box { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--s2) }
+.lp .box .k { font: 500 11px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px }
+.lp .chk { display: flex; gap: 8px; align-items: center; font-size: 13px; padding: 4px 0 }
+.lp .chk i { flex: none; width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--line2) }
+.lp .chk.on i { background: var(--champ); border-color: var(--champ); position: relative }
+.lp .chk.on i::after { content: ""; position: absolute; left: 5px; top: 2px; width: 4px; height: 8px; border: solid var(--ink); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) }
+.lp .rev { display: flex; gap: 4px; margin-top: 6px }
+.lp .rev i { width: 28px; height: 6px; border-radius: 3px; background: var(--s3) }
+.lp .rev i.u { background: var(--champ) }
+@media (max-width: 560px) { .lp .cols { grid-template-columns: 1fr } }
+
+.lp .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px }
+.lp .metric { background: var(--s2); border: 1px solid var(--line); border-radius: 10px; padding: 14px }
+.lp .metric .k { font-size: 12px; color: var(--muted) }
+.lp .metric .v { margin-top: 10px }
+.lp .metric.wide { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--champ); color: var(--ink); border-color: var(--champ) }
+.lp .metric.wide .k { color: var(--ink-2) }
+
+.lp .chat { padding: 16px }
+.lp .chat-h { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13.5px }
+.lp .chat-h .st { margin-left: auto; font-size: 12px; color: var(--muted) }
+
+/* Doğrulama */
+.lp .vgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px }
+.lp .vcard { padding: 22px }
+.lp .vcard h3 { font: 400 30px/1.15 var(--serif); margin: 8px 0 10px }
+.lp .vcard p { color: var(--muted); margin: 0 0 18px; font-size: 15px }
+.lp .code { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--s2); border: 1px dashed rgba(247,231,206,.35); border-radius: 10px; padding: 14px 16px }
+.lp .code b { font: 500 18px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; color: var(--champ) }
+.lp .bio { margin-top: 12px; padding: 14px; border-radius: 10px; background: var(--s2); font-size: 13px; color: var(--muted) }
+.lp .bio mark { background: rgba(247,231,206,.12); color: var(--champ); padding: 1px 4px; border-radius: 3px }
+@media (max-width: 860px) { .lp .vgrid { grid-template-columns: 1fr } }
+
+/* Spotlight */
+.lp .spot { padding: clamp(56px, 7vw, 96px) 0; border-top: 1px solid var(--line); background: linear-gradient(180deg, var(--s1), var(--bg)) }
+.lp .spot-card { display: grid; grid-template-columns: 1fr 1.2fr auto; gap: clamp(24px, 4vw, 56px); align-items: center; border: 1px solid rgba(212,175,55,.35); border-radius: 20px; padding: clamp(24px, 4vw, 48px); background: var(--s1) }
+.lp .spot-card h2 { font: 400 clamp(44px, 5vw, 68px)/1 var(--serif); letter-spacing: -.02em; margin: 10px 0 0 }
+.lp .spot-card ul { list-style: none; margin: 0; padding: 0 }
+.lp .spot-card li { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px }
+.lp .spot-card li:last-child { border-bottom: 0 }
+.lp .spot-card li b { font-weight: 500; display: block }
+.lp .spot-card li span { color: var(--muted); font-size: 14px }
+.lp .spot-card .p { font: 400 30px/1.1 var(--serif); margin-bottom: 6px }
+.lp .spot-card small { display: block; color: var(--muted); margin-bottom: 18px; font-size: 13px }
+@media (max-width: 960px) { .lp .spot-card { grid-template-columns: 1fr } }
+
+/* S.S.S. */
+.lp .faq { max-width: 860px }
+.lp .faq details { border: 1px solid var(--line); border-radius: 12px; background: var(--s1); margin-bottom: 10px }
+.lp .faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 22px; font: 500 16px/1.4 var(--sans); border-radius: 12px }
+.lp .faq summary::-webkit-details-marker { display: none }
+.lp .faq summary:hover { background: var(--s2) }
+.lp .faq summary svg { flex: none; width: 18px; height: 18px; color: var(--muted); transition: transform .15s var(--ease) }
+.lp .faq details[open] summary svg { transform: rotate(180deg) }
+.lp .faq details p { margin: 0; padding: 0 22px 20px; color: var(--muted); max-width: 68ch }
+
+.lp .close { padding: clamp(80px, 10vw, 144px) 0; border-top: 1px solid var(--line); text-align: center }
+.lp .close h2 { font: 400 clamp(44px, 6.4vw, 96px)/1 var(--serif); letter-spacing: -.025em; margin: 0 auto 20px; max-width: 16ch; text-wrap: balance }
+.lp .close p { color: var(--muted); margin: 0 auto 32px; max-width: 48ch }
+
+.lp .ftr { border-top: 1px solid var(--line); padding: 28px 0 }
+.lp .ftr .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--muted) }
+.lp .ftr nav { display: flex; gap: 4px 24px; flex-wrap: wrap }
+.lp .ftr a { text-decoration: none; padding: 10px 0 }
+.lp .ftr a:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 4px }
+
+/* Kaydırınca beliren parçalar: yalnızca ilk ekranın altındakiler gizlenir (LandingEnhancer), JS yoksa hepsi görünür. */
+.lp .rv.pre { opacity: 0; transform: translateY(14px) }
+.lp .rv { transition: opacity .45s var(--ease), transform .45s var(--ease) }
+.lp .rv.d1 { transition-delay: .08s }
+.lp .rv.d2 { transition-delay: .16s }
+.lp .rv.d3 { transition-delay: .24s }
+@media (prefers-reduced-motion: reduce) {
+  .lp *, .lp *::before, .lp *::after { transition: none !important; animation: none !important }
+  .lp .rv.pre { opacity: 1; transform: none }
+}
