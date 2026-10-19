@@ -473,9 +473,12 @@ export default function Home({ searchParams }: HomeProps) {
               <div className="copy rv">
                 <span className="eyebrow">Mesajlaşma</span>
                 <h3>
-                  Okundu mu, <em>yazıyor mu</em>; bilirsin.
+                  Karşı tarafa <em>doğrudan</em> ulaş.
                 </h3>
-                <p>Görüldü bilgisi ve &quot;yazıyor…&quot; göstergesiyle konuşma e-posta trafiğine dönüşmez.</p>
+                <p>
+                  Teklif ya da ilan başvurusundan sonra sohbet açılır. Brief, taslak ve yayın tarihi aracı olmadan, işin hemen yanında
+                  konuşulur.
+                </p>
               </div>
               <div className="stage-ui rv d1" aria-hidden="true">
                 <div className="win">

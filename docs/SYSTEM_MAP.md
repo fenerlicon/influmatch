@@ -817,8 +817,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - ✅ Görseller: sohbet, avatar, logo, ilan kapağı yüklemeden önce küçültülüyor (`lib/image-compress.ts`); kendi depomuzdaki avatarlar next/image optimizasyonundan geçiyor (31 gün önbellek).
 - ✅ Giriş/çıkış tam sayfa geçiş (girişten sonra boş ekran sorunu); panel ve admin `loading.tsx` iskeleti.
 - ✅ Spotlight yazısı yerine ikon (`SpotlightMark`) ve kart parlaması (`.spotlight-card`; mobil `Card spotlight`, `NameWithTick spotlight`).
-- **3.22-N1 [KARAR]** Vercel fonksiyonları `iad1` (ABD) bölgesinde çalışıyor (yanıt başlığı `x-vercel-id`). Supabase Frankfurt'taysa `vercel.json` `regions: ["fra1"]`
-  her sorguda ~90 ms kazandırır; Supabase bölgesi doğrulanınca yapılacak.
+- ✅ ~~**3.22-N1**~~ (2026-10-19) Supabase **Singapur** (ap-southeast-1) çıktı; fonksiyonlar `iad1`'deydi (her sorgu ABD↔Singapur, ~200 ms). `vercel.json` `regions: ["sin1"]`:
+  sorgular aynı bölgede. Kullanıcılar Türkiye'de olduğu için en iyisi ileride Supabase'i Frankfurt'a taşımak (yeni proje + veri/depolama/auth taşıma; **3.22-N3 [KARAR]**), ardından `fra1`.
 - **3.22-N2** Mobil sohbette görsel gönderme yok (yalnızca web); eklenirse `expo-image-manipulator` ile küçültme gerekir.
 >>>>>>> origin/main
 
