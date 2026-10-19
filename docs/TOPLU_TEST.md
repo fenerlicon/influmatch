@@ -21,6 +21,8 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 
 ## 1. Tanıtım, kayıt, giriş (web)
 
+- [ ] Yeni ana sayfa (2026-10-19, OpenDesign Yön B · Ürün sahnesi): masaüstü ve telefonda hero sahnesi, "Ürünü gez" bağlantısı, bölümler kaydırınca beliriyor, telefonda Menü açılıyor, S.S.S. açılıp kapanıyor, Ücretsiz başla → /signup, Giriş yap → /login, Spotlight → /spotlight.
+
 - [ ] `/` ana sayfa masaüstü ve telefonda: başlık, "Nasıl çalışır" sekmeleri (Markalar / İçerik üreticileri), S.S.S. açılıp kapanıyor, alt bağlantılar çalışıyor.
 - [ ] Ana sayfada "Öne çıkan profiller" bölümü ve Social Art ibaresi yok (2026-10-19 kararı).
 - [ ] `/signup`: Marka / Influencer / UGC seçimi; koşullar kutusu işaretlenmeden "Hesap oluştur" pasif.
