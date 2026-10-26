@@ -68,7 +68,7 @@ export default function BadgesScreen({ navigation }) {
                 <Section title="Sahip olduğun rozetler">
                     <ListGroup>
                         {earned.map((b) => (
-                            <ListRow key={b.id} left={<IconBox icon={b.icon} tone="gold" />} title={b.name} subtitle={b.description} numberOfLines={2} right={<Chip label="Kazanıldı" tone="success" />} />
+                            <ListRow key={b.id} left={<IconBox icon={b.icon} tone="gold" />} title={b.name} subtitle={b.description} numberOfLines={2} right={b.highlight ? <Chip label="Kalıcı" tone="gold" /> : <Chip label="Kazanıldı" tone="success" />} />
                         ))}
                     </ListGroup>
                 </Section>
