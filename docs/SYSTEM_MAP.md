@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-26 (6.10 ret nedeni ve itiraz, 1.8-S5, 3.21-S2 `claude/rejection-appeals`) · önceki: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-26 (6.10 ret nedeni ve itiraz, 1.8-S5, 3.21-S3 `claude/rejection-appeals`) · önceki: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -805,7 +805,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.21-N2** "Profil %100" koşulu `utils/profileCompletion.ts` ölçüsüyle (en az 2 sosyal bağlantı dahil) + fiyat kartı + ≥1 tamamlanan iş; portföy R2 ile.
   - **3.21-N3** Kurucu Üye rozeti (0₺ öncesi gelenlere) karar aşamasında; kod yok.
   - **3.21-S1 [DÜŞÜK]** Story kanıtı yalnızca ekran görüntüsü; gerçekten paylaşıldığı admin gözüyle kontrol edilir.
-  - ✅ ~~**3.21-S2 [ORTA]**~~ (2026-10-26) Admin görev reddi serbest metindi, itiraz yolu yoktu. Artık hazır neden + açıklama, karar kaydı ve itiraz (6.10).
+  - ✅ ~~**3.21-S3 [ORTA]**~~ (2026-10-26) Admin görev reddi serbest metindi, itiraz yolu yoktu. Artık hazır neden + açıklama, karar kaydı ve itiraz (6.10).
 
 ### 3.22 2026-10-19 düzeltmeleri (`claude/fixes-oct19`)
 

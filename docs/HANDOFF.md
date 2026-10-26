@@ -114,7 +114,7 @@
   planda, `lib/background.ts`), paket listelerine eklendi; ücretsiz hesap saatlik. Saatlik görev artık alıcı başına kayıt tutuyor, yarım kalan ilan sonraki saatte
   tamamlanıyor, çift bildirim yok (3.15-S3, `advert_alert_deliveries`). Yeni bulgular düzeltildi: mobil marka başvuru listesi boştu (3.8-S6), marka başvuru metnini
   değiştirebiliyordu (3.8-S7, kolon yetkisi), mobil influencer ana sayfa ilanları boştu (10.3-S32). Migration `20261015000020` canlıda, rollback'li denemeyle doğrulandı.
-- **`claude/rejection-appeals` (2026-10-26, PR açılmadı; SYSTEM_MAP 6.10, 1.8-S5, 3.21-S2):** admin reddi (hesap onayı, vergi levhası, görev gönderimi) hazır neden +
+- **`claude/rejection-appeals` (2026-10-26, PR açılmadı; SYSTEM_MAP 6.10, 1.8-S5, 3.21-S3):** admin reddi (hesap onayı, vergi levhası, görev gönderimi) hazır neden +
   açıklama olmadan verilemez (`components/admin/RejectReasonDialog.tsx`); karar `moderation_decisions`'a yazılır, kullanıcı nedeni bildirimde (site içi + push + e-posta) ve
   ilgili yerde görür, karar başına **bir** itiraz (metin + isteğe bağlı PDF/görsel, `appeal-files` kovası). Web: ret ekranı, marka vergi levhası kartı, Görevler;
   mobil: yeni `Rejected` ekranı (reddedilen hesap artık oturumu kapatılmadan buraya gider), İşletme doğrulama, Görevler (`/api/mobile/appeals`). Admin `/admin/appeals`
