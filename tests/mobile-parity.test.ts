@@ -11,6 +11,8 @@ import * as webAvailability from '@/lib/availability-shared'
 import * as mobileAvailability from '@/mobile-app/constants/availability.js'
 import * as webCampaigns from '@/lib/campaigns-shared'
 import * as mobileCampaigns from '@/mobile-app/constants/campaigns.js'
+import * as webModeration from '@/lib/moderation-shared'
+import * as mobileModeration from '@/mobile-app/constants/moderation.js'
 import { INFLUENCER_CATEGORIES } from '@/utils/categories'
 import { INFLUENCER_CATEGORIES as MOBILE_INFLUENCER_CATEGORIES } from '@/mobile-app/constants/categories.js'
 
@@ -55,6 +57,13 @@ describe('web ↔ mobil sabitleri', () => {
     for (const [key, value] of Object.entries(mobileCampaigns.CAMPAIGN_LIMITS)) {
       expect(value, key).toBe((webCampaigns.CAMPAIGN_LIMITS as Record<string, number>)[key])
     }
+  })
+
+  it('ret nedeni ve itiraz', () => {
+    expect(mobileModeration.APPEAL_TEXT_MAX).toBe(webModeration.APPEAL_TEXT_MAX)
+    expect(mobileModeration.APPEAL_FILES_BUCKET).toBe(webModeration.APPEAL_FILES_BUCKET)
+    expect(mobileModeration.APPEAL_FILE_MAX_BYTES).toBe(webModeration.APPEAL_FILE_MAX_BYTES)
+    expect(mobileModeration.APPEAL_STATUS_LABELS).toEqual(webModeration.APPEAL_STATUS_LABELS)
   })
 
   it('influencer kategorileri', () => {
