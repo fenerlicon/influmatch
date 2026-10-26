@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Check, ExternalLink, Gift, Pencil, Plus, X } from 'lucide-react'
@@ -93,7 +93,7 @@ function SubmissionCard({
 }
 
 /** Görevler (admin): 0₺ dönemi, inceleme kuyruğu, ölçüm bekleyenler, görev tanımları, bekleyen ödüller. */
-export default function AdminTasksPanel({ data }: { data: AdminTasksDashboard }) {
+export default function AdminTasksPanel({ data, extra }: { data: AdminTasksDashboard; extra?: ReactNode }) {
   const router = useRouter()
   const [tab, setTab] = useState<'review' | 'measuring' | 'tasks' | 'rewards'>(data.review.length ? 'review' : 'tasks')
   const [isPending, startTransition] = useTransition()
@@ -150,6 +150,8 @@ export default function AdminTasksPanel({ data }: { data: AdminTasksDashboard })
           skorunda Spotlight puanı sayılmaz. Kampanya başlarken aç, satış başlayınca kapat.
         </CardBody>
       </Card>
+
+      {extra}
 
       <Tabs
         className="mb-4"

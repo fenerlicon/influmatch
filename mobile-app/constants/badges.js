@@ -19,6 +19,16 @@ import {
     ShieldCheck,
 } from 'lucide-react-native';
 
+// Kurucu Üye (2026-10-26 kararı): iki rolde de aynı rozet; 0₺ kampanyasından önce doğrulanan hesaplara kalıcı.
+const founderBadge = {
+    id: 'founder-member',
+    name: 'Kurucu Üye',
+    description: '0₺ kampanyasından önce Influmatch’e katılan doğrulanmış üyeler.',
+    icon: Crown,
+    phase: 'mvp',
+    highlight: true,
+};
+
 export const influencerBadges = [
   // MVP (Gold)
   {
@@ -28,13 +38,7 @@ export const influencerBadges = [
     icon: BadgeCheck,
     phase: 'mvp',
   },
-  {
-    id: 'founder-member',
-    name: 'Kurucu Üye',
-    description: 'Platformun ilk üyelerinden.',
-    icon: Crown,
-    phase: 'mvp',
-  },
+  founderBadge,
   {
     id: 'profile-expert',
     name: 'Profil Uzmanı',
@@ -97,6 +101,7 @@ export const brandBadges = [
     icon: Building,
     phase: 'mvp',
   },
+  founderBadge,
   {
     id: 'pioneer-brand',
     name: 'Öncü Marka',
@@ -190,7 +195,7 @@ const AUTOMATIC = 'Koşulu sağladığınızda saatlik kontrolde otomatik verili
 
 export const BADGE_REQUIREMENTS = {
     'verified-account': `Aktif Spotlight üyeliği, doğrulanmış hesapta en az ${BLUE_TICK_RULES.minFollowers.toLocaleString('tr-TR')} takipçi ve ${BLUE_TICK_RULES.minTrustScore}+ güven skoru ile otomatik verilir.`,
-    'founder-member': 'Platforma katılan ilk 1000 influencer/UGC arasında olun.',
+    'founder-member': 'Hesabınız 0₺ kampanyası başlamadan önce doğrulanırsa (onaylanırsa) verilir; kalıcıdır.',
     'profile-expert': 'Profilinizi %100 doldurun.',
     'showcase-brand': 'Marka profilinizi %100 doldurun.',
     'pioneer-brand': 'Marka hesabınız onaylandığında verilir.',

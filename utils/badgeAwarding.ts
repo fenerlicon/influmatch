@@ -5,14 +5,14 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { calculateProfileCompletion } from '@/utils/profileCompletion'
 import type { ProfileRecord } from '@/utils/profileCompletion'
+import { awardFounderBadgeIfEligible } from '@/lib/founder-badge'
 
 /**
  * Award badges automatically based on user achievements
  */
 export async function awardBadgesForUser(userId: string) {
   const supabase = createSupabaseServerClient()
-  // Okumalar service role ile: "ilk 1000 influencer" sayımı oturumdaki kullanıcının RLS'ine
-  // tabi olursa görünmeyen satırlar sayılmaz ve rozet fazla kişiye verilir.
+  // Okumalar service role ile (başka kullanıcıların satırları RLS'e takılmasın).
   const adminClient = createSupabaseAdminClient()
   const reader = adminClient ?? supabase
 
@@ -60,16 +60,7 @@ export async function awardBadgesForUser(userId: string) {
       badgesToAward.push('profile-expert')
     }
 
-    // 3. Founder Member Badge (First 1000 influencers by created_at)
-    const { count: earlierUsers, error: countError } = await reader
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'influencer')
-      .lt('created_at', user.created_at || new Date().toISOString())
-
-    if (!countError && earlierUsers !== null && earlierUsers < 1000 && !existingBadgeIds.includes('founder-member')) {
-      badgesToAward.push('founder-member')
-    }
+    // 3. Kurucu Üye rozeti artık rol bağımsız ve doğrulamaya bağlı (2026-10-26 kararı): aşağıda awardFounderBadgeIfEligible.
   } else if (role === 'brand') {
     // 1. Official Business Badge (sarı tik) burada verilmez: vergi onayı + doğrulanmış kurumsal
     // e-posta kuralı lib/official-business.ts içindeki syncOfficialBusiness ile uygulanır.
@@ -124,6 +115,11 @@ export async function awardBadgesForUser(userId: string) {
       await awardBadgesUsingSQLFunction(supabase, userId, badgesToAward)
     }
   }
+
+  // Kurucu Üye (influencer, UGC, marka): hesap doğrulanmışsa ve 0₺ kampanyası son tarihi geçmediyse; bir kez bildirim gider.
+  // Service role gerekir; yoksa saatlik görev verir.
+  const founderAwarded = adminClient ? await awardFounderBadgeIfEligible(adminClient, userId) : false
+  if (founderAwarded) badgesToAward.push('founder-member')
 
   return { awarded: badgesToAward.length, badgeIds: badgesToAward }
 }
