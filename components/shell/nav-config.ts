@@ -1,5 +1,5 @@
 import {
-  Bell, Briefcase, CalendarDays, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
+  Bell, Briefcase, CalendarDays, Gavel, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
   MessagesSquare, SlidersHorizontal, Target, Trophy, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
@@ -16,6 +16,8 @@ export interface NavItem {
   alsoActive?: string[]
   /** Okunmamış mesaj rozeti. */
   unread?: boolean
+  /** Sayı rozeti: AppShell `navCounts[countKey]` (ör. admin açık itiraz sayısı). */
+  countKey?: string
 }
 
 export interface NavGroup {
@@ -95,6 +97,7 @@ const ADMIN: NavGroup[] = [
       { id: 'support', label: 'Destek Talepleri', href: '/admin/support', icon: LifeBuoy },
       { id: 'feedback', label: 'Geri Bildirimler', href: '/admin/feedback', icon: MessagesSquare },
       { id: 'reports', label: 'Raporlanan Mesajlar', href: '/admin/messages', icon: Flag },
+      { id: 'appeals', label: 'İtirazlar', href: '/admin/appeals', icon: Gavel, countKey: 'appeals' },
       { id: 'messages', label: 'Mesajlar', href: '/dashboard/messages', icon: MessageSquare, unread: true },
     ],
   },

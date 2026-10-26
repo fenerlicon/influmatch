@@ -13,7 +13,8 @@ import {
 } from '@/lib/tasks-shared'
 import { applyPendingRewards, cancelReward, reviewSubmission, setPromoPeriod } from '@/app/admin/tasks/actions'
 import TaskEditor, { type EditableTask } from '@/components/tasks/admin/TaskEditor'
-import { Button, Card, CardBody, CardHeader, Chip, ConfirmDialog, EmptyState, Field, Modal, PageHeader, StatCard, Switch, Tabs, Textarea } from '@/components/ui'
+import RejectReasonDialog from '@/components/admin/RejectReasonDialog'
+import { Button, Card, CardBody, CardHeader, Chip, ConfirmDialog, EmptyState, PageHeader, StatCard, Switch, Tabs } from '@/components/ui'
 
 const formatDate = (value: string | null) =>
   value ? new Date(value).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
@@ -100,7 +101,6 @@ export default function AdminTasksPanel({ data }: { data: AdminTasksDashboard })
   const [promoConfirm, setPromoConfirm] = useState<boolean | null>(null)
   const [applyOpen, setApplyOpen] = useState(false)
   const [rejecting, setRejecting] = useState<AdminSubmissionView | null>(null)
-  const [rejectNote, setRejectNote] = useState('')
   const [editing, setEditing] = useState<EditableTask | 'new' | null>(null)
 
   const run = (fn: () => Promise<{ success: boolean; message?: string; error?: string }>, after?: () => void) =>
@@ -176,10 +176,7 @@ export default function AdminTasksPanel({ data }: { data: AdminTasksDashboard })
                 item={item}
                 busy={isPending}
                 onApprove={() => run(() => reviewSubmission(item.id, 'approve', null))}
-                onReject={() => {
-                  setRejectNote('')
-                  setRejecting(item)
-                }}
+                onReject={() => setRejecting(item)}
               />
             ))}
           </div>
@@ -314,32 +311,17 @@ export default function AdminTasksPanel({ data }: { data: AdminTasksDashboard })
         confirmLabel="İşle"
       />
 
-      <Modal
+      <RejectReasonDialog
         open={!!rejecting}
-        onClose={() => setRejecting(null)}
-        dismissible={!isPending}
+        onClose={() => !isPending && setRejecting(null)}
+        loading={isPending}
+        subjectType="task_submission"
         title="Gönderimi reddet"
         description={rejecting ? `${rejecting.taskTitle} · ${personLabel(rejecting.user)}` : undefined}
-        footer={
-          <>
-            <Button variant="ghost" size="sm" onClick={() => setRejecting(null)} disabled={isPending}>
-              Vazgeç
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              loading={isPending}
-              onClick={() => rejecting && run(() => reviewSubmission(rejecting.id, 'reject', rejectNote), () => setRejecting(null))}
-            >
-              Reddet
-            </Button>
-          </>
-        }
-      >
-        <Field label="Neden (kullanıcıya gösterilir)">
-          {(props) => <Textarea {...props} rows={3} maxLength={500} value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} />}
-        </Field>
-      </Modal>
+        onConfirm={(reason) => {
+          if (rejecting) run(() => reviewSubmission(rejecting.id, 'reject', reason), () => setRejecting(null))
+        }}
+      />
 
       {editing && <TaskEditor task={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={() => router.refresh()} />}
     </div>

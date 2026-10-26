@@ -38,7 +38,7 @@ function UnreadBadge({ count, className }: { count: number; className?: string }
   )
 }
 
-function NavLink({ item, active, unread, onNavigate }: { item: NavItem; active: boolean; unread: number; onNavigate?: () => void }) {
+function NavLink({ item, active, unread, count = 0, onNavigate }: { item: NavItem; active: boolean; unread: number; count?: number; onNavigate?: () => void }) {
   const Icon = item.icon
   return (
     <Link
@@ -53,6 +53,7 @@ function NavLink({ item, active, unread, onNavigate }: { item: NavItem; active: 
       <Icon className="h-4 w-4 flex-none" aria-hidden />
       {item.label}
       {item.unread && <UnreadBadge count={unread} className="ml-auto" />}
+      {item.countKey && <UnreadBadge count={count} className="ml-auto" />}
     </Link>
   )
 }
@@ -84,7 +85,19 @@ function SignOutLink({ className }: { className?: string }) {
 }
 
 /** Kenar çubuğunun ve mobil menünün ortak içeriği. */
-function NavBody({ user, pathname, unread, onNavigate }: { user: ShellUser; pathname: string; unread: number; onNavigate?: () => void }) {
+function NavBody({
+  user,
+  pathname,
+  unread,
+  navCounts,
+  onNavigate,
+}: {
+  user: ShellUser
+  pathname: string
+  unread: number
+  navCounts?: Record<string, number>
+  onNavigate?: () => void
+}) {
   const settingsHref = SETTINGS_HREF[user.role]
   const spotlightHref = SPOTLIGHT_HREF[user.role]
   const sp = user.spotlight
@@ -96,7 +109,14 @@ function NavBody({ user, pathname, unread, onNavigate }: { user: ShellUser; path
             {group.label && <div className="px-2.5 pb-1.5 text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-faint">{group.label}</div>}
             <div className="grid gap-0.5">
               {group.items.map((item) => (
-                <NavLink key={item.id} item={item} active={isNavActive(item, pathname)} unread={unread} onNavigate={onNavigate} />
+                <NavLink
+                  key={item.id}
+                  item={item}
+                  active={isNavActive(item, pathname)}
+                  unread={unread}
+                  count={item.countKey ? navCounts?.[item.countKey] ?? 0 : 0}
+                  onNavigate={onNavigate}
+                />
               ))}
             </div>
           </div>
@@ -154,7 +174,18 @@ function NavBody({ user, pathname, unread, onNavigate }: { user: ShellUser; path
 }
 
 /** Panel kabuğu: kenar çubuğu, üst çubuk, mobil alt sekme çubuğu ve menü. */
-export default function AppShell({ user, notices, children }: { user: ShellUser; notices?: ReactNode; children: ReactNode }) {
+export default function AppShell({
+  user,
+  notices,
+  navCounts,
+  children,
+}: {
+  user: ShellUser
+  notices?: ReactNode
+  /** Menüdeki sayı rozetleri (NavItem.countKey); isteğe bağlı. */
+  navCounts?: Record<string, number>
+  children: ReactNode
+}) {
   const pathname = usePathname() ?? ''
   const unread = useUnreadMessageCount()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -183,7 +214,7 @@ export default function AppShell({ user, notices, children }: { user: ShellUser;
         <Link href={NAV[user.role][0].items[0].href} className="px-2.5 pb-[18px] pt-1">
           <Logo />
         </Link>
-        <NavBody user={user} pathname={pathname} unread={unread} />
+        <NavBody user={user} pathname={pathname} unread={unread} navCounts={navCounts} />
       </aside>
 
       <div className="min-w-0">
@@ -234,7 +265,7 @@ export default function AppShell({ user, notices, children }: { user: ShellUser;
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <NavBody user={user} pathname={pathname} unread={unread} onNavigate={() => setMenuOpen(false)} />
+            <NavBody user={user} pathname={pathname} unread={unread} navCounts={navCounts} onNavigate={() => setMenuOpen(false)} />
           </div>
         </div>
       )}

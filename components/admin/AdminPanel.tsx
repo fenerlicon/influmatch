@@ -16,6 +16,7 @@ import {
 } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import UserDetail from '@/components/admin/users/UserDetail'
+import RejectReasonDialog, { type RejectReasonValue } from '@/components/admin/RejectReasonDialog'
 import { displayName, hasTick, type AdminUser } from '@/components/admin/users/types'
 
 interface AdminPanelProps {
@@ -26,6 +27,8 @@ interface AdminPanelProps {
   initialLastSeen?: Record<string, string>
   influencerCount?: number
   brandCount?: number
+  /** Başka sayfadan gelen arama (ör. itirazdan "Kullanıcı kartı": /admin?ara=<id>). */
+  initialQuery?: string
 }
 
 type TabKey = 'pending' | 'verified_influencer' | 'verified_brand' | 'rejected'
@@ -49,17 +52,28 @@ interface Ask {
 
 type ActionResult = { error?: string | null; message?: string | null; warning?: string | boolean | null } | null | undefined
 
-export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0, initialLastSeen = {} }: AdminPanelProps) {
+export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers, totalUsers = 0, influencerCount = 0, brandCount = 0, initialLastSeen = {}, initialQuery = '' }: AdminPanelProps) {
   const supabase = useSupabaseClient()
   const [all, setAll] = useState<AdminUser[]>(() => [...pendingUsers, ...verifiedUsers, ...rejectedUsers])
-  const [activeTab, setActiveTab] = useState<TabKey>('pending')
-  const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Kimlikle gelinirse kullanıcının sekmesi açılır ve kartı seçilir.
+  const linked = initialQuery ? [...pendingUsers, ...verifiedUsers, ...rejectedUsers].find((u) => u.id === initialQuery) ?? null : null
+  const [activeTab, setActiveTab] = useState<TabKey>(() =>
+    !linked
+      ? 'pending'
+      : linked.verification_status === 'verified'
+        ? linked.role === 'brand' ? 'verified_brand' : 'verified_influencer'
+        : linked.verification_status === 'rejected' ? 'rejected' : 'pending',
+  )
+  const [query, setQuery] = useState(initialQuery)
+  const [selectedId, setSelectedId] = useState<string | null>(linked?.id ?? null)
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [ask, setAsk] = useState<Ask | null>(null)
   const [asking, setAsking] = useState(false)
   const [spotlight, setSpotlight] = useState<{ user: AdminUser; plan: SpotlightPlan; months: number } | null>(null)
   const [badge, setBadge] = useState<{ user: AdminUser; badgeId: string } | null>(null)
+  // Ret nedeni penceresi (2026-10-26): tekli ya da toplu ret neden seçmeden yapılmaz.
+  const [rejectTarget, setRejectTarget] = useState<{ user: AdminUser } | { bulk: number } | null>(null)
+  const [rejecting, setRejecting] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // Çevrimiçi / son görülme: dakikada bir sunucudan tazelenir, göreli süre 30 sn'de bir yeniden hesaplanır.
@@ -222,14 +236,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
           confirmLabel: 'Onayla',
           run: () => perform(() => verifyUser(user.id), { success: 'Kullanıcı onaylandı.', reload: user.id }),
         }),
-      reject: () =>
-        confirmThen({
-          title: 'Kullanıcı reddedilsin mi?',
-          description: `${displayName(user)} reddedilir ve panele giremez.`,
-          confirmLabel: 'Reddet',
-          tone: 'danger',
-          run: () => perform(() => rejectUser(user.id), { success: 'Kullanıcı reddedildi.', reload: user.id }),
-        }),
+      reject: () => setRejectTarget({ user }),
       remove: () =>
         confirmThen({
           title: 'Hesap kalıcı olarak silinsin mi?',
@@ -309,6 +316,22 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
       tone: 'danger',
       run: () => perform(() => resetVerifiedBadges(), { success: 'Mavi tikler yeniden değerlendirildi.', after: () => window.location.reload() }),
     })
+
+  const confirmReject = async (reason: RejectReasonValue) => {
+    if (!rejectTarget) return
+    setRejecting(true)
+    try {
+      if ('user' in rejectTarget) {
+        const id = rejectTarget.user.id
+        await perform(() => rejectUser(id, reason), { success: 'Kullanıcı reddedildi; neden kullanıcıya bildirildi.', reload: id })
+      } else {
+        await bulk('reddedildi', (id) => rejectUser(id, reason), (id) => reloadUser(id))
+      }
+    } finally {
+      setRejecting(false)
+      setRejectTarget(null)
+    }
+  }
 
   const counts = Object.fromEntries(TABS.map((t) => [t.key, all.filter((u) => inTab(u, t.key)).length])) as Record<TabKey, number>
   const pendingBrands = all.filter((u) => u.role === 'brand' && u.verification_status === 'pending').length
@@ -412,14 +435,7 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
                 variant="danger"
                 disabled={isPending}
                 leftIcon={<X />}
-                onClick={() =>
-                  confirmThen({
-                    title: `${checked.size} kullanıcı reddedilsin mi?`,
-                    confirmLabel: 'Reddet',
-                    tone: 'danger',
-                    run: () => bulk('reddedildi', (id) => rejectUser(id), (id) => reloadUser(id)),
-                  })
-                }
+                onClick={() => setRejectTarget({ bulk: checked.size })}
               >
                 Reddet
               </Button>
@@ -549,6 +565,20 @@ export default function AdminPanel({ pendingUsers, verifiedUsers, rejectedUsers,
         title={ask?.title ?? ''}
         description={ask?.description}
         confirmLabel={ask?.confirmLabel}
+      />
+
+      <RejectReasonDialog
+        open={!!rejectTarget}
+        onClose={() => !rejecting && setRejectTarget(null)}
+        onConfirm={confirmReject}
+        loading={rejecting}
+        subjectType="account"
+        title={rejectTarget && 'bulk' in rejectTarget ? `${rejectTarget.bulk} kullanıcı reddedilsin mi?` : 'Kullanıcı reddedilsin mi?'}
+        description={
+          rejectTarget && 'user' in rejectTarget
+            ? `${displayName(rejectTarget.user)} reddedilir ve panele giremez.`
+            : 'Seçili kullanıcıların hepsine aynı neden gönderilir; panele giremezler.'
+        }
       />
 
       <Modal
