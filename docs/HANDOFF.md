@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25; ilan soruları yanıtı, ilan kategorisi listesi, anlık ilan alarmı `claude/open-adverts`). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-26 (ret nedeni + itiraz `claude/rejection-appeals`). Önceki: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25; ilan soruları yanıtı, ilan kategorisi listesi, anlık ilan alarmı `claude/open-adverts`). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -114,7 +114,15 @@
   planda, `lib/background.ts`), paket listelerine eklendi; ücretsiz hesap saatlik. Saatlik görev artık alıcı başına kayıt tutuyor, yarım kalan ilan sonraki saatte
   tamamlanıyor, çift bildirim yok (3.15-S3, `advert_alert_deliveries`). Yeni bulgular düzeltildi: mobil marka başvuru listesi boştu (3.8-S6), marka başvuru metnini
   değiştirebiliyordu (3.8-S7, kolon yetkisi), mobil influencer ana sayfa ilanları boştu (10.3-S32). Migration `20261015000020` canlıda, rollback'li denemeyle doğrulandı.
-- **Canlı SQL:** bekleyen: `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
+- **`claude/rejection-appeals` (2026-10-26, PR açılmadı; SYSTEM_MAP 6.10, 1.8-S5, 3.21-S2):** admin reddi (hesap onayı, vergi levhası, görev gönderimi) hazır neden +
+  açıklama olmadan verilemez (`components/admin/RejectReasonDialog.tsx`); karar `moderation_decisions`'a yazılır, kullanıcı nedeni bildirimde (site içi + push + e-posta) ve
+  ilgili yerde görür, karar başına **bir** itiraz (metin + isteğe bağlı PDF/görsel, `appeal-files` kovası). Web: ret ekranı, marka vergi levhası kartı, Görevler;
+  mobil: yeni `Rejected` ekranı (reddedilen hesap artık oturumu kapatılmadan buraya gider), İşletme doğrulama, Görevler (`/api/mobile/appeals`). Admin `/admin/appeals`
+  (menüde açık itiraz sayısı): kabulde kayıt yeniden incelemeye alınır (hesap → Bekleyen, levha → İnceleme gerekli, görev → İncelemede), retle yanıt zorunlu.
+  Kod `lib/moderation.ts` + `lib/moderation-shared.ts`. **Tablolar canlıda yok** (bu oturumda Supabase bağlantısı izin vermedi): `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql`
+  çalıştırılmalı; çalıştırılana kadar kod çökmez, itiraz gizli kalır. KVKK oturumu için: hesap silmede `appeal-files/{uid}/` dosyaları da silinmeli (6.10-S5).
+- **Canlı SQL:** bekleyen: `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql` (ret kararı + itiraz tabloları ve kovası; eklemeli, tekrar çalıştırılabilir).
+  `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
   sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır.
   `20261015000021_advert_category_mapping.sql` PR #94 yayına girdikten sonra 2026-10-15'te canlıya uygulandı (general 4, fashion 2, beauty 1).
   `20261015000040` (kampanya kolonları, `create_discovery_spin`, sınır tetikleyicisi kilitleri) canlıda. `20261010000000` (room_reads), `…01` (iş birlikleri + fiyat kartı), `…02` (move_api_key),
@@ -311,6 +319,8 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   `advert_projects.campaign_id` yazımlarını `enforce_campaign_owner` tetikleyicisi denetler. `createOfferAs` kota hatasında `code: 'quota'` döner (toplu davet bununla durur).
 - **Müsaitlik (3.19):** `users.availability_*` kolonları `users_before_update_guard` beyaz listesinde **değil**; istemci yazımı sessizce düşer, yazım `lib/availability.ts`
   (service role). Kolon SELECT yetkisi sahibine verildi; diğer profiller `lib/profile-reads.ts` kart alanlarıyla (`availabilityOf`).
+- **Ret kararları ve itiraz (2026-10-26):** kullanıcıyı etkileyen her yeni admin reddi `parseDecisionReason` + `recordDecision` (`lib/moderation.ts`) kullanmalı;
+  yeni tür eklenirse `ModerationSubjectType`, DB `subject_type` CHECK'i, `currentDecisionIds` ve `revertDecision` birlikte değişir. Tablolar istemcilere kapalı.
 - **Yeni tablo güvenliği:** Supabase varsayılan yetkileri yeni tabloda anon/authenticated'a tüm yetkileri verir ve RLS kapalı doğar.
   `CREATE TABLE` ile `ENABLE ROW LEVEL SECURITY` + `REVOKE` aynı `execute_sql` çağrısında olmalı (2026-10-10'da çağrı zaman aşımına
   uğrayınca `collaborations` birkaç dakika RLS'siz kaldı; içinde veri yokken kapatıldı). `REVOKE ALL` izin sisteminde reddedilebiliyor;

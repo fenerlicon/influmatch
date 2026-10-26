@@ -54,6 +54,21 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] `/admin/support`, `/admin/feedback`, `/admin/messages` (raporlanan mesaj, mesajı kaldır), `/admin/adverts` (ilanlar + başvurular, ilan silme), `/admin/notifications` (tümüne / seçilenlere).
 - [ ] `/admin/limits`, `/admin/api-keys` (kontrol et, test e-postası), `/admin/manual-connect`, `/admin/weekly-preview`.
 
+## 3b. Ret nedeni ve itiraz (SQL `2026-10-26_ret_nedeni_itiraz.sql` çalıştırıldıktan sonra)
+
+- [ ] **A** `/admin`: M2'yi **Reddet** → neden seçilmeden "Reddet" pasif; "Diğer" seçince açıklama zorunlu. Toplu reddet de neden ister.
+- [ ] **M2** web: panele girince ret ekranında neden görünüyor; e-posta + zil bildiriminde neden yazıyor. "Karara itiraz et" → metin (10+ karakter) + PDF ekle → gönder.
+  Sayfa yenilenince "İnceleniyor"; ikinci itiraz düğmesi yok.
+- [ ] **M2** mobil: girişte oturum kapanmadan ret ekranı açılıyor, aynı itiraz (web'de gönderildiyse durumu görünüyor); "Çıkış yap" giriş ekranına götürüyor.
+- [ ] **A** menüde "İtirazlar" yanında sayı; `/admin/appeals` → itiraz, asıl neden, "Eki aç", "Kullanıcı kartı" (Reddedilen sekmesinde kart açık).
+  **Reddet** yanıtsız pasif; yanıtla reddet → M2 bildirim + ret ekranında yanıt, yeniden itiraz yok.
+- [ ] M2'yi önce onayla, sonra yeni nedenle tekrar reddet → yeni itiraz hakkı. Bu kez **Kabul et** → M2 "Bekleyen"e döner, bildirim gelir, panele girer (kilit ekranı); admin ayrıca onaylar.
+- [ ] **M1** vergi levhası: admin levhayı nedenle reddeder → marka bildirim alır; profil > vergi levhası kartında neden + itiraz (web) ve İşletme doğrulama (mobil).
+  İtiraz kabul → levha "Ekibimiz inceliyor". Yeni levha yüklenince eski karara itiraz düğmesi kaybolur.
+- [ ] Görev: admin story gönderimini nedenle reddeder → Görevler kartında neden + itiraz (web + mobil). Kabul → gönderim yeniden "İncelemede".
+  Kullanıcı itiraz yerine yeni gönderim yaparsa eski karara itiraz edilemez.
+- [ ] Kapsam dışı (hata sayma): otomatik görev retleri (izlenme eşiği) ve ilan kaldırma itiraz edilemez.
+
 ## 4. Marka akışı (M1, doğrulanmış)
 
 - [ ] Ana sayfa: Hesap durumu kartı (ilk adımlar), "Senden bekleyenler", öneriler.
