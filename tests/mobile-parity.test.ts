@@ -11,6 +11,8 @@ import * as webAvailability from '@/lib/availability-shared'
 import * as mobileAvailability from '@/mobile-app/constants/availability.js'
 import * as webCampaigns from '@/lib/campaigns-shared'
 import * as mobileCampaigns from '@/mobile-app/constants/campaigns.js'
+import * as webConsent from '@/lib/consent-shared'
+import * as mobileConsent from '@/mobile-app/constants/consent.js'
 import { INFLUENCER_CATEGORIES } from '@/utils/categories'
 import { INFLUENCER_CATEGORIES as MOBILE_INFLUENCER_CATEGORIES } from '@/mobile-app/constants/categories.js'
 
@@ -55,6 +57,11 @@ describe('web ↔ mobil sabitleri', () => {
     for (const [key, value] of Object.entries(mobileCampaigns.CAMPAIGN_LIMITS)) {
       expect(value, key).toBe((webCampaigns.CAMPAIGN_LIMITS as Record<string, number>)[key])
     }
+  })
+
+  it('KVKK rıza sürümü ve veri indirme sınırı', () => {
+    expect(mobileConsent.LEGAL_CONSENT_VERSION).toBe(webConsent.LEGAL_CONSENT_VERSION)
+    expect(mobileConsent.DATA_EXPORT_COOLDOWN_MINUTES).toBe(webConsent.DATA_EXPORT_COOLDOWN_MINUTES)
   })
 
   it('influencer kategorileri', () => {

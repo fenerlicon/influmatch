@@ -20,7 +20,7 @@ export async function PATCH(request: Request) {
   const body = await request.json().catch(() => null)
   if (!body || typeof body.preferences !== 'object') return mobileJson({ error: 'Geçersiz istek.' }, 400)
 
-  const result = await saveEmailPreferences(ctx.supabase, ctx.user.id, body.preferences)
+  const result = await saveEmailPreferences(ctx.supabase, ctx.user.id, body.preferences, 'mobile')
   return 'error' in result
     ? mobileJson({ success: false, error: result.error }, 400)
     : mobileJson({ success: true, preferences: result.preferences })

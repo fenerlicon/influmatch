@@ -4,6 +4,7 @@ import { Mail, Lock, User, Briefcase, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { CustomToast } from '../components/CustomToast';
 import { getTurkishErrorMessage } from '../lib/errorUtils';
+import { LEGAL_CONSENT_VERSION } from '../constants/consent';
 import { Screen, StackHeader, BottomBar, Text, Button, TextField, Checkbox, colors } from '../components/ui';
 
 function EyeToggle({ shown, onPress }) {
@@ -77,6 +78,9 @@ export default function RegisterFormScreen({ route, navigation }) {
                     full_name: formData.fullName,
                     role: role,
                     invite_code: /^[A-Z0-9]{6,12}$/.test(formData.inviteCode) ? formData.inviteCode : null,
+                    // Onaylanan metnin sürümü (KVKK kaydı; tetikleyici sunucu saatiyle consent_records'a yazar)
+                    legal_consent_version: LEGAL_CONSENT_VERSION,
+                    signup_source: 'mobile',
                 }
             }
         });

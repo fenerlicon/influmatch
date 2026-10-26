@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { useSession, useSessionContext } from '@supabase/auth-helpers-react'
 import type { AuthResponse } from '@supabase/supabase-js'
 import type { UserRole } from '@/types/auth'
+import { LEGAL_CONSENT_VERSION } from '@/lib/consent-shared'
 
 interface SignUpPayload {
   email: string
@@ -99,6 +100,9 @@ export const useSupabaseAuth = () => {
               full_name: fullName,
               creator_type: creatorType || null,
               invite_code: inviteCode?.trim().toUpperCase() || null,
+              // Kayıt formunda onaylanan metnin sürümü (KVKK kaydı; tetikleyici sunucu saatiyle consent_records'a yazar)
+              legal_consent_version: LEGAL_CONSENT_VERSION,
+              signup_source: 'web',
             },
           },
         })
