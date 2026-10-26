@@ -12,6 +12,8 @@ import {
 } from '@/lib/tasks'
 import { savePromoPeriod } from '@/lib/tasks-promo'
 import { sweepBlueTicks } from '@/lib/blue-tick'
+import { saveFounderCutoff, sweepFounderBadges } from '@/lib/founder-badge'
+import { istanbulLocalToIso } from '@/lib/founder-badge-shared'
 
 type Result = { success: true; message?: string } | { success: false; error: string }
 
@@ -87,5 +89,40 @@ export async function setPromoPeriod(enabled: boolean): Promise<Result> {
   } catch (error) {
     console.error('[admin/tasks] mavi tik taraması başarısız:', error)
     return done(`0₺ dönemi ${enabled ? 'açıldı' : 'kapandı'}. Mavi tikler bir sonraki saatlik görevde güncellenecek.`)
+  }
+}
+
+/**
+ * Kurucu Üye rozeti son tarihi (0₺ kampanyasının başlangıcı, Türkiye saati 'YYYY-AA-GGTSS:DD'); boş = belirlenmemiş.
+ * Son tarih yalnızca yeni verilecek rozetleri durdurur; verilmiş rozetler kalır.
+ */
+export async function setFounderBadgeCutoff(local: string | null): Promise<Result> {
+  const ctx = await requireAdmin()
+  if ('error' in ctx) return { success: false, error: ctx.error as string }
+  let cutoff: string | null = null
+  if (typeof local === 'string' && local.trim()) {
+    cutoff = istanbulLocalToIso(local)
+    if (!cutoff) return { success: false, error: 'Geçersiz tarih.' }
+  }
+  try {
+    await saveFounderCutoff(ctx.admin, ctx.userId, cutoff)
+  } catch (error) {
+    console.error('[admin/tasks] Kurucu Üye son tarihi kaydedilemedi:', error)
+    return { success: false, error: 'Ayar kaydedilemedi.' }
+  }
+  return done(cutoff ? 'Kurucu Üye son tarihi kaydedildi.' : 'Kurucu Üye son tarihi kaldırıldı (belirlenmemiş).')
+}
+
+/** Kurucu Üye rozetini hemen dağıtır (saatlik görevi beklemeden; son tarihten hemen önce kullanılır). */
+export async function runFounderBadgeSweep(): Promise<Result> {
+  const ctx = await requireAdmin()
+  if ('error' in ctx) return { success: false, error: ctx.error as string }
+  try {
+    const summary = await sweepFounderBadges(ctx.admin, { limit: 2000, deadline: Date.now() + 8_000 })
+    if (!summary.open) return done('Son tarih geçti; yeni Kurucu Üye rozeti verilmiyor.')
+    return done(`${summary.granted} hesaba Kurucu Üye rozeti verildi${summary.remaining ? `, ${summary.remaining} hesap kaldı (tekrar çalıştır)` : ''}.`)
+  } catch (error) {
+    console.error('[admin/tasks] Kurucu Üye taraması başarısız:', error)
+    return { success: false, error: 'Tarama başarısız.' }
   }
 }

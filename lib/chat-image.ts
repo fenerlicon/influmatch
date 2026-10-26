@@ -23,3 +23,8 @@ export function chatAttachmentPath(url: string): string | null {
   if (!path || path.includes('..') || path.split('/').length !== 3) return null
   return path
 }
+
+/** Kova içi yoldan mesajda saklanan adres (web ile aynı "public" biçim; gösterimde imzalı bağlantıya çevrilir). */
+export function chatAttachmentUrl(path: string): string {
+  return `${CHAT_ATTACHMENT_PREFIX}${path}`
+}

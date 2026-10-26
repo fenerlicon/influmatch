@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { storagePathFromPublicUrl } from '@/lib/account-deletion'
+import { logPrivacyAccess } from '@/lib/privacy-audit'
 
 // Geri bildirim ve destek talebi ekleri özel (private) kovada tutulur; admin ekranı bunları
 // kısa süreli imzalı bağlantı ile açar. Kayıtlarda eski "public" URL biçimi saklı; yol oradan çıkarılır.
@@ -30,5 +31,13 @@ export async function getAttachmentUrl(storedUrl: string): Promise<{ url?: strin
 
   const { data, error } = await admin.storage.from(location.bucket).createSignedUrl(location.path, SIGNED_URL_TTL_SECONDS)
   if (error || !data?.signedUrl) return { error: 'Dosya açılamadı.' }
+  // Hassas erişim günlüğü (KVKK). Sohbet ekinde yol {oda}/{yükleyen}/… olduğundan yükleyen bilinir.
+  const uploader = location.bucket === 'chat-attachments' ? location.path.split('/')[1] : null
+  await logPrivacyAccess(admin, {
+    actorId: user.id,
+    action: 'attachment_view',
+    subjectUserId: uploader && /^[0-9a-f-]{36}$/i.test(uploader) ? uploader : null,
+    resourceId: `${location.bucket}/${location.path}`,
+  })
   return { url: data.signedUrl }
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import CookiePreferencesButton from '@/components/consent/CookiePreferencesButton'
 
 /** Tanıtım sayfalarının alt bilgisi. */
 export default function LandingFooter() {
@@ -17,6 +18,7 @@ export default function LandingFooter() {
           <Link href="/#sss" className="hover:text-ink">S.S.S.</Link>
           <Link href="/legal" className="hover:text-ink">Yasal</Link>
           <Link href="/legal?tab=privacy" className="hover:text-ink">Gizlilik</Link>
+          <CookiePreferencesButton className="text-left hover:text-ink" />
           <Link href="/feedback" className="hover:text-ink">Geri bildirim</Link>
         </nav>
       </div>

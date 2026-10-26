@@ -131,6 +131,20 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Spotlight'lı profil kartlarında "Spotlight" yazısı yok; isim yanında altın parıltı ikonu ve kartın üstünde ince altın çizgi / hafif parlama var (web + mobil).
 - [ ] Admin elle mavi tik ver / kaldır / otomatiğe döndür çalışıyor.
 
+## 7d. 2026-10-26 kararları
+
+- [ ] **A** `/admin/tasks` → "Kurucu Üye rozeti" kartı: son tarih boşken "belirlenmedi" yazıyor, rozet sahibi sayısı görünüyor. "Şimdi dağıt" →
+      doğrulanmış (onaylı) influencer, UGC ve marka hesaplarına rozet veriliyor; her hesap **bir** site içi bildirim (+ mobilde push) alıyor, e-posta gitmiyor.
+- [ ] Yeni bir hesabı admin onaylayınca rozet hemen geliyor (bildirimle). Onaysız hesapta rozet yok.
+- [ ] Rozetler sayfası (web: profil → Rozetler; mobil: Profil → Rozetler; marka mobilde marka profili): "Kurucu Üye" altın çerçeveli, açıklama
+      "0₺ kampanyasından önce Influmatch'e katılan doğrulanmış üyeler."; marka rozet kataloğunda da var; vitrine (en fazla 3) eklenebiliyor.
+- [ ] Son tarihi **geçmiş** bir zamana ayarla (deneme) → yeni onaylanan test hesabı rozet **almıyor**, eski sahiplerinki duruyor. Sonra "Tarihi kaldır".
+- [ ] **Mobil sohbet görseli** (M1 ↔ I1, teklif sohbeti): mobilde görsel düğmesi → galeriden büyük bir fotoğraf seç → küçültülerek gidiyor
+      (düğmede yükleniyor göstergesi), web'de ve karşı mobilde görünüyor. Web'den gönderilen görsel mobilde açılıyor.
+- [ ] Kapalı sohbette (marka teklifini geri çekti) mobilde görsel düğmesi yok; engellenen kullanıcıya görsel gönderilemiyor (hata mesajı).
+- [ ] Onaysız marka (M2) mobilde görsel gönderemiyor ("hesabınızın onaylanması gerekmektedir").
+- [ ] Fiyat kartı: doğrulanmış her marka (Spotlight'sız M1 dahil) influencer profilinde fiyat kartını görüyor.
+
 ## 8. Ücretsiz marka sınırları (kısa süre, canlıyı etkiler)
 
 - [ ] A `/admin/limits`'te bayrağı aç → M1 (Spotlight'sız): keşif çarkı, teklif günlük/aylık sınırı, aktif ilan sınırı, favori/liste kilidi.
@@ -147,6 +161,24 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Ayarlar: e-posta tercihleri web'deki ayarlarla aynı (birinde değiştir, ötekinde gör); şifre değiştir; destek talebi.
 - [ ] Geri bildirim gönder (admin'de görünüyor). Push bildirimi (derlemede; Expo Go Android'de yok).
 - [ ] Web ile aynı veri: mobilde yapılan teklif/başvuru/mesaj web'de anında görünüyor.
+
+## 9b. KVKK araçları (2026-10-26, SYSTEM_MAP 14, `docs/KVKK.md`)
+
+> Önce `supabase/manual/2026-10-26_kvkk.sql` SQL Editor'de çalıştırılmış olmalı (yoksa özellikler çalışır ama kayıt tutulmaz).
+
+- [ ] Yeni kayıt (web ve mobil, birer hesap): A, Supabase'de `SELECT * FROM consent_records ORDER BY created_at DESC LIMIT 5;` ile kaydı görür
+  (kind `terms_privacy`, sürüm `2026-01-01`, kaynak web / mobile).
+- [ ] Çerez bandı (gizli pencerede `/`): "Yalnızca zorunlu" ve "Tümünü kabul et" aynı görünümde. Seçim sonrası alt bilgideki **Çerez tercihleri**
+  bandı yeniden açar; "Tümü"nden "Yalnızca zorunlu"ya geçince sayfa yenilenir. Giriş yapmış hesapta seçim `consent_records`'a `cookies_optional` olarak düşer.
+- [ ] Ayarlar → Güvenlik sekmesi → **Verilerin** kartı: "İndir" bir JSON dosyası indirir. Dosyada kendi profilin, tekliflerin, yazdığın mesajlar var;
+  karşı tarafın mesajları yalnızca sayı (`messages_received_count`), başkasının e-postası / adı yok. 10 dakika içinde ikinci deneme "… dakika sonra" uyarısı verir.
+- [ ] Ayarlar → **Çerez tercihleri → Değiştir** bandı açar.
+- [ ] Pazarlama iletileri anahtarını aç / kapat → `consent_records`'ta `marketing_email` satırları (true / false).
+- [ ] A: `/admin`'de bir vergi levhasını ve bir destek ekini aç → `SELECT * FROM privacy_audit_log ORDER BY created_at DESC;` iki satır gösterir.
+- [ ] Mobil Ayarlar → **Verilerin → Verilerimi indir**: paylaşım penceresi açılır (Dosyalar'a / e-postaya kaydet).
+- [ ] Mobil Ayarlar → **Hesabı sil**: yanlış şifrede "Şifre yanlış", doğru şifrede onaydan sonra giriş ekranına döner; aynı hesapla giriş yapılamaz.
+- [ ] Sohbetinde fotoğraf ve destek talebinde ek bulunan bir test hesabını sil → Supabase Storage'da `chat-attachments/<oda>/` ve `feedback-images` içindeki
+  ek dosyası kalmamış olmalı.
 
 ## 10. Genel
 

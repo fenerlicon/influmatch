@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Alert, Linking } from 'react-native';
+import { Alert, Linking, Share } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import {
-    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink, CalendarClock,
+    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink, CalendarClock, Download, Trash2,
 } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
@@ -81,6 +81,44 @@ function PasswordSheet({ visible, onClose }) {
     );
 }
 
+// Hesabı silme (web ayarlarıyla aynı kural: şifre tekrar sorulur; /api/mobile/account/delete → lib/account-deletion.ts).
+// Mağaza kuralı: hesap uygulama içinden silinebilmeli.
+function DeleteAccountSheet({ visible, onClose, onDeleted }) {
+    const [password, setPassword] = useState('');
+    const [show, setShow] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const close = () => { setPassword(''); setShow(false); onClose(); };
+
+    const remove = () => {
+        if (!password) return Alert.alert('Şifre gerekli', 'Hesabını silmek için şifreni gir.');
+        Alert.alert('Hesabı sil', 'Hesabın ve verilerin kalıcı olarak silinecek. Bu işlem geri alınamaz.', [
+            { text: 'Vazgeç', style: 'cancel' },
+            {
+                text: 'Kalıcı olarak sil', style: 'destructive',
+                onPress: async () => {
+                    setDeleting(true);
+                    const result = await apiRequest('account/delete', { method: 'POST', body: { password } });
+                    setDeleting(false);
+                    if (!result.success) return Alert.alert('Hesap silinemedi', result.error || 'Lütfen tekrar deneyin.');
+                    setPassword('');
+                    onDeleted();
+                },
+            },
+        ]);
+    };
+
+    const eye = <IconButton icon={show ? EyeOff : Eye} size={18} color={colors.fg3} onPress={() => setShow((v) => !v)} accessibilityLabel={show ? 'Şifreyi gizle' : 'Şifreyi göster'} />;
+
+    return (
+        <Sheet visible={visible} onClose={close} title="Hesabı sil" scroll>
+            <Text variant="small" tone="fg2">Hesabın ve tüm verilerin kalıcı olarak silinir. Devam etmek için şifreni gir.</Text>
+            <TextField label="Şifre" value={password} onChangeText={setPassword} secureTextEntry={!show} autoCapitalize="none" right={eye} />
+            <Button title="Hesabımı sil" icon={Trash2} variant="danger" onPress={remove} loading={deleting} block />
+        </Sheet>
+    );
+}
+
 // Müsaitlik "Şu an dolu" ayrıntısı (3.19): isteğe bağlı not ve bitiş tarihi (takvimden, en fazla bir yıl); tarih geçince "İş alıyorum"a döner.
 const localIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 function AvailabilitySheet({ visible, onClose, initial, onSaved }) {
@@ -124,6 +162,8 @@ export default function SettingsScreen({ navigation }) {
     const [availabilityOpen, setAvailabilityOpen] = useState(false);
     // Marka: portföylerde marka adı (4.3-S7; varsayılan kapalı, /api/mobile/portfolio).
     const [showBrandName, setShowBrandName] = useState(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     useFocusEffect(useCallback(() => {
         (async () => {
@@ -191,6 +231,27 @@ export default function SettingsScreen({ navigation }) {
                 },
             },
         ]);
+    };
+
+    // "Verilerimi indir": hesabın verilerinin JSON kopyası (web ile aynı kod, /api/mobile/account/export; 10 dakikada bir).
+    const exportData = async () => {
+        if (exporting) return;
+        setExporting(true);
+        const result = await apiRequest('account/export', { method: 'POST' });
+        setExporting(false);
+        if (result.error || !result.data) return Alert.alert('İndirilemedi', result.error || 'Lütfen tekrar deneyin.');
+        try {
+            await Share.share({ title: result.fileName, message: JSON.stringify(result.data, null, 2) });
+        } catch (e) {
+            Alert.alert('Paylaşılamadı', 'Verilerini web sitesindeki Ayarlar sayfasından da indirebilirsin.');
+        }
+    };
+
+    const handleDeleted = async () => {
+        setDeleteOpen(false);
+        await supabase.auth.signOut().catch(() => null);
+        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+        Alert.alert('Hesabın silindi', 'Hesabın ve verilerin silindi.');
     };
 
     const isBrand = role === 'brand';
@@ -304,10 +365,29 @@ export default function SettingsScreen({ navigation }) {
                 />
             </ListGroup>
 
+            <GroupLabel>Verilerin</GroupLabel>
+            <ListGroup>
+                <ListRow
+                    left={<IconBox icon={Download} />}
+                    title={exporting ? 'Hazırlanıyor…' : 'Verilerimi indir'}
+                    subtitle="Hesabındaki verilerin kopyası (JSON)"
+                    onPress={exportData}
+                    chevron
+                />
+                <ListRow
+                    left={<IconBox icon={Trash2} />}
+                    title="Hesabı sil"
+                    subtitle="Hesabın ve tüm verilerin kalıcı olarak silinir"
+                    onPress={() => setDeleteOpen(true)}
+                    chevron
+                />
+            </ListGroup>
+
             <Button title="Çıkış yap" icon={LogOut} variant="danger" onPress={handleLogout} block className="mt-1.5" />
             <Text variant="caption" tone="fg3" style={{ textAlign: 'center' }}>Influmatch · sürüm {version}</Text>
 
             <PasswordSheet visible={passwordOpen} onClose={() => setPasswordOpen(false)} />
+            <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} onDeleted={handleDeleted} />
             {availabilityOpen ? (
                 <AvailabilitySheet visible onClose={() => setAvailabilityOpen(false)} initial={availability} onSaved={setAvailability} />
             ) : null}

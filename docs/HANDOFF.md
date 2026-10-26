@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-26 (ret nedeni + itiraz `claude/rejection-appeals`). Önceki: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25; ilan soruları yanıtı, ilan kategorisi listesi, anlık ilan alarmı `claude/open-adverts`). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-10-26 (ret nedeni + itiraz `claude/rejection-appeals`; KVKK teknik envanteri + düzeltmeler `claude/kvkk`, ayrıntı `docs/KVKK.md`, SYSTEM_MAP 14; Kurucu Üye rozeti, mobil sohbet görseli, Frankfurt taşıma planı `claude/decisions-oct26`). Önceki: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25; ilan soruları yanıtı, ilan kategorisi listesi, anlık ilan alarmı `claude/open-adverts`). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -9,6 +9,13 @@
 - **Yeni görünüm (2026-10-13'ten beri, asıl iş):** durum, sıra ve hangi oturumun neyi yaptığı `docs/REDESIGN.md`'de
   ("Paralel oturumlar" tablosu + "Aşamalar"). Bu belgenin aşağıdaki kısmı yeni görünümden önceki işleri anlatır.
 
+- **KVKK (2026-10-26, `claude/kvkk`, PR açılmadı):** teknik envanter ve avukata / sahibe listeler `docs/KVKK.md` (hukuki görüş değil; yasal metinlere
+  dokunulmadı). Yapılanlar: "Verilerimi indir" (web Ayarlar → Güvenlik → Verilerin, mobil Ayarlar → Verilerin; `lib/data-export.ts`, 10 dk sınır, başkasının verisi yok),
+  hesap silmede dosya boşlukları (sohbet ekleri, destek / geri bildirim ekleri, ilan kapakları), **mobil uygulama içi hesap silme**, rıza kayıtları
+  (`consent_records`: kayıt onayı sürümüyle, çerez tercihi, pazarlama izni), admin vergi levhası / ek görüntüleme günlüğü (`privacy_audit_log`), çerez bandında
+  eşit düğmeler + "Çerez tercihleri" bağlantısı + sürüm. **SQL canlıda değil** (Supabase bağlantısı yetkisizdi): `supabase/manual/2026-10-26_kvkk.sql` sahibin çalıştırması
+  gerekiyor; kod tablolar yokken de çalışır. Karar bekleyenler: yaş politikası, saklama süreleri, silme ↔ süren iş birliği, KVKK başvuru kanalı, şifre en az 8, bölge taşıma
+  (SYSTEM_MAP 14 ve `docs/KVKK.md` bölüm 6). Not: `app/admin/actions.ts` içindeki eski `getTaxDocumentUrl` silinmeli (14.4-S8; dosya başka oturumdaydı).
 - **Web:** kararsız yapılabilecek tüm maddeler bitti; 2026-10-09 ürün kararları (bildirimler, doğrudan mesaj, sarı tikler,
   "Markayla görüş", kota, Resend) uygulandı (#37–#40).
 - **Mobil (test aşaması, hedef web ile tam uyum):** 6 parça bitti ve birleşti (#41–#46):
@@ -129,6 +136,14 @@
   `…03` (vergi yükleme politikası; PR #53 yayına girdikten sonra uygulandı), `…10` (teklif süresi, şablonlar, ilan alarmı), `…20` (ücretsiz marka sınırları, bayrak kapalı), `…30` (favori/liste kilidi), `…40` (iş birliği takip alanı), `…50` (`my_related_user_ids`), `…51` (profil okuma daraltması), `20261014000020` (teklif geri çekme/düzenleme + `offers` güncelleme koruması), `20261014000030` (kampanyalar + müsaitlik), `20261014000050` (teklif odası kapanışı), `20261014000070` (sonuç raporu ölçüm tabloları), `20261014000090` (portföy gizleme + marka adı tercihi) canlıda ve doğrulandı.
   5.3-S3 eski metadata anahtarları ve 10.3-S21 eski kategori değerleri silindi/düzeltildi. İsteğe bağlı: 6.7-S1 gemini satırı hâlâ canlıda
   (`DELETE FROM public.api_keys WHERE provider = 'gemini';`). 2026-10-08/09 dosyalarının hepsi (`supabase/manual/`) kullanıcı tarafından çalıştırıldı.
+- **`claude/decisions-oct26` (2026-10-26 kararları, PR açılmadı):** **Kurucu Üye** rozeti (3.21-N3): 0₺ kampanyası başlamadan önce hesabı doğrulanan
+  her influencer / UGC / marka kalıcı rozet alır (`lib/founder-badge.ts`, kural `lib/founder-badge-shared.ts`); son tarih `platform_settings.founder_badge_cutoff`
+  (null = belirlenmemiş), admin `/admin/tasks` kartı + "Şimdi dağıt"; onayda ve saatlik görevde verilir, geri alınmaz, bir kez site içi + push bildirimi.
+  **Admin, kampanya başlangıç tarihini karta girmeli ve başlamadan hemen önce "Şimdi dağıt"a basmalı** (3.21-S2). İsteğe bağlı SQL
+  `supabase/manual/2026-10-26_kurucu_uye.sql` (Supabase MCP bu oturumda izin vermedi; kod satırsız çalışır). Eski kuralla verilmiş, doğrulanmamış rozet
+  sahipleri kararı 3.21-N4. **Mobil sohbette görsel gönderme** (3.22-N2): `expo-image-manipulator` ~14.0.8 eklendi (mobilde `npm install` gerekir),
+  `/api/mobile/messages/upload-url` (`lib/chat-upload.ts`), `sendMessageAs` görsel yolunu doğruluyor. Fiyat kartı bütün doğrulanmış markalara açık kalır
+  (3.14-N1, 3.17-S5 karar). **Frankfurt taşıması Kasım'da**, plan `docs/REGION_MOVE.md` (3.22-N3; storage kopyalama betiği `scripts/storage-copy.mjs`).
 - Kullanıcı liste bitince çok hesapla toplu test yapacak (web + mobil). Ara testler istemiyor.
 
 ## 2. Sıradaki işler
@@ -203,6 +218,7 @@
 | "Kampanyalar" (16 Ekim) | Marka menüsünde bu adla kalır (REDESIGN terim istisnası). |
 | 0₺ döneminde Spotlight (16 Ekim) | Liyakatli listeleme; mavi tik için ek şart; Kurucu Üye rozeti 0₺ öncesi gelenlere; admin görevleri fikri. Ayrıntı `docs/ROADMAP.md`, onay bekliyor. |
 | Test (16 Ekim) | Claude otomatik testleri yazar ve çalıştırır; manuel toplu testi kullanıcı yapar. |
+| Kararlar (26 Ekim) | Kurucu Üye rozeti: 0₺ öncesi doğrulanan herkese (influencer, UGC, marka), kalıcı. Mobil sohbette görsel: evet. Fiyat kartı satıştan sonra da bütün doğrulanmış markalara açık. Supabase Frankfurt taşıması Kasım'da (`docs/REGION_MOVE.md`). |
 | Görevler (18 Ekim) | Ödül yalnızca satış sonrası Spotlight süresi + indirim kodu; 4 influencer + 2 marka görevi, kişi başı bir kez, admin onaylı. 0₺ döneminde mavi tik = mevcut şartlar + tanıtım görevi + 1 tamamlanan iş. Tablo `docs/ROADMAP.md`. 19 Ekim'de kodlandı (SYSTEM_MAP 3.21); SQL `20261018000010_tasks_module.sql` kullanıcı çalıştırır. Görevler KAPALI gelir, admin `/admin/tasks`'tan açar. |
 
 ## 4. Karar bekleyenler
@@ -339,6 +355,11 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
   zaman aşımına uğruyor; bu tür SQL `supabase/manual/` dosyasıyla kullanıcıya verilir. Rollback'li denemeyi DO bloğu sonunda `RAISE EXCEPTION` ile yap
   (DELETE içeren deneme de onay bekler).
 - **Mobil tarih seçici:** `mobile-app/components/ui/DateField.js` (yerel paket yok, değer YYYY-AA-GG). Yeni tarih alanları bunu kullanır.
+- **Kurucu Üye rozeti (2026-10-26):** `founder-member` iki rolün kataloğunda aynı nesne (`app/badges/data.ts`, `mobile-app/constants/badges.js`).
+  `lib/founder-badge.ts` hiçbir zaman rozet silmez; yeni bir "kurala bağlı rozet" eşitleyicisi (`lib/badge-sync.ts`) bu rozete uygulanmamalı (geri alırdı).
+- **Sohbet görseli (2026-10-26):** görsel mesaj `![image](<NEXT_PUBLIC_SUPABASE_URL>/storage/v1/object/public/chat-attachments/{oda}/{gönderen}/{dosya})`;
+  `sendMessageAs` yolun aynı oda + gönderen klasöründe olmasını şart koşar. Web doğrudan yükler (storage RLS), mobil imzalı adresle (`lib/chat-upload.ts`).
+  Supabase adresi değişirse (bölge taşıma) eski mesajlardaki adresler SQL ile çevrilir (`docs/REGION_MOVE.md` bölüm 6).
 - **Build:** `next build` için `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` gerekli. Route sildikten sonra `rm -rf .next/types` çalıştır.
 
 ## 8. Kuyruğun en sonu (kullanıcı kararı — "ne kaldı" sorulunca hatırlat)
@@ -346,6 +367,7 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - 2026-10-10'da karara bağlanıp yapılanlar: yapay zekâ iddiaları kaldırıldı (2.9-S1, 3.5-S2 metni), ortak logoları →
   "Desteklenen Platformlar" (9.1-S2), sabit rakamlar kaldırıldı (9.1-S3), yasal metin tek kaynak (1.7-S1), ajans sayfası
   kaldırıldı (4.3-S3).
+- 2026-10-26: KVKK teknik envanteri çıkarıldı (`docs/KVKK.md`); avukata gidecek kesin liste bölüm 3 ve 5'te, sahibin işleri bölüm 6'da.
 - Bekleyen: KVKK / kullanıcı sözleşmesi / açık rıza metinlerinin ve **çerez banner'ı metninin** (`components/consent/CookieConsent.tsx`) hukuki içeriği **avukattan gelecek**; gelince
   `app/legal/page.tsx`'e yerleştirilir (Claude kendisi hukuki metin yazmaz).
 - 5 Yıldız rozeti (puanlama sistemi) mağaza yayınından sonra (karar 2026-10-10).

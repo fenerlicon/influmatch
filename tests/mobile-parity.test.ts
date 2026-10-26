@@ -13,6 +13,8 @@ import * as webCampaigns from '@/lib/campaigns-shared'
 import * as mobileCampaigns from '@/mobile-app/constants/campaigns.js'
 import * as webModeration from '@/lib/moderation-shared'
 import * as mobileModeration from '@/mobile-app/constants/moderation.js'
+import * as webConsent from '@/lib/consent-shared'
+import * as mobileConsent from '@/mobile-app/constants/consent.js'
 import { INFLUENCER_CATEGORIES } from '@/utils/categories'
 import { INFLUENCER_CATEGORIES as MOBILE_INFLUENCER_CATEGORIES } from '@/mobile-app/constants/categories.js'
 
@@ -64,6 +66,11 @@ describe('web ↔ mobil sabitleri', () => {
     expect(mobileModeration.APPEAL_FILES_BUCKET).toBe(webModeration.APPEAL_FILES_BUCKET)
     expect(mobileModeration.APPEAL_FILE_MAX_BYTES).toBe(webModeration.APPEAL_FILE_MAX_BYTES)
     expect(mobileModeration.APPEAL_STATUS_LABELS).toEqual(webModeration.APPEAL_STATUS_LABELS)
+  })
+
+  it('KVKK rıza sürümü ve veri indirme sınırı', () => {
+    expect(mobileConsent.LEGAL_CONSENT_VERSION).toBe(webConsent.LEGAL_CONSENT_VERSION)
+    expect(mobileConsent.DATA_EXPORT_COOLDOWN_MINUTES).toBe(webConsent.DATA_EXPORT_COOLDOWN_MINUTES)
   })
 
   it('influencer kategorileri', () => {

@@ -2,7 +2,6 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@supabase/supabase-js'
 import { saveEmailPreferences } from '@/lib/email-preferences'
 import { setAvailabilityAs } from '@/lib/availability'
 
@@ -125,11 +124,8 @@ export async function deleteAccount(password: string): Promise<{ success: boolea
     if (!password) {
       return { success: false, error: 'Şifrenizi girin' }
     }
-    const verifier = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-    const { error: passwordError } = await verifier.auth.signInWithPassword({ email: user.email, password })
-    if (passwordError) {
+    const { deleteAccountCompletely, verifyAccountPassword } = await import('@/lib/account-deletion')
+    if (!(await verifyAccountPassword(user.email, password))) {
       return { success: false, error: 'Şifre yanlış' }
     }
 
@@ -139,7 +135,6 @@ export async function deleteAccount(password: string): Promise<{ success: boolea
       return { success: false, error: 'Sistem yapılandırma hatası. Lütfen destek ile iletişime geçin.' }
     }
 
-    const { deleteAccountCompletely } = await import('@/lib/account-deletion')
     const result = await deleteAccountCompletely(supabaseAdmin, user.id)
     if (!result.ok) {
       return { success: false, error: result.error }

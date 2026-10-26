@@ -39,7 +39,7 @@ export default function BadgeCatalog({ defaultRole = 'influencer' }: { defaultRo
                 {phaseBadges.map((badge) => {
                   const Icon = badge.icon
                   return (
-                    <div key={badge.id} className={`flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-3.5 ${phase === 'mvp' ? '' : 'opacity-70'}`}>
+                    <div key={badge.id} className={`flex items-start gap-3 rounded-xl border bg-surface-2 p-3.5 ${badge.highlight ? 'border-gold/40' : 'border-line'} ${phase === 'mvp' ? '' : 'opacity-70'}`}>
                       <span className="grid h-9 w-9 flex-none place-items-center rounded-lg bg-gold/10 text-gold">
                         <Icon className="h-[18px] w-[18px]" aria-hidden />
                       </span>

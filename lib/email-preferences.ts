@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { recordConsent, type ConsentSource } from '@/lib/consent'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
 /**
  * E-posta bildirim tercihleri (users.email_notifications). Web ayarlar sayfası ve mobil uç
@@ -37,12 +39,18 @@ export async function getEmailPreferences(supabase: SupabaseClient, userId: stri
   return { success: true as const, preferences: normalizeEmailPreferences(data?.email_notifications) }
 }
 
-export async function saveEmailPreferences(supabase: SupabaseClient, userId: string, input: unknown) {
+export async function saveEmailPreferences(supabase: SupabaseClient, userId: string, input: unknown, source: ConsentSource = 'web') {
   const preferences = normalizeEmailPreferences(input)
+  // Pazarlama izni (isteğe bağlı, varsayılan kapalı) değişirse KVKK / ETK kaydı tutulur: kim, ne zaman, verdi mi geri mi aldı.
+  const { data: before } = await supabase.from('users').select('email_notifications').eq('id', userId).maybeSingle()
+  const wasMarketing = normalizeEmailPreferences(before?.email_notifications).marketing
   const { error } = await supabase.from('users').update({ email_notifications: preferences }).eq('id', userId)
   if (error) {
     console.error('[email-preferences] kaydedilemedi:', error.message)
     return { error: 'Ayarlar kaydedilemedi. Lütfen tekrar deneyin.' as const }
+  }
+  if (before && wasMarketing !== preferences.marketing) {
+    await recordConsent(createSupabaseAdminClient(), { userId, kind: 'marketing_email', granted: preferences.marketing, source })
   }
   return { success: true as const, preferences }
 }

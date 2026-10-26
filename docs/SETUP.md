@@ -46,6 +46,7 @@ Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yaz�
 ## 3. Supabase
 
 - **Proje:** `aiftdpagcnwqzzemtkwt`. Auth'ta e-posta onayı açık, OTP 6 hane, Passkeys açık.
+  Bölge Singapur (`ap-southeast-1`, Vercel fonksiyonları `sin1`); Kasım'da Frankfurt'a taşınacak, plan `docs/REGION_MOVE.md`.
   "Leaked password protection" Pro planda açılacak.
 - **Şema:** `supabase/migrations/20261009000000_schema_baseline.sql` canlı şemanın tam temelidir; yeni bir veritabanı
   bu dosya + sonraki zaman damgalı migration'larla kurulur. Eski dosyalar `supabase/migrations/_archive/` altında
@@ -64,7 +65,7 @@ Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yaz�
   | `avatars` | herkese açık okuma | `{uid}/…` |
   | `advert-hero-images` | herkese açık okuma | kök |
   | `feedback-images` | gizli; admin imzalı URL ile açar | `feedback-<uuid>`, `support-ticket-<uuid>` |
-  | `chat-attachments` | gizli; okuma ve yükleme oda taraflarına, imzalı URL | `{oda}/{uid}/…` |
+  | `chat-attachments` | gizli; okuma ve yükleme oda taraflarına (mobil imzalı yükleme adresiyle), imzalı URL | `{oda}/{uid}/…` |
   | `tax-documents` | gizli | `{uid}/…` |
 
 - **Realtime yayını:** messages, offers, advert_applications, rooms, dismissed_offers, notifications,
