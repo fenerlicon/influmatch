@@ -21,6 +21,7 @@ import RegisterFormScreen from './screens/RegisterFormScreen';
 import VerifyEmailScreen from './screens/VerifyEmailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import TasksScreen from './screens/TasksScreen';
+import AccountRejectedScreen from './screens/AccountRejectedScreen';
 import { registerForPushNotificationsAsync, savePushToken, listenForNotificationTaps, routeForLink } from './utils/notifications';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
@@ -69,7 +70,7 @@ const DEV_SCREEN = __DEV__ && Platform.OS === 'web' && typeof window !== 'undefi
   : null;
 
 // MVP bandının gösterilmediği giriş/kayıt/doğrulama ekranları
-const AUTH_ROUTES = new Set(['Login', 'ForgotPassword', 'RegisterRole', 'RegisterForm', 'VerifyEmail', 'Onboarding', 'SocialVerifyGate', 'BrandVerification']);
+const AUTH_ROUTES = new Set(['Login', 'ForgotPassword', 'RegisterRole', 'RegisterForm', 'VerifyEmail', 'Onboarding', 'SocialVerifyGate', 'BrandVerification', 'Rejected']);
 
 // ─── Tema (components/ui/theme.js) ────────────────────────────────────────────
 const AppTheme = {
@@ -162,7 +163,9 @@ export default function App() {
   useEffect(() => {
     if (loading || !session?.user) return;
     const openLink = async (link) => {
-      const { data } = await supabase.from('users').select('role').eq('id', session.user.id).maybeSingle();
+      const { data } = await supabase.from('users').select('role, verification_status').eq('id', session.user.id).maybeSingle();
+      // Reddedilmiş hesap yalnızca ret / itiraz ekranında kalır.
+      if (data?.verification_status === 'rejected') return;
       const target = routeForLink(link, data?.role);
       if (!target) return;
       const go = () => navigationRef.navigate(target.name, target.params);
@@ -189,12 +192,8 @@ export default function App() {
     try {
       // Web ile aynı yönlendirme kuralları (lib/routing.js): reddedilmiş hesap, eksik profil, zorunlu sosyal doğrulama.
       const route = await resolveHomeRoute(session.user.id);
-      if (route === 'Rejected') {
-        await supabase.auth.signOut();
-        setInitialRoute('Login');
-      } else {
-        setInitialRoute(route);
-      }
+      // Reddedilmiş hesap: ret nedeni + itiraz ekranı (2026-10-26; web RejectedScreen ile aynı). Başka ekrana geçilemez.
+      setInitialRoute(route);
     } catch (e) {
       console.warn('Session check error:', e);
       setInitialRoute('Login');
@@ -247,6 +246,7 @@ export default function App() {
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} initialParams={DEV_SCREEN ? { email: 'ornek@mail.com' } : undefined} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="SocialVerifyGate" component={SocialVerifyGateScreen} options={{ gestureEnabled: false }} />
+          <Stack.Screen name="Rejected" component={AccountRejectedScreen} options={{ gestureEnabled: false }} />
 
           {/* ── Influencer Main ── */}
           <Stack.Screen name="Dashboard" component={InfluencerTabs} />

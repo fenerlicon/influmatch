@@ -66,10 +66,11 @@ export default function LoginScreen({ navigation }) {
                 return;
             }
 
+            // Reddedilmiş hesap: ret nedeni + itiraz ekranı (2026-10-26). Oturum açık kalır; ekrandan çıkış yapılır.
             if (route === 'Rejected') {
                 showToast(REJECTED_MESSAGE, 'error');
-                await supabase.auth.signOut();
                 setLoading(false);
+                navigation.replace('Rejected');
                 return;
             }
 

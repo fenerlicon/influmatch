@@ -6,8 +6,11 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { CheckCircle, Clock, FileUp, XCircle } from 'lucide-react'
 import { Button, Notice } from '@/components/ui'
 import { requestTaxUploadUrl, submitTaxCertificate } from '@/app/dashboard/brand/profile/tax-actions'
+import AppealBox from '@/components/appeals/AppealBox'
+import type { DecisionView } from '@/lib/moderation-shared'
 
 export interface TaxVerificationSummary {
+  id?: string
   status: 'processing' | 'auto_approved' | 'needs_review' | 'approved' | 'rejected'
   reasons: string[] | null
   created_at: string
@@ -19,6 +22,8 @@ interface TaxCertificateUploadProps {
   /** Vergi no, daire ve il kaydedilmiş ve geçerli mi */
   canSubmit: boolean
   latest: TaxVerificationSummary | null
+  /** Bu levhanın admin ret kararı + itiraz durumu (2026-10-26). */
+  decision?: DecisionView | null
 }
 
 const ACCEPTED = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
@@ -32,7 +37,7 @@ const STATUS_VIEW: Record<TaxVerificationSummary['status'], { title: string; ton
   rejected: { title: 'Belge kabul edilmedi', tone: 'danger', Icon: XCircle },
 }
 
-export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit, latest }: TaxCertificateUploadProps) {
+export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit, latest, decision = null }: TaxCertificateUploadProps) {
   const supabase = useSupabaseClient()
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -107,6 +112,10 @@ export default function TaxCertificateUpload({ userId, taxIdVerified, canSubmit,
         <Notice tone={view.tone} icon={view.Icon} title={view.title}>
           {shown.status !== 'auto_approved' && shown.status !== 'approved' && (shown.reasons?.length ?? 0) > 0 ? shown.reasons!.join(' · ') : null}
         </Notice>
+      )}
+
+      {decision && shown?.id && decision.subjectId === shown.id && !verified && (decision.canAppeal || decision.appeal) && (
+        <AppealBox decision={decision} showReason={false} />
       )}
 
       {showUpload && (

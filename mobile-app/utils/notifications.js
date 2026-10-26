@@ -93,6 +93,9 @@ export function routeForLink(link, role) {
     // İş birlikleri ayrı ekran değil, İşler sekmesinin "Aktif" bölümü
     if (link.includes('/collaborations')) return { name: root, params: { screen: 'İşler', params: { segment: 'active' } } };
     if (link.includes('/offers')) return { name: root, params: { screen: 'İşler', params: { segment: 'offers' } } };
+    // Ret nedeni / itiraz bildirimleri (2026-10-26): görevler ve vergi levhası kendi ekranlarında.
+    if (link.includes('/dashboard/tasks')) return { name: 'Tasks' };
+    if (link.includes('bolum=vergi')) return { name: 'BrandVerification' };
     if (link.includes('/advert')) return { name: root, params: { screen: role === 'brand' ? 'BrandAdverts' : 'İlanlar' } };
     // Marka profili sekme değil, ayrı ekran (BrandProfile)
     if (link.includes('/badges')) return role === 'brand' ? { name: 'BrandProfile' } : { name: 'Badges' };

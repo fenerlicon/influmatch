@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import BrandProfileForm from '@/components/brand/BrandProfileForm'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { loadLatestDecision } from '@/lib/moderation'
 
 export default async function BrandProfileSettingsPage() {
   const supabase = createSupabaseServerClient()
@@ -42,11 +43,14 @@ export default async function BrandProfileSettingsPage() {
   // Son vergi levhası doğrulaması (RLS: kullanıcı sadece kendi kayıtlarını görür).
   const { data: latestTaxVerification } = await supabase
     .from('tax_verifications')
-    .select('status, reasons, created_at')
+    .select('id, status, reasons, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  // Vergi levhası reddinin karar + itiraz durumu (2026-10-26; tablo yoksa null, itiraz gizli).
+  const { decision: taxDecision } = await loadLatestDecision(supabaseAdmin, user.id, 'tax_document')
 
   if (error) {
     console.error('[BrandProfileSettingsPage] profile load error', error.message)
@@ -88,6 +92,7 @@ export default async function BrandProfileSettingsPage() {
     taxOffice: (profile as any)?.tax_office ?? '',
     taxOfficeCity: (profile as any)?.tax_office_city ?? '',
     latestTaxVerification: latestTaxVerification ?? null,
+    taxDecision: taxDecision ?? null,
     corporateEmail: corporate?.corporate_email ?? null,
     corporateEmailVerified: !!corporate?.corporate_email_verified_at,
   }

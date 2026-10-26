@@ -8,6 +8,7 @@ import { Trophy, Link2, ImageUp, Gift, Lock, Copy, Share2, Clock } from 'lucide-
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { TASK_PROOF_BUCKET, TASK_PROOF_MAX_BYTES, TASK_STATE_CHIPS } from '../constants/tasks';
+import AppealCard from '../components/AppealCard';
 import { Screen, StackHeader, Text, Button, Card, Chip, EmptyState, Notice, ProgressBar, TextField, colors } from '../components/ui';
 
 const formatDate = (value) =>
@@ -89,6 +90,9 @@ function TaskCard({ task, inviteLink, onDone }) {
             {task.state === 'in_review' && latest ? <Notice tone="info" title="İncelemede" text={latest.checkNote || 'Gönderin admin incelemesinde.'} /> : null}
             {latest?.status === 'rejected' && canAct ? (
                 <Notice tone="warning" title="Son gönderim onaylanmadı" text={latest.reviewNote || latest.checkNote || 'Yeni bir gönderimle tekrar deneyebilirsin.'} />
+            ) : null}
+            {latest?.status === 'rejected' && latest.decision && (latest.decision.canAppeal || latest.decision.appeal) ? (
+                <AppealCard key={latest.decision.id} decision={latest.decision} showReason={!canAct} onDone={onDone} />
             ) : null}
 
             {canAct && task.evidence === 'post_url' ? (

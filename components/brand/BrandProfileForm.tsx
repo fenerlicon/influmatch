@@ -16,6 +16,7 @@ import { TURKISH_CITIES } from '@/utils/turkishCities'
 import { BRAND_CATEGORIES, BRAND_CATEGORY_KEYS } from '@/utils/categories'
 import { validateTaxNumber } from '@/lib/tax-id'
 import TaxCertificateUpload, { type TaxVerificationSummary } from '@/components/brand/TaxCertificateUpload'
+import type { DecisionView } from '@/lib/moderation-shared'
 import CorporateEmailVerification from '@/components/brand/CorporateEmailVerification'
 const LOGO_BUCKET = 'avatars'
 
@@ -42,6 +43,7 @@ interface BrandProfileFormProps {
     taxOffice?: string
     taxOfficeCity?: string
     latestTaxVerification?: TaxVerificationSummary | null
+    taxDecision?: DecisionView | null
     corporateEmail?: string | null
     corporateEmailVerified?: boolean
   }
@@ -605,6 +607,7 @@ export default function BrandProfileForm({ initialData }: BrandProfileFormProps)
                   !!initialData.taxOfficeCity
                 }
                 latest={initialData.latestTaxVerification ?? null}
+                decision={initialData.taxDecision ?? null}
               />
             </div>
           )}

@@ -9,6 +9,7 @@ import { TASK_PROOF_BUCKET, TASK_PROOF_MAX_BYTES, TASK_STATE_CHIPS } from '@/lib
 import { createTaskProofUploadUrl, submitTask } from '@/app/dashboard/tasks/actions'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { Button, Card, CardBody, CardHeader, Chip, EmptyState, Input, Notice, Progress } from '@/components/ui'
+import AppealBox from '@/components/appeals/AppealBox'
 
 const formatDate = (value: string | null) =>
   value ? new Date(value).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : ''
@@ -120,6 +121,9 @@ function TaskCard({ task, inviteLink }: { task: TaskView; inviteLink: string | n
           <Notice tone="warning" title="Son gönderim onaylanmadı">
             {latest.reviewNote ?? latest.checkNote ?? 'Yeni bir gönderimle tekrar deneyebilirsin.'}
           </Notice>
+        )}
+        {latest?.status === 'rejected' && latest.decision && (latest.decision.canAppeal || latest.decision.appeal) && (
+          <AppealBox decision={latest.decision} showReason={!showRejected} />
         )}
 
         {canAct && task.evidence === 'post_url' && (
