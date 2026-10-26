@@ -116,6 +116,20 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Spotlight'lı profil kartlarında "Spotlight" yazısı yok; isim yanında altın parıltı ikonu ve kartın üstünde ince altın çizgi / hafif parlama var (web + mobil).
 - [ ] Admin elle mavi tik ver / kaldır / otomatiğe döndür çalışıyor.
 
+## 7d. 2026-10-26 kararları
+
+- [ ] **A** `/admin/tasks` → "Kurucu Üye rozeti" kartı: son tarih boşken "belirlenmedi" yazıyor, rozet sahibi sayısı görünüyor. "Şimdi dağıt" →
+      doğrulanmış (onaylı) influencer, UGC ve marka hesaplarına rozet veriliyor; her hesap **bir** site içi bildirim (+ mobilde push) alıyor, e-posta gitmiyor.
+- [ ] Yeni bir hesabı admin onaylayınca rozet hemen geliyor (bildirimle). Onaysız hesapta rozet yok.
+- [ ] Rozetler sayfası (web: profil → Rozetler; mobil: Profil → Rozetler; marka mobilde marka profili): "Kurucu Üye" altın çerçeveli, açıklama
+      "0₺ kampanyasından önce Influmatch'e katılan doğrulanmış üyeler."; marka rozet kataloğunda da var; vitrine (en fazla 3) eklenebiliyor.
+- [ ] Son tarihi **geçmiş** bir zamana ayarla (deneme) → yeni onaylanan test hesabı rozet **almıyor**, eski sahiplerinki duruyor. Sonra "Tarihi kaldır".
+- [ ] **Mobil sohbet görseli** (M1 ↔ I1, teklif sohbeti): mobilde görsel düğmesi → galeriden büyük bir fotoğraf seç → küçültülerek gidiyor
+      (düğmede yükleniyor göstergesi), web'de ve karşı mobilde görünüyor. Web'den gönderilen görsel mobilde açılıyor.
+- [ ] Kapalı sohbette (marka teklifini geri çekti) mobilde görsel düğmesi yok; engellenen kullanıcıya görsel gönderilemiyor (hata mesajı).
+- [ ] Onaysız marka (M2) mobilde görsel gönderemiyor ("hesabınızın onaylanması gerekmektedir").
+- [ ] Fiyat kartı: doğrulanmış her marka (Spotlight'sız M1 dahil) influencer profilinde fiyat kartını görüyor.
+
 ## 8. Ücretsiz marka sınırları (kısa süre, canlıyı etkiler)
 
 - [ ] A `/admin/limits`'te bayrağı aç → M1 (Spotlight'sız): keşif çarkı, teklif günlük/aylık sınırı, aktif ilan sınırı, favori/liste kilidi.
