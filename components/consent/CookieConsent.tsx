@@ -2,45 +2,94 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSession } from '@supabase/auth-helpers-react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { buttonClasses } from '@/components/ui'
+import { COOKIE_POLICY_VERSION, COOKIE_PREFERENCES_EVENT, decodeCookieChoice, encodeCookieChoice, type CookieChoice } from '@/lib/consent-shared'
 
-// Çerez tercihi (yalnızca web). Tercih birinci taraf çerezde 12 ay saklanır.
+// Çerez tercihi (yalnızca web). Tercih birinci taraf çerezde 12 ay saklanır (değer: "all.<sürüm>" / "essential.<sürüm>").
 // Zorunlu olmayan araçlar (şu an yalnızca Vercel Speed Insights) yalnızca "Tümünü kabul et" sonrası yüklenir.
-// Not: banner metni sade ve geçicidir; hukuki metin avukat onayından geçmeli (docs/HANDOFF.md).
+// KVKK Çerez Rehberi mekaniği: reddetmek kabul etmek kadar kolay (iki düğme eşit görünümde), tercih sonradan
+// alt bilgideki / ayarlardaki "Çerez tercihleri" bağlantısıyla değiştirilebilir (COOKIE_PREFERENCES_EVENT),
+// politika sürümü değişince yeniden sorulur, giriş yapmış kullanıcının tercihi /api/consent ile kayda geçer.
+// Not: banner metni sade ve geçicidir; hukuki metin avukat onayından geçmeli (docs/KVKK.md).
 const CONSENT_COOKIE = 'im_cookie_consent'
 const MAX_AGE_SECONDS = 365 * 24 * 60 * 60
+// Hangi kullanıcı + tercih + sürüm sunucuya bildirildi (aynı kaydı her sayfada tekrar göndermemek için).
+const SYNC_KEY = 'im_cookie_consent_synced'
 
-type Consent = 'essential' | 'all'
-
-function readConsent(): Consent | null {
+function readConsent(): CookieChoice | null {
   const match = document.cookie.split('; ').find((part) => part.startsWith(`${CONSENT_COOKIE}=`))
-  const value = match?.split('=')[1]
-  return value === 'essential' || value === 'all' ? value : null
+  return decodeCookieChoice(match ? decodeURIComponent(match.slice(CONSENT_COOKIE.length + 1)) : null)
 }
 
-function writeConsent(value: Consent) {
+function writeConsent(value: CookieChoice) {
   const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-  document.cookie = `${CONSENT_COOKIE}=${value}; Max-Age=${MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secure}`
+  document.cookie = `${CONSENT_COOKIE}=${encodeCookieChoice(value)}; Max-Age=${MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secure}`
+}
+
+function readSynced(): string | null {
+  try {
+    return window.localStorage.getItem(SYNC_KEY)
+  } catch {
+    return null
+  }
+}
+
+function writeSynced(value: string) {
+  try {
+    window.localStorage.setItem(SYNC_KEY, value)
+  } catch {
+    // depolama kapalıysa bir sonraki sayfada yeniden bildirilir (sunucu aynı kaydı tekrar yazmaz)
+  }
 }
 
 export default function CookieConsent() {
   // undefined: henüz okunmadı (sunucu çıktısıyla uyum için banner ilk çizimde gösterilmez)
-  const [consent, setConsent] = useState<Consent | null | undefined>(undefined)
+  const [consent, setConsent] = useState<CookieChoice | null | undefined>(undefined)
+  const [reopened, setReopened] = useState(false)
+  const session = useSession()
+  const userId = session?.user?.id ?? null
 
   useEffect(() => {
     setConsent(readConsent())
+    const reopen = () => setReopened(true)
+    window.addEventListener(COOKIE_PREFERENCES_EVENT, reopen)
+    return () => window.removeEventListener(COOKIE_PREFERENCES_EVENT, reopen)
   }, [])
 
-  const choose = (value: Consent) => {
+  // Giriş yapmış kullanıcının tercihi kayda geçer (tercih girişten önce verilmiş olsa da).
+  useEffect(() => {
+    if (!userId || !consent) return
+    const marker = `${userId}:${consent}:${COOKIE_POLICY_VERSION}`
+    if (readSynced() === marker) return
+    fetch('/api/consent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'cookies_optional', granted: consent === 'all' }),
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((result) => {
+        if (result?.recorded) writeSynced(marker)
+      })
+      .catch(() => null)
+  }, [userId, consent])
+
+  const choose = (value: CookieChoice) => {
+    const downgraded = consent === 'all' && value === 'essential'
     writeConsent(value)
     setConsent(value)
+    setReopened(false)
+    // Yüklenmiş ölçüm betiği sayfada kalmasın: izin geri alınınca sayfa yenilenir.
+    if (downgraded) window.setTimeout(() => window.location.reload(), 300)
   }
+
+  const showBanner = consent === null || (consent !== undefined && reopened)
 
   return (
     <>
       {consent === 'all' && <SpeedInsights />}
-      {consent === null && (
+      {showBanner && (
         <div
           role="dialog"
           aria-live="polite"
@@ -59,6 +108,7 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={() => choose('essential')}
+                aria-pressed={reopened ? consent === 'essential' : undefined}
                 className={buttonClasses({ variant: 'secondary' })}
               >
                 Yalnızca zorunlu
@@ -66,7 +116,8 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={() => choose('all')}
-                className={buttonClasses({ variant: 'primary' })}
+                aria-pressed={reopened ? consent === 'all' : undefined}
+                className={buttonClasses({ variant: 'secondary' })}
               >
                 Tümünü kabul et
               </button>

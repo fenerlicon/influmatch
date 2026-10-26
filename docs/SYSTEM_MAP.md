@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-26 (KVKK teknik envanteri ve düzeltmeleri, yeni bölüm 14, `claude/kvkk`) · önceki: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -34,6 +34,7 @@ Bulgular kodun statik okunmasından çıkarıldı; canlı veritabanı repodaki m
 11. [Ölü kod envanteri](#11-ölü-kod-envanteri)
 12. [Öncelik sırası](#12-öncelik-sırası)
 13. [Bu dalda tamamlananlar](#13-bu-dalda-tamamlananlar)
+14. [KVKK ve kişisel veriler](#14-kvkk-ve-kişisel-veriler-2026-10-26)
 
 ---
 
@@ -161,7 +162,7 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Dosya:** `app/legal/page.tsx` (KVKK, şartlar, çerezler — inline JSX)
 - **Sorunlar:**
   - ✅ ~~**1.12-S1 [ORTA]**~~ (footer linki `/legal?tab=privacy`; KVKK metni içeriği ayrı iş) Footer `/legal/privacy`'e bağlanıyor, böyle bir rota yok. Metin `lib/legal-constants.ts` ile ikiye bölünmüş; KVKK metni ince.
-  - ✅ ~~**1.12-S2 [ORTA]**~~ (2026-10-10, kullanıcı kararı "şimdi ekle": kök layout'ta `components/consent/CookieConsent.tsx` — "Yalnızca zorunlu" / "Tümünü kabul et" + `/legal?tab=cookies` bağlantısı; tercih `im_cookie_consent` birinci taraf çerezinde 12 ay. Sitede zorunlu olmayan tek araç Vercel Speed Insights; artık yalnızca "Tümünü kabul et" sonrası yükleniyor. Banner metni ve çerez politikası **avukat onayından geçmeli**; çerez politikasındaki "Google Analytics" / "pazarlama çerezleri" ifadeleri sitede kullanılmayan araçları anıyor, avukat metniyle düzeltilmeli. Tercihi sonradan değiştirme bağlantısı yok (çerez silinince banner yeniden çıkar)) Çerez tercihi alınmıyordu; Speed Insights onaysız yükleniyordu.
+  - ✅ ~~**1.12-S2 [ORTA]**~~ (2026-10-10, kullanıcı kararı "şimdi ekle": kök layout'ta `components/consent/CookieConsent.tsx` — "Yalnızca zorunlu" / "Tümünü kabul et" + `/legal?tab=cookies` bağlantısı; tercih `im_cookie_consent` birinci taraf çerezinde 12 ay. Sitede zorunlu olmayan tek araç Vercel Speed Insights; artık yalnızca "Tümünü kabul et" sonrası yükleniyor. Banner metni ve çerez politikası **avukat onayından geçmeli**; çerez politikasındaki "Google Analytics" / "pazarlama çerezleri" ifadeleri sitede kullanılmayan araçları anıyor, avukat metniyle düzeltilmeli. Tercihi sonradan değiştirme bağlantısı yok (çerez silinince banner yeniden çıkar); 2026-10-26: alt bilgi ve Ayarlar'daki "Çerez tercihleri" ile eklendi, düğmeler eşitlendi, rıza kaydı, 14.3-S4) Çerez tercihi alınmıyordu; Speed Insights onaysız yükleniyordu.
 
 ---
 
@@ -1076,6 +1077,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `campaigns` | marka kampanyaları: brief, hedef, bütçe, varsayılan teslimatlar (3.19) | sahibi marka ve admin okur; yazma yalnızca sunucu; davetli influencer brief'i sunucudan |
 | `deliverable_metric_tracking` / `deliverable_metric_snapshots` | sonuç raporu: gönderi ölçüm takvimi ve ölçümler (3.20) | iş birliğinin tarafları ve admin okur; yazma yalnızca sunucu |
 | `portfolio_hidden_items` / `brand_portfolio_settings` | portföyde gizlenen iş birlikleri, markanın "adım görünsün" tercihi (3.20-N6) | yalnızca service role (istemcilere kapalı) |
+| `consent_records` / `privacy_audit_log` | rıza kayıtları (kayıt onayı, çerez, pazarlama) ve hassas erişim günlüğü (14) | yalnızca service role (istemcilere kapalı); SQL `supabase/manual/2026-10-26_kvkk.sql` |
 
 ### 7.3 `users` koruma katmanı
 - RLS: authenticated herkes okur; anon için SELECT politikası **yok**. Kolon bazlı gizlilik: email, phone, tax_id, tax_office, tax_office_city,
@@ -1166,6 +1168,9 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `GET /api/mobile/first-steps` | Bearer JWT | ilk adımlar kontrol listesi durumu (3.16) |
 | `GET/POST /api/mobile/campaigns` · `GET/PATCH/POST /api/mobile/campaigns/[id]` · `GET/POST /api/mobile/availability` | Bearer JWT | kampanyalar, öneriler, toplu davet, bağlama; müsaitlik (3.19) |
 | `GET /dashboard/brand/campaigns/[id]/export` | oturum (sahibi marka) | kampanya tablosu CSV (3.19) |
+| `POST /api/account/export` · `POST /api/mobile/account/export` | oturum / Bearer JWT | "Verilerimi indir" JSON, 10 dk sınır (14.2-S1) |
+| `POST /api/mobile/account/delete` | Bearer JWT + şifre | uygulama içi hesap silme (14.5-S1) |
+| `POST /api/consent` | oturum (yoksa kayıt yok) | çerez tercihinin rıza kaydı (14.3-S4) |
 | `POST /api/award-badges` | admin | rozet verme (2.6-S1) |
 | `GET /api/check-username` | yok | kullanıcı adı müsaitliği (7.3-S2) |
 | `GET /api/test-welcome` | yok | 410 dönen ölü taslak |
@@ -1406,3 +1411,81 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - Vergi levhasının dış servis olmadan yerelde doğrulanması, admin inceleme ekranı, otomatik onay varsayılan kapalı.
 - Kurumsal e-posta (şirket alan adı) zorunluluğu ve sarı tik için kodla doğrulama.
 - Admin `toggleBlueTick`'in `displayed_badges`'i ezmesi ve `rejectTaxVerification`'ın onaylı kaydı reddedebilmesi düzeltildi.
+
+---
+
+## 14. KVKK ve kişisel veriler (2026-10-26)
+
+> Teknik envanter, hukuki görüş değil. Ayrıntı, avukata gidecek liste ve sahibin işleri: `docs/KVKK.md`. Yasal metinler değiştirilmedi
+> (tek kaynak `app/legal/page.tsx`, avukattan gelecek). Canlı veritabanına bu oturumda erişilemedi (Supabase bağlantısı yetkisiz).
+
+### 14.1 Envanter ve veri işleyenler
+- **14.1-N1** Veri envanteri (hangi veri, nerede, kim okur) `docs/KVKK.md` 1.1. Doğum tarihi, telefon, adres, IBAN alınmıyor; şahıs şirketinde vergi no = TCKN.
+  Uygulama IP saklamıyor (Supabase Auth ve Vercel kayıtlarında var). Google Fonts yazı tipleri kendi sunucumuzdan; analitik / reklam aracı yok.
+- **14.1-N2 [KARAR]** Yurt dışı aktarım: Supabase (Singapur), Vercel (ABD, fonksiyonlar `sin1`), Resend (ABD), Expo → Apple APNs / Google FCM (ABD),
+  Apify (kullanıcı adı ve gönderi bağlantısı), Speed Insights (onaydan sonra). Dayanak (standart sözleşme + Kurul'a bildirim ya da açık rıza) ve
+  işleyen sözleşmeleri (DPA) sahibin / avukatın işi. Bölge taşıma 3.22-N3.
+- **14.1-N3 [KARAR]** VERBİS kaydı yükümlülüğü şirket kurulunca (1 Ocak) avukatla değerlendirilecek.
+
+### 14.2 Haklar (md. 11)
+- ✅ ~~**14.2-S1 [YÜKSEK]**~~ (2026-10-26: `lib/data-export.ts`; web `POST /api/account/export` Ayarlar → Güvenlik → Verilerin, mobil `POST /api/mobile/account/export`
+  Ayarlar → Verilerin, paylaşım penceresi. 10 dakikada bir, her indirme `privacy_audit_log`'a. Başkasının kişisel verisi yok: yalnızca kendi yazdığı mesajlar,
+  gelen mesaj / başvuru / profil görüntüleme / davet sayıları, karşı taraflar uuid ile; admin notu, kod hash'leri, inceleyen admin, push token dışarıda) Kullanıcının kendi verisini indirebileceği bir yol yoktu (erişim hakkı yalnızca e-postayla).
+- ✅ ~~**14.2-S2 [YÜKSEK]**~~ (2026-10-26: `lib/account-deletion.ts` dosya listesini profil silinmeden önce çıkarıyor: taraf olunan odaların `chat-attachments/{oda}/…`
+  dosyaları, destek / geri bildirim ekleri (`feedback-images`), ilan kapakları (`advert-hero-images/{uid}/` + eski kök), sayfalı listeleme; `social_accounts`
+  ayrıca siliniyor) Hesap silinince sohbet görselleri, destek / geri bildirim ekleri ve ilan kapakları depoda sahipsiz kalıyordu; liste 1000 dosyada kesiliyordu.
+- **14.2-S3 [ORTA]** [KARAR] Hesap silinince taraf olunan teklif, oda, mesaj, iş birliği kayıtları karşı taraf için de siliniyor (CASCADE). Kullanıcı sözleşmesi
+  "devam eden iş birliği varken hesap kapatılamaz" diyor, sistem engellemiyor. Engelleme / anonimleştirme kararı gerekli.
+- **14.2-S4 [ORTA]** [KARAR] KVKK başvuruları için ayrı kanal, kayıt ve 30 gün takibi yok (Başvuru Tebliği); bugün destek formu ve destek@influmatch.net.
+- **14.2-N1** Kullanıcı adı ve hesap e-postası kullanıcı tarafından değiştirilemiyor (düzeltme talebi destekle).
+
+### 14.3 Rıza ve çerezler
+- ✅ ~~**14.3-S1 [YÜKSEK]**~~ (2026-10-26: `consent_records` + `auth.users` tetikleyicisi `on_auth_user_consent`; web ve mobil kayıt metadata'sına
+  `legal_consent_version` (`lib/consent-shared.ts`, mobil `constants/consent.js`, parite testi) yazıyor, tetikleyici sunucu saatiyle kaydediyor. SQL canlıda değil: 14.7-S1)
+  Kayıttaki onayın ne zaman, hangi metin sürümüne verildiği kaydedilmiyordu.
+- **14.3-S2 [YÜKSEK]** [AVUKAT] Kayıt formunda aydınlatma, sözleşme ve gizlilik tek kutuda "okudum ve kabul ediyorum"; açık rıza ayrı değil. Altyapı hazır (rıza türü +
+  sürüm); kutu metinleri avukattan gelince ayrılır.
+- ✅ ~~**14.3-S3 [ORTA]**~~ (2026-10-26: `saveEmailPreferences` pazarlama izni değişince `marketing_email` kaydı yazıyor, web + mobil) Pazarlama izni ayrı ve varsayılan
+  kapalıydı ama verilme / geri alınma zamanı tutulmuyordu.
+- ✅ ~~**14.3-S4 [ORTA]**~~ (2026-10-26: iki düğme eşit görünümde; alt bilgide ve Ayarlar'da "Çerez tercihleri" bandı yeniden açıyor (`COOKIE_PREFERENCES_EVENT`);
+  izin geri alınınca sayfa yenileniyor; çerez değeri politika sürümünü taşıyor, sürüm değişince yeniden soruluyor; giriş yapmış kullanıcının tercihi
+  `/api/consent` ile `cookies_optional` kaydı. Bant metni aynı) Reddetme düğmesi ikincil görünümdeydi, tercih sonradan değiştirilemiyordu, rıza kaydı yoktu.
+- **14.3-N1** Pazarlama e-postası bugün hiç gönderilmiyor. Gönderilecekse (haftalık özet, kampanya duyurusu) İYS kaydı, onay metni ve e-postada ret bağlantısı gerekir.
+
+### 14.4 Güvenlik ve en aza indirme
+- ✅ ~~**14.4-S1 [ORTA]**~~ (2026-10-26: `privacy_audit_log`; vergi levhası açma `app/admin/tax-document-actions.ts`, özel ekler `app/admin/attachments/actions.ts`)
+  Admin'in vergi levhası ve özel ek görüntülemesi kaydedilmiyordu.
+- **14.4-S2 [ORTA]** Admin hesaplarında iki adımlı doğrulama (Supabase MFA) yok. Sahibin işi.
+- **14.4-S3 [DÜŞÜK]** [KARAR] Şifre en az uzunluğu web'de 6, mobilde 8; Supabase sızdırılmış şifre koruması kapalı (Pro planda).
+- **14.4-S4 [DÜŞÜK]** Onboarding taslağı (marka vergi no dahil) localStorage'da; onboarding bitince siliniyor ama yarıda bırakılıp çıkış yapılırsa kalıyor.
+- **14.4-S5 [ORTA]** [KARAR] Saklama ve imha süreleri yok: bildirimler, mesajlar, profil görüntülemeleri, analitik olayları, süresi geçmiş kurumsal e-posta kodları,
+  şikâyet kopyaları (`message_snapshot`), onaylanmış vergi levhası dosyası, rıza ve erişim kayıtları. Süreler avukatın imha politikasıyla; sonra saatlik göreve eklenir.
+- **14.4-S6 [ORTA]** Supabase güvenlik danışmanı (advisors) ve canlı RLS kontrolü bu oturumda çalıştırılamadı (yetkisiz); erişimli ilk oturumda bakılmalı.
+- **14.4-S7 [DÜŞÜK]** Admin kullanıcı ayrıntısında gizli alanların (e-posta, vergi no) görüntülenmesi günlüklenmiyor.
+- **14.4-S8 [DÜŞÜK]** `app/admin/actions.ts` içinde eski günlüksüz `getTaxDocumentUrl` duruyor (arayüz artık `app/admin/tax-document-actions.ts`'i kullanıyor;
+  dosya o sırada başka oturumda düzenlendiği için silinmedi). Silinmeli.
+
+### 14.5 Mobil
+- ✅ ~~**14.5-S1 [YÜKSEK]**~~ (2026-10-26: Ayarlar → Verilerin → Hesabı sil, şifre tekrar, `POST /api/mobile/account/delete` → `lib/account-deletion.ts`) Mobilde uygulama
+  içi hesap silme yoktu (App Store 5.1.1(v), Google Play şartı).
+- **14.5-S2 [ORTA]** iOS izin açıklamaları (fotoğraf arşivi: profil fotoğrafı, vergi levhası, görev kanıtı) Türkçe yazılmamış (paket varsayılanı); App Store gizlilik etiketi ve
+  Google Play "Veri güvenliği" formu doldurulmadı; Play girişsiz hesap silme bağlantısı istiyor. Mağaza yayınından önce.
+- **14.5-N1** Push bildirim başlık ve metni (marka adı, teklif bildirimi; mesaj içeriği yok) Expo üzerinden Apple / Google'a gider; aktarım listesinde (14.1-N2).
+
+### 14.6 Yasal metin ↔ sistem tutarsızlıkları (avukata; metin değiştirilmedi, ayrıntı `docs/KVKK.md` bölüm 3)
+- **14.6-N1** Aydınlatma toplanmayan verileri sayıyor (doğum tarihi, TCKN "fatura için", telefon, adres, IBAN / banka); şahıs şirketi vergi no = TCKN belirtilmemiş.
+- **14.6-N2** "IP, cihaz bilgisi, giriş-çıkış logları": uygulama IP tutmuyor; push token, son görülme, profil görüntüleme kaydı tutuluyor ama metinde yok.
+- **14.6-N3** Ödeme / fatura amaçları ve Iyzico, Stripe anılıyor; platform ödeme almıyor.
+- **14.6-N4** "Açık rızanız olmaksızın üçüncü kişilerle paylaşılmaz" ↔ işleyenler ve yurt dışı aktarım (14.1-N2); profil verisinin giriş yapmış herkese görünmesi metinde yok.
+- **14.6-N5** Veri sorumlusu unvanı kurulmamış şirket; adres, MERSİS, iletişim yok.
+- **14.6-N6** Aydınlatma Tebliği bölümleri eksik: hukuki sebepler, toplama yöntemi, alıcı grupları, md. 11 hakların tamamı, başvuru yöntemi, saklama süresi.
+- **14.6-N7** Otomatik değerlendirmeler (güven skoru, mavi tik, liyakat sıralaması, keşif çarkı, gönderisiz hesap reddi) metinde adlandırılmamış.
+- **14.6-N8** Çerez politikası Google Analytics ve pazarlama çerezlerini anıyor (yok); Speed Insights ve gerçek çerez listesi yok.
+- **14.6-N9 [KARAR]** Sözleşme "18 yaşından büyük" diyor; kayıtta yaş sorulmuyor, beyan alınmıyor. Alt sınır ve yöntem sahibin kararı.
+- **14.6-N10** "Devam eden iş birliği varken hesap kapatılamaz" sistemde uygulanmıyor (14.2-S3).
+- **14.6-N11** Mesajlar "adli kayıt, silinemez" (kullanıcıya), ama hesap silinince siliniyor; 5651 trafik bilgisi / delil saklama ile silme hakkı dengesi.
+- **14.6-N12** Çerez bandı metni geçici, avukat onayı yok.
+
+### 14.7 Canlı veritabanı
+- **14.7-S1 [ORTA]** `20261026000050_kvkk_consent_audit.sql` (iki tablo, istemcilere kapalı + kayıt tetikleyicisi) canlıya uygulanmadı (Supabase bağlantısı yetkisiz).
+  Sahip `supabase/manual/2026-10-26_kvkk.sql`'i SQL Editor'de çalıştırır. Çalıştırılana kadar kod çalışır; rıza ve erişim kaydı tutulmaz, indirme sınırı bellekte.
