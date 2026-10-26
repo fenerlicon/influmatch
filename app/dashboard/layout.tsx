@@ -9,6 +9,8 @@ import RejectedScreen from '@/components/dashboard/RejectedScreen'
 import AdminNoticeDialog from '@/components/shell/AdminNoticeDialog'
 import { ADMIN_NOTICE_PARAM, type AdminNotice } from '@/lib/admin-notices-shared'
 import { buttonClasses } from '@/components/ui'
+import { createSupabaseAdminClient } from '@/utils/supabase/admin'
+import { loadLatestDecision } from '@/lib/moderation'
 
 const PROFILE_SELECT = `${SHELL_USER_COLUMNS}, verification_status, social_links, bio, category, city`
 
@@ -100,7 +102,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   // Check if account is rejected/banned
   if (verificationStatus === 'rejected') {
-    return <RejectedScreen />
+    // Ret nedeni + itiraz (2026-10-26). Kararlar istemcilere kapalı; yalnızca kendi kararı sunucuda okunur. Tablo yoksa eski ekran.
+    const { decision } = await loadLatestDecision(createSupabaseAdminClient(), user.id, 'account')
+    return <RejectedScreen decision={decision?.current ? decision : null} />
   }
 
   // Influencer / UGC hesapları Instagram veya TikTok hesaplarından en az birini

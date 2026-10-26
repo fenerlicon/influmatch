@@ -14,7 +14,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const PERMANENT_BAN = '876000h' // ~100 yıl
 // `{uid}/` klasörüyle saklanan kovalar
-const USER_FOLDER_BUCKETS = ['avatars', 'tax-documents', 'task-proofs', 'advert-hero-images'] as const
+const USER_FOLDER_BUCKETS = ['avatars', 'tax-documents', 'task-proofs', 'advert-hero-images', 'appeal-files'] as const
 const LIST_PAGE = 1000
 const LIST_MAX = 10000
 

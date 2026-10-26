@@ -2,7 +2,7 @@
 // - Her olay site içi bildirim (notifications tablosu, zil) olarak yazılır.
 // - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı,
 //   iş birliği yayın linki / tamamlanma / iptal, anlaşma özeti / taslak / revize / ödeme alınamadı (3.18), süresi dolan teklif (markaya), ilan alarmı (influencer'a),
-//   hesap onayı / reddi (admin kararı), ilana yeni başvuru (markaya).
+//   hesap onayı / reddi (admin kararı), ilana yeni başvuru (markaya), ret kararı (nedeniyle) ve itiraz sonucu.
 //   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez. Yeni başvuru e-postası da
 //   aynı bağlantı için saatte en fazla bir (arada gelen başvurular yalnızca site içi + push).
 // - Kullanıcının ayarlardaki e-posta tercihleri (users.email_notifications) uygulanır.
@@ -51,6 +51,8 @@ export type NotificationEvent =
   | 'account_status'
   | 'task_update'
   | 'advert_removed'
+  | 'moderation_decision'
+  | 'appeal_result'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -93,6 +95,9 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   task_update: { preference: 'updates', email: true },
   // Admin ilanı kaldırdı (neden yazılır): önemli olay; panelde pencere olarak da açılır (lib/admin-notices-shared.ts).
   advert_removed: { preference: 'updates', email: true },
+  // Ret kararı (vergi levhası vb., neden yazılır) ve itiraz sonucu (2026-10-26): önemli olay, "Platform Güncellemeleri" tercihine bağlı.
+  moderation_decision: { preference: 'updates', email: true },
+  appeal_result: { preference: 'updates', email: true },
 }
 
 /** E-postası alıcı + bağlantı başına saatte en fazla bir kez giden olaylar (site içi bildirim her seferinde yazılır). */

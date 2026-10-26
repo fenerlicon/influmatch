@@ -19,7 +19,7 @@ const isRateLimit = (error: DbError) =>
 
 // Yetki: app/admin/layout.tsx (yalnızca DB rolü admin). Hassas kolonlar (e-posta, vergi no, admin notu)
 // istemci rollerine kapalı; admin listesi service role ile okunur.
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams?: { ara?: string } }) {
   let message = 'Bir hata oluştu'
 
   try {
@@ -62,6 +62,7 @@ export default async function AdminPage() {
         influencerCount={list.filter((u) => u.role === 'influencer').length}
         brandCount={list.filter((u) => u.role === 'brand').length}
         initialLastSeen={lastSeen}
+        initialQuery={typeof searchParams?.ara === 'string' ? searchParams.ara.slice(0, 100) : ''}
       />
     )
   } catch (error) {

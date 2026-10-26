@@ -22,6 +22,7 @@ import { countInvites, ensureInviteCode, inviteLink } from '@/lib/invites'
 import { loadBlueTickPromo, loadPromoPeriod } from '@/lib/tasks-promo'
 import type { BlueTickPromo } from '@/lib/blue-tick-rules'
 import { calculateProfileCompletion } from '@/utils/profileCompletion'
+import { formatReason, loadUserDecisions, parseDecisionReason, recordDecision, type DecisionReasonInput, type DecisionView } from '@/lib/moderation'
 import {
   REWARD_COLUMNS,
   SUBMISSION_COLUMNS,
@@ -123,6 +124,8 @@ export interface TaskSubmissionView {
   checkNote: string | null
   reviewNote: string | null
   createdAt: string
+  /** Admin reddi ise karar + itiraz durumu (yalnızca kullanıcı görünümünde, en son gönderim için). */
+  decision?: DecisionView | null
 }
 
 export type TaskState = 'available' | 'ready' | 'measuring' | 'in_review' | 'completed' | 'blocked'
@@ -341,6 +344,14 @@ export async function getTasksOverviewAs(userId: string, adminClient: SupabaseCl
         latest: mine[0] ? submissionView(mine[0]) : null,
       }
     })
+
+    // Admin reddedilen son gönderimlerin karar + itiraz durumu (tablo yoksa boş).
+    const rejectedLatest = views.map((v) => v.latest).filter((l): l is TaskSubmissionView => !!l && l.status === 'rejected')
+    if (rejectedLatest.length) {
+      const { decisions } = await loadUserDecisions(admin, userId, { subjectType: 'task_submission', subjectIds: rejectedLatest.map((l) => l.id) })
+      const bySubject = new Map(decisions.map((d) => [d.subjectId, d]))
+      for (const l of rejectedLatest) l.decision = bySubject.get(l.id) ?? null
+    }
 
     const titleOf = new Map(allTasks.map((t) => [t.id, t.title]))
     const taskOfSubmission = new Map(subs.map((s) => [s.id, s.task_id]))
@@ -811,17 +822,26 @@ function discountCode() {
   return out
 }
 
-/** İncelemedeki gönderimi onaylar (ödül "bekleyen ödül" olur) ya da reddeder. */
+/**
+ * İncelemedeki gönderimi onaylar (ödül "bekleyen ödül" olur) ya da reddeder. Ret nedeni zorunlu (2026-10-26): hazır kategori +
+ * açıklama; karar kaydedilir (lib/moderation.ts), kullanıcı bir kez itiraz edebilir.
+ */
 export async function reviewSubmissionAsAdmin(
   admin: SupabaseClient,
   adminUserId: string,
   submissionId: string,
   decision: 'approve' | 'reject',
-  note: string | null,
+  reasonInput: DecisionReasonInput | null,
 ): Promise<Result> {
   if (!isUuid(submissionId)) return { success: false, error: 'Gönderim bulunamadı.' }
-  const reviewNote = note?.trim() ? note.trim().slice(0, TASK_LIMITS.reviewNoteMax) : null
-  if (decision === 'reject' && !reviewNote) return { success: false, error: 'Ret nedeni yazın (kullanıcıya gösterilir).' }
+  let reviewNote: string | null = null
+  let parsedReason: Extract<ReturnType<typeof parseDecisionReason>, { ok: true }>['reason'] | null = null
+  if (decision === 'reject') {
+    const parsed = parseDecisionReason('task_submission', reasonInput)
+    if (!parsed.ok) return { success: false, error: parsed.error }
+    parsedReason = parsed.reason
+    reviewNote = formatReason(parsed.reason).slice(0, TASK_LIMITS.reviewNoteMax)
+  }
   const now = new Date().toISOString()
 
   // Koşullu güncelleme: aynı anda iki admin karar verirse yalnızca biri geçer.
@@ -863,6 +883,9 @@ export async function reviewSubmissionAsAdmin(
     // Tanıtım görevi 0₺ döneminde mavi tik şartı: tik hemen yeniden değerlendirilir.
     if (task.kind === 'promo_video') await syncBlueTick(updated.user_id, admin)
   }
+  if (decision === 'reject' && parsedReason) {
+    await recordDecision(admin, { subjectType: 'task_submission', subjectId: updated.id, userId: updated.user_id, reason: parsedReason, decidedBy: adminUserId })
+  }
 
   await notifyUser(
     decision === 'approve'
@@ -878,7 +901,7 @@ export async function reviewSubmissionAsAdmin(
           userId: updated.user_id,
           event: 'task_update',
           title: 'Görevin onaylanmadı',
-          message: `"${task?.title ?? 'Görev'}": ${reviewNote}`,
+          message: `"${task?.title ?? 'Görev'}": ${reviewNote}. Yeni bir gönderimle tekrar deneyebilir ya da karara bir kez itiraz edebilirsin.`,
           link: TASKS_LINK,
           type: 'warning',
         },

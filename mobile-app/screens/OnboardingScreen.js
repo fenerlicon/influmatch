@@ -250,7 +250,7 @@ export default function OnboardingScreen({ navigation }) {
             // Influencer doğrulanmış sosyal hesabı yoksa zorunlu doğrulama ekranına gider (lib/routing.js).
             const dest = await resolveHomeRoute(user.id).catch(() => (role === 'brand' ? 'BrandDashboard' : 'Dashboard'));
             setTimeout(() => {
-                navigation.replace(dest === 'Rejected' ? 'Login' : dest === 'Onboarding' ? (role === 'brand' ? 'BrandDashboard' : 'Dashboard') : dest);
+                navigation.replace(dest === 'Onboarding' ? (role === 'brand' ? 'BrandDashboard' : 'Dashboard') : dest);
             }, 1000);
 
         } catch (error) {

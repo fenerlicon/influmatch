@@ -43,11 +43,15 @@ export async function saveTask(id: string | null, input: TaskInput): Promise<Res
   return result.success ? done('Görev kaydedildi.') : result
 }
 
-export async function reviewSubmission(submissionId: string, decision: 'approve' | 'reject', note: string | null): Promise<Result> {
+export async function reviewSubmission(
+  submissionId: string,
+  decision: 'approve' | 'reject',
+  reason: { code?: string; text?: string } | null,
+): Promise<Result> {
   const ctx = await requireAdmin()
   if ('error' in ctx) return { success: false, error: ctx.error as string }
   if (decision !== 'approve' && decision !== 'reject') return { success: false, error: 'Geçersiz karar.' }
-  const result = await reviewSubmissionAsAdmin(ctx.admin, ctx.userId, submissionId, decision, typeof note === 'string' ? note : null)
+  const result = await reviewSubmissionAsAdmin(ctx.admin, ctx.userId, submissionId, decision, reason && typeof reason === 'object' ? reason : null)
   return result.success ? done(decision === 'approve' ? 'Onaylandı; ödül bekleyen ödüllere eklendi.' : 'Reddedildi.') : result
 }
 

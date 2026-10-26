@@ -12,6 +12,7 @@ import { grantOfficialBusiness, loadLatestTaxVerifications, TAX_DOCUMENTS_BUCKET
 import { evaluateOfficialBusiness, syncOfficialBusiness } from '@/lib/official-business'
 import { notifyUser } from '@/lib/notify'
 import { adminNoticeLink, cleanRemovalReason } from '@/lib/admin-notices-shared'
+import { formatReason, moderationLink, parseDecisionReason, recordDecision, type DecisionReasonInput } from '@/lib/moderation'
 
 /**
  * Hesap onayı / reddi bildirimi (site içi + push + e-posta, "Platform Güncellemeleri" tercihine bağlı).
@@ -22,6 +23,7 @@ async function notifyAccountDecision(
   userId: string,
   role: string | null | undefined,
   decision: 'verified' | 'rejected',
+  reasonText?: string,
 ) {
   if (role !== 'brand' && role !== 'influencer') return
   const home = role === 'brand' ? '/dashboard/brand' : '/dashboard/influencer'
@@ -36,9 +38,10 @@ async function notifyAccountDecision(
           userId,
           event: 'account_status',
           title: 'Hesabınız onaylanmadı',
-          message:
-            'Hesabınız admin incelemesinde onaylanmadı. Profil bilgilerinizi kontrol edebilir, sorunuz varsa Ayarlar > Yardım ve Destek bölümünden bize yazabilirsiniz.',
-          link: home,
+          message: reasonText
+            ? `Hesabınız admin incelemesinde onaylanmadı. Neden: ${reasonText}. Karara bir kez itiraz edebilirsiniz; giriş yaptığınızda itiraz formu açılır.`
+            : 'Hesabınız admin incelemesinde onaylanmadı. Profil bilgilerinizi kontrol edebilir, sorunuz varsa Ayarlar > Yardım ve Destek bölümünden bize yazabilirsiniz.',
+          link: reasonText ? moderationLink('account') : home,
           type: 'warning',
         },
     supabaseAdmin,
@@ -115,7 +118,12 @@ export async function verifyUser(userId: string) {
   return { success: true }
 }
 
-export async function rejectUser(userId: string) {
+// Ret nedeni zorunlu (2026-10-26): hazır kategori + açıklama ("Diğer"de zorunlu). Karar moderation_decisions'a yazılır,
+// kullanıcı nedeni bildirimde ve giriş yaptığında ret ekranında görür, bir kez itiraz edebilir (lib/moderation.ts).
+export async function rejectUser(userId: string, reasonInput?: DecisionReasonInput) {
+  const parsedReason = parseDecisionReason('account', reasonInput)
+  if (!parsedReason.ok) return { error: parsedReason.error }
+
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -159,7 +167,8 @@ export async function rejectUser(userId: string) {
   }
 
   if (before.verification_status !== 'rejected') {
-    await notifyAccountDecision(supabaseAdmin, userId, before.role as string | null, 'rejected')
+    await recordDecision(supabaseAdmin, { subjectType: 'account', subjectId: userId, userId, reason: parsedReason.reason, decidedBy: user.id })
+    await notifyAccountDecision(supabaseAdmin, userId, before.role as string | null, 'rejected', formatReason(parsedReason.reason))
   }
 
   revalidatePath('/admin')
@@ -1323,13 +1332,17 @@ export async function getTaxDocumentUrl(verificationId: string) {
   return { url: data.signedUrl }
 }
 
-// İncelemedeki vergi levhasını reddeder; marka yeni belge yükleyebilir.
-export async function rejectTaxVerification(verificationId: string, note: string) {
+// İncelemedeki vergi levhasını reddeder; marka yeni belge yükleyebilir. Ret nedeni zorunlu (2026-10-26): hazır kategori + açıklama;
+// karar kaydı (itiraz için) + markaya bildirim (site içi + push + e-posta).
+export async function rejectTaxVerification(verificationId: string, reasonInput: DecisionReasonInput) {
   const auth = await requireAdminClient()
   if ('error' in auth) return { error: auth.error }
 
-  const reason = note.trim() || 'Belge admin tarafından kabul edilmedi.'
-  const { error } = await auth.supabaseAdmin
+  const parsed = parseDecisionReason('tax_document', reasonInput)
+  if (!parsed.ok) return { error: parsed.error }
+  const reason = formatReason(parsed.reason)
+
+  const { data: updated, error } = await auth.supabaseAdmin
     .from('tax_verifications')
     .update({
       status: 'rejected',
@@ -1341,8 +1354,25 @@ export async function rejectTaxVerification(verificationId: string, note: string
     })
     .eq('id', verificationId)
     .in('status', ['needs_review', 'processing'])
+    .select('id, user_id')
+    .maybeSingle()
   if (error) return { error: `Reddedilemedi: ${error.message}` }
+  if (!updated) return { error: 'Belge zaten karara bağlanmış.' }
+
+  const brandId = updated.user_id as string
+  await recordDecision(auth.supabaseAdmin, { subjectType: 'tax_document', subjectId: updated.id as string, userId: brandId, reason: parsed.reason, decidedBy: auth.user.id })
+  await notifyUser(
+    {
+      userId: brandId,
+      event: 'moderation_decision',
+      title: 'Vergi levhanız kabul edilmedi',
+      message: `Yüklediğiniz vergi levhası kabul edilmedi. Neden: ${reason}. Yeni belge yükleyebilir ya da karara bir kez itiraz edebilirsiniz.`,
+      link: moderationLink('tax_document'),
+      type: 'warning',
+    },
+    auth.supabaseAdmin,
+  )
 
   revalidatePath('/admin')
-  return { success: true, message: 'Vergi levhası reddedildi; marka yeni belge yükleyebilir.' }
+  return { success: true, message: 'Vergi levhası reddedildi; marka bilgilendirildi ve yeni belge yükleyebilir.', reason }
 }

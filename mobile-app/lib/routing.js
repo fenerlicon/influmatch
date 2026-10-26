@@ -28,4 +28,4 @@ export async function resolveHomeRoute(userId) {
     return verified ? 'Dashboard' : 'SocialVerifyGate';
 }
 
-export const REJECTED_MESSAGE = 'Başvurunuz onaylanmadı. Lütfen web sitemizden iletişime geçin.';
+export const REJECTED_MESSAGE = 'Hesabınız onaylanmadı. Nedenini görebilir ve itiraz edebilirsiniz.';

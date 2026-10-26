@@ -6,7 +6,8 @@ import { toast } from 'sonner'
 import { rejectTaxVerification } from '@/app/admin/actions'
 import { getTaxDocumentUrl } from '@/app/admin/tax-document-actions'
 import type { AdminTaxVerification } from '@/lib/tax-verification'
-import { Button, Chip, Field, Textarea, type ChipTone } from '@/components/ui'
+import { Button, Chip, type ChipTone } from '@/components/ui'
+import { RejectReasonFields, isReasonReady, type RejectReasonValue } from '@/components/admin/RejectReasonDialog'
 
 const STATUS: Record<AdminTaxVerification['status'], { label: string; tone: ChipTone }> = {
   processing: { label: 'İşleniyor', tone: 'neutral' },
@@ -16,13 +17,11 @@ const STATUS: Record<AdminTaxVerification['status'], { label: string; tone: Chip
   rejected: { label: 'Reddedildi', tone: 'danger' },
 }
 
-const DEFAULT_REJECT_NOTE = 'Belge okunaklı değil veya bilgiler eşleşmiyor. Lütfen güncel vergi levhanızı yükleyin.'
-
 /** Vergi levhası otomatik kontrol sonucu + belgeyi açma / levhayı reddetme (admin). */
 export default function TaxVerificationReview({ verification }: { verification: AdminTaxVerification }) {
   const [current, setCurrent] = useState(verification)
   const [rejecting, setRejecting] = useState(false)
-  const [note, setNote] = useState(DEFAULT_REJECT_NOTE)
+  const [reason, setReason] = useState<RejectReasonValue>({ code: '', text: '' })
   const [isPending, startTransition] = useTransition()
   const status = STATUS[current.status]
   const extracted = current.extracted
@@ -36,14 +35,14 @@ export default function TaxVerificationReview({ verification }: { verification: 
 
   const reject = () =>
     startTransition(async () => {
-      const result = await rejectTaxVerification(current.id, note)
+      const result = await rejectTaxVerification(current.id, reason)
       if ('error' in result) {
         toast.error(result.error)
         return
       }
       toast.success(result.message)
       setRejecting(false)
-      setCurrent((prev) => ({ ...prev, status: 'rejected', reasons: [note || 'Belge admin tarafından kabul edilmedi.'] }))
+      setCurrent((prev) => ({ ...prev, status: 'rejected', reasons: [result.reason] }))
     })
 
   const fields: [string, string | number | null | undefined][] = extracted
@@ -104,22 +103,20 @@ export default function TaxVerificationReview({ verification }: { verification: 
       )}
 
       {rejecting && (
-        <Field label="Ret sebebi (markaya gösterilir)">
-          {(props) => <Textarea {...props} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />}
-        </Field>
+        <RejectReasonFields subjectType="tax_document" value={reason} onChange={setReason} />
       )}
 
       <div className="flex flex-wrap gap-2">
         {rejecting ? (
           <>
-            <Button size="sm" variant="danger" onClick={reject} loading={isPending}>Levhayı reddet</Button>
+            <Button size="sm" variant="danger" onClick={reject} loading={isPending} disabled={!isReasonReady(reason)}>Levhayı reddet</Button>
             <Button size="sm" variant="ghost" onClick={() => setRejecting(false)} disabled={isPending}>Vazgeç</Button>
           </>
         ) : (
           <>
             <Button size="sm" onClick={openDocument} loading={isPending} leftIcon={<ExternalLink />}>Belgeyi gör</Button>
             {(current.status === 'needs_review' || current.status === 'processing') && (
-              <Button size="sm" variant="danger" onClick={() => setRejecting(true)} leftIcon={<XCircle />}>Reddet</Button>
+              <Button size="sm" variant="danger" onClick={() => { setReason({ code: '', text: '' }); setRejecting(true) }} leftIcon={<XCircle />}>Reddet</Button>
             )}
           </>
         )}

@@ -8,6 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
 import { TURKISH_CITIES } from '../../constants/cities';
+import AppealCard from '../../components/AppealCard';
 import {
     Screen, StackHeader, Text, Button, Card, IconBox, Chip, Notice, TextField, SelectField, OptionSheet, colors, ICON_STROKE,
 } from '../../components/ui';
@@ -50,8 +51,11 @@ export default function BrandVerificationScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [codeSent, setCodeSent] = useState(false);
+    const [taxDecision, setTaxDecision] = useState(null);
 
     const load = useCallback(async () => {
+        // Vergi levhası reddinin nedeni + itiraz durumu (2026-10-26; web TaxCertificateUpload ile aynı).
+        apiRequest('appeals?type=tax_document').then((r) => setTaxDecision(r?.decisions?.[0] || null)).catch(() => null);
         const result = await apiRequest('brand-verification');
         if (result.error) {
             setError(result.error);
@@ -276,6 +280,10 @@ export default function BrandVerificationScreen({ navigation }) {
                             ? shownTax.reasons.map((r) => `• ${r}`).join('\n')
                             : undefined}
                     />
+                ) : null}
+
+                {taxDecision && shownTax?.id && taxDecision.subjectId === shownTax.id && !state?.taxIdVerified && (taxDecision.canAppeal || taxDecision.appeal) ? (
+                    <AppealCard key={taxDecision.id} decision={taxDecision} showReason={false} onDone={load} />
                 ) : null}
 
                 {showTaxUpload ? (

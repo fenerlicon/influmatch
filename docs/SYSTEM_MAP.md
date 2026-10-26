@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-26 (KVKK teknik envanteri ve düzeltmeleri, yeni bölüm 14, `claude/kvkk`) · önceki: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-10-26 (6.10 ret nedeni ve itiraz, 1.8-S5, 3.21-S3 `claude/rejection-appeals`; KVKK teknik envanteri ve düzeltmeleri, yeni bölüm 14, `claude/kvkk`) · önceki: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -135,6 +135,8 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
     auth silme hatasını yutuyor (bkz. 1.9-S1).
   - ✅ ~~**1.8-S3 [ORTA]**~~ (sorgu/insert hatasında "Tekrar dene" ekranı; çakışmada satır yeniden okunuyor) Insert hatası her zaman `/onboarding`'e yönlendiriyor → olası döngü.
   - ✅ ~~**1.8-S4 [ORTA]**~~ (kilit marka layout'unda merkezi; doğrulanmamış marka yalnızca ana sayfa, profil, ayarlar, rozetler) Marka kilidi merkezi değil; her sayfa `BrandLockScreen`'i kendisi çiziyor, unutan sayfa kilitsiz kalıyor.
+  - ✅ ~~**1.8-S5 [ORTA]**~~ (2026-10-26) Reddedilen hesap ret ekranında nedeni göremiyor, itiraz yalnızca e-postayla; mobilde oturum kapatılıp yalnızca toast gösteriliyordu.
+    Artık web `RejectedScreen` ve mobil `Rejected` ekranı nedeni ve itiraz formunu gösteriyor (6.10). Mobilde reddedilmiş hesap bildirime dokununca da başka ekrana gitmez.
 
 ### 1.9 Ayarlar (bildirim tercihi, şifre, hesap silme)
 - **Dosyalar:** `app/dashboard/{influencer,brand}/settings/page.tsx` (birebir kopya),
@@ -806,6 +808,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.21-N4** (yeni bulgu, karar) Eski kuralla ("ilk 1000 influencer", doğrulama şartı yok) verilmiş `founder-member` rozetleri kod tarafından geri alınmaz; hesabı doğrulanmamış sahipler `supabase/manual/2026-10-26_kurucu_uye.sql` 3. sorgusuyla listelenir. Silinsin mi kullanıcı karar verir (silme komutu dosyada yorum satırı).
   - **3.21-S2 [DÜŞÜK]** (yeni bulgu) `users` tablosunda doğrulama zamanı yok; rozet "son tarihten önce verildi mi"ye göre verilir. Admin onayı rozeti anında verir, ama Spotlight etkinleştirmesiyle otomatik doğrulanan hesap saatlik taramayı bekler: son saatte doğrulanan bu hesap tarih geçtikten sonra taranırsa rozeti alamaz. Önlem: kampanya başlamadan hemen önce "Şimdi dağıt" (admin kartında yazıyor). Gerekirse ileride `users.verified_at` kolonu.
   - **3.21-S1 [DÜŞÜK]** Story kanıtı yalnızca ekran görüntüsü; gerçekten paylaşıldığı admin gözüyle kontrol edilir.
+  - ✅ ~~**3.21-S3 [ORTA]**~~ (2026-10-26) Admin görev reddi serbest metindi, itiraz yolu yoktu. Artık hazır neden + açıklama, karar kaydı ve itiraz (6.10).
 
 ### 3.22 2026-10-19 düzeltmeleri (`claude/fixes-oct19`)
 
@@ -991,7 +994,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 | Aksiyon | İş | Bilinen sorun |
 |---|---|---|
-| `verifyUser` / `rejectUser` / `updateAdminNotes` | statü ve not | ✅ rozet hatasında da sayfalar tazeleniyor |
+| `verifyUser` / `rejectUser` / `updateAdminNotes` | statü ve not | ✅ rozet hatasında da sayfalar tazeleniyor; ✅ ret nedeni zorunlu + karar kaydı (6.10) |
 | `manuallyAwardBadges` | — | **ölü** |
 | `manuallyAwardSpecificBadge` | rozet ver (mavi tik → override) | — |
 | `toggleUserSpotlight` | Spotlight aç/kapa, kullanıcıyı otomatik doğrular | ✅ hata metninden admin e-postası çıkarıldı |
@@ -1002,7 +1005,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 | `getAllAdverts` / `deleteAdvertAdmin` | ilan yönetimi | dosya yolu `split('/').pop()` → alt klasördeki dosyalar artık kalıyor |
 | `adminUpdateInstagramData` | Apify ile IG güncelle | ✅ ~~**6.2-S2 [ORTA]**~~ (kullanıcı yenilemesiyle aynı `refreshInstagramAccount`: kilit, geçmiş, profil ve mavi tik senkronu; doğrulanmamış hesabı doğrulamaz) her zaman `is_verified:true` yazıyor, `syncBlueTick` çağırmıyor |
 | `adminManualConnectInstagram` | IG'yi elle bağla | ✅ hedef rol, kullanıcı adı çakışması, geçmiş satırı |
-| `getAllApplications` / `getAdminUserCard` / `getTaxDocumentUrl` / `rejectTaxVerification` | okuma, imzalı URL, red | — |
+| `getAllApplications` / `getAdminUserCard` / `getTaxDocumentUrl` / `rejectTaxVerification` | okuma, imzalı URL, red | ✅ levha reddi hazır nedenle + markaya bildirim (6.10) |
 
 ### 6.3 Bildirim gönderimi
 - **Dosyalar:** `components/admin/NotificationsPanel.tsx`, `app/actions/notifications.ts`
@@ -1034,6 +1037,38 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 
 ### 6.9 Vergi levhası inceleme
 - **Dosya:** `components/admin/TaxVerificationReview.tsx` (AdminPanel içinde). Onay `verifyTaxId`, red `rejectTaxVerification`. Bilinen açık sorun yok.
+  2026-10-26'dan beri red hazır nedenle (6.10) ve markaya bildirim gidiyor (önceden bildirim yoktu).
+
+### 6.10 Ret nedeni ve itiraz `/admin/appeals` (2026-10-26, kullanıcı isteği; `claude/rejection-appeals`)
+- **İstek:** "Bir kullanıcıyı reddederken sebep belirtebilelim. Onlar da itiraz edebilsinler. Admin panelinde o itirazlar için de bir şey yap."
+- **Veri:** `moderation_decisions` (subject_type `account` / `tax_document` / `task_submission`, subject_id, user_id, reason_code, reason_text ≤ 500,
+  decided_by, decided_at) ve `moderation_appeals` (decision_id **benzersiz** = karar başına tek itiraz, message ≤ 1000, attachment_path, status
+  open / accepted / rejected, response_text, outcome, resolved_by, resolved_at). İkisi de istemci rollerine tamamen kapalı (RLS açık, politika yok, REVOKE);
+  okuma/yazma yalnızca `lib/moderation.ts` (service role), her işlemde kararın sahibi kodda kontrol edilir. Ek dosyalar özel `appeal-files` kovasında
+  (PDF/JPG/PNG/WEBP, 5 MB, günde 5 yükleme, imzalı yükleme adresi). Migration `20261026000010_moderation_appeals.sql`.
+- **Kurallar:** `lib/moderation-shared.ts` (mobil kopya `mobile-app/constants/moderation.js`, `tests/mobile-parity.test.ts`; testler `tests/moderation.test.ts`).
+  Akışa özel hazır nedenler + "Diğer" (açıklama zorunlu). İtiraz yalnızca karar **hâlâ geçerliyken** (hesap hâlâ reddedilmiş ve en son karar; levha hâlâ
+  reddedilmiş ve en son levha; görev gönderimi reddedilmiş ve aynı tur için yeni gönderim yok). Yanıtlanan karara ikinci itiraz yok; kullanıcı asıl işi yeniden gönderebilir.
+- **Bildirim:** `lib/notify.ts` yeni olaylar `moderation_decision` (levha reddi) ve `appeal_result` (itiraz sonucu), ikisi de e-postalı ("Platform Güncellemeleri");
+  hesap reddi (`account_status`) ve görev reddi (`task_update`) metinleri artık nedeni ve itiraz hakkını yazıyor.
+- ✅ ~~**6.10-S1 [YÜKSEK]**~~ (2026-10-26) Hesap reddi, vergi levhası reddi ve görev gönderimi reddi nedensiz verilebiliyordu (levha reddinde varsayılan metin, hesap
+  reddinde hiç neden yoktu, hesap reddinde kullanıcı nedeni hiçbir yerde göremiyordu). Artık üçü de ortak `components/admin/RejectReasonDialog.tsx` (hazır neden +
+  açıklama) ile; toplu hesap reddinde aynı neden hepsine. `rejectUser(userId, reason)`, `rejectTaxVerification(id, reason)`, `reviewSubmission(id, 'reject', reason)`.
+- ✅ ~~**6.10-S2 [ORTA]**~~ (2026-10-26) Kullanıcı nedeni ve itirazı görür: web `components/appeals/AppealBox.tsx` — reddedilmiş hesapta `RejectedScreen`
+  (önceden yalnızca destek e-postası), marka profilinde vergi levhası kartı, Görevler kartı. Mobil `components/AppealCard.js` — yeni `Rejected` ekranı
+  (`screens/AccountRejectedScreen.js`; önceden reddedilen hesap girişte oturumu kapatıp toast gösteriyordu), İşletme doğrulama, Görevler. Mobil uç `/api/mobile/appeals`
+  (GET kararlar, POST `upload-url` / `submit`).
+- ✅ ~~**6.10-S3 [ORTA]**~~ (2026-10-26) Admin `/admin/appeals` (menüde Destek > "İtirazlar", açık itiraz sayısı rozeti: `NavItem.countKey` + `AppShell navCounts`):
+  durum (Açık / Kabul edilen / Reddedilen / Tümü) ve tür filtresi, ayrıntıda kullanıcı (kart bağlantısı `/admin?ara=<id>` ilgili sekmeyi ve kartı açar), asıl karar ve
+  nedeni, itiraz metni, ek (10 dk imzalı bağlantı). **Kabul et:** hesap → "Bekleyen", levha → "İnceleme gerekli", görev → "İncelemede" (onay ayrıca verilir; ekranda
+  yazar). Kayıt o sırada reddedilmiş değilse değişiklik yapılmaz, kullanıcıya bildirilir. Görevde aynı tur için yeni gönderim varsa kabul hata verir. **Reddet:** yanıt zorunlu.
+  Yanıtı yazan ve zaman kaydedilir; iki admin aynı anda yanıtlarsa yalnızca biri geçer.
+- **6.10-S4 [ORTA]** Tablolar ve `appeal-files` kovası **canlıda yok**: bu oturumda Supabase bağlantısı izin vermedi. `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql`
+  SQL Editor'de çalıştırılmalı. O zamana kadar kod çökmez: retler nedenle bildirilir, karar kaydı/itiraz arayüzü görünmez, `/admin/appeals` uyarı gösterir.
+- ✅ ~~**6.10-S5 [DÜŞÜK]**~~ (2026-10-26: `appeal-files` kullanıcı klasörü `USER_FOLDER_BUCKETS` listesine eklendi; hesap silinince itiraz ekleri de siliniyor) (KVKK işine) Hesap silinince karar ve itiraz satırları CASCADE ile siliniyor ama `appeal-files/{uid}/` dosyaları `lib/account-deletion.ts`
+  tarafından henüz silinmiyor (o dosya paralel KVKK oturumunun alanında; ekleme yapılmadı).
+- **6.10-N1** Bilinçli kapsam dışı: saatlik görevin otomatik görev retleri (izlenme eşiği, ulaşılamayan gönderi) admin kararı değil, itiraz edilemez (yeni gönderim yapılır);
+  ilan kaldırma (`deleteAdvertAdmin`, ilan silinir, geri alınamaz) nedenli ama itirazsız. Sosyal hesap doğrulamasında admin reddi yok (bio kodu otomatik).
 
 ---
 

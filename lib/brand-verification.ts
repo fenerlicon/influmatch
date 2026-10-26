@@ -179,7 +179,7 @@ export interface BrandVerificationState {
   website: string
   corporateEmail: string | null
   corporateEmailVerified: boolean
-  latestTaxVerification: { status: string; reasons: string[] | null; created_at: string } | null
+  latestTaxVerification: { id?: string; status: string; reasons: string[] | null; created_at: string } | null
 }
 
 /** Doğrulama ekranının ihtiyaç duyduğu durum. Gizli kolonlar yalnızca sahibi için, sunucuda okunur. */
@@ -194,7 +194,7 @@ export async function loadBrandVerificationState(admin: SupabaseClient, userId: 
       .maybeSingle(),
     admin
       .from('tax_verifications')
-      .select('status, reasons, created_at')
+      .select('id, status, reasons, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
