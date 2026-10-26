@@ -13,6 +13,7 @@ import { resetExpiredAvailability } from '@/lib/availability'
 import { processAdvertAlerts } from '@/lib/advert-alerts'
 import { processDueMetrics } from '@/lib/post-metrics'
 import { processDueTaskMeasurements } from '@/lib/tasks'
+import { sweepFounderBadges } from '@/lib/founder-badge'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -29,6 +30,7 @@ const HOURLY_STATS_START_BUDGET_MS = 10_000
  * - Mavi tik kuralının yeniden değerlendirilmesi (Spotlight süresi dolanlar, eşiğin altına düşenler).
  * - Sarı tik (Resmi İşletme) kurala göre eşitlenir; geri alınana bildirim gider.
  * - Milyon Kulübü rozeti (doğrulanmış hesapta 1M+ takipçi) ve etkinlik rozetleri (lib/activity-badges.ts).
+ * - Kurucu Üye rozeti: 0₺ kampanyası son tarihine kadar doğrulanan hesaplara (lib/founder-badge.ts; geri alınmaz).
  * - Yayın linkine 7 gün yanıt verilmeyen iş birlikleri otomatik tamamlanır (lib/collaborations.ts).
  * - 7 gün yanıtlanmayan teklifler "Süresi doldu" olur, markaya bildirim gider (lib/offers.ts).
  * - Yeni açılan ilanlar influencer ilan alarmlarıyla eşleştirilir (lib/advert-alerts.ts).
@@ -99,6 +101,14 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] Etkinlik rozetleri değerlendirilemedi:', error)
     result.activityBadgesError = error instanceof Error ? error.message : String(error)
+  }
+
+  // Tur başına en fazla 100 kişi (ilk çalıştırmada birikmiş hesaplar); istatistik yenilemesinin başlama bütçesini korumak için süre sınırlı.
+  try {
+    result.founderBadges = await sweepFounderBadges(admin, { limit: 100, deadline: startedAt + 8_000 })
+  } catch (error) {
+    console.error('[cron/hourly] Kurucu Üye taraması başarısız:', error)
+    result.founderBadgesError = error instanceof Error ? error.message : String(error)
   }
 
   // Kısa veritabanı işi; istatistik yenilemesinden önce, toplam süre bütçesini aşmayacak şekilde.

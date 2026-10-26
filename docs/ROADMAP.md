@@ -17,7 +17,7 @@
 | Dönem | Kod (Claude) | Kullanıcı |
 |---|---|---|
 | Ekim sonu | Açık liste biter; çok hesaplı toplu test | Çok hesaplı manuel toplu test (`docs/TOPLU_TEST.md`) |
-| Kasım | **R2 "Drive"** (görseller, UGC portföy videoları, teslim kilidi), toplu test düzeltmeleri, mağaza hazırlığı. Akademi POS sonrasına ertelendi | Video çekimi/kurgu; **5 Kasım:** Cloudflare hesabı, **bireysel** Apple/Google geliştirici hesapları, `eas init` + FCM |
+| Kasım | **Supabase Frankfurt taşıması** (2026-10-26 kararı, plan `docs/REGION_MOVE.md`; ardından Vercel `fra1`), **R2 "Drive"** (görseller, UGC portföy videoları, teslim kilidi), toplu test düzeltmeleri, mağaza hazırlığı. Akademi POS sonrasına ertelendi | Video çekimi/kurgu; **5 Kasım:** Cloudflare hesabı, **bireysel** Apple/Google geliştirici hesapları, `eas init` + FCM; Frankfurt taşıması için yeni Supabase projesi + plan/maliyet kontrolü, bakım penceresi |
 | Aralık 1–2. hafta | Mağazaya gönderim, kampanya altyapısı, üyelik bitiş hatırlatmaları | Kampanya ayrıntıları, POS sağlayıcı seçimi ve evrak hazırlığı, **5 Aralık: Resend ücretli plan** (ücretsiz plan günde 100 e-posta; kampanya bunu aşar) |
 | Aralık son hafta | 0₺ kampanyası yayında | |
 | 1 Ocak | | Şirket kuruluşu, POS başvurusu, D-U-N-S başvurusu |
@@ -38,11 +38,12 @@
   profil doluluğuna göre yapılır. ✅ 2026-10-19 (SYSTEM_MAP 3.21-N1; 0₺ dönemi anahtarıyla).
 - **Mavi tik:** Spotlight şartı kalır ama 0₺ döneminde verilen Spotlight tek başına yetmez; ek (zorlu) şartlar gerekir.
   Örneğin admin görevlerinden en az birini tamamlamak (aşağıda). Ücretli Spotlight'ta mevcut kural.
-- **Kurucu Üye rozeti (öneri, kullanıcı olumlu):** 0₺ kampanyası **başlamadan önce** kayıt olmuş ve doğrulanmış kullanıcılara kalıcı rozet.
+- **Kurucu Üye rozeti (✅ 2026-10-26 kararı ve kodu, SYSTEM_MAP 3.21-N3):** hesabı 0₺ kampanyası **başlamadan önce** doğrulanan her influencer, UGC ve marka
+  hesabına kalıcı rozet (geri alınmaz). Son tarih admin `/admin/tasks`'tan kampanya başlangıcı olarak girilir; başlamadan hemen önce "Şimdi dağıt".
   0₺ döneminde gelenler bunu almaz (onlara satışta ilk ay %50).
 - **Mavi tik (0₺ döneminde, 2026-10-18 kararı):** mevcut şartlar (takipçi, güven, tazelik, doğrulama) + **bir tanıtım görevi + en az 1 tamamlanan iş birliği**.
   Not: güven skoru Spotlight'a +10 veriyor (`utils/matching.ts`); 0₺ döneminde verilen Spotlight bu puanı ve keşif önceliğini kazandırmamalı.
-- **Görevler (2026-10-18 kararları; ✅ kodlandı 2026-10-19, SYSTEM_MAP 3.21 — liyakatli listeleme ve Kurucu Üye hariç):** admin herkese ya da seçili kullanıcılara görev açar. Kullanıcı gönderiyi/kanıtı girer,
+- **Görevler (2026-10-18 kararları; ✅ kodlandı 2026-10-19, SYSTEM_MAP 3.21 — liyakatli listeleme 2026-10-19, Kurucu Üye 2026-10-26):** admin herkese ya da seçili kullanıcılara görev açar. Kullanıcı gönderiyi/kanıtı girer,
   sistem ölçer, **admin onaylar**, ödül hesaba işlenir. Her görev **kişi başı bir kez** (davet görevi en fazla 3 tur); yeni dönemde admin yeni görev açar.
   Ödül miktarları admin panelinden değiştirilebilir; aşağıdakiler başlangıç değerleri.
 
@@ -168,7 +169,7 @@ Kampanya ROI analizi Marka Pro listesinde.
 2. Cevapsız teklif süresi, teklif şablonu, kaydedilen ilanlar + ilan alarmı
 3. ✅ Ücretsiz marka sınırları + keşif çarkı (kapalı bayrakla), teklif/ilan sayaçları (SYSTEM_MAP 3.17; bayrak `/admin/limits`'ten satış başlayınca açılır); aynı bayrakla ücretsiz markada favori ve liste yok, yalnızca Spotlight (3.17-N5)
 4. ✅ İş birliği takip alanı (teslimatlar, revize, anlaşma özeti) + ödeme teyidi + marka güvenilirliği (SYSTEM_MAP 3.18, `claude/collab-workspace`). **Teslim kilidi bekliyor** (R2 ile Kasım'da; veri modeli hazır, 3.18-N4)
-5. R2 "Drive" (Kasım). Akademi POS sonrasına ertelendi (2026-10-16)
+5. Supabase Frankfurt taşıması (Kasım, `docs/REGION_MOVE.md`) + R2 "Drive" (Kasım). Akademi POS sonrasına ertelendi (2026-10-16)
 6. ✅ Sonuç raporu (2026-10-14, SYSTEM_MAP 3.20) + ✅ Influencer Pro "portföyde sonuç raporları" (4.3-S7). Haftalık özette detaylı istatistik: veri + önizleme hazır, gönderim Resend ücretli planla. UGC portföyü (örnek videolar) R2 ile
 7. ✅ Kampanya sihirbazı + müsaitlik (2026-10-14, öne çekildi, SYSTEM_MAP 3.19); kalan: davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
 8. Ekip hesabı / ajans yapısı (2026-10-15 kararı: satış başladıktan sonra)

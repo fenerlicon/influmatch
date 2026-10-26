@@ -83,7 +83,7 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
     const automatic = 'Koşulu sağladığınızda saatlik kontrolde otomatik verilir; koşul bozulursa geri alınır.'
     const requirements: Record<string, string> = {
       'verified-account': `Aktif Spotlight üyeliği, doğrulanmış hesapta en az ${BLUE_TICK_RULES.minFollowers.toLocaleString('tr-TR')} takipçi ve ${BLUE_TICK_RULES.minTrustScore}+ güven skoru ile otomatik verilir.`,
-      'founder-member': 'Platforma katılan ilk 1000 influencer/UGC arasında olun.',
+      'founder-member': 'Hesabınız 0₺ kampanyası başlamadan önce doğrulanırsa (onaylanırsa) verilir; kalıcıdır.',
       'profile-expert': 'Profilinizi %100 doldurun.',
       'showcase-brand': 'Marka profilinizi %100 doldurun.',
       'pioneer-brand': 'Marka hesabınız onaylandığında verilir.',

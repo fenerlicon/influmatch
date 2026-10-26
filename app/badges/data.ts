@@ -8,6 +8,18 @@ export interface Badge {
   description: string
   icon: LucideIcon
   phase: BadgePhase
+  /** Kalıcı, özel rozet (Kurucu Üye): kartta altın çerçeveyle gösterilir. */
+  highlight?: boolean
+}
+
+/** Kurucu Üye (2026-10-26 kararı): iki rolde de aynı rozet; 0₺ kampanyasından önce doğrulanan hesaplara kalıcı (lib/founder-badge.ts). */
+const founderBadge: Badge = {
+  id: 'founder-member',
+  name: 'Kurucu Üye',
+  description: '0₺ kampanyasından önce Influmatch’e katılan doğrulanmış üyeler.',
+  icon: Crown,
+  phase: 'mvp',
+  highlight: true,
 }
 
 export const influencerBadges: Badge[] = [
@@ -19,13 +31,7 @@ export const influencerBadges: Badge[] = [
     icon: BadgeCheck,
     phase: 'mvp',
   },
-  {
-    id: 'founder-member',
-    name: 'Kurucu Üye',
-    description: 'Platformun ilk üyelerinden.',
-    icon: Crown,
-    phase: 'mvp',
-  },
+  founderBadge,
   {
     id: 'profile-expert',
     name: 'Profil Uzmanı',
@@ -88,6 +94,7 @@ export const brandBadges: Badge[] = [
     icon: Building,
     phase: 'mvp',
   },
+  founderBadge,
   {
     id: 'pioneer-brand',
     name: 'Öncü Marka',

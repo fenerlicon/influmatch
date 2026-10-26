@@ -13,7 +13,7 @@ interface BadgeDetailListProps {
 function BadgeItem({ badge }: { badge: Badge }) {
   const Icon = badge.icon as LucideIcon
   return (
-    <div className="grid content-start gap-2 rounded-xl border border-line bg-surface-2 p-3.5">
+    <div className={`grid content-start gap-2 rounded-xl border bg-surface-2 p-3.5 ${badge.highlight ? 'border-gold/40' : 'border-line'}`}>
       <span className="grid h-8 w-8 place-items-center rounded-lg bg-gold/10 text-gold">
         <Icon className="h-4 w-4" aria-hidden />
       </span>

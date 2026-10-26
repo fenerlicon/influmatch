@@ -78,6 +78,9 @@ ve sıradaki iş orada. Bir işe başlamadan o tabloda kilitle, bitince güncell
      yapılmaz. Platform yalnızca bir araya getirir: işbirliği süreçlerinin yürütülmesinden ve güvenliğinden, paylaşılan içeriklerden
      ve bunlardan doğan hukuki uyuşmazlıklardan sorumlu değildir; marka ve influencer kendi haklarını korur. Arayüz ve metinler buna
      göre yazılır (Kullanıcı Sözleşmesi md. 4–5 buna göre güncellendi; Gizlilik metnindeki ödeme hizmeti / IBAN / Iyzico satırları avukatta).
+   - **2026-10-26:** 0₺ kampanyasından önce hesabı doğrulanan her influencer / UGC / marka kalıcı **Kurucu Üye** rozeti alır (son tarih
+     `/admin/tasks`, geri alınmaz, ayrıcalık iddiası yok); mobil sohbette görsel gönderme var; fiyat kartı satıştan sonra da bütün doğrulanmış
+     markalara açık (Spotlight kapısı yok); Supabase Frankfurt taşıması **Kasım'da** (plan `docs/REGION_MOVE.md`).
    - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi, yayından sonra); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`
