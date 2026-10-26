@@ -3,10 +3,11 @@ import { CHAT_READ_EVENT, CHAT_TYPING_EVENT, CHAT_TYPING_SHOW_MS, CHAT_TYPING_TH
 import { View, ScrollView, Image, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Bell, MessageCircle, ChevronLeft, ArrowUp, Briefcase, Send, Megaphone, ChevronRight } from 'lucide-react-native';
+import { Bell, MessageCircle, ChevronLeft, ArrowUp, Briefcase, Send, Megaphone, ChevronRight, ImagePlus } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
+import { pickChatImage, sendChatImage } from '../utils/chatImage';
 import { PUBLIC_CARD_COLUMNS } from '../lib/userColumns';
 import { timeAgo, formatDate } from '../lib/format';
 import {
@@ -88,6 +89,7 @@ export default function MessagesScreen({ route, navigation }) {
     const [inputText, setInputText] = useState('');
     // Açık sohbet kapalıysa nedeni (null = yazılabilir)
     const [closedReason, setClosedReason] = useState(null);
+    const [sendingImage, setSendingImage] = useState(false);
 
     const scrollRef = useRef(null);
     const roomSubRef = useRef(null);
@@ -352,6 +354,30 @@ export default function MessagesScreen({ route, navigation }) {
         });
     };
 
+    // Görsel gönderme (3.22-N2): seçilen görsel küçültülür, imzalı adresle gizli kovaya yüklenir, mesaj web'in sunucu koduyla gider.
+    const sendImage = async () => {
+        if (!selectedChat || closedReason || sendingImage) return;
+        const picked = await pickChatImage().catch(() => ({ error: 'Galeri açılamadı.' }));
+        if (!picked) return;
+        if (picked.error) return Alert.alert('Görsel seçilemedi', picked.error);
+        const roomId = selectedChat.id;
+        setSendingImage(true);
+        try {
+            const result = await sendChatImage(roomId, picked.asset);
+            if (!result.success) {
+                Alert.alert('Görsel gönderilemedi', result.error);
+                return;
+            }
+            if (openRoomIdRef.current === roomId) {
+                setMessages((prev) => (prev.some((m) => m.id === result.data.id) ? prev : [...prev, result.data]));
+                signImages([result.data]);
+                setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+            }
+        } finally {
+            setSendingImage(false);
+        }
+    };
+
     // "Görüldü / Gönderildi" yalnızca son kendi mesajının altında.
     const lastOwnId = useMemo(() => {
         for (let i = messages.length - 1; i >= 0; i--) {
@@ -578,6 +604,17 @@ export default function MessagesScreen({ route, navigation }) {
                             </View>
                         ) : (
                         <View className="flex-row items-end px-3 py-2.5 border-t border-line bg-bg" style={{ gap: 10 }}>
+                            <Pressable
+                                onPress={sendImage}
+                                disabled={sendingImage}
+                                accessibilityRole="button"
+                                accessibilityLabel="Fotoğraf gönder"
+                                className="w-11 h-11 rounded-full items-center justify-center bg-s2 border border-line-strong"
+                            >
+                                {sendingImage
+                                    ? <ActivityIndicator color={colors.gold} size="small" />
+                                    : <ImagePlus size={20} color={colors.fg2} strokeWidth={ICON_STROKE} />}
+                            </Pressable>
                             <View className="flex-1 min-h-[44px] max-h-[120px] rounded-[22px] bg-s2 border border-line-strong px-4 justify-center">
                                 <TextInput
                                     value={inputText}
