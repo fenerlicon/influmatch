@@ -781,7 +781,6 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ---
 
-<<<<<<< HEAD
 ### 3.21 Görevler (2026-10-18; ROADMAP "Görevler", `claude/tasks-module`)
 
 - **Veri:** `platform_tasks` (görev tanımı), `task_submissions` (gönderim; görev + kullanıcı + tur başına tek canlı/onaylı kayıt),
@@ -804,7 +803,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - **3.21-N2** "Profil %100" koşulu `utils/profileCompletion.ts` ölçüsüyle (en az 2 sosyal bağlantı dahil) + fiyat kartı + ≥1 tamamlanan iş; portföy R2 ile.
   - **3.21-N3** Kurucu Üye rozeti (0₺ öncesi gelenlere) karar aşamasında; kod yok.
   - **3.21-S1 [DÜŞÜK]** Story kanıtı yalnızca ekran görüntüsü; gerçekten paylaşıldığı admin gözüyle kontrol edilir.
-=======
+
 ### 3.22 2026-10-19 düzeltmeleri (`claude/fixes-oct19`)
 
 - ✅ İlan kaldırma duyurusu: admin silerken neden zorunlu (`deleteAdvertAdmin`); markaya bildirim (`advert_removed`) + panele girişte pencere
@@ -820,7 +819,6 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - ✅ ~~**3.22-N1**~~ (2026-10-19) Supabase **Singapur** (ap-southeast-1) çıktı; fonksiyonlar `iad1`'deydi (her sorgu ABD↔Singapur, ~200 ms). `vercel.json` `regions: ["sin1"]`:
   sorgular aynı bölgede. Kullanıcılar Türkiye'de olduğu için en iyisi ileride Supabase'i Frankfurt'a taşımak (yeni proje + veri/depolama/auth taşıma; **3.22-N3 [KARAR]**), ardından `fra1`.
 - **3.22-N2** Mobil sohbette görsel gönderme yok (yalnızca web); eklenirse `expo-image-manipulator` ile küçültme gerekir.
->>>>>>> origin/main
 
 ## 4. Ortak: rozetler, Spotlight, profil
 
