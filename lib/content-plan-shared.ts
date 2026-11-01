@@ -3,6 +3,13 @@ import type { ChipTone } from '@/components/ui'
 // İçerik planı (/toplanti): istemci ve sunucunun ortak türleri ve tarih yardımcıları.
 // Tarihler veritabanındaki gibi düz metin (YYYY-AA-GG) tutulur; saat dilimi kayması olmasın diye Date yalnızca UTC ile kullanılır.
 
+// Sayfaya yalnızca bu hesap girer (Damla Dalay, 2026-11-01); menüdeki Toplantı maddesi de bu hesapta görünür.
+export const CONTENT_PLAN_OWNER_ID = '15968172-2612-4f4b-bc15-77ee4178cc4c'
+
+export const CONTENT_COVER_BUCKET = 'content-covers'
+export const CONTENT_COVER_MAX_BYTES = 5 * 1024 * 1024
+export const CONTENT_COVER_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+
 export const CONTENT_STATUSES = ['idea', 'planned', 'shooting', 'editing', 'ready', 'published'] as const
 export type ContentStatus = (typeof CONTENT_STATUSES)[number]
 
@@ -37,6 +44,9 @@ export interface ContentItem {
   caption: string | null
   notes: string | null
   video_url: string | null
+  cover_path: string | null
+  /** Süreli imzalı bağlantı; sunucu plan yüklenirken üretir. */
+  cover_url: string | null
   created_at: string
 }
 
@@ -52,6 +62,8 @@ export interface ContentItemInput {
   caption?: unknown
   notes?: unknown
   video_url?: unknown
+  /** Verilmezse kapak değişmez; null kaldırır. */
+  cover_path?: unknown
 }
 
 export interface ContentSeriesInput {

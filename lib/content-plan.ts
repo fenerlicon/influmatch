@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { randomUUID } from 'crypto'
 import {
+  CONTENT_COVER_BUCKET,
+  CONTENT_COVER_TYPES,
+  CONTENT_PLAN_OWNER_ID,
   CONTENT_STATUSES,
   addDays,
   isValidDate,
@@ -12,12 +16,14 @@ import {
 } from '@/lib/content-plan-shared'
 
 // İçerik planı (/toplanti). Tablolar istemci rollerine kapalı; okuma ve yazma yalnızca buradan, service role ile.
-// Sayfaya yalnızca bu hesap girer (Damla Dalay, 2026-11-01); takip adminlerde /admin/icerik-plani (salt okunur).
-export const CONTENT_PLAN_OWNER_ID = '15968172-2612-4f4b-bc15-77ee4178cc4c'
+// Takip adminlerde /admin/icerik-plani (salt okunur). Kapaklar özel kovada; okuma imzalı bağlantıyla.
+export { CONTENT_PLAN_OWNER_ID }
 
-const ITEM_COLUMNS = 'id, series_id, episode_no, title, status, publish_date, publish_time, shoot_date, script, caption, notes, video_url, created_at'
+const ITEM_COLUMNS = 'id, series_id, episode_no, title, status, publish_date, publish_time, shoot_date, script, caption, notes, video_url, cover_path, created_at'
 const SERIES_COLUMNS = 'id, title, description, planned_count, start_date, created_at'
 const MAX_EPISODES = 365
+const COVER_URL_TTL_SECONDS = 6 * 60 * 60
+const COVER_PATH_RE = new RegExp(`^${CONTENT_PLAN_OWNER_ID}/[0-9a-f-]{36}\\.(jpg|png|webp)$`)
 
 export async function loadContentPlan(admin: SupabaseClient): Promise<{ series: ContentSeries[]; items: ContentItem[] }> {
   const [seriesResult, itemsResult] = await Promise.all([
@@ -26,7 +32,41 @@ export async function loadContentPlan(admin: SupabaseClient): Promise<{ series: 
   ])
   if (seriesResult.error) throw new Error(seriesResult.error.message)
   if (itemsResult.error) throw new Error(itemsResult.error.message)
-  return { series: (seriesResult.data ?? []) as ContentSeries[], items: (itemsResult.data ?? []) as ContentItem[] }
+  const rows = (itemsResult.data ?? []) as Omit<ContentItem, 'cover_url'>[]
+
+  // Kapak bağlantısı üretilemezse plan yine açılır, kapak görünmez.
+  const paths = rows.map((row) => row.cover_path).filter((path): path is string => !!path)
+  const coverUrls = new Map<string, string>()
+  if (paths.length) {
+    const { data, error } = await admin.storage.from(CONTENT_COVER_BUCKET).createSignedUrls(paths, COVER_URL_TTL_SECONDS)
+    if (error) console.error('[content-plan] kapak bağlantıları', error.message)
+    ;(data ?? []).forEach((entry) => {
+      if (entry.path && entry.signedUrl) coverUrls.set(entry.path, entry.signedUrl)
+    })
+  }
+
+  return {
+    series: (seriesResult.data ?? []) as ContentSeries[],
+    items: rows.map((row) => ({ ...row, cover_url: row.cover_path ? coverUrls.get(row.cover_path) ?? null : null })),
+  }
+}
+
+/** Kapak için imzalı yükleme adresi; dosya tarayıcıdan doğrudan kovaya gider. */
+export async function createContentCoverUpload(admin: SupabaseClient, contentType: unknown): Promise<{ success: true; path: string; token: string } | { success: false; error: string }> {
+  const extension = typeof contentType === 'string' ? CONTENT_COVER_TYPES[contentType] : undefined
+  if (!extension) return fail('Kapak JPG, PNG ya da WEBP olmalı.')
+  const { data, error } = await admin.storage.from(CONTENT_COVER_BUCKET).createSignedUploadUrl(`${CONTENT_PLAN_OWNER_ID}/${randomUUID()}.${extension}`)
+  if (error || !data) {
+    console.error('[content-plan] kapak yükleme adresi', error?.message)
+    return fail('Kapak yüklenemedi.')
+  }
+  return { success: true, path: data.path, token: data.token }
+}
+
+async function removeCoverFile(admin: SupabaseClient, path: string | null | undefined) {
+  if (!path) return
+  const { error } = await admin.storage.from(CONTENT_COVER_BUCKET).remove([path])
+  if (error) console.error('[content-plan] kapak silinemedi', error.message)
 }
 
 const fail = (error: string): { success: false; error: string } => ({ success: false, error })
@@ -50,8 +90,11 @@ function itemRow(input: ContentItemInput) {
   const title = text(input.title, 160)
   if (!title) return { error: 'Başlık girin.' }
   const status = CONTENT_STATUSES.includes(input.status as ContentStatus) ? (input.status as ContentStatus) : 'idea'
-  const videoUrl = text(input.video_url, 500)
-  if (videoUrl && !/^https?:\/\//i.test(videoUrl)) return { error: 'Video bağlantısı http:// ya da https:// ile başlamalı.' }
+  // Instagram'dan kopyalanan bağlantı "instagram.com/reel/…" biçiminde de gelebilir.
+  const rawUrl = text(input.video_url, 490)
+  const videoUrl = rawUrl && !/^[a-z][a-z0-9+.-]*:/i.test(rawUrl) ? `https://${rawUrl}` : rawUrl
+  if (videoUrl && !/^https?:\/\//i.test(videoUrl)) return { error: 'Geçerli bir video linki girin.' }
+  if (typeof input.cover_path === 'string' && !COVER_PATH_RE.test(input.cover_path)) return { error: 'Kapak geçersiz.' }
   const time = typeof input.publish_time === 'string' && /^([01]\d|2[0-3]):[0-5]\d/.test(input.publish_time) ? input.publish_time.slice(0, 5) : null
   const seriesId = text(input.series_id, 40)
   return {
@@ -67,6 +110,7 @@ function itemRow(input: ContentItemInput) {
       caption: text(input.caption, 2200),
       notes: text(input.notes, 2000),
       video_url: videoUrl,
+      ...(input.cover_path === undefined ? {} : { cover_path: typeof input.cover_path === 'string' ? input.cover_path : null }),
     },
   }
 }
@@ -81,6 +125,12 @@ export async function saveContentItem(admin: SupabaseClient, id: string | null, 
   if (!parsed.row) return fail(parsed.error ?? 'Geçersiz içerik.')
   if (parsed.row.series_id && !(await ownsSeries(admin, parsed.row.series_id))) return fail('Seri bulunamadı.')
 
+  let previousCover: string | null = null
+  if (id && parsed.row.cover_path !== undefined) {
+    const { data } = await admin.from('content_items').select('cover_path').eq('id', id).eq('owner_id', CONTENT_PLAN_OWNER_ID).maybeSingle()
+    previousCover = data?.cover_path ?? null
+  }
+
   const query = id
     ? admin.from('content_items').update({ ...parsed.row, updated_at: new Date().toISOString() }).eq('id', id).eq('owner_id', CONTENT_PLAN_OWNER_ID)
     : admin.from('content_items').insert({ ...parsed.row, owner_id: CONTENT_PLAN_OWNER_ID })
@@ -89,15 +139,18 @@ export async function saveContentItem(admin: SupabaseClient, id: string | null, 
     console.error('[content-plan] saveContentItem', error.message)
     return fail('İçerik kaydedilemedi.')
   }
+  if (previousCover && previousCover !== parsed.row.cover_path) await removeCoverFile(admin, previousCover)
   return { success: true, message: 'İçerik kaydedildi.' }
 }
 
 export async function deleteContentItem(admin: SupabaseClient, id: string): Promise<ContentPlanResult> {
+  const { data: existing } = await admin.from('content_items').select('cover_path').eq('id', id).eq('owner_id', CONTENT_PLAN_OWNER_ID).maybeSingle()
   const { error } = await admin.from('content_items').delete().eq('id', id).eq('owner_id', CONTENT_PLAN_OWNER_ID)
   if (error) {
     console.error('[content-plan] deleteContentItem', error.message)
     return fail('İçerik silinemedi.')
   }
+  await removeCoverFile(admin, existing?.cover_path)
   return { success: true, message: 'İçerik silindi.' }
 }
 

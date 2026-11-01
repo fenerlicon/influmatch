@@ -11,7 +11,7 @@
 
 - **İçerik planı (2026-11-01, `claude/toplanti-planner`):** `/toplanti` yalnızca Damla Dalay'ın hesabına açık (`CONTENT_PLAN_OWNER_ID`, `lib/content-plan.ts`; diğer hesaplar 404, admin takip ekranına gider):
   takvim, liste, seri + alt başlıklar, fikirler, video/açıklama metni, çekim ve paylaşım tarihi. Takip `/admin/icerik-plani`'de salt okunur (admin rolündeki her hesap görür, yeni yönetici hesabında ek iş yok).
-  Tablolar `content_series`, `content_items` istemcilere kapalı, migration `20261101000010_content_plan.sql`.
+  Tablolar `content_series`, `content_items` istemcilere kapalı, migration `20261101000010_content_plan.sql`. Kapaklar özel `content-covers` kovasında (imzalı yükleme/okuma, `20261102000010_content_plan_covers.sql`); takipte takvim kartı doğrudan Instagram'a gider. Menüde Toplantı yalnızca bu hesapta (`navGroupsFor`).
 
 - **KVKK (2026-10-26, `claude/kvkk`, PR açılmadı):** teknik envanter ve avukata / sahibe listeler `docs/KVKK.md` (hukuki görüş değil; yasal metinlere
   dokunulmadı). Yapılanlar: "Verilerimi indir" (web Ayarlar → Güvenlik → Verilerin, mobil Ayarlar → Verilerin; `lib/data-export.ts`, 10 dk sınır, başkasının verisi yok),

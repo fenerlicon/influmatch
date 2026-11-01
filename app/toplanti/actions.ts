@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { getViewer } from '@/lib/viewer-role'
 import {
   CONTENT_PLAN_OWNER_ID,
+  createContentCoverUpload,
   deleteContentItem,
   deleteContentSeries,
   saveContentItem,
@@ -33,6 +34,12 @@ export async function saveItem(id: string | null, input: ContentItemInput): Prom
   const ctx = await requireOwner()
   if (!ctx.admin) return { success: false, error: ctx.error }
   return refreshed(await saveContentItem(ctx.admin, id, input))
+}
+
+export async function createCoverUpload(contentType: string) {
+  const ctx = await requireOwner()
+  if (!ctx.admin) return { success: false as const, error: ctx.error as string }
+  return createContentCoverUpload(ctx.admin, contentType)
 }
 
 export async function removeItem(id: string): Promise<ContentPlanResult> {
