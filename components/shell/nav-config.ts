@@ -3,6 +3,8 @@ import {
   MessagesSquare, SlidersHorizontal, Target, Trophy, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
+import { CONTENT_PLAN_OWNER_ID } from '@/lib/content-plan-shared'
+
 export type ShellRole = 'influencer' | 'brand' | 'admin'
 
 export interface NavItem {
@@ -123,6 +125,19 @@ const ADMIN: NavGroup[] = [
 
 export const NAV: Record<ShellRole, NavGroup[]> = { influencer: INFLUENCER, brand: BRAND, admin: ADMIN }
 
+const TOPLANTI_ITEM: NavItem = { id: 'toplanti', label: 'Toplantı', href: '/toplanti', icon: Clapperboard }
+
+/** Hesaba göre menü: Toplantı yalnızca içerik planı sahibinde görünür (adminler İçerik Planı'ndan takip eder). */
+export function navGroupsFor(role: ShellRole, userId: string): NavGroup[] {
+  if (role === 'admin' || userId !== CONTENT_PLAN_OWNER_ID) return NAV[role]
+  const [first, ...rest] = NAV[role]
+  return [first, { label: 'Planlama', items: [TOPLANTI_ITEM] }, ...rest]
+}
+
+export function mobileTabsFor(role: ShellRole, userId: string): string[] {
+  return role !== 'admin' && userId === CONTENT_PLAN_OWNER_ID ? [...MOBILE_TABS[role], TOPLANTI_ITEM.id] : MOBILE_TABS[role]
+}
+
 /** Mobil alt sekme çubuğundaki maddeler (sonuncusu her zaman "Menü"). */
 export const MOBILE_TABS: Record<ShellRole, string[]> = {
   influencer: ['home', 'works', 'adverts', 'messages'],
@@ -154,6 +169,7 @@ export function titleFor(role: ShellRole, pathname: string): string {
   for (const group of NAV[role]) {
     for (const item of group.items) if (isNavActive(item, pathname)) return item.label
   }
+  if (pathname === TOPLANTI_ITEM.href) return TOPLANTI_ITEM.label
   if (pathname.startsWith('/profile/')) return 'Profil'
   if (pathname.includes('/settings')) return 'Ayarlar'
   if (pathname.startsWith('/dashboard/spotlight')) return 'Spotlight'

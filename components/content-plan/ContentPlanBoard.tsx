@@ -1,13 +1,17 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Clapperboard, ExternalLink, Layers, Lightbulb, List, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Clapperboard, ExternalLink, ImagePlus, Layers, Lightbulb, List, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Card, CardHeader, Chip, ConfirmDialog, EmptyState, Field, Input, ListRow, Modal, PageHeader, Progress, Select, StatCard, Tabs, Textarea } from '@/components/ui'
-import { removeItem, removeSeries, saveItem, saveSeries } from '@/app/toplanti/actions'
+import { createCoverUpload, removeItem, removeSeries, saveItem, saveSeries } from '@/app/toplanti/actions'
 import { cn } from '@/utils/cn'
+import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import {
+  CONTENT_COVER_BUCKET,
+  CONTENT_COVER_MAX_BYTES,
+  CONTENT_COVER_TYPES,
   CONTENT_STATUSES,
   STATUS_META,
   addDays,
@@ -35,6 +39,74 @@ function publishLabel(item: ContentItem): string {
   if (!item.publish_date) return 'Tarih yok'
   const time = timeLabel(item.publish_time)
   return `${formatDate(item.publish_date, true)}${time ? ` · ${time}` : ''}`
+}
+
+const itemLabel = (item: ContentItem) => `${item.episode_no ? `${item.episode_no}. ` : ''}${item.title}`
+
+/** Instagram'daki videoya giden bağlantı; satırın kendi tıklamasını tetiklemez. */
+function VideoLink({ url, compact = false, className }: { url: string; compact?: boolean; className?: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Videoyu aç"
+      title="Videoyu aç"
+      onClick={(e) => e.stopPropagation()}
+      className={cn('inline-flex items-center gap-1 text-[12.5px] font-medium text-gold hover:underline', className)}
+    >
+      {!compact && 'Videoyu aç'}
+      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+    </a>
+  )
+}
+
+/** Dikey (Reels) kapak küçük resmi; imzalı bağlantı olduğu için next/image kullanılmaz. */
+function CoverThumb({ url, className }: { url: string | null; className?: string }) {
+  if (!url) return null
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" loading="lazy" className={cn('aspect-[9/16] flex-none rounded-md border border-line object-cover', className)} />
+}
+
+function CalendarTile({ item, readOnly, onOpen }: { item: ContentItem; readOnly: boolean; onOpen: (draft: ItemDraft) => void }) {
+  const label = itemLabel(item)
+  const published = item.status === 'published'
+  const body = item.cover_url ? (
+    <span className="relative block overflow-hidden rounded-md">
+      <CoverThumb url={item.cover_url} className="block w-full rounded-md" />
+      <span className="absolute inset-x-0 bottom-0 hidden truncate bg-gradient-to-t from-black/85 to-transparent px-1.5 pb-1 pt-5 text-[11px] font-medium text-white sm:block">{label}</span>
+      {published && <span className="absolute left-1 top-1 h-2 w-2 rounded-full bg-success ring-1 ring-black/40" aria-label="Paylaşıldı" />}
+    </span>
+  ) : (
+    <span
+      className={cn(
+        'block h-1.5 truncate rounded border sm:h-auto sm:px-1.5 sm:py-1 sm:text-[11.5px]',
+        published ? 'border-transparent bg-success sm:bg-success/10 sm:text-success' : 'border-line bg-gold sm:bg-surface-3 sm:text-ink',
+      )}
+    >
+      <span className="hidden sm:inline">{label}</span>
+    </span>
+  )
+  const shared = { title: label, 'aria-label': label, className: 'block w-full text-left transition-opacity hover:opacity-85' }
+
+  // Takipte tıklama doğrudan Instagram'a gider; sahibi düzenlemeyi açar, video için köşede ayrı bağlantı olur.
+  if (readOnly && item.video_url) {
+    return (
+      <a href={item.video_url} target="_blank" rel="noopener noreferrer" {...shared}>
+        {body}
+      </a>
+    )
+  }
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => onOpen(item)} {...shared}>
+        {body}
+      </button>
+      {item.video_url && item.cover_url && (
+        <VideoLink url={item.video_url} compact className="absolute right-0.5 top-0.5 hidden rounded bg-black/70 p-1 text-white hover:no-underline sm:inline-flex" />
+      )}
+    </div>
+  )
 }
 
 function StatusChip({ status }: { status: ContentStatus }) {
@@ -91,7 +163,7 @@ export default function ContentPlanBoard({ series, items, readOnly = false }: { 
   return (
     <div>
       <PageHeader
-        title="İçerik Planı"
+        title={readOnly ? 'İçerik Planı' : 'Toplantı'}
         description={readOnly ? 'Damla Dalay’ın Instagram Reels planı. Bu ekran yalnızca takip içindir.' : 'Instagram Reels takvimin, serilerin ve fikirlerin.'}
         actions={
           !readOnly && (
@@ -280,14 +352,6 @@ function CalendarView({
                 <span className={cn('grid h-6 w-6 place-items-center rounded-full text-[12px] tabular-nums', day === today ? 'bg-gold font-semibold text-gold-ink' : inMonth ? 'text-ink-muted' : 'text-ink-faint/50')}>
                   {Number(day.slice(8))}
                 </span>
-                {/* Dar ekranda yalnızca nokta; ayrıntı alttaki listede. */}
-                {dayItems.length > 0 && (
-                  <span className="mt-1 flex flex-wrap justify-center gap-0.5 sm:hidden" aria-label={`${dayItems.length} içerik`}>
-                    {dayItems.slice(0, 3).map((item) => (
-                      <span key={item.id} className={cn('h-1.5 w-1.5 rounded-full', item.status === 'published' ? 'bg-success' : 'bg-gold')} />
-                    ))}
-                  </span>
-                )}
               </>
             )
             return (
@@ -304,23 +368,13 @@ function CalendarView({
                     {content}
                   </button>
                 )}
-                <div className="mt-1 hidden gap-1 sm:grid">
-                  {dayItems.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => onOpen(item)}
-                      title={item.title}
-                      className={cn(
-                        'truncate rounded border px-1.5 py-1 text-left text-[11.5px] transition-colors hover:border-gold/40',
-                        item.status === 'published' ? 'border-transparent bg-success/10 text-success' : 'border-line bg-surface-3 text-ink',
-                      )}
-                    >
-                      {item.episode_no ? `${item.episode_no}. ` : ''}
-                      {item.title}
-                    </button>
-                  ))}
-                </div>
+                {dayItems.length > 0 && (
+                  <div className="mt-1 grid grid-cols-[minmax(0,1fr)] gap-1">
+                    {dayItems.map((item) => (
+                      <CalendarTile key={item.id} item={item} readOnly={readOnly} onOpen={onOpen} />
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -351,6 +405,7 @@ function CalendarView({
 function ItemRow({ item, seriesTitle, onOpen }: { item: ContentItem; seriesTitle?: string; onOpen: (draft: ItemDraft) => void }) {
   return (
     <ListRow className="cursor-pointer" onClick={() => onOpen(item)}>
+      <CoverThumb url={item.cover_url} className="w-9" />
       <div className="w-[118px] flex-none text-[12.5px] tabular-nums text-ink-muted">{publishLabel(item)}</div>
       <div className="min-w-[160px] flex-1">
         <button type="button" className="block max-w-full truncate text-left text-[13.5px] font-medium text-ink">
@@ -361,6 +416,7 @@ function ItemRow({ item, seriesTitle, onOpen }: { item: ContentItem; seriesTitle
           {[seriesTitle, item.shoot_date ? `Çekim: ${formatDate(item.shoot_date)}` : null].filter(Boolean).join(' · ') || 'Bağımsız içerik'}
         </div>
       </div>
+      {item.video_url && <VideoLink url={item.video_url} />}
       <StatusChip status={item.status} />
     </ListRow>
   )
@@ -528,6 +584,7 @@ function SeriesDetail({
           episodes.map((item) => (
             <ListRow key={item.id} className="cursor-pointer" onClick={() => onOpen(item)}>
               <div className="grid h-8 w-8 flex-none place-items-center rounded-lg bg-surface-3 text-[12.5px] font-semibold tabular-nums text-ink-muted">{item.episode_no ?? '–'}</div>
+              <CoverThumb url={item.cover_url} className="w-9" />
               <div className="min-w-[160px] flex-1">
                 <button type="button" className="block max-w-full truncate text-left text-[13.5px] font-medium text-ink">
                   {item.title}
@@ -537,6 +594,7 @@ function SeriesDetail({
                   {item.shoot_date ? ` · Çekim: ${formatDate(item.shoot_date)}` : ''}
                 </div>
               </div>
+              {item.video_url && <VideoLink url={item.video_url} />}
               <StatusChip status={item.status} />
             </ListRow>
           ))
@@ -633,6 +691,52 @@ function ItemModal({
     setForm((prev) => ({ ...prev, publish_date: e.target.value, status: e.target.value && prev.status === 'idea' ? 'planned' : prev.status }))
   const existing = draft.id ? (draft as ContentItem) : null
 
+  // Kapak kaydederken yüklenir; vazgeçilirse depoda sahipsiz dosya kalmaz.
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(draft.cover_url ?? null)
+  const [coverRemoved, setCoverRemoved] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const busy = pending || uploading
+
+  useEffect(() => {
+    if (!coverFile) return
+    const url = URL.createObjectURL(coverFile)
+    setCoverPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [coverFile])
+
+  const pickCover = (file: File | undefined) => {
+    if (fileRef.current) fileRef.current.value = ''
+    if (!file) return
+    if (!CONTENT_COVER_TYPES[file.type]) return void toast.error('Kapak JPG, PNG ya da WEBP olmalı.')
+    if (file.size > CONTENT_COVER_MAX_BYTES) return void toast.error('Kapak en fazla 5 MB olabilir.')
+    setCoverRemoved(false)
+    setCoverFile(file)
+  }
+
+  const submit = async () => {
+    if (!form.title.trim()) return
+    let cover_path: string | null = coverRemoved ? null : draft.cover_path ?? null
+    if (coverFile) {
+      setUploading(true)
+      try {
+        const upload = await createCoverUpload(coverFile.type)
+        if (!upload.success) return void toast.error(upload.error)
+        const { error } = await createSupabaseBrowserClient()
+          .storage.from(CONTENT_COVER_BUCKET)
+          .uploadToSignedUrl(upload.path, upload.token, coverFile, { contentType: coverFile.type })
+        if (error) return void toast.error('Kapak yüklenemedi. Tekrar deneyin.')
+        cover_path = upload.path
+      } catch {
+        return void toast.error('Kapak yüklenemedi. Tekrar deneyin.')
+      } finally {
+        setUploading(false)
+      }
+    }
+    onSave(existing?.id ?? null, { ...form, cover_path })
+  }
+
   if (readOnly) return <ItemDetails item={draft as ContentItem} series={series} onClose={onClose} />
 
   return (
@@ -640,19 +744,19 @@ function ItemModal({
       open
       onClose={onClose}
       size="lg"
-      dismissible={!pending}
+      dismissible={!busy}
       title={existing ? 'İçeriği düzenle' : 'Yeni içerik'}
       footer={
         <>
           {existing && (
-            <Button variant="danger" size="sm" className="mr-auto" disabled={pending} onClick={() => onDelete(existing)}>
+            <Button variant="danger" size="sm" className="mr-auto" disabled={busy} onClick={() => onDelete(existing)}>
               Sil
             </Button>
           )}
-          <Button variant="ghost" size="sm" disabled={pending} onClick={onClose}>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={onClose}>
             Vazgeç
           </Button>
-          <Button variant="primary" size="sm" type="submit" form="content-item-form" loading={pending} disabled={!form.title.trim()}>
+          <Button variant="primary" size="sm" type="submit" form="content-item-form" loading={busy} disabled={!form.title.trim()}>
             Kaydet
           </Button>
         </>
@@ -663,9 +767,47 @@ function ItemModal({
         className="grid gap-4 sm:grid-cols-6"
         onSubmit={(e) => {
           e.preventDefault()
-          if (form.title.trim()) onSave(existing?.id ?? null, form)
+          void submit()
         }}
       >
+        <div className="flex items-center gap-4 sm:col-span-6">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label={coverPreview ? 'Kapağı değiştir' : 'Kapak yükle'}
+            className="grid aspect-[9/16] w-24 flex-none place-items-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface-2 text-ink-faint transition-colors hover:border-gold/40"
+          >
+            {coverPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverPreview} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <ImagePlus className="h-5 w-5" aria-hidden />
+            )}
+          </button>
+          <div className="min-w-0">
+            <div className="text-[12.5px] font-medium text-ink-muted">Kapak</div>
+            <p className="mt-0.5 text-xs text-ink-faint">Dikey görsel; JPG, PNG ya da WEBP, en fazla 5 MB. Takvimde görünür.</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Button size="sm" onClick={() => fileRef.current?.click()}>
+                {coverPreview ? 'Değiştir' : 'Kapak yükle'}
+              </Button>
+              {coverPreview && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setCoverFile(null)
+                    setCoverPreview(null)
+                    setCoverRemoved(true)
+                  }}
+                >
+                  Kaldır
+                </Button>
+              )}
+            </div>
+          </div>
+          <input ref={fileRef} type="file" accept={Object.keys(CONTENT_COVER_TYPES).join(',')} className="hidden" onChange={(e) => pickCover(e.target.files?.[0])} />
+        </div>
         <Field label="Başlık" className="sm:col-span-6">
           {(props) => <Input {...props} data-autofocus maxLength={160} value={form.title} onChange={set('title')} placeholder="Videonun konusu" required />}
         </Field>
@@ -704,8 +846,18 @@ function ItemModal({
         <Field label="Çekim tarihi" className="sm:col-span-2">
           {(props) => <Input {...props} type="date" value={form.shoot_date} onChange={set('shoot_date')} />}
         </Field>
-        <Field label="Video bağlantısı" hint="Paylaşılan Reels ya da Drive bağlantısı" className="sm:col-span-4">
-          {(props) => <Input {...props} type="url" maxLength={500} value={form.video_url} onChange={set('video_url')} placeholder="https://" />}
+        <Field label="Paylaşılan video linki" hint="Paylaştıktan sonra Instagram linkini yapıştır; durum Paylaşıldı olur." className="sm:col-span-4">
+          {(props) => (
+            <Input
+              {...props}
+              inputMode="url"
+              maxLength={490}
+              value={form.video_url}
+              onChange={set('video_url')}
+              onBlur={() => form.video_url.trim() && setForm((prev) => ({ ...prev, status: 'published' }))}
+              placeholder="https://www.instagram.com/reel/…"
+            />
+          )}
         </Field>
         <Field label="Video metni" className="sm:col-span-6">
           {(props) => <Textarea {...props} rows={5} maxLength={10000} value={form.script} onChange={set('script')} placeholder="Kancayı ve videoda söyleyeceklerini yaz" />}
@@ -731,15 +883,12 @@ function ItemDetails({ item, series, onClose }: { item: ContentItem; series: Con
   return (
     <Modal open onClose={onClose} size="lg" title={`${item.episode_no ? `${item.episode_no}. ` : ''}${item.title}`} description={seriesTitle ?? undefined}>
       <div className="grid gap-4">
+        <CoverThumb url={item.cover_url} className="w-36 rounded-lg" />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-ink-muted">
           <StatusChip status={item.status} />
           <span>Paylaşım: {publishLabel(item)}</span>
           {item.shoot_date && <span>Çekim: {formatDate(item.shoot_date, true)}</span>}
-          {item.video_url && (
-            <a href={item.video_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-gold hover:underline">
-              Videoyu aç <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            </a>
-          )}
+          {item.video_url && <VideoLink url={item.video_url} />}
         </div>
         {blocks.map(([label, value]) =>
           value ? (

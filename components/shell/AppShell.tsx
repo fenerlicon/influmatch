@@ -9,7 +9,7 @@ import { cn } from '@/utils/cn'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import NotificationsPopover from '@/components/dashboard/NotificationsPopover'
 import { useUnreadMessageCount } from '@/components/dashboard/useUnreadMessageCount'
-import { MOBILE_TABS, NAV, SETTINGS_HREF, SPOTLIGHT_HREF, isNavActive, titleFor, type NavItem, type ShellRole } from './nav-config'
+import { NAV, SETTINGS_HREF, SPOTLIGHT_HREF, isNavActive, mobileTabsFor, navGroupsFor, titleFor, type NavItem, type ShellRole } from './nav-config'
 
 export interface ShellUser {
   id: string
@@ -104,7 +104,7 @@ function NavBody({
   return (
     <>
       <nav aria-label="Ana menü" className="min-h-0 flex-1 overflow-y-auto">
-        {NAV[user.role].map((group, i) => (
+        {navGroupsFor(user.role, user.id).map((group, i) => (
           <div key={group.label ?? i} className={cn(i > 0 && 'mt-3.5')}>
             {group.label && <div className="px-2.5 pb-1.5 text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-faint">{group.label}</div>}
             <div className="grid gap-0.5">
@@ -204,8 +204,8 @@ export default function AppShell({
     }
   }, [menuOpen])
 
-  const allItems = NAV[user.role].flatMap((g) => g.items)
-  const tabs = MOBILE_TABS[user.role].map((id) => allItems.find((i) => i.id === id)).filter((i): i is NavItem => !!i)
+  const allItems = navGroupsFor(user.role, user.id).flatMap((g) => g.items)
+  const tabs = mobileTabsFor(user.role, user.id).map((id) => allItems.find((i) => i.id === id)).filter((i): i is NavItem => !!i)
 
   return (
     <div className="min-h-screen bg-background text-ink lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
