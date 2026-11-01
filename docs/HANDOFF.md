@@ -9,6 +9,10 @@
 - **Yeni görünüm (2026-10-13'ten beri, asıl iş):** durum, sıra ve hangi oturumun neyi yaptığı `docs/REDESIGN.md`'de
   ("Paralel oturumlar" tablosu + "Aşamalar"). Bu belgenin aşağıdaki kısmı yeni görünümden önceki işleri anlatır.
 
+- **İçerik planı (2026-11-01, `claude/toplanti-planner`):** `/toplanti` yalnızca Damla Dalay'ın hesabına açık (`CONTENT_PLAN_OWNER_ID`, `lib/content-plan.ts`; diğer hesaplar 404, admin takip ekranına gider):
+  takvim, liste, seri + alt başlıklar, fikirler, video/açıklama metni, çekim ve paylaşım tarihi. Takip `/admin/icerik-plani`'de salt okunur (admin rolündeki her hesap görür, yeni yönetici hesabında ek iş yok).
+  Tablolar `content_series`, `content_items` istemcilere kapalı, migration `20261101000010_content_plan.sql`.
+
 - **KVKK (2026-10-26, `claude/kvkk`, PR açılmadı):** teknik envanter ve avukata / sahibe listeler `docs/KVKK.md` (hukuki görüş değil; yasal metinlere
   dokunulmadı). Yapılanlar: "Verilerimi indir" (web Ayarlar → Güvenlik → Verilerin, mobil Ayarlar → Verilerin; `lib/data-export.ts`, 10 dk sınır, başkasının verisi yok),
   hesap silmede dosya boşlukları (sohbet ekleri, destek / geri bildirim ekleri, ilan kapakları), **mobil uygulama içi hesap silme**, rıza kayıtları
