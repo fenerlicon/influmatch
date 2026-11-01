@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { migrateLegacySessionCookies, supabaseStorageKey } from '@/lib/supabase/legacy-session-cookie'
 
-const PROTECTED_ROUTES = ['/dashboard', '/admin', '/onboarding', '/profile']
+const PROTECTED_ROUTES = ['/dashboard', '/admin', '/onboarding', '/profile', '/toplanti']
 const AUTH_ROUTES = ['/login', '/signup', '/signup-role']
 
 // @supabase/ssr ile aynı varsayılanlar (tarayıcı istemcisi çerezi okuyabilmeli).
