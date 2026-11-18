@@ -44,7 +44,7 @@ const jsonLd = {
   'name': 'Influmatch',
   'url': 'https://influmatch.net',
   'logo': 'https://influmatch.net/icon.png',
-  'description': 'Ücretsiz influencer bulma platformu ve arama motoru. Markalar ve influencerlar ajanssız doğrudan buluşur.',
+  'description': 'Markaları doğrulanmış Instagram ve TikTok influencer ve UGC üreticileriyle buluşturan iş birliği platformu. Kayıt ücretsizdir; sosyal medya şifresi istenmez.',
   'address': {
     '@type': 'PostalAddress',
     'addressCountry': 'TR'
