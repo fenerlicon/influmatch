@@ -57,6 +57,10 @@ const FAQS = [
     q: 'Doğrulama nasıl yapılıyor?',
     a: 'İçerik üreticileri panelde verilen kodu Instagram ya da TikTok biyografilerine ekler. Markalar vergi levhası, kurumsal kimlik ve şirket alan adlı kurumsal e-postayla doğrulanır.',
   },
+  {
+    q: 'Sosyal medya şifremi vermem gerekiyor mu?',
+    a: 'Hayır. Influmatch sosyal medya şifrenizi hiçbir zaman istemez. Hesabınızı, panelde verilen kodu biyografinize ekleyerek doğrularsınız.',
+  },
   { q: 'Marka ile içerik üreticisi arasında aracı var mı?', a: 'Yok. Taraflar birbirini doğrudan bulur, teklifleşir ve platform içinden mesajlaşır.' },
   {
     q: 'Sonuç raporundaki veriler nereden geliyor?',
@@ -64,6 +68,18 @@ const FAQS = [
   },
   { q: 'Hangi platformlar destekleniyor?', a: 'Instagram ve TikTok.' },
 ]
+
+// Arama motorları ve yapay zekâ tarayıcıları için SSS yapısal verisi; metin yukarıdaki listeden üretilir,
+// sayfadaki görünür SSS ile her zaman aynıdır.
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQS.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+}
 
 export default function Home({ searchParams }: HomeProps) {
   // Supabase e-posta doğrulama bağlantısından gelen hata parametreleri giriş sayfasına yönlendirilir.
@@ -589,6 +605,7 @@ export default function Home({ searchParams }: HomeProps) {
               <span className="eyebrow">S.S.S.</span>
               <h2>Sık sorulanlar</h2>
             </div>
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
             <div className="faq">
               {FAQS.map((item) => (
                 <details key={item.q}>
