@@ -8,6 +8,8 @@ import { expireSpotlights } from '@/lib/spotlight-expiry'
 import { getViewerInfo, profileReader } from '@/lib/profile-reads'
 import { getWheelState } from '@/lib/discovery-wheel'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
+import { endFreeSubscriptions, listUserSubscriptions } from '@/lib/payments/subscriptions'
+import { livePaidSubscription } from '@/lib/payments/billing-shared'
 
 const formatFollowers = (count: number) =>
     count >= 1_000_000 ? `${(count / 1_000_000).toFixed(1)}M` : count >= 1_000 ? `${(count / 1_000).toFixed(1)}K` : String(count)
@@ -157,6 +159,17 @@ export async function cancelSpotlightPlan(userId: string): Promise<{ success: bo
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || user.id !== userId) return { success: false, error: 'Yetkisiz erişim.' };
+
+    // 2026-11-23: ücretli abonelik buradan değil, Ayarlar > Üyelik ve ödemeler'den iptal edilir (dönem sonuna kadar sürer).
+    // Ücretsiz kaynaklı (admin / 0₺ / ödül) üyelik kayıtları biter; ödeme tabloları yoksa eski doğrudan yazım.
+    const subs = await listUserSubscriptions(adminSupabase, userId)
+    if (subs && livePaidSubscription(subs)) {
+        return { success: false, error: 'Ücretli aboneliğini Ayarlar > Üyelik ve ödemeler bölümünden iptal edebilirsin.' }
+    }
+    if (subs) {
+        const ended = await endFreeSubscriptions(adminSupabase, userId)
+        if (ended.ok) return { success: true, error: null }
+    }
 
     const { error } = await adminSupabase
         .from('users')

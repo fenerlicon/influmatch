@@ -14,6 +14,7 @@ import { processAdvertAlerts } from '@/lib/advert-alerts'
 import { processDueMetrics } from '@/lib/post-metrics'
 import { processDueTaskMeasurements } from '@/lib/tasks'
 import { sweepFounderBadges } from '@/lib/founder-badge'
+import { runBillingJobs } from '@/lib/payments/billing-jobs'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -35,6 +36,8 @@ const HOURLY_STATS_START_BUDGET_MS = 10_000
  * - 7 gün yanıtlanmayan teklifler "Süresi doldu" olur, markaya bildirim gider (lib/offers.ts).
  * - Yeni açılan ilanlar influencer ilan alarmlarıyla eşleştirilir (lib/advert-alerts.ts).
  * - Yayınlanan teslimatların gönderi ölçümleri (sonuç raporu, lib/post-metrics.ts): tek Apify koşusu, en fazla 10 gönderi.
+ * - Abonelikler (lib/payments/billing-jobs.ts): kaçan iyzico/mağaza bildirimleri, ödemesi alınamayanların ek süre sonu,
+ *   hatırlatmalar, 0₺ dönemi Pro dağıtımı. İstatistikle paralel, kendi süre bütçesiyle (45. saniyede durur).
  */
 export async function GET(req: Request) {
   const startedAt = Date.now()
@@ -147,10 +150,11 @@ export async function GET(req: Request) {
   // sürdüyse bu turda yapılmaz; istatistiği günlük cron, ölçümü bir sonraki saat sürdürür.
   const statsDeadline = startedAt + HOURLY_STATS_START_BUDGET_MS
   // Görev ölçümü (tanıtım videoları, lib/tasks.ts) de aynı turda: tek koşu, en fazla 10 gönderi.
-  const [stats, metrics, taskMetrics] = await Promise.allSettled([
+  const [stats, metrics, taskMetrics, billing] = await Promise.allSettled([
     refreshStaleAccounts(admin, { deadline: statsDeadline, limit: 10 }),
     processDueMetrics(admin, { deadline: statsDeadline }),
     processDueTaskMeasurements(admin, { deadline: statsDeadline }),
+    runBillingJobs(admin, { deadline: startedAt + 45_000 }),
   ])
   if (stats.status === 'fulfilled') result.statsRefresh = stats.value
   else {
@@ -166,6 +170,12 @@ export async function GET(req: Request) {
   else {
     console.error('[cron/hourly] Görev ölçümleri alınamadı:', taskMetrics.reason)
     result.taskMetricsError = taskMetrics.reason instanceof Error ? taskMetrics.reason.message : String(taskMetrics.reason)
+  }
+
+  if (billing.status === 'fulfilled') result.billing = billing.value
+  else {
+    console.error('[cron/hourly] Abonelik görevleri başarısız:', billing.reason)
+    result.billingError = billing.reason instanceof Error ? billing.reason.message : String(billing.reason)
   }
 
   return NextResponse.json(result)

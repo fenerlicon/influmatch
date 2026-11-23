@@ -20,6 +20,7 @@ import { notifyUser } from '@/lib/notify'
 import { syncBlueTick } from '@/lib/blue-tick'
 import { countInvites, ensureInviteCode, inviteLink } from '@/lib/invites'
 import { loadBlueTickPromo, loadPromoPeriod } from '@/lib/tasks-promo'
+import { grantSubscription } from '@/lib/payments/subscriptions'
 import type { BlueTickPromo } from '@/lib/blue-tick-rules'
 import { calculateProfileCompletion } from '@/utils/profileCompletion'
 import { formatReason, loadUserDecisions, parseDecisionReason, recordDecision, type DecisionReasonInput, type DecisionView } from '@/lib/moderation'
@@ -958,14 +959,18 @@ export async function applyPendingRewardsAsAdmin(admin: SupabaseClient): Promise
       out.skipped++
       continue
     }
-    const { error: userError } = await admin
-      .from('users')
-      .update({ spotlight_active: true, spotlight_plan: next.plan, spotlight_expires_at: next.expiresAt })
-      .eq('id', user.id)
-    if (userError) {
-      console.error('[tasks] Spotlight ödülü işlenemedi:', userError.message)
-      out.failed++
-      continue
+    // 2026-11-23: süre ödülü abonelik kaydı olarak (kaynak "reward") yazılır; Spotlight tek fonksiyonla türetilir.
+    // Ödeme tabloları yoksa eski doğrudan yazım.
+    const granted = await grantSubscription(admin, { userId: user.id, plan: next.plan, source: 'reward', end: next.expiresAt, note: `Görev ödülü ${reward.id}` })
+    if (!granted.ok) {
+      const { error: userError } = granted.missingTable
+        ? await admin.from('users').update({ spotlight_active: true, spotlight_plan: next.plan, spotlight_expires_at: next.expiresAt }).eq('id', user.id)
+        : { error: { message: granted.error } }
+      if (userError) {
+        console.error('[tasks] Spotlight ödülü işlenemedi:', userError.message)
+        out.failed++
+        continue
+      }
     }
     await admin
       .from('task_rewards')
