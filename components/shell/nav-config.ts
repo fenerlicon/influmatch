@@ -1,5 +1,5 @@
 import {
-  Bell, Briefcase, CalendarDays, Clapperboard, Gavel, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
+  Bell, Briefcase, CalendarDays, Clapperboard, CreditCard, Gavel, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
   MessagesSquare, SlidersHorizontal, Target, Trophy, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
@@ -115,6 +115,8 @@ const ADMIN: NavGroup[] = [
     label: 'Sistem',
     items: [
       { id: 'limits', label: 'Marka Sınırları', href: '/admin/limits', icon: SlidersHorizontal },
+      // Ödemeler (2026-11-23): abonelikler, tahsilat, iade, satış bayrağı, 0₺ dönemi.
+      { id: 'billing', label: 'Ödemeler', href: '/admin/billing', icon: CreditCard },
       { id: 'api-keys', label: 'API Anahtarları', href: '/admin/api-keys', icon: KeyRound },
       { id: 'manual-connect', label: 'Manuel Instagram Bağlama', href: '/admin/manual-connect', icon: Link2 },
     ],

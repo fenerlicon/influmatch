@@ -54,7 +54,9 @@ Gereksiz veri toplanmıyor: doğum tarihi, telefon, adres, IBAN / banka bilgisi,
 | **Apify** (kazıma) | Kullanıcının bağladığı Instagram/TikTok **kullanıcı adı**, teslimat / görev gönderi bağlantıları; dönüş herkese açık profil istatistikleri | AB şirketi, altyapı büyük ihtimalle ABD | Kişinin kendi hesabının herkese açık verisi; yine de işleyen sayılır. |
 | Google Fonts | — | — | **Gitmiyor**: `next/font` yazı tiplerini derlemede kendi sunucumuzdan veriyor. |
 | Analitik / reklam (Google Analytics, Meta Pixel vb.) | — | — | **Yok.** |
-| Ödeme (Iyzico, Stripe) | — | — | **Yok**; ödeme platform üzerinden yapılmıyor. |
+| **iyzico** (Spotlight aboneliği, 2026-11-23; satış bayrağı kapalı, canlıda henüz yok) | Ad, soyad, e-posta, cep telefonu, fatura şehri ve adresi, (isteğe bağlı) TCKN; **kart bilgisi yalnızca iyzico'nun formunda girilir, bize gelmez**. Bizde: abonelik / tahsilat kayıtları (`subscriptions`, `payments`), sağlayıcı referans kodları (`payment_events`, en aza indirilmiş) | Türkiye (konum iyzico ile teyit) | Ödeme hizmeti sağlayıcısı; işleyen mi bağımsız veri sorumlusu mu avukata (bölüm 5 madde 13). Kullanıcılar arası iş birliği ödemeleri platformdan geçmez (CLAUDE.md 2026-10-15). |
+| **Apple App Store / Google Play** (mobil abonelik, kapalı bayrakla) | Satın alma kullanıcı kimliğiyle (UUID) bağlanır; mağazadan işlem / abonelik durumu okunur. Kart ve kişi bilgisi mağazada kalır | ABD | Mağaza yayınından sonra; App Store gizlilik etiketi ve Play "Veri güvenliği" formuna satın alma eklenir. |
+| Diğer ödeme (Stripe vb.) | — | — | **Yok.** |
 
 ### 1.3 Haklar (md. 11) — teknik karşılık
 
@@ -202,6 +204,10 @@ Metinler **değiştirilmedi**; aşağıdaki liste avukata verilecek. Kaynak: `ap
 11. **Veri indirme kapsamı:** admin notları (kullanıcı hakkında iç not) erişim hakkına dahil mi (şu an dışarıda); dosyaların kendisi
     (yalnızca adları listeleniyor) verilmeli mi.
 12. **Çocuklar:** reşit olmayan influencer'lar için veli onayı gerekip gerekmediği.
+13. **Ödeme (2026-11-23, `docs/PAYMENTS.md`):** Mesafeli Satış Sözleşmesi, Ön Bilgilendirme Formu, abonelik / otomatik yenileme / iptal ve iade koşulları
+    (dijital hizmette cayma hakkı istisnası dahil), Gizlilik metnine iyzico / Apple / Google (işleyen mi, ayrı veri sorumlusu mu), fatura için
+    TCKN / adres işleme amacı ve saklama süresi (ödeme kayıtları vergi mevzuatı gereği), yurt dışı aktarım (Apple, Google). Metinler `/legal`'deki
+    boş sekmelere yerleşir; ödeme sayfasındaki zorunlu onay kutuları bu sekmelere bağlı.
 
 ---
 
@@ -229,3 +235,4 @@ Metinler **değiştirilmedi**; aşağıdaki liste avukata verilecek. Kaynak: `ap
       Google Play ayrıca uygulama dışından açılabilen bir hesap silme bağlantısı istiyor: web Ayarlar → Güvenlik girişle açılıyor; girişsiz
       bir talep sayfası gerekip gerekmediğine karar ver.
 - [ ] Canlı veritabanı: `claude/kvkk` birleşmeden önce ya da hemen sonra SQL'i çalıştır (14.7-S1).
+- [ ] Ödeme (2026-11-23): iyzico ve mağaza DPA / sözleşmeleri; avukat metinleri gelmeden `/admin/billing` "Web satışı" açılmaz (`docs/PAYMENTS.md` bölüm 6).

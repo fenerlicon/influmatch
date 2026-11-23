@@ -53,6 +53,7 @@ export type NotificationEvent =
   | 'advert_removed'
   | 'moderation_decision'
   | 'appeal_result'
+  | 'billing'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -98,6 +99,8 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   // Ret kararı (vergi levhası vb., neden yazılır) ve itiraz sonucu (2026-10-26): önemli olay, "Platform Güncellemeleri" tercihine bağlı.
   moderation_decision: { preference: 'updates', email: true },
   appeal_result: { preference: 'updates', email: true },
+  // Üyelik ve ödeme (2026-11-23): ödeme alınamadı, üyelik bitiyor / bitti, yıllık yenileme hatırlatması, iptal. "Platform Güncellemeleri" tercihine bağlı.
+  billing: { preference: 'updates', email: true },
 }
 
 /** E-postası alıcı + bağlantı başına saatte en fazla bir kez giden olaylar (site içi bildirim her seferinde yazılır). */

@@ -10,6 +10,7 @@ import { ConfirmDialog, Notice, PageHeader, Segmented } from '@/components/ui'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { checkSpotlightStatus, cancelSpotlightPlan } from '@/app/actions/spotlight'
 import { planFeatures, planPrice, type BillingInterval, type SpotlightPlanCode } from '@/lib/spotlight-plans'
+import type { PurchaseState } from '@/lib/payments/purchase-state'
 
 type Role = 'influencer' | 'brand'
 
@@ -39,8 +40,11 @@ const COPY: Record<Role, { description: string; plans: [SpotlightPlanCode, Spotl
   },
 }
 
-/** Spotlight paket sayfası (influencer ve marka aynı düzen). Satın alma kapalı; planları admin açar. */
-export default function SpotlightPlansPage({ role }: { role: Role }) {
+/**
+ * Spotlight paket sayfası (influencer ve marka aynı düzen). Satın alma iyzico aboneliğiyle; satış bayrağı (payments_enabled) kapalıyken
+ * düğmeler "Satın alma yakında" kalır. Durum sunucuda hesaplanır (lib/payments/purchase-state.ts).
+ */
+export default function SpotlightPlansPage({ role, purchase = null }: { role: Role; purchase?: PurchaseState | null }) {
   const router = useRouter()
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('mo')
   const [processing, setProcessing] = useState(false)
@@ -80,6 +84,11 @@ export default function SpotlightPlansPage({ role }: { role: Role }) {
     checkStatus()
   }, [basicPlan])
 
+  const paid = purchase?.paid ?? null
+  const openCheckout = (plan: SpotlightPlanCode) => router.push(`/dashboard/billing/checkout?plan=${plan}&interval=${billingInterval}`)
+  // Ücretli abonelik iptali ve paket değişikliği Ayarlar > Üyelik ve ödemeler'de (dönem sonuna kadar sürer).
+  const requestCancel = () => (paid ? router.push('/dashboard/billing') : setConfirmCancel(true))
+
   const handleCancel = async () => {
     if (!userId) return
     setProcessing(true)
@@ -102,7 +111,25 @@ export default function SpotlightPlansPage({ role }: { role: Role }) {
   }
 
   const wrongRole = userRole !== null && userRole !== role && userRole !== 'admin'
-  const buttonText = wrongRole ? (role === 'brand' ? 'Marka hesabı gerekli' : 'Influencer hesabı gerekli') : 'Satın alma yakında'
+  const canBuy = !!purchase?.canBuy && !wrongRole
+  const buttonText = wrongRole
+    ? role === 'brand'
+      ? 'Marka hesabı gerekli'
+      : 'Influencer hesabı gerekli'
+    : paid
+      ? 'Paketi değiştir'
+      : canBuy
+        ? 'Abone ol'
+        : purchase?.salesOpen && !purchase.verified
+          ? 'Hesap doğrulaması gerekli'
+          : 'Satın alma yakında'
+  const cardProps = (plan: SpotlightPlanCode) => ({
+    buttonText,
+    disabled: wrongRole || !(canBuy || paid),
+    onSelect: paid ? () => router.push('/dashboard/billing') : () => openCheckout(plan),
+    isCurrentPlan: paid ? paid.plan === plan : spotlightActive && subscriptionTier === plan,
+    onCancel: requestCancel,
+  })
 
   return (
     <div className="grid gap-6">
@@ -127,7 +154,7 @@ export default function SpotlightPlansPage({ role }: { role: Role }) {
           />
         </div>
 
-        {!spotlightActive && (
+        {!spotlightActive && !purchase?.salesOpen && (
           <Notice tone="info">
             Satın alma yakında açılıyor. Paketi şimdi kullanmak istersen{' '}
             <a href="mailto:destek@influmatch.net" className="text-gold hover:underline">destek@influmatch.net</a> adresine yaz.
@@ -140,10 +167,7 @@ export default function SpotlightPlansPage({ role }: { role: Role }) {
             price={planPrice(basicPlan, billingInterval).price}
             interval={billingInterval}
             features={planFeatures(basicPlan)}
-            buttonText={buttonText}
-            isCurrentPlan={spotlightActive && subscriptionTier === basicPlan}
-            disabled
-            onCancel={() => setConfirmCancel(true)}
+            {...cardProps(basicPlan)}
           />
           <PricingCard
             title="Spotlight Pro"
@@ -151,11 +175,8 @@ export default function SpotlightPlansPage({ role }: { role: Role }) {
             interval={billingInterval}
             features={planFeatures(proPlan)}
             recommended
-            buttonText={buttonText}
-            isUpgrade={spotlightActive && subscriptionTier === basicPlan}
-            isCurrentPlan={spotlightActive && subscriptionTier === proPlan}
-            disabled
-            onCancel={() => setConfirmCancel(true)}
+            {...cardProps(proPlan)}
+            isUpgrade={!paid && spotlightActive && subscriptionTier === basicPlan && canBuy}
           />
         </div>
       </section>

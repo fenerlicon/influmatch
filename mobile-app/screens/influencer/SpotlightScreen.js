@@ -7,10 +7,14 @@ import {
     SPOTLIGHT_PLAN_PRICES, SPOTLIGHT_PLAN_FEATURES, SPOTLIGHT_PLAN_LABELS, SPOTLIGHT_PLANS_FOR_ROLE,
 } from '../../constants/spotlightPlans';
 import { Screen, StackHeader, Text, Button, Card, Chip, Segment, Notice, colors, ICON_STROKE } from '../../components/ui';
+import { STORE_PRODUCT_IDS, SUBSCRIPTION_SOURCE_LABELS } from '../../constants/iap';
+import { fetchBillingStatus, iapAvailable, purchaseSubscription } from '../../lib/iap';
 
-// Spotlight: rolün paketleri doğrudan açılır (web /dashboard/spotlight/{rol}). Satın alma kapalı; planları admin açar.
+// Spotlight: rolün paketleri doğrudan açılır (web /dashboard/spotlight/{rol}). Spotlight hakkı sunucudan (her kaynak: web aboneliği,
+// mağaza, admin, 0₺ dönemi; /api/mobile/billing/status). Mağaza satın alması IAP_ENABLED kapalıyken gösterilmez (lib/iap.js).
+// Kullanıcı başına tek abonelik: web'de aboneliği olana mağaza satın alması önerilmez.
 
-function PlanCard({ code, billing, active }) {
+function PlanCard({ code, billing, active, onBuy, buying }) {
     const features = SPOTLIGHT_PLAN_FEATURES[code] || [];
     return (
         <Card accent={code.endsWith('pro') || active} style={{ gap: 12 }}>
@@ -30,6 +34,7 @@ function PlanCard({ code, billing, active }) {
                     </View>
                 ))}
             </View>
+            {onBuy ? <Button title="Abone ol" onPress={onBuy} loading={buying} block /> : null}
         </Card>
     );
 }
@@ -39,11 +44,18 @@ export default function SpotlightScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [state, setState] = useState(null);
     const [billing, setBilling] = useState('mo');
+    const [billingStatus, setBillingStatus] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [buying, setBuying] = useState(null);
+    const [purchaseError, setPurchaseError] = useState(null);
 
     const fetchStatus = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+            setUserId(user.id);
+            // Sunucu durumu (ödeme tabloları yoksa ya da ağ hatasında eski okuma yeterli).
+            fetchBillingStatus().then((res) => setBillingStatus(res && !res.error ? res : null)).catch(() => setBillingStatus(null));
             const { data } = await supabase
                 .from('users')
                 .select('role, spotlight_active, spotlight_plan, spotlight_expires_at, verification_status')
@@ -75,6 +87,20 @@ export default function SpotlightScreen({ navigation }) {
 
     const role = state?.role || 'influencer';
     const plans = SPOTLIGHT_PLANS_FOR_ROLE[role];
+    const entitlement = billingStatus?.entitlement || null;
+    const activePlan = entitlement?.plan || (state?.active ? state.plan : null);
+    const activeUntil = entitlement ? entitlement.expiresAt : state?.expiresAt;
+    const subscription = billingStatus?.subscription || null;
+    const canBuy = iapAvailable() && !!billingStatus?.canPurchase;
+
+    const buy = async (code) => {
+        setPurchaseError(null);
+        setBuying(code);
+        const res = await purchaseSubscription({ productId: STORE_PRODUCT_IDS[code][billing], userId });
+        setBuying(null);
+        if (res?.error) setPurchaseError(res.error);
+        else fetchStatus();
+    };
 
     return (
         <Screen
@@ -83,12 +109,15 @@ export default function SpotlightScreen({ navigation }) {
             onRefresh={() => { setRefreshing(true); fetchStatus(); }}
             header={<StackHeader title="Spotlight" onBack={() => navigation.goBack()} />}
         >
-            {state?.active && state.plan ? (
+            {activePlan ? (
                 <Notice
                     tone="gold"
                     icon={Sparkles}
-                    title={`Spotlight aktif · ${SPOTLIGHT_PLAN_LABELS[state.plan] || state.plan}`}
-                    text={state.expiresAt ? `${formatDate(state.expiresAt)} tarihine kadar` : undefined}
+                    title={`Spotlight aktif · ${SPOTLIGHT_PLAN_LABELS[activePlan] || activePlan}`}
+                    text={[
+                        activeUntil ? `${formatDate(activeUntil)} tarihine kadar` : null,
+                        entitlement?.source ? SUBSCRIPTION_SOURCE_LABELS[entitlement.source] : null,
+                    ].filter(Boolean).join(' · ') || undefined}
                 />
             ) : (
                 <View style={{ gap: 6 }}>
@@ -107,10 +136,34 @@ export default function SpotlightScreen({ navigation }) {
 
             <Segment options={[{ key: 'mo', label: 'Aylık' }, { key: 'yr', label: 'Yıllık' }]} value={billing} onChange={setBilling} />
 
-            {plans.map((code) => <PlanCard key={code} code={code} billing={billing} active={state?.plan === code} />)}
+            {plans.map((code) => (
+                <PlanCard
+                    key={code}
+                    code={code}
+                    billing={billing}
+                    active={activePlan === code}
+                    onBuy={canBuy ? () => buy(code) : null}
+                    buying={buying === code}
+                />
+            ))}
 
-            <Notice tone="info" icon={Info} text="Satın alma henüz uygulamada yok. Paket için destek ekibine yazabilirsin." />
-            <Button title="Destek ekibine yaz" variant="secondary" onPress={() => Linking.openURL('mailto:destek@influmatch.net?subject=Spotlight').catch(() => null)} block />
+            {purchaseError ? <Notice tone="danger" icon={ShieldAlert} text={purchaseError} /> : null}
+
+            {subscription ? (
+                <Notice
+                    tone="info"
+                    icon={Info}
+                    title="Aktif aboneliğin var"
+                    text={subscription.source === 'iyzico'
+                        ? 'Aboneliğin web üzerinden. Paket değişikliği ve iptal: influmatch.net > Ayarlar > Üyelik ve ödemeler.'
+                        : `Aboneliğin ${SUBSCRIPTION_SOURCE_LABELS[subscription.source] || 'mağaza'} üzerinden; iptal ve ödeme yöntemi telefonundaki mağaza ayarlarından.`}
+                />
+            ) : !canBuy ? (
+                <>
+                    <Notice tone="info" icon={Info} text="Satın alma henüz uygulamada yok. Paket için destek ekibine yazabilirsin." />
+                    <Button title="Destek ekibine yaz" variant="secondary" onPress={() => Linking.openURL('mailto:destek@influmatch.net?subject=Spotlight').catch(() => null)} block />
+                </>
+            ) : null}
         </Screen>
     );
 }

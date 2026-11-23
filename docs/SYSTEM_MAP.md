@@ -1,6 +1,6 @@
 # Influmatch Sistem Haritası
 
-> Son güncelleme: 2026-10-26 (6.10 ret nedeni ve itiraz, 1.8-S5, 3.21-S3 `claude/rejection-appeals`; KVKK teknik envanteri ve düzeltmeleri, yeni bölüm 14, `claude/kvkk`) · önceki: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
+> Son güncelleme: 2026-11-23 (4.7 ödemeler ve abonelik: iyzico + App Store / Google Play, `claude/payments`) · önceki: 2026-10-26 (6.10 ret nedeni ve itiraz, 1.8-S5, 3.21-S3 `claude/rejection-appeals`; KVKK teknik envanteri ve düzeltmeleri, yeni bölüm 14, `claude/kvkk`) · önceki: 2026-10-15 (3.14-S1/S2, 3.17-S4, 3.18-S2…S4 + yeni 3.18-S6, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25 `claude/open-collab`; ilanlar: 3.7-S5/S6, 3.8-S6/S7, 3.15-S1…S3, 10.3-S32; 8.7-S1 yok sayıldı, 8.3-S4; 4.3-N1 fiyatlar + Marka Basic sınırları) · önceki: 2026-10-14 (4.3-S7 portföyde sonuç raporları + haftalık özet verisi, 3.20-N6…N8, 3.20-S6; 3.20 sonuç raporu; 3.19 kampanyalar + müsaitlik; 3.2-N1, 3.6-N1/N2/S7/S8, 3.7-S7/S8, 3.18-S5, 4.3-S4…S6, 4.4-S2, 5.4-S3/S4, 10.3-S31) · Çalışma kuralları ve devir notu: kökteki `CLAUDE.md`
 >
 > Bu belge kontrol‑düzelt sürecinin referansıdır. Her yapı numaralıdır (`3.7`), her sorun da
 > yapının numarasıyla kimliklendirilir (`3.7-S2`). Bir düzeltme yapıldığında ilgili satırı
@@ -849,7 +849,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 
 ### 4.3 Spotlight üyeliği
 - **Dosyalar:** `app/actions/spotlight.ts`, `app/dashboard/spotlight/**`, `app/spotlight/page.tsx`, `components/spotlight/*`
-- **İş:** Planlar `ibasic`, `ipro`, `mbasic`, `mpro`. Satın alma kapalı; yalnızca admin açar (`toggleUserSpotlight`).
+- **İş:** Planlar `ibasic`, `ipro`, `mbasic`, `mpro`. 2026-11-23'ten beri Spotlight abonelik kayıtlarından türetilir ve iyzico aboneliğiyle satın alınır (4.7);
+  satış bayrağı `payments_enabled` kapalıyken düğmeler "Satın alma yakında", admin elle açar (`toggleUserSpotlight` → `admin` kaydı).
 - **Sorunlar:**
   - ✅ ~~**4.3-S1 [YÜKSEK]**~~ (saatlik görev `lib/spotlight-expiry.ts` ile kapatıyor; canlıda 12 kullanıcı etkileniyordu) Süresi dolan Spotlight hiç kapanmıyor: `checkSpotlightStatus` kullanıcı istemcisiyle `spotlight_active` yazıyor,
     kolon beyaz listede olmadığı için sessizce düşüyor; cron da kapatmıyor. Süresi dolanlar sıralamada önde, +10 güven puanı ve mavi tik hakkı sürüyor.
@@ -903,6 +904,59 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
 - **Sorunlar:**
   - ✅ ~~**4.6-S1 [ORTA]**~~ (anon yetkisi kaldırıldı, search_path sabit; `20261007000006`) RPC anon dahil herkese açık ve `search_path`'siz; `click_*` olayları için yalnızca markanın varlığına bakıyor → herkes istediği markanın analitiğini şişirebilir.
   - ✅ ~~**4.6-S2 [DÜŞÜK]**~~ (influencer tarafı için profil görüntülenmeleri eklendi (4.5-S3)) Yalnızca `view_advert` izleniyor; influencer tarafında analitik yok.
+
+
+### 4.7 Ödemeler ve abonelik (2026-11-23, sahip kararı; `claude/payments`, ayrıntı `docs/PAYMENTS.md`)
+- **Dosyalar:** `lib/payments/*` (`billing-shared.ts` saf kurallar, `iyzico.ts` HTTP + imza, `iyzico-flow.ts`, `subscriptions.ts`, `apple.ts`, `google.ts`,
+  `store-flow.ts`, `billing-jobs.ts`, `invoice.ts`, `purchase-state.ts`), `app/dashboard/billing/**`, `components/billing/*`, `components/settings/Billing*.tsx`,
+  `app/admin/billing/**`, `components/admin/billing/*`, `app/api/payments/**`, `app/api/mobile/billing/**`, `scripts/iyzico-sync-plans.mjs`,
+  `mobile-app/constants/iap.js`, `mobile-app/lib/iap.js`, `supabase/migrations/20261123000010_payments.sql` (+ `supabase/manual/2026-11-23_odeme.sql`), `tests/payments.test.ts`.
+- **İş:** iyzico Abonelik API'siyle aylık / yıllık otomatik yenilenen kartlı abonelik (sandbox varsayılan, canlıya yalnızca ortam değişkeniyle). Spotlight bütün kaynaklardan
+  (iyzico, App Store, Google Play, admin, 0₺ dönemi, görev ödülü) tek fonksiyonla türetilir. Satış `payments_enabled` (varsayılan KAPALI) bayrağının arkasında.
+  - ✅ ~~**4.7-N1**~~ (2026-11-23) Veri modeli: `subscriptions` (plan, dönem, kaynak, durum, dönem başı/sonu, dönem sonunda iptal, ek süre, iyzico / Apple / Google
+    referansları, indirim, hatırlatma işaretleri), `payments` (her tahsilat, iade alanları, `invoice_status` yer tutucusu), `payment_events` (sağlayıcı bildirimleri,
+    benzersiz anahtar, en aza indirilmiş yük, kart verisi yok); `task_rewards.used_at/used_subscription_id`; `platform_settings` `payments_enabled`, `iap_enabled`,
+    `promo_ends_at`, `promo_discount_until`. RLS açık, istemci yazmaları kapalı, kullanıcı yalnızca kendi abonelik / ödemesini okur (`payment_events` tamamen kapalı);
+    kullanıcı başına bir canlı ücretli abonelik benzersiz indeksle. Bugünkü admin Spotlight üyelikleri `admin` kaydı olarak aktarılır.
+  - ✅ ~~**4.7-N2**~~ Tek kaynak: `syncUserSpotlight` (kural `resolveEntitlement`: rolüne uyan, hakkı süren kayıtlar; Pro > Basic, sonra en geç biten; ücretli yinelenen
+    abonelikte dönem sonu + 3 gün; doğrulanmamış hesapta kapalı). Admin "Spotlight aç / kapat" ve görev süre ödülleri kayıt açıyor; tablolar yoksa eski doğrudan yazım.
+    Kullanıcının Spotlight sayfasındaki "iptal" ücretli abonelikte Ayarlar'a yönlendirir.
+  - ✅ ~~**4.7-N3**~~ iyzico: IYZWSv2 imzası, ürün / fiyatlandırma planı, abonelik ödeme formu (kart iyzico'da), sonuç, abonelik okuma, iptal, yükseltme, kart güncelleme,
+    yeniden deneme, iade / iptal; uç noktalar resmi Node SDK'sıyla (npm `iyzipay` 2.0.71) karşılaştırıldı. Webhook `/api/payments/iyzico/webhook`: X-IYZ-SIGNATURE-V3
+    (yanlışsa işlenmez), her durumda abonelik API'den yeniden okunur, `payment_events` ile bir kez. Plan senkron betiği `scripts/iyzico-sync-plans.mjs` (idempotent, `--dry-run`).
+  - ✅ ~~**4.7-N4**~~ Yaşam döngüsü: ödeme → aktif; yenileme → dönem uzar; ödeme alınamadı → `past_due` + 3 gün ek süre + bildirim / push / e-posta "kartını güncelle" →
+    ek süre sonu iyzico'da iptal + Spotlight kapanır; kullanıcı iptali → dönem sonuna kadar; Basic ↔ Pro (aynı rol, aynı dönem; yükseltme hemen, düşürme sonraki dönem);
+    yıllık yenilemeden 7 gün önce hatırlatma; saatlik görevde kaçan webhook eşitlemesi (sınırlı parti, 45. saniyede durur), yarım kalan ödeme formu kontrolü.
+  - ✅ ~~**4.7-N5**~~ İndirimler: ilk ay %50 (0₺ döneminde Pro, aylıkta, ilk ücretli abonelikte) ve görev kodu `IM-XXXXXXXX` (kişiye özel, tek kullanım: ayırma + kullanım
+    zamanı); birleşmez, büyük olan geçer; kod ertelenirse sonraki yenilemeye "Kodu kullan". iyzico'da kupon olmadığı için indirimli fiyatlandırma planı + tahsilattan
+    sonra `NEXT_PERIOD` ile normal plana dönüş. Fiyat yalnızca sunucuda, iyzico plan fiyatıyla karşılaştırılarak.
+  - ✅ ~~**4.7-N6**~~ Web: Spotlight sayfalarında "Abone ol" (aylık / yıllık), `/dashboard/billing/checkout` (fatura bilgisi, kod, üç zorunlu onay kutusu → `/legal` boş yer
+    tutucular), sonuç sayfası, Ayarlar > "Üyelik ve ödemeler" (plan, sonraki ödeme, iptal onaylı, paket değiştir, kartı güncelle, kodu kullan, ödeme geçmişi).
+  - ✅ ~~**4.7-N7**~~ Admin `/admin/billing` (menü Sistem > Ödemeler): satış ve uygulama içi satın alma bayrakları (onaylı), iyzico modu (sandbox / canlı, anahtar gösterilmez),
+    0₺ bitişi ve ilk ay %50 son günü, "0₺ Pro'yu şimdi dağıt", elle tanım / uzat / bitir, ücretli aboneliği iptal, eşitle, tahsilatlar, başarısız tahsilatlar, iade (neden zorunlu), bildirim günlüğü.
+  - ✅ ~~**4.7-N8**~~ Mobil mağaza temeli: `/api/mobile/billing/status` (her kaynaktan hak, canlı abonelik, satın alınabilir mi), `/api/mobile/billing/verify` (StoreKit 2 JWS:
+    Apple kök zinciri + OID + imza, varsa App Store Server API; Google: Play Developer API `subscriptionsv2` + onay), `/api/payments/apple/notifications` (V2, JWS),
+    `/api/payments/google/rtdn` (gizli anahtar + API'den yeniden okuma). Satın alma `appAccountToken` / `obfuscatedAccountId` = kullanıcı kimliğiyle bağlanır. Mobil Spotlight
+    ekranı sunucudaki hakkı ve "aktif aboneliğin var"ı gösterir; satın alma `IAP_ENABLED=false` (expo-iap eklenmedi, Expo Go'da çalışsın diye).
+  - ✅ ~~**4.7-N9**~~ 0₺ kampanyası: anahtar açık + bitiş tarihi girilmişse doğrulanmış her influencer / markaya bitişe kadar Pro (`promo` kaydı, saatlik görev + düğme); tarih
+    değişince kayıtlar güncellenir; 7 gün önce bildirim + e-posta; bitişte kapanır. (ROADMAP "toplu Pro verme ve süre sonu, bitiş hatırlatmaları, ilk ay indirimi".)
+  - ✅ ~~**4.7-N10**~~ e-Arşiv: `payments.invoice_status` + `issueInvoice` kancası (boş, TODO), `docs/PAYMENTS.md` bölüm 8.
+  - **4.7-S1 [YÜKSEK]** SQL canlıda değil (Supabase MCP bu oturumda izin vermedi): `supabase/manual/2026-11-23_odeme.sql` SQL Editor'de çalıştırılmalı. Çalıştırılana kadar
+    ödeme arayüzü gizli, admin Spotlight eski yoldan çalışır. Yerel Postgres'te taslak tablolarla iki kez denendi.
+  - **4.7-S2 [YÜKSEK]** iyzico sandbox'ta uçtan uca denenmedi (oturumdan iyzico'ya ağ erişimi yoktu). Doğrulanacaklar: GET imzasında gövde, abonelik yanıt alanları
+    (`orders`, tarih biçimi), `upgrade NOW` ücretlendirmesi ve yeni referans, abonelik tahsilatı iadesi (`/v2/payment/refund`). Liste `docs/PAYMENTS.md` bölüm 5, adımlar `docs/TOPLU_TEST.md` 7e.
+  - **4.7-S3 [ORTA]** Webhook imza sırası dokümandan teyit edilemedi; yanlışsa bildirimler "imza geçersiz" diye işlenmez, saatlik eşitleme yakalar (`IYZICO_MERCHANT_ID` boşken imza kontrol edilmez).
+  - **4.7-S4 [KARAR / AVUKAT]** Mesafeli Satış Sözleşmesi, Ön Bilgilendirme Formu, Abonelik / otomatik yenileme / iptal koşulları, Gizlilik metninde ödeme işleyenleri
+    (`/legal` sekmeleri "Avukat metni bekleniyor"). Bunlar gelmeden `payments_enabled` açılmaz.
+  - **4.7-S5 [SAHİP]** iyzico üye işyeri başvurusu (şirket sonrası), canlı anahtarlar Vercel'e, `scripts/iyzico-sync-plans.mjs` canlıda, iyzico panelinde webhook adresi + V3 imza.
+  - **4.7-S6 [SAHİP]** e-Arşiv fatura sağlayıcısı (muhasebeci); gelince `lib/payments/invoice.ts`.
+  - **4.7-S7 [SAHİP]** App Store Connect ve Play Console: abonelik ürünleri, sunucu bildirim adresleri, In-App Purchase anahtarı, hizmet hesabı, Pub/Sub; ardından expo-iap +
+    EAS geliştirme derlemesi, `IAP_ENABLED=true`, "Satın alımları geri yükle" düğmesi (`docs/PAYMENTS.md` bölüm 7).
+  - **4.7-S8 [KARAR]** Canlıda TCKN: kullanıcı vermezse `11111111111` gidiyor; iyzico / e-Arşiv için gerekli mi (iyzico + muhasebeci).
+  - **4.7-S9 [KARAR]** İlk ay %50: yalnızca aylık planda uygulandı (yıllıkta yok), süre sınırı yok (`/admin/billing` "İlk ay %50 son günü" ile konabilir). 0₺ Pro yalnızca
+    doğrulanmış hesaplara dağıtılıyor (Spotlight zaten doğrulanmamış hesapta açılmıyor). Sahip onaylamalı.
+  - **4.7-S10 [DÜŞÜK]** Aylık ↔ yıllık geçiş yok (iyzico aynı abonelikte dönem değiştirmiyor): kullanıcı iptal edip dönem sonunda yeniden abone olur.
+  - **4.7-S11 [DÜŞÜK]** Mağaza ödemelerinde tutar: Apple işlemindeki fiyat varsa yazılıyor, Google'da yok (0 görünür); ödeme geçmişinde "—".
 
 ---
 
@@ -1398,7 +1452,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - 7 Ekim toplu SQL'i (kullanıcı çalıştırdı, 0 hata; canlıda doğrulandı): `20261007000008` geri bildirim görselleri DROP POLICY,
   `20261007000009` ilan kuralları temizliği, `20261007000013` ölü avatars "Tam Yetki" politikaları. Sohbet eki kuralı (`20261007000007`)
   oluşturulamadı; mevcut politika ALTER ile daraltıldı (`20261007000017`, canlıda).
-- Bekleyen SQL yok. (`avatars insert` politikası 2026-10-09'da kaldırıldı, 7.5-S1; 2026-10-15'te canlıda yok olduğu doğrulandı.)
+- Bekleyen: `supabase/manual/2026-11-23_odeme.sql` (ödemeler ve abonelik, 4.7-S1; eklemeli, tekrar çalıştırılabilir). Önceki oturumların bekleyenleri HANDOFF "Canlı SQL" satırında. (`avatars insert` politikası 2026-10-09'da kaldırıldı, 7.5-S1; 2026-10-15'te canlıda yok olduğu doğrulandı.)
 
 ### 11.2 Mobil dondurma (kullanıcı kararı, 2026-10-07) — kalktı
 - 2026-10-09 kararıyla dondurma kalktı (CLAUDE.md kural 3): mobil test aşamasında, hedef web ile tam uyum.

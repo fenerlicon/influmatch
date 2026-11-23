@@ -10,7 +10,22 @@ const tabs = [
   { key: 'privacy', label: 'Gizlilik ve KVKK' },
   { key: 'terms', label: 'Kullanıcı Sözleşmesi' },
   { key: 'cookies', label: 'Çerez Politikası' },
+  // Ödeme (2026-11-23): metinler AVUKATTAN gelecek; şimdilik yalnızca boş yer tutucu (Claude yasal metin yazmaz, CLAUDE.md).
+  // Satış bayrağı (payments_enabled) bu metinler yerleşmeden açılmamalı (docs/PAYMENTS.md).
+  { key: 'distance-sales', label: 'Mesafeli Satış Sözleşmesi' },
+  { key: 'pre-information', label: 'Ön Bilgilendirme Formu' },
+  { key: 'subscription-terms', label: 'Abonelik ve İptal Koşulları' },
 ] as const
+
+/** Avukat metni gelene kadar gösterilen boş yer tutucu (içerik yazılmaz). */
+function PendingLegalText({ title }: { title: string }) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-semibold text-ink">{title}</h2>
+      <p className="border-l-2 border-gold pl-4 text-sm italic text-ink-faint">Avukat metni bekleniyor.</p>
+    </div>
+  )
+}
 
 type TabKey = (typeof tabs)[number]['key']
 
@@ -210,6 +225,12 @@ function LegalPageContent() {
             </div>
           </div>
         )
+      case 'distance-sales':
+        return <PendingLegalText title="Mesafeli Satış Sözleşmesi" />
+      case 'pre-information':
+        return <PendingLegalText title="Ön Bilgilendirme Formu" />
+      case 'subscription-terms':
+        return <PendingLegalText title="Abonelik, Otomatik Yenileme ve İptal Koşulları" />
       default:
         return null
     }

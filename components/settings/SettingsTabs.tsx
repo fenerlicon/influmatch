@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Bell, LifeBuoy, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { Bell, CreditCard, LifeBuoy, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { PageHeader, Tabs } from '@/components/ui'
 import EmailNotificationSettings from './EmailNotificationSettings'
 import AccountSettings from './AccountSettings'
@@ -32,17 +32,20 @@ interface SettingsTabsProps {
   supportTickets?: SupportTicket[]
   /** Role özel tercihler (müsaitlik, portföy). Yoksa "Tercihler" bölümü gösterilmez. */
   preferences?: ReactNode
+  /** Üyelik ve ödemeler (2026-11-23, components/settings/BillingSettings.tsx). Yoksa bölüm gösterilmez. */
+  billing?: ReactNode
 }
 
 const SECTIONS = [
   { value: 'tercihler', label: 'Tercihler', icon: <SlidersHorizontal /> },
   { value: 'bildirimler', label: 'Bildirimler', icon: <Bell /> },
+  { value: 'uyelik', label: 'Üyelik ve ödemeler', icon: <CreditCard /> },
   { value: 'guvenlik', label: 'Güvenlik', icon: <ShieldCheck /> },
   { value: 'destek', label: 'Yardım ve destek', icon: <LifeBuoy /> },
 ] as const
 
-export default function SettingsTabs({ basePath, section, userId, emailSettings, supportTickets = [], preferences }: SettingsTabsProps) {
-  const sections = SECTIONS.filter((s) => s.value !== 'tercihler' || preferences)
+export default function SettingsTabs({ basePath, section, userId, emailSettings, supportTickets = [], preferences, billing }: SettingsTabsProps) {
+  const sections = SECTIONS.filter((s) => (s.value !== 'tercihler' || preferences) && (s.value !== 'uyelik' || billing))
   const active = sections.find((s) => s.value === section)?.value ?? sections[0].value
 
   return (
@@ -56,6 +59,7 @@ export default function SettingsTabs({ basePath, section, userId, emailSettings,
       <div className="grid gap-5">
         {active === 'tercihler' && preferences}
         {active === 'bildirimler' && <EmailNotificationSettings userId={userId} initialSettings={emailSettings} />}
+        {active === 'uyelik' && billing}
         {active === 'guvenlik' && <AccountSettings />}
         {active === 'destek' && <SupportSection userId={userId} initialTickets={supportTickets} />}
       </div>

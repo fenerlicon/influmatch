@@ -13,6 +13,7 @@ import { evaluateOfficialBusiness, syncOfficialBusiness } from '@/lib/official-b
 import { notifyUser } from '@/lib/notify'
 import { adminNoticeLink, cleanRemovalReason } from '@/lib/admin-notices-shared'
 import { formatReason, moderationLink, parseDecisionReason, recordDecision, type DecisionReasonInput } from '@/lib/moderation'
+import { endFreeSubscriptions, grantSubscription } from '@/lib/payments/subscriptions'
 
 /**
  * Hesap onayı / reddi bildirimi (site içi + push + e-posta, "Platform Güncellemeleri" tercihine bağlı).
@@ -314,23 +315,6 @@ export async function toggleUserSpotlight(
     return { error: 'Spotlight aktifleştirmek için bir paket seçmelisiniz.' }
   }
 
-  const updateData: any = { spotlight_active: spotlightActive }
-
-  if (spotlightActive) {
-    updateData.spotlight_plan = plan
-    updateData.verification_status = 'verified' // Auto-verify on spotlight activation
-
-    // Set expiration
-    if (durationMonths > 0) {
-      const expiresAt = new Date()
-      expiresAt.setMonth(expiresAt.getMonth() + durationMonths)
-      updateData.spotlight_expires_at = expiresAt.toISOString()
-    }
-  } else {
-    updateData.spotlight_plan = null
-    updateData.spotlight_expires_at = null
-  }
-
   // Use Admin Client to bypass RLS
   const supabaseAdmin = createSupabaseAdminClient()
 
@@ -351,14 +335,61 @@ export async function toggleUserSpotlight(
     return { error: `Kullanıcı bulunamadı (ID: ${userId}). Veritabanında bu ID ile bir kayıt olmayabilir.` }
   }
 
-  const { error } = await supabaseAdmin
-    .from('users')
-    .update(updateData)
-    .eq('id', userId)
+  // 2026-11-23: Spotlight abonelik kayıtlarından türetilir (lib/payments/subscriptions.ts). Admin tanımı "admin" kaynaklı kayıttır;
+  // kapatmak yalnızca ücretsiz kaynakları (admin / 0₺ / ödül) bitirir, ücretli abonelik /admin/billing'den yönetilir.
+  // Ödeme tabloları canlıda yoksa eski doğrudan yazım kullanılır.
+  let handled = false
+  let paidStillActive = false
+  if (spotlightActive) {
+    // Spotlight açılınca hesap onaylanır (önceki davranış).
+    await supabaseAdmin.from('users').update({ verification_status: 'verified' }).eq('id', userId)
+    let end: string | null = null
+    if (durationMonths > 0) {
+      const expiresAt = new Date()
+      expiresAt.setMonth(expiresAt.getMonth() + durationMonths)
+      end = expiresAt.toISOString()
+    }
+    const replaced = await endFreeSubscriptions(supabaseAdmin, userId, ['admin'])
+    if (replaced.ok) {
+      const granted = await grantSubscription(supabaseAdmin, {
+        userId,
+        plan: plan!,
+        source: 'admin',
+        end,
+        note: `Admin: ${durationMonths > 0 ? `${durationMonths} ay` : 'süresiz'}`,
+        createdBy: user.id,
+      })
+      if (granted.ok) handled = true
+      else if (!granted.missingTable) return { error: `Spotlight açılamadı: ${granted.error}` }
+    } else if (!replaced.missingTable) return { error: 'Spotlight açılamadı.' }
+  } else {
+    const ended = await endFreeSubscriptions(supabaseAdmin, userId)
+    if (ended.ok) {
+      handled = true
+      const { data: after } = await supabaseAdmin.from('users').select('spotlight_active').eq('id', userId).maybeSingle()
+      paidStillActive = !!after?.spotlight_active
+    } else if (!ended.missingTable) return { error: 'Spotlight kapatılamadı.' }
+  }
 
-  if (error) {
-    console.error('[toggleUserSpotlight] Supabase update error:', error)
-    return { error: `Spotlight güncelleme hatası: ${error.message} (Kod: ${error.code})` }
+  if (!handled) {
+    const updateData: Record<string, unknown> = { spotlight_active: spotlightActive }
+    if (spotlightActive) {
+      updateData.spotlight_plan = plan
+      updateData.verification_status = 'verified'
+      if (durationMonths > 0) {
+        const expiresAt = new Date()
+        expiresAt.setMonth(expiresAt.getMonth() + durationMonths)
+        updateData.spotlight_expires_at = expiresAt.toISOString()
+      }
+    } else {
+      updateData.spotlight_plan = null
+      updateData.spotlight_expires_at = null
+    }
+    const { error } = await supabaseAdmin.from('users').update(updateData).eq('id', userId)
+    if (error) {
+      console.error('[toggleUserSpotlight] Supabase update error:', error)
+      return { error: `Spotlight güncelleme hatası: ${error.message} (Kod: ${error.code})` }
+    }
   }
 
   // Mavi tik Spotlight üyeliğine bağlı: açılınca kazanılabilir, kapanınca düşer.
@@ -370,7 +401,14 @@ export async function toggleUserSpotlight(
   revalidatePath('/spotlight') // Corrected from /vitrin
   revalidatePath('/discover')
 
-  return { success: true, message: spotlightActive ? `Spotlight (${plan}, ${durationMonths} ay) aktif edildi.` : 'Spotlight deaktif edildi.' }
+  return {
+    success: true,
+    message: spotlightActive
+      ? `Spotlight (${plan}, ${durationMonths > 0 ? `${durationMonths} ay` : 'süresiz'}) aktif edildi.`
+      : paidStillActive
+        ? 'Ücretsiz tanım kapatıldı; kullanıcının ücretli aboneliği sürdüğü için Spotlight açık (/admin/billing).'
+        : 'Spotlight deaktif edildi.',
+  }
 }
 
 // Verify tax ID for a brand (admin only)

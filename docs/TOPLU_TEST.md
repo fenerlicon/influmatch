@@ -145,6 +145,30 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Onaysız marka (M2) mobilde görsel gönderemiyor ("hesabınızın onaylanması gerekmektedir").
 - [ ] Fiyat kartı: doğrulanmış her marka (Spotlight'sız M1 dahil) influencer profilinde fiyat kartını görüyor.
 
+## 7e. Ödemeler (iyzico SANDBOX; SQL `2026-11-23_odeme.sql` çalıştırıldıktan ve sandbox anahtarları eklendikten sonra, `docs/PAYMENTS.md` bölüm 4)
+
+- [ ] **A** `/admin/billing`: üstte "iyzico: sandbox (test)", "Web satışı" kapalı. Kullanıcılar panelinde Spotlight aç / kapat eskisi gibi çalışıyor;
+      `/admin/billing` Abonelikler'de "Yönetici tanımı" kaydı görünüyor. SQL'den önce açık olan Spotlight'lar da orada (aktarım).
+- [ ] Satış kapalıyken I1 / M1 Spotlight sayfasında düğmeler "Satın alma yakında"; `/dashboard/billing/checkout?plan=ipro&interval=mo` "Satın alma yakında" diyor.
+- [ ] `node scripts/iyzico-sync-plans.mjs --dry-run` → sonra gerçek: 2 ürün + 24 plan, "UYUŞMAZLIK" yok. Tekrar çalıştırınca "0 yeni".
+- [ ] **A** "Web satışı" aç (onay penceresi sandbox yazıyor). I1 (doğrulanmış, Spotlight'sız) → Spotlight → Pro, Aylık → "Abone ol" → ödeme sayfası:
+      özet 299 ₺, onay kutuları işaretlenmeden "Ödemeye geç" kapalı, sözleşme bağlantıları `/legal`'de "Avukat metni bekleniyor".
+- [ ] Fatura bilgisi + **iyzico başarılı test kartı** (dokümandan) → sonuç "Aboneliğin başladı"; bildirim; Spotlight açık; Ayarlar > Üyelik ve ödemeler:
+      Spotlight Pro · Aylık · Aktif · sonraki ödeme tarihi; ödeme geçmişinde 299 ₺ "Ödendi". `/admin/billing` tahsilatlarda görünüyor, fatura "pending".
+- [ ] Aynı kullanıcı Spotlight sayfasında: Pro "Mevcut paket", Basic "Paketi değiştir" → Ayarlar'a gidiyor. İkinci ödeme başlatılamıyor ("Zaten aboneliğin var").
+- [ ] **Başarısız test kartı** ile I2 → "Ödeme tamamlanmadı"; abonelik açılmıyor; `/admin/billing` kayıt "Sona erdi" (form tamamlanmadı).
+- [ ] Ayarlar > "Pro'dan Basic'e geç" → "Sonraki dönemde Spotlight Basic". (Yükseltme denemesi için Basic abonelikle "Pro'ya geç" → hemen Pro; iyzico'daki tahsilatı not et.)
+- [ ] "Kartı güncelle" → iyzico kart formu açılıyor → test kartı → Ayarlar'a "Kart bilgin güncellendi".
+- [ ] "Aboneliği iptal et" → onay → "İptal edildi, dönem sonuna kadar açık"; Spotlight hâlâ açık; bildirim. iyzico sandbox panelinde abonelik iptal.
+- [ ] İndirim: I3'e `/admin/billing` ile değil, **0₺ dönemi** ile Pro ver (anahtar + bitiş tarihi + "0₺ Pro'yu şimdi dağıt") → bitiş tarihini geçmişe çek ya da
+      kaydı bitir → I3 ödeme sayfasında "İlk ay %50 indirim" 149,50 ₺. Görev kodu olan hesapta kod "Uygula": %20 (birleşmez, büyük olan; yıllıkta kod).
+      Kod ikinci kez kullanılamıyor. Tahsilattan sonra `/admin/billing`'de indirim durumu "done" (iyzico'da plan sonraki dönem normal plana dönüyor).
+- [ ] Webhook: sandbox panelinde bildirim adresi tanımlıysa `/admin/billing` "Sağlayıcı bildirimleri"nde olay + "eşitlendi". Adres yoksa satırdaki "Eşitle" aynı işi yapıyor.
+- [ ] **A** İade: tahsilat > İade → neden zorunlu → "iyzico'ya gönder" → durum "refunded". (Aynı gün "İptal" de dene.)
+- [ ] 0₺ hatırlatması: bitiş tarihini 6 gün sonraya al → saatlik görevden sonra 0₺ kaydı olanlara "Spotlight üyeliğin bitiyor" bildirimi (bir kez).
+- [ ] Mobil Spotlight ekranı: web aboneliği olan I1'de "Spotlight aktif · Kartla ödeme (web)" ve "Aktif aboneliğin var"; satın alma düğmesi yok (IAP kapalı).
+- [ ] **Bitince "Web satışı"nı kapat**; sandbox abonelikleri sandbox panelinden iptal et.
+
 ## 8. Ücretsiz marka sınırları (kısa süre, canlıyı etkiler)
 
 - [ ] A `/admin/limits`'te bayrağı aç → M1 (Spotlight'sız): keşif çarkı, teklif günlük/aylık sınırı, aktif ilan sınırı, favori/liste kilidi.

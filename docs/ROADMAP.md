@@ -21,7 +21,7 @@
 | Aralık 1–2. hafta | Mağazaya gönderim, kampanya altyapısı, üyelik bitiş hatırlatmaları | Kampanya ayrıntıları, POS sağlayıcı seçimi ve evrak hazırlığı, **5 Aralık: Resend ücretli plan** (ücretsiz plan günde 100 e-posta; kampanya bunu aşar) |
 | Aralık son hafta | 0₺ kampanyası yayında | |
 | 1 Ocak | | Şirket kuruluşu, POS başvurusu, D-U-N-S başvurusu |
-| Ocak ortası–sonu | POS entegrasyonu canlı (test ortamında önceden hazırlanır), satış başlar | Avukattan yasal metinler (mesafeli satış, ön bilgilendirme, iptal/iade, KVKK) şirket bilgisiyle |
+| Ocak ortası–sonu | POS entegrasyonu canlı (test ortamında önceden hazırlanır), satış başlar. **2026-11-23: iyzico abonelik + mağaza içi satın alma kodu hazır (sandbox, bayrak kapalı), `docs/PAYMENTS.md`** | Avukattan yasal metinler (mesafeli satış, ön bilgilendirme, iptal/iade, KVKK) şirket bilgisiyle; iyzico üye işyeri başvurusu, canlı anahtarlar, e-Arşiv sağlayıcısı |
 | Şirket + D-U-N-S sonrası | Uygulamalar bireysel hesaptan şirket hesabına taşınır (Apple ve Google destekliyor, kullanıcı/yorum korunur) | Şirket geliştirici hesapları |
 
 ## 0₺ kampanyası (2026-10-15, kullanıcı kararı)
@@ -31,6 +31,10 @@
 - **Geçiş avantajı:** 0₺ döneminde Pro kullananlara satış başlayınca **ilk ay %50 indirim** ("kurucu üye").
 - Bayrak (`free_brand_limits_enabled`) satış günü açılır; kampanya süresince kapalı kalır.
 - Kod işi (Aralık 1–2. hafta): toplu Pro verme ve süre sonu, bitiş hatırlatmaları, ilk ay indirimi (POS entegrasyonuyla).
+  ✅ 2026-11-23 (`claude/payments`, SYSTEM_MAP 4.7): 0₺ anahtarı açık + `/admin/billing` "0₺ Spotlight bitişi" girilince doğrulanmış herkese bitişe kadar Pro
+  (saatlik görev + "Şimdi dağıt"), 7 gün önce bildirim + e-posta, bitişte kapanır; ilk ay %50 (aylık plan, ilk ücretli abonelik) ve görev kodu (birleşmez, büyük olan).
+- **Ödeme (2026-11-23 sahip kararı):** sağlayıcı **iyzico**, Spotlight planları aylık / yıllık otomatik yenilenen kartlı abonelik; mobilde App Store / Google Play
+  aboneliği (ortak abonelik modeli, tek abonelik kuralı). Satış `payments_enabled` bayrağıyla açılır (yasal metinler + canlı anahtarlar sonrası). Ayrıntı `docs/PAYMENTS.md`.
 
 ## 0₺ döneminde Spotlight'ın değeri (2026-10-16, kullanıcı yönü; ayrıntı onay bekliyor)
 

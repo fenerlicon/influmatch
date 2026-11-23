@@ -3,10 +3,11 @@ export const revalidate = 0
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import SettingsTabs from '@/components/settings/SettingsTabs'
+import BillingSettings from '@/components/settings/BillingSettings'
 import BrandPortfolioSetting from '@/components/settings/BrandPortfolioSetting'
 import { getBrandPortfolioSettingAs } from '@/lib/portfolio-results'
 
-export default async function BrandSettingsPage({ searchParams }: { searchParams: { bolum?: string } }) {
+export default async function BrandSettingsPage({ searchParams }: { searchParams: { bolum?: string; kart?: string } }) {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -47,6 +48,7 @@ export default async function BrandSettingsPage({ searchParams }: { searchParams
     <SettingsTabs
       basePath="/dashboard/brand/settings"
       section={searchParams.bolum}
+      billing={<BillingSettings userId={user.id} cardUpdated={searchParams.kart === 'guncellendi'} />}
       userId={user.id}
       emailSettings={emailSettings}
       supportTickets={(supportTickets ?? []) as any}

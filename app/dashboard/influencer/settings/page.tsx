@@ -3,12 +3,13 @@ export const revalidate = 0
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import SettingsTabs from '@/components/settings/SettingsTabs'
+import BillingSettings from '@/components/settings/BillingSettings'
 import AvailabilitySettings from '@/components/settings/AvailabilitySettings'
 import { getOwnAvailability } from '@/lib/availability'
 import { getOwnPortfolioAs } from '@/lib/portfolio-results'
 import PortfolioResults from '@/components/profile/PortfolioResults'
 
-export default async function InfluencerSettingsPage({ searchParams }: { searchParams: { bolum?: string } }) {
+export default async function InfluencerSettingsPage({ searchParams }: { searchParams: { bolum?: string; kart?: string } }) {
   const supabase = createSupabaseServerClient()
   const {
     data: { user },
@@ -51,6 +52,7 @@ export default async function InfluencerSettingsPage({ searchParams }: { searchP
     <SettingsTabs
       basePath="/dashboard/influencer/settings"
       section={searchParams.bolum}
+      billing={<BillingSettings userId={user.id} cardUpdated={searchParams.kart === 'guncellendi'} />}
       userId={user.id}
       emailSettings={emailSettings}
       supportTickets={(supportTickets ?? []) as any}
