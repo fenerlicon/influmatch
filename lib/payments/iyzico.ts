@@ -2,8 +2,9 @@
 // Gizli anahtar yalnızca sunucuda (IYZICO_SECRET_KEY); hiçbir yerde loglanmaz, yanıtta dönmez.
 // Kart verisi sunucumuza hiç gelmez: kart bilgisi iyzico'nun barındırdığı ödeme formunda girilir.
 //
-// Kaynak: docs.iyzico.com (bu oturumdan erişilemedi; uç noktalar resmi SDK'ların (iyzipay-node / iyzipay-php) davranışından
-// ve dokümandaki arama özetlerinden alındı). "doğrulanacak" notlu yerler sandbox'ta ilk denemede kontrol edilmeli (docs/PAYMENTS.md).
+// Kaynak: docs.iyzico.com bu oturumdan erişilemedi. Uç noktalar, istek alanları ve IYZWSv2 imzası resmi Node SDK'sından
+// (npm iyzipay 2.0.71, lib/resources/Subscription*.js, lib/utils.js) karşılaştırılarak yazıldı; yanıt alanları ve webhook imzası
+// doküman özetlerinden. "doğrulanacak" notlu yerler sandbox'ta ilk denemede kontrol edilmeli (docs/PAYMENTS.md).
 //
 // BU DOSYA KASITLI OLARAK 'use server' DEĞİLDİR: istemciden çağrılamamalıdır.
 
@@ -138,12 +139,18 @@ export async function iyzicoRequest<T = Record<string, unknown>>(
 // GET  /v2/subscription/products/{productRef}/pricing-plans?page&count
 // ---------------------------------------------------------------------------
 
+/** iyzico fiyat biçimi (resmi Node SDK utils.formatPrice ile aynı): 149 → "149.0", 74.5 → "74.5". */
+export function formatIyzicoPrice(value: number): string {
+  const s = String(parseFloat(String(value)))
+  return s.includes('.') ? s : `${s}.0`
+}
+
 export function pricingPlanPayload(name: string, price: number, interval: BillingInterval) {
   return {
     locale: 'tr',
     conversationId: name,
     name,
-    price: price.toFixed(2),
+    price: formatIyzicoPrice(price),
     currencyCode: 'TRY',
     paymentInterval: interval === 'yr' ? 'YEARLY' : 'MONTHLY',
     paymentIntervalCount: 1,
@@ -394,7 +401,7 @@ export async function upgradeSubscription(
   const res = await iyzicoRequest(
     'POST',
     `/v2/subscription/subscriptions/${encodeURIComponent(referenceCode)}/upgrade`,
-    { locale: 'tr', conversationId: referenceCode, newPricingPlanReferenceCode, upgradePeriod, useTrial: false, resetRecurrenceCount: false },
+    { locale: 'tr', conversationId: referenceCode, newPricingPlanReferenceCode, upgradePeriod, useTrial: false },
     cfg,
   )
   const data = res.data as Record<string, unknown>
@@ -408,23 +415,27 @@ export async function retryOrder(orderReferenceCode: string, cfg: IyzicoConfig |
   return { ok: res.ok, errorMessage: res.errorMessage }
 }
 
-/** Kart güncelleme formu: POST /v2/subscription/card-update/checkoutform/initialize (doğrulanacak). */
+/**
+ * Kart güncelleme formu (resmi SDK): POST /v2/subscription/card-update/checkoutform/initialize {customerReferenceCode, callbackUrl}
+ * ya da …/initialize/with-subscription {subscriptionReferenceCode, callbackUrl}. Abonelik referansı varsa ikincisi kullanılır.
+ */
 export async function initializeCardUpdate(
   input: { conversationId: string; callbackUrl: string; customerReferenceCode: string; subscriptionReferenceCode?: string | null },
   cfg: IyzicoConfig | null = iyzicoConfig(),
 ) {
-  const res = await iyzicoRequest(
-    'POST',
-    '/v2/subscription/card-update/checkoutform/initialize',
-    {
-      locale: 'tr',
-      conversationId: input.conversationId,
-      callbackUrl: input.callbackUrl,
-      customerReferenceCode: input.customerReferenceCode,
-      ...(input.subscriptionReferenceCode ? { subscriptionReferenceCode: input.subscriptionReferenceCode } : {}),
-    },
-    cfg,
-  )
+  const res = input.subscriptionReferenceCode
+    ? await iyzicoRequest(
+        'POST',
+        '/v2/subscription/card-update/checkoutform/initialize/with-subscription',
+        { locale: 'tr', conversationId: input.conversationId, subscriptionReferenceCode: input.subscriptionReferenceCode, callbackUrl: input.callbackUrl },
+        cfg,
+      )
+    : await iyzicoRequest(
+        'POST',
+        '/v2/subscription/card-update/checkoutform/initialize',
+        { locale: 'tr', conversationId: input.conversationId, customerReferenceCode: input.customerReferenceCode, callbackUrl: input.callbackUrl },
+        cfg,
+      )
   const token = typeof res.body.token === 'string' ? res.body.token : null
   const content = typeof res.body.checkoutFormContent === 'string' ? res.body.checkoutFormContent : null
   return { ok: res.ok && !!content, token, checkoutFormContent: content, errorMessage: res.errorMessage }
@@ -433,7 +444,7 @@ export async function initializeCardUpdate(
 // ---------------------------------------------------------------------------
 // İptal / iade (admin)
 // POST /payment/cancel     {locale, conversationId, paymentId, ip}            (aynı gün, tamamı)
-// POST /v2/payment/refund  {locale, conversationId, paymentId, price, ip, currency} (doğrulanacak: abonelik tahsilatında paymentId ile iade)
+// POST /v2/payment/refund  {locale, conversationId, price, paymentId, ip} (resmi SDK CreateRefundV2Request; doğrulanacak: abonelik tahsilatının paymentId'siyle)
 // ---------------------------------------------------------------------------
 
 export async function cancelPayment(paymentId: string, ip: string, cfg: IyzicoConfig | null = iyzicoConfig()) {
@@ -445,7 +456,7 @@ export async function refundPayment(paymentId: string, amount: number, ip: strin
   const res = await iyzicoRequest(
     'POST',
     '/v2/payment/refund',
-    { locale: 'tr', conversationId: paymentId, paymentId, price: amount.toFixed(2), ip, currency: 'TRY' },
+    { locale: 'tr', conversationId: paymentId, price: formatIyzicoPrice(amount), paymentId, ip },
     cfg,
   )
   return { ok: res.ok, errorMessage: res.errorMessage }
