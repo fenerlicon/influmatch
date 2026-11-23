@@ -7,6 +7,7 @@
 //
 // BU DOSYA KASITLI OLARAK 'use server' DEĞİLDİR: istemciden çağrılamamalıdır.
 
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendAdminAlertEmail } from '@/lib/email'
 import {
@@ -345,6 +346,11 @@ export async function applyIyzicoDetail(admin: SupabaseClient, row: Subscription
   if (latestSuccess) {
     patch.current_period_start = latestSuccess.startPeriod ?? row.current_period_start
     patch.current_period_end = latestSuccess.endPeriod ?? addInterval(latestSuccess.startPeriod ?? now.toISOString(), interval)
+  } else if (detail.status === 'ACTIVE' && !row.current_period_end) {
+    // Sipariş listesi henüz dolmamışsa (doğrulanacak) ilk dönem başlangıçtan hesaplanır; sonraki eşitleme gerçek dönemi yazar.
+    const start = detail.startDate ?? row.current_period_start ?? now.toISOString()
+    patch.current_period_start = start
+    patch.current_period_end = addInterval(start, interval)
   }
   const periodEnd = patch.current_period_end ?? row.current_period_end
   const periodOpen = !!periodEnd && new Date(periodEnd).getTime() > now.getTime()
@@ -590,7 +596,7 @@ export async function startCardUpdate(admin: SupabaseClient, userId: string, sub
   if (!row || !row.iyzico_customer_ref || !['active', 'past_due'].includes(row.status)) return { ok: false, error: 'Abonelik bulunamadı.' }
   const res = await initializeCardUpdate({
     conversationId: row.id,
-    callbackUrl: `${paymentsCallbackBase()}/api/payments/iyzico/card-callback?sid=${row.id}`,
+    callbackUrl: `${paymentsCallbackBase()}/api/payments/iyzico/card-callback?sid=${row.id}&sig=${cardCallbackSignature(row.id)}`,
     customerReferenceCode: row.iyzico_customer_ref,
     subscriptionReferenceCode: row.iyzico_subscription_ref,
   })
@@ -598,7 +604,20 @@ export async function startCardUpdate(admin: SupabaseClient, userId: string, sub
   return { ok: true, checkoutFormContent: res.checkoutFormContent }
 }
 
-/** Kart güncellendikten sonra: abonelik okunur; ödemesi alınamamışsa son başarısız ödeme yeniden denenir. */
+/** Kart güncelleme dönüş adresindeki imza: dönüş adresi tahmin edilerek başkasının ödemesi yeniden denetilemez. */
+export function cardCallbackSignature(subscriptionId: string): string {
+  const key = process.env.IYZICO_SECRET_KEY || process.env.CRON_SECRET || ''
+  return createHmac('sha256', key).update(`card-update:${subscriptionId}`).digest('hex').slice(0, 32)
+}
+
+export function verifyCardCallbackSignature(subscriptionId: string, signature: string | null): boolean {
+  if (!signature) return false
+  const expected = Buffer.from(cardCallbackSignature(subscriptionId))
+  const got = Buffer.from(signature)
+  return expected.length === got.length && timingSafeEqual(expected, got)
+}
+
+/** Kart güncellendikten sonra: abonelik okunur; ödemesi alınamamışsa son başarısız ödeme yeniden denenir (10 dakikada en fazla bir kez). */
 export async function afterCardUpdate(admin: SupabaseClient, subscriptionId: string) {
   const row = await getSubscription(admin, subscriptionId)
   if (!row || row.source !== 'iyzico' || !row.iyzico_subscription_ref) return
@@ -608,6 +627,16 @@ export async function afterCardUpdate(admin: SupabaseClient, subscriptionId: str
   const detail = (await retrieveSubscription(fresh.iyzico_subscription_ref!)).detail
   const failed = detail?.orders.filter((o) => o.orderStatus === 'FAILED').pop()
   if (failed) {
+    // Aynı siparişi 10 dakikada en fazla bir kez yeniden dene (payment_events benzersiz anahtarı kilit olarak).
+    const { error: lockError } = await admin.from('payment_events').insert({
+      provider: 'iyzico',
+      idempotency_key: `iyzico:retry:${failed.referenceCode}:${Math.floor(Date.now() / 600_000)}`,
+      event_type: 'card_update_retry',
+      subscription_id: fresh.id,
+      user_id: fresh.user_id,
+      payload: { orderReferenceCode: failed.referenceCode },
+    })
+    if (lockError) return
     const retry = await retryOrder(failed.referenceCode)
     if (!retry.ok) console.error('[billing] yeniden deneme başarısız:', retry.errorMessage)
     await reconcileIyzicoSubscription(admin, fresh)
@@ -654,43 +683,7 @@ export async function processIyzicoWebhook(
   payload: IyzicoWebhookPayload,
   signatureValid: boolean | null,
 ): Promise<{ status: 'processed' | 'duplicate' | 'ignored' | 'unknown'; detail?: string }> {
-  const key = `iyzico:${payload.eventType}:${payload.orderReferenceCode ?? payload.iyziReferenceCode ?? payload.subscriptionReferenceCode}:${payload.eventTime ?? ''}`.slice(0, 300)
-  const { data: event, error } = await admin
-    .from('payment_events')
-    .insert({
-      provider: 'iyzico',
-      idempotency_key: key,
-      event_type: payload.eventType,
-      // En aza indirilmiş yük: yalnızca referanslar.
-      payload: {
-        subscriptionReferenceCode: payload.subscriptionReferenceCode,
-        orderReferenceCode: payload.orderReferenceCode,
-        customerReferenceCode: payload.customerReferenceCode,
-        iyziReferenceCode: payload.iyziReferenceCode,
-        eventTime: payload.eventTime,
-      },
-      signature_valid: signatureValid,
-    })
-    .select('id')
-    .maybeSingle()
-  if (error?.code === '23505') return { status: 'duplicate' }
-  if (error) throw new Error(`Bildirim kaydedilemedi: ${error.message}`)
-  const eventId = event?.id as string | undefined
-
-  const finish = async (result: string, subscription?: SubscriptionRow | null) => {
-    if (!eventId) return
-    await admin
-      .from('payment_events')
-      .update({ processed_at: new Date().toISOString(), result: result.slice(0, 300), subscription_id: subscription?.id ?? null, user_id: subscription?.user_id ?? null })
-      .eq('id', eventId)
-  }
-
-  // Yanlış imzalı bildirim işlenmez (saatlik eşitleme gerçek durumu zaten yakalar).
-  if (signatureValid === false) {
-    await finish('imza geçersiz, işlenmedi')
-    return { status: 'ignored', detail: 'signature' }
-  }
-
+  // Önce bizdeki abonelik bulunur: tanımadığımız referanslar için kayıt bile açılmaz (imzasız sahte istekle tablo şişirilemez).
   let row: SubscriptionRow | null = null
   if (payload.subscriptionReferenceCode) {
     const { data } = await admin.from('subscriptions').select(SUBSCRIPTION_COLUMNS).eq('iyzico_subscription_ref', payload.subscriptionReferenceCode).maybeSingle()
@@ -707,13 +700,46 @@ export async function processIyzicoWebhook(
       .maybeSingle()
     row = data as SubscriptionRow | null
   }
-  if (!row) {
-    await finish('abonelik bulunamadı')
-    return { status: 'unknown' }
+  if (!row) return { status: 'unknown' }
+
+  const key = `iyzico:${payload.eventType}:${payload.orderReferenceCode ?? payload.iyziReferenceCode ?? payload.subscriptionReferenceCode}:${payload.eventTime ?? ''}`.slice(0, 300)
+  const { data: event, error } = await admin
+    .from('payment_events')
+    .insert({
+      provider: 'iyzico',
+      idempotency_key: key,
+      event_type: payload.eventType,
+      subscription_id: row.id,
+      user_id: row.user_id,
+      // En aza indirilmiş yük: yalnızca referanslar.
+      payload: {
+        subscriptionReferenceCode: payload.subscriptionReferenceCode,
+        orderReferenceCode: payload.orderReferenceCode,
+        customerReferenceCode: payload.customerReferenceCode,
+        iyziReferenceCode: payload.iyziReferenceCode,
+        eventTime: payload.eventTime,
+      },
+      signature_valid: signatureValid,
+    })
+    .select('id')
+    .maybeSingle()
+  if (error?.code === '23505') return { status: 'duplicate' }
+  if (error) throw new Error(`Bildirim kaydedilemedi: ${error.message}`)
+  const eventId = event?.id as string | undefined
+
+  const finish = async (result: string) => {
+    if (!eventId) return
+    await admin.from('payment_events').update({ processed_at: new Date().toISOString(), result: result.slice(0, 300) }).eq('id', eventId)
+  }
+
+  // Yanlış imzalı bildirim işlenmez (saatlik eşitleme gerçek durumu zaten yakalar).
+  if (signatureValid === false) {
+    await finish('imza geçersiz, işlenmedi')
+    return { status: 'ignored', detail: 'signature' }
   }
   // Yükteki duruma güvenilmez: abonelik iyzico'dan yeniden okunur.
   const result = await reconcileIyzicoSubscription(admin, row)
-  await finish(result.ok ? 'eşitlendi' : `eşitlenemedi: ${result.error ?? ''}`, row)
+  await finish(result.ok ? 'eşitlendi' : `eşitlenemedi: ${result.error ?? ''}`)
   return { status: 'processed' }
 }
 

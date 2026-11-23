@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
-import { afterCardUpdate, paymentsCallbackBase } from '@/lib/payments/iyzico-flow'
+import { afterCardUpdate, paymentsCallbackBase, verifyCardCallbackSignature } from '@/lib/payments/iyzico-flow'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -8,13 +8,14 @@ export const maxDuration = 30
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
- * Kart güncelleme formunun dönüşü. Yalnızca abonelik iyzico'dan yeniden okunur (ödemesi alınamamışsa son ödeme yeniden denenir);
- * adresteki kimlik başka birinin olsa bile yapılan iş zararsız bir eşitlemedir.
+ * Kart güncelleme formunun dönüşü. Abonelik iyzico'dan yeniden okunur, ödemesi alınamamışsa son ödeme yeniden denenir.
+ * Adresteki kimlik sunucunun imzasıyla gelir (sig); imzasız / yanlış imzalı istekte hiçbir şey yapılmaz.
  */
 async function handle(request: Request) {
-  const sid = new URL(request.url).searchParams.get('sid') ?? ''
+  const url = new URL(request.url)
+  const sid = url.searchParams.get('sid') ?? ''
   const admin = createSupabaseAdminClient()
-  if (admin && UUID.test(sid)) {
+  if (admin && UUID.test(sid) && verifyCardCallbackSignature(sid, url.searchParams.get('sig'))) {
     try {
       await afterCardUpdate(admin, sid)
     } catch (error) {
