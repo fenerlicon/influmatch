@@ -1,6 +1,6 @@
 # Devir notu (bulut oturumundan yerel Claude'a)
 
-> Son güncelleme: 2026-10-26 (ret nedeni + itiraz `claude/rejection-appeals`; KVKK teknik envanteri + düzeltmeler `claude/kvkk`, ayrıntı `docs/KVKK.md`, SYSTEM_MAP 14; Kurucu Üye rozeti, mobil sohbet görseli, Frankfurt taşıma planı `claude/decisions-oct26`). Önceki: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25; ilan soruları yanıtı, ilan kategorisi listesi, anlık ilan alarmı `claude/open-adverts`). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
+> Son güncelleme: 2026-11-23 (ödemeler ve abonelik `claude/payments`, `docs/PAYMENTS.md`, SYSTEM_MAP 4.7). Önceki: 2026-10-26 (ret nedeni + itiraz `claude/rejection-appeals`; KVKK teknik envanteri + düzeltmeler `claude/kvkk`, ayrıntı `docs/KVKK.md`, SYSTEM_MAP 14; Kurucu Üye rozeti, mobil sohbet görseli, Frankfurt taşıma planı `claude/decisions-oct26`). Önceki: 2026-10-15 (açık iş birliği / kampanya maddeleri `claude/open-collab`: 3.14-S1/S2, 3.17-S4, 3.18-S2…S4, 3.19-S1/S2, 3.20-S2…S4/N8, 10.3-S25; ilan soruları yanıtı, ilan kategorisi listesi, anlık ilan alarmı `claude/open-adverts`). Önceki: 2026-10-14 (portföyde sonuç raporları + haftalık özet verisi `claude/portfolio-results`; sonuç raporu `claude/results-report`; geri çekilen teklifin sohbeti kapanır + Spotlight iddiaları `claude/withdraw-room-claims`; kampanyalar + müsaitlik `claude/campaigns`; marka düzeltmeleri `claude/brand-fixes-a1` ve `claude/brand-fixes-a2`). Önceki: 2026-10-10. `main` canlı (PR #48–#56 dahil). Yol haritası özellik 2 (iş birliği takip alanı) `claude/collab-workspace` dalında (PR açılmadı).
 > Kurallar ve kararlar: kökteki `CLAUDE.md`. Numaralı sorun listesi: `docs/SYSTEM_MAP.md` (asıl kaynak).
 > Bu belge "nerede kaldık" sorusunun cevabı; yeni oturumda kullanıcıya aynı şeyleri tekrar sorma.
 
@@ -9,6 +9,15 @@
 - **Yeni görünüm (2026-10-13'ten beri, asıl iş):** durum, sıra ve hangi oturumun neyi yaptığı `docs/REDESIGN.md`'de
   ("Paralel oturumlar" tablosu + "Aşamalar"). Bu belgenin aşağıdaki kısmı yeni görünümden önceki işleri anlatır.
 
+- **Ödemeler (2026-11-23, `claude/payments`, PR açılmadı; ayrıntı `docs/PAYMENTS.md`, SYSTEM_MAP 4.7):** sahip kararı iyzico + Spotlight aylık / yıllık otomatik
+  yenilenen abonelik; mobilde App Store / Google Play. Kod hazır ve **iyzico sandbox'a** karşı yazıldı, canlıya geçiş yalnızca ortam değişkeni. Spotlight artık
+  `subscriptions` kayıtlarından tek fonksiyonla türetiliyor (`lib/payments/subscriptions.ts` `syncUserSpotlight`; kaynaklar iyzico / apple / google / admin / promo / reward);
+  admin "Spotlight aç" ve görev süre ödülleri kayıt açıyor. Web: Spotlight "Abone ol" → `/dashboard/billing/checkout` (iyzico formu), Ayarlar > "Üyelik ve ödemeler"
+  (iptal dönem sonunda, paket değiştir, kartı güncelle, kodu kullan, geçmiş). Admin `/admin/billing` (satış bayrağı, 0₺ bitişi + dağıtım, iade, elle tanım, bildirim günlüğü).
+  Ödeme alınamazsa 3 gün ek süre + bildirim / e-posta; yıllıkta 7 gün önce hatırlatma; 0₺ bitişinden 7 gün önce hatırlatma. İndirim: ilk ay %50 (0₺ Pro'lara) ve görev kodu,
+  birleşmez. Mobil: sunucu doğrulaması + bildirim uçları hazır, uygulamada satın alma `IAP_ENABLED=false` (expo-iap eklenmedi). **Satış KAPALI** (`payments_enabled`);
+  **SQL canlıda değil** (`supabase/manual/2026-11-23_odeme.sql`, MCP izin vermedi; kod tablolar yokken çalışır, ödeme arayüzü gizli). iyzico'ya bu oturumdan ağ erişimi
+  yoktu: uç noktalar resmi Node SDK'sıyla karşılaştırıldı ama gerçek istek atılmadı (doğrulanacaklar `docs/PAYMENTS.md` bölüm 5). `/legal`'de üç boş "Avukat metni bekleniyor" sekmesi.
 - **İçerik planı (2026-11-01, `claude/toplanti-planner`):** `/toplanti` yalnızca Damla Dalay'ın hesabına açık (`CONTENT_PLAN_OWNER_ID`, `lib/content-plan.ts`; diğer hesaplar 404, admin takip ekranına gider):
   takvim, liste, seri + alt başlıklar, fikirler, video/açıklama metni, çekim ve paylaşım tarihi. Takip `/admin/icerik-plani`'de salt okunur (admin rolündeki her hesap görür, yeni yönetici hesabında ek iş yok).
   Tablolar `content_series`, `content_items` istemcilere kapalı, migration `20261101000010_content_plan.sql`.
@@ -132,7 +141,7 @@
   (menüde açık itiraz sayısı): kabulde kayıt yeniden incelemeye alınır (hesap → Bekleyen, levha → İnceleme gerekli, görev → İncelemede), retle yanıt zorunlu.
   Kod `lib/moderation.ts` + `lib/moderation-shared.ts`. **Tablolar canlıda yok** (bu oturumda Supabase bağlantısı izin vermedi): `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql`
   çalıştırılmalı; çalıştırılana kadar kod çökmez, itiraz gizli kalır. KVKK oturumu için: hesap silmede `appeal-files/{uid}/` dosyaları da silinmeli (6.10-S5).
-- **Canlı SQL:** bekleyen: `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql` (ret kararı + itiraz tabloları ve kovası; eklemeli, tekrar çalıştırılabilir).
+- **Canlı SQL:** bekleyen: `supabase/manual/2026-11-23_odeme.sql` (ödemeler ve abonelik, eklemeli, tekrar çalıştırılabilir; mevcut admin Spotlight üyeliklerini aktarır). `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql` (ret kararı + itiraz tabloları ve kovası; eklemeli, tekrar çalıştırılabilir).
   `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
   sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır.
   `20261015000021_advert_category_mapping.sql` PR #94 yayına girdikten sonra 2026-10-15'te canlıya uygulandı (general 4, fashion 2, beauty 1).
@@ -364,6 +373,10 @@ Ayrıntı için haritadaki satıra bak. Bunların hiçbiri kendi başına yapıl
 - **Sohbet görseli (2026-10-26):** görsel mesaj `![image](<NEXT_PUBLIC_SUPABASE_URL>/storage/v1/object/public/chat-attachments/{oda}/{gönderen}/{dosya})`;
   `sendMessageAs` yolun aynı oda + gönderen klasöründe olmasını şart koşar. Web doğrudan yükler (storage RLS), mobil imzalı adresle (`lib/chat-upload.ts`).
   Supabase adresi değişirse (bölge taşıma) eski mesajlardaki adresler SQL ile çevrilir (`docs/REGION_MOVE.md` bölüm 6).
+- **Ödemeler (2026-11-23):** `users.spotlight_*` alanlarını doğrudan yazma; `grantSubscription` / `endFreeSubscriptions` / `syncUserSpotlight` (`lib/payments/subscriptions.ts`)
+  kullan (tablo yoksa bu fonksiyonlar `missingTable` döner, eski yol yedek). iyzico HTTP yalnızca `lib/payments/iyzico.ts`'te; tutar istemciden alınmaz; webhook / tarayıcı
+  dönüşüne güvenilmez, abonelik API'den okunur. Fiyat değişirse `lib/spotlight-plans.ts` (gösterim + `SPOTLIGHT_PLAN_AMOUNTS`) + mobil kopya + `scripts/iyzico-sync-plans.mjs`
+  (iyzico planı fiyatı değiştirilemez; yeni plan). Mağaza ürün kimlikleri web `STORE_PRODUCT_IDS` = mobil `constants/iap.js` (parite testi).
 - **Build:** `next build` için `NEXT_PUBLIC_SUPABASE_URL` ve `NEXT_PUBLIC_SUPABASE_ANON_KEY` gerekli. Route sildikten sonra `rm -rf .next/types` çalıştır.
 
 ## 8. Kuyruğun en sonu (kullanıcı kararı — "ne kaldı" sorulunca hatırlat)

@@ -40,6 +40,12 @@ Vercel'de (Production + Preview) ve yerelde `.env.local`'de tanımlanır. Şablo
 | `TIKTOK_VIDEO_SAMPLE` | hayır | TikTok etkileşim hesabında örnek video sayısı (varsayılan 1) |
 | `SOCIAL_OAUTH_ENABLED` | hayır | `true` olmadan Instagram/TikTok OAuth uçları başlamaz (şu an kapalı) |
 | `INSTAGRAM_CLIENT_ID/SECRET`, `TIKTOK_CLIENT_KEY/SECRET` | hayır | Yalnızca OAuth açılırsa |
+| `IYZICO_API_KEY`, `IYZICO_SECRET_KEY` | satış için | iyzico abonelik (önce sandbox anahtarları). Yoksa ödeme arayüzü kapalı. Ayrıntı `docs/PAYMENTS.md`. |
+| `IYZICO_BASE_URL` | hayır | Varsayılan `https://sandbox-api.iyzipay.com`; canlı `https://api.iyzipay.com` |
+| `IYZICO_MERCHANT_ID` | hayır | Webhook imzası (X-IYZ-SIGNATURE-V3) doğrulaması |
+| `PAYMENTS_CALLBACK_BASE_URL` | hayır | iyzico dönüş adresi kökü (boşsa `NEXT_PUBLIC_SITE_URL`) |
+| `APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_BUNDLE_ID` | mağaza için | App Store Server API (In-App Purchase anahtarı); paket `net.influmatch.app` |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_PACKAGE`, `GOOGLE_RTDN_SECRET` | mağaza için | Play Developer API hizmet hesabı; RTDN push adresindeki gizli anahtar |
 
 Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yazılmaz.
 
@@ -76,11 +82,15 @@ Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yaz�
 | İş | Tetikleyici | Ayar |
 |---|---|---|
 | `/api/cron/refresh-stats` (günlük istatistik yenileme) | Vercel cron, 09:00 UTC | `vercel.json`; Vercel `CRON_SECRET`'ı otomatik ekler |
-| `/api/cron/hourly` (anahtar sağlığı, uyarı e-postası, Spotlight süresi, mavi tik) | Supabase pg_cron, saatte bir | `supabase/cron/hourly_jobs.sql` |
+| `/api/cron/hourly` (anahtar sağlığı, uyarı e-postası, Spotlight süresi, mavi tik, abonelik eşitlemesi ve hatırlatmaları, 0₺ dağıtımı) | Supabase pg_cron, saatte bir | `supabase/cron/hourly_jobs.sql` |
 
 `hourly_jobs.sql` bir kez SQL Editor'de çalıştırılır: önce `BURAYA_CRON_SECRET` Vercel'deki değerle değiştirilir,
 sonra dosya çalıştırılır. Değiştirilmiş hali **commit edilmez**. Gizli değer Vault'ta tutulur. Kontrol ve kaldırma
 komutları dosyanın başında.
+
+**Ödeme bildirim adresleri** (`docs/PAYMENTS.md`): iyzico `https://influmatch.net/api/payments/iyzico/webhook`,
+App Store Server Notifications V2 `https://influmatch.net/api/payments/apple/notifications`,
+Google Play RTDN (Pub/Sub push) `https://influmatch.net/api/payments/google/rtdn?token=<GOOGLE_RTDN_SECRET>`.
 
 ## 5. Yayın (Vercel)
 
