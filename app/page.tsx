@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import ProductStageHeader from '@/components/landing/ProductStageHeader'
+import BackToTop from '@/components/landing/BackToTop'
 import RevealOnScroll from '@/components/landing/RevealOnScroll'
 import '@/components/landing/landing.css'
 
@@ -80,6 +81,7 @@ export default function Home({ searchParams }: HomeProps) {
     <div className="lp">
       <ProductStageHeader />
       <RevealOnScroll />
+      <BackToTop />
 
       <main>
         <section className="hero">
