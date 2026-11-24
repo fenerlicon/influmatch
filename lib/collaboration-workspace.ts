@@ -25,6 +25,7 @@ import type { CampaignBrief } from '@/lib/campaigns-shared'
 import { getDeliverableMetricsFor, startDeliverableTracking } from '@/lib/post-metrics'
 import type { DeliverableMetrics } from '@/lib/post-metrics-shared'
 import { lateStatsFor, remindersFor, trustReady, type LateStats } from '@/lib/collaboration-trust'
+import { awardCollaboration } from '@/lib/influcash'
 import { disputesForCollaboration, openDispute, runDisputeAction, type DisputeView } from '@/lib/collaboration-disputes'
 import {
   COMMITMENT_SHORT,
@@ -660,6 +661,8 @@ export async function runWorkspaceAction(userId: string, collaborationId: string
         },
         admin,
       )
+      // Influcash (2026-11-23): iki taraf da teyit ettiyse iş birliği kazanımları (bir kez; değilse hiçbir şey yazılmaz).
+      await awardCollaboration(admin, collab.id).catch((error) => console.error('[collaboration-workspace] Influcash:', error))
       return { success: true, message: isBrand ? 'Ödeme yapıldı olarak işaretlendi.' : 'Ödeme alındı olarak teyit edildi.' }
     }
 

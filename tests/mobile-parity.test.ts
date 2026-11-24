@@ -17,6 +17,8 @@ import * as webConsent from '@/lib/consent-shared'
 import * as mobileConsent from '@/mobile-app/constants/consent.js'
 import * as webTrust from '@/lib/collaboration-trust-shared'
 import * as mobileTrust from '@/mobile-app/constants/trust.js'
+import * as webInflucash from '@/lib/influcash-shared'
+import * as mobileInflucash from '@/mobile-app/constants/influcash.js'
 import { INFLUENCER_CATEGORIES } from '@/utils/categories'
 import { INFLUENCER_CATEGORIES as MOBILE_INFLUENCER_CATEGORIES } from '@/mobile-app/constants/categories.js'
 
@@ -91,6 +93,11 @@ describe('web ↔ mobil sabitleri', () => {
     expect(mobileTrust.PAYMENT_PROGRESS_LABELS).toEqual(webTrust.PAYMENT_PROGRESS_LABELS)
     expect(mobileTrust.lateCountText('payment', 1, 3)).toBe(webTrust.lateCountText('payment', 1, 3))
     expect(mobileTrust.lateCountText('delivery', 0, 0)).toBe(webTrust.lateCountText('delivery', 0, 0))
+  })
+
+  it('Influcash', () => {
+    expect(mobileInflucash.INFLUCASH_RULE_NOTE).toBe(webInflucash.INFLUCASH_RULE_NOTE)
+    expect(mobileInflucash.INFLUCASH_REWARD_LABELS).toEqual(webInflucash.INFLUCASH_REWARD_LABELS)
   })
 
   it('influencer kategorileri', () => {

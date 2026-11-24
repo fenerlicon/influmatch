@@ -1,5 +1,5 @@
 import {
-  Bell, Briefcase, CalendarDays, Clapperboard, CreditCard, Gavel, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
+  Bell, Briefcase, CalendarDays, Clapperboard, Coins, CreditCard, Gavel, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
   MessagesSquare, Scale, SlidersHorizontal, Target, Trophy, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
@@ -117,6 +117,8 @@ const ADMIN: NavGroup[] = [
     label: 'Sistem',
     items: [
       { id: 'limits', label: 'Marka Sınırları', href: '/admin/limits', icon: SlidersHorizontal },
+      // Influcash (2026-11-23): bayraklar, puan kuralları, katalog, kullanıcı hareketleri, elle düzeltme.
+      { id: 'influcash', label: 'Influcash', href: '/admin/influcash', icon: Coins },
       // Ödemeler (2026-11-23): abonelikler, tahsilat, iade, satış bayrağı, 0₺ dönemi.
       { id: 'billing', label: 'Ödemeler', href: '/admin/billing', icon: CreditCard },
       { id: 'api-keys', label: 'API Anahtarları', href: '/admin/api-keys', icon: KeyRound },
@@ -161,5 +163,7 @@ export function titleFor(role: ShellRole, pathname: string): string {
   if (pathname.startsWith('/profile/')) return 'Profil'
   if (pathname.includes('/settings')) return 'Ayarlar'
   if (pathname.startsWith('/dashboard/spotlight')) return 'Spotlight'
+  if (pathname.startsWith('/dashboard/influcash')) return 'Influcash'
+  if (pathname.startsWith('/dashboard/account-status')) return 'Hesap durumu'
   return 'Panel'
 }

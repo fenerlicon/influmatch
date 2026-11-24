@@ -18,6 +18,7 @@ import { ApiRequestError } from '@/lib/api-keys'
 import { fetchPostMetrics, isMeasurablePostUrl, platformOfUrl } from '@/lib/post-metrics'
 import { notifyUser } from '@/lib/notify'
 import { syncBlueTick } from '@/lib/blue-tick'
+import { awardTaskApproval } from '@/lib/influcash'
 import { countInvites, ensureInviteCode, inviteLink } from '@/lib/invites'
 import { loadBlueTickPromo, loadPromoPeriod } from '@/lib/tasks-promo'
 import { grantSubscription } from '@/lib/payments/subscriptions'
@@ -97,7 +98,8 @@ interface SubmissionRow {
 
 interface RewardRow {
   id: string
-  submission_id: string
+  /** Influcash ile alınan ödülde (2026-11-23) boş. */
+  submission_id: string | null
   user_id: string
   reward_type: TaskRow['reward_type']
   reward_plan: TaskRow['reward_plan']
@@ -285,7 +287,8 @@ export async function getTasksOverviewAs(userId: string, adminClient: SupabaseCl
     const [{ data: taskRows, error: taskError }, { data: subRows }, { data: rewardRows }, promoPeriod, facts] = await Promise.all([
       admin.from('platform_tasks').select(TASK_COLUMNS).eq('audience', audience).order('sort_order').order('created_at'),
       admin.from('task_submissions').select(SUBMISSION_COLUMNS).eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
-      admin.from('task_rewards').select(REWARD_COLUMNS).eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+      // Influcash ile alınan ödüller (2026-11-23, submission_id boş) Görevler sayfasında değil Influcash sayfasında görünür.
+      admin.from('task_rewards').select(REWARD_COLUMNS).eq('user_id', userId).not('submission_id', 'is', null).order('created_at', { ascending: false }).limit(100),
       loadPromoPeriod(admin),
       loadFacts(admin, viewer),
     ])
@@ -358,7 +361,7 @@ export async function getTasksOverviewAs(userId: string, adminClient: SupabaseCl
     const taskOfSubmission = new Map(subs.map((s) => [s.id, s.task_id]))
     const rewards: TaskRewardView[] = ((rewardRows ?? []) as RewardRow[]).map((r) => ({
       id: r.id,
-      taskTitle: titleOf.get(taskOfSubmission.get(r.submission_id) ?? '') ?? 'Görev',
+      taskTitle: titleOf.get(taskOfSubmission.get(r.submission_id ?? '') ?? '') ?? 'Görev',
       text: rewardText(r),
       status: r.status,
       statusLabel: TASK_REWARD_STATUS_LABELS[r.status],
@@ -737,7 +740,7 @@ export async function loadAdminTasksDashboard(admin: SupabaseClient): Promise<Ad
     stats.set(row.task_id, s)
   }
 
-  const rewardSubIds = rewards.map((r) => r.submission_id)
+  const rewardSubIds = rewards.map((r) => r.submission_id).filter((id): id is string => !!id)
   const { data: rewardSubs } = rewardSubIds.length
     ? await admin.from('task_submissions').select('id, task_id').in('id', rewardSubIds.slice(0, 300))
     : { data: [] }
@@ -782,7 +785,7 @@ export async function loadAdminTasksDashboard(admin: SupabaseClient): Promise<Ad
     rewards: rewards.map((r) => ({
       id: r.id,
       user: people.get(r.user_id) ?? unknownUser(r.user_id),
-      taskTitle: taskById.get(taskOfSub.get(r.submission_id) ?? '')?.title ?? 'Görev',
+      taskTitle: r.submission_id ? taskById.get(taskOfSub.get(r.submission_id) ?? '')?.title ?? 'Görev' : 'Influcash',
       text: rewardText(r),
       status: r.status,
       code: r.code,
@@ -883,6 +886,8 @@ export async function reviewSubmissionAsAdmin(
     }
     // Tanıtım görevi 0₺ döneminde mavi tik şartı: tik hemen yeniden değerlendirilir.
     if (task.kind === 'promo_video') await syncBlueTick(updated.user_id, admin)
+    // Influcash (2026-11-23): onaylanan görev için puan (gönderim başına bir kez; bayrak kapalıyken yazılmaz).
+    await awardTaskApproval(admin, updated.user_id, updated.id, task.kind).catch((error) => console.error('[tasks] Influcash:', error))
   }
   if (decision === 'reject' && parsedReason) {
     await recordDecision(admin, { subjectType: 'task_submission', subjectId: updated.id, userId: updated.user_id, reason: parsedReason, decidedBy: adminUserId })

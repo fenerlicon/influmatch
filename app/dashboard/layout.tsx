@@ -14,6 +14,8 @@ import { loadLatestDecision } from '@/lib/moderation'
 import CommitmentDialog from '@/components/trust/CommitmentDialog'
 import { getCommitmentStatus } from '@/lib/collaboration-trust'
 import { holdNoticeFor } from '@/lib/collaboration-disputes'
+import DailyLoginPing from '@/components/influcash/DailyLoginPing'
+import { influcashChip } from '@/lib/influcash'
 
 const PROFILE_SELECT = `${SHELL_USER_COLUMNS}, verification_status, social_links, bio, category, city`
 
@@ -115,7 +117,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Admin duyuruları (ör. kaldırılan ilan, lib/admin-notices-shared.ts) aynı anda okunur: ek bekleme yok.
   // Güvenli iş birliği (2026-11-23): hesap kısıtı ve marka taahhüdü (tablolar yoksa ikisi de boş döner).
   const trustAdmin = createSupabaseAdminClient()
-  const [verifiedAccountResult, adminNoticeResult, hold, commitment] = await Promise.all([
+  const [verifiedAccountResult, adminNoticeResult, hold, commitment, influcashBalance] = await Promise.all([
     finalUserProfile.role === 'influencer'
       ? supabase
           .from('social_accounts')
@@ -136,6 +138,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       .limit(5),
     holdNoticeFor(user.id, trustAdmin).catch(() => null),
     finalUserProfile.role === 'brand' && verificationStatus === 'verified' ? getCommitmentStatus(user.id, trustAdmin).catch(() => null) : Promise.resolve(null),
+    // Influcash bakiyesi (2026-11-23): özellik kapalıysa null (bağlantı ve günlük giriş ödülü yok).
+    finalUserProfile.role === 'influencer' || finalUserProfile.role === 'brand' ? influcashChip(user.id).catch(() => null) : Promise.resolve(null),
   ])
   if (finalUserProfile.role === 'influencer' && !verifiedAccountResult.data) {
     redirect('/onboarding/verify')
@@ -158,10 +162,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   return (
-    <AppShell user={shellUser} notices={<ShellNotices notices={notices} />}>
+    <AppShell user={shellUser} notices={<ShellNotices notices={notices} />} influcashBalance={influcashBalance}>
       {children}
       {adminNotices.length > 0 && <AdminNoticeDialog notices={adminNotices} />}
       {commitment?.required && !commitment.accepted && <CommitmentDialog />}
+      {typeof influcashBalance === 'number' && <DailyLoginPing />}
     </AppShell>
   )
 }

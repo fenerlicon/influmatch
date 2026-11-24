@@ -185,6 +185,19 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Rozetler: 3 zamanında, iki tarafça teyitli ödeme → marka "Zamanında Ödeme"; geç ödeme oranı artınca saatlik görevde geri alınıyor. Influencer "Zamanında Teslim" benzer.
       Profil "Güvenilirlik" kartında "Geç ödeme / Geç teslim X / Y".
 
+## 7g. Influcash (SQL `2026-11-23_influcash.sql` çalıştırıldıktan sonra; SYSTEM_MAP 16)
+
+- [ ] Bayrak kapalıyken: menüde Influcash yok, `/dashboard/influcash` 404, mobil Profil'de satır yok; görev onayında puan yazılmıyor.
+- [ ] **A** `/admin/influcash` → "Influcash açık" (onaylı). Katalog: %20 indirim kodu (herkes, 50 puan), 7 gün Basic (influencer, 300 puan, stok 1), 7 gün Basic (marka).
+- [ ] I1 panele girince "+2 Influcash" (günlük giriş), aynı gün tekrar girişte yok; profil %100 ve doğrulanmış hesapta bir kez +30 / +50. Mobil açılışta aynı (günde bir).
+- [ ] **A** elle düzeltme +300 (neden zorunlu) → I1 geçmişinde "Admin düzeltmesi". I1 indirim kodunu al → kod görünüyor; Spotlight ödeme sayfasında kullanılabiliyor (sandbox).
+- [ ] Bakiye yetmeyen ödül pasif ("bakiyen yetmiyor"); stok 1 olan ödül ikinci alışta "stoğu bitti"; saatte 5'ten fazla harcama reddediliyor.
+- [ ] Marka hesabında marka ödülü görünüyor, influencer ödülü görünmüyor.
+- [ ] İş birliği: iki taraf ödemeyi teyit edince iki tarafa +100, vadesinde ödemede markaya +50, tarihinde teslimat başına influencer'a +20 (bir kez; işareti kaldırıp yeniden koyunca tekrar yok).
+- [ ] İş birliğini iptal et (ya da anlaşmazlıkta askıya al) → aynı kazanımlar "Geri alındı" ile eksiye; bakiye eksiye düşerse harcamada 0 sayılıyor.
+- [ ] Görev onayı (A) → türüne göre puan + bildirim. Görevler sayfasında Influcash ödülleri görünmüyor; admin Görevler ödül listesinde "Influcash" başlığıyla görünüyor.
+- [ ] **Bitince karar:** bayrak açık mı kalacak, katalog ve tutarlar (16.2-N1).
+
 ## 8. Ücretsiz marka sınırları (kısa süre, canlıyı etkiler)
 
 - [ ] A `/admin/limits`'te bayrağı aç → M1 (Spotlight'sız): keşif çarkı, teklif günlük/aylık sınırı, aktif ilan sınırı, favori/liste kilidi.

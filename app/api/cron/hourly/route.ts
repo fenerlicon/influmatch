@@ -18,6 +18,7 @@ import { runBillingJobs } from '@/lib/payments/billing-jobs'
 import { processPaymentReminders } from '@/lib/collaboration-trust'
 import { escalateOverdueDisputes } from '@/lib/collaboration-disputes'
 import { sweepTrustBadges } from '@/lib/trust-badges'
+import { sweepInflucashCollaborations } from '@/lib/influcash'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -146,6 +147,14 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] Ödeme hatırlatmaları başarısız:', error)
     result.paymentRemindersError = error instanceof Error ? error.message : String(error)
+  }
+
+  // Influcash (2026-11-23): iki tarafça teyitli ödemelerin kaçan kazanımları (bayrak kapalıyken atlanır).
+  try {
+    result.influcash = await sweepInflucashCollaborations(admin, { limit: 50, deadline: startedAt + 40_000 })
+  } catch (error) {
+    console.error('[cron/hourly] Influcash taraması başarısız:', error)
+    result.influcashError = error instanceof Error ? error.message : String(error)
   }
 
   try {

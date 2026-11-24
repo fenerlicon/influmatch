@@ -177,3 +177,5 @@ Kampanya ROI analizi Marka Pro listesinde.
 6. ✅ Sonuç raporu (2026-10-14, SYSTEM_MAP 3.20) + ✅ Influencer Pro "portföyde sonuç raporları" (4.3-S7). Haftalık özette detaylı istatistik: veri + önizleme hazır, gönderim Resend ücretli planla. UGC portföyü (örnek videolar) R2 ile
 7. ✅ Kampanya sihirbazı + müsaitlik (2026-10-14, öne çekildi, SYSTEM_MAP 3.19); kalan: davet kodu, admin metrik paneli, haftalık e-postalar (Resend ücretli)
 8. Ekip hesabı / ajans yapısı (2026-10-15 kararı: satış başladıktan sonra)
+9. ✅ Güvenli iş birliği (taahhüt, ödeme vadesi, hatırlatmalar, anlaşmazlık + admin kararı, kayıt indirme, Zamanında Ödeme / Teslim rozetleri) ve Influcash puanı
+   (2026-11-23, SYSTEM_MAP 15–16; SQL'ler canlıda değil, Influcash bayrağı kapalı, toplu testten sonra açılır). İş ortağı kuponları satış / iş ortaklığıyla.

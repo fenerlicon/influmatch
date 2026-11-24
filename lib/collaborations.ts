@@ -11,6 +11,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
+import { clawbackCollaboration } from '@/lib/influcash'
 import { startDeliverableTracking } from '@/lib/post-metrics'
 import {
   AUTO_COMPLETE_DAYS,
@@ -506,6 +507,8 @@ export async function runCollaborationAction(
       if (!(await transition(ACTIVE_STATUSES, { status: 'cancelled', cancelled_at: now, cancelled_by: userId, cancel_reason: reason || null }))) {
         return stale
       }
+      // Influcash (2026-11-23): iptal edilen iş birliğinin kazanımları geri alınır (tablolar yoksa atlanır).
+      await clawbackCollaboration(admin, row.id).catch((error) => console.error('[collaborations] Influcash geri alım:', error))
       const name = await displayNameOf(admin, userId)
       await notifyUser(
         {

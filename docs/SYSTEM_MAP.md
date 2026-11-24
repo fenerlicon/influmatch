@@ -1621,3 +1621,34 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **15.2-N1 [AVUKAT]** Taahhüt metni kullanıcının verdiği şekliyle yazıldı; **avukat kontrolü bekliyor** (`COMMITMENT_TEXT`, metin değişirse `COMMITMENT_VERSION` değişir, markalar yeniden onaylar).
 - **15.2-N2 [KARAR]** Askıya alınan hesap yalnızca yeni ilan / teklif / başvuru yapamaz; giriş, mesaj, süren iş birlikleri açık; keşifte görünmeye devam eder. Daha geniş kısıt istenirse karar.
 - **15.2-N3** Kanıt dosyaları ve anlaşmazlık kayıtları için saklama süresi yok (14.4-S5 ile birlikte).
+
+---
+
+## 16. Influcash (puan, 2026-11-23; `claude/trust-influcash`)
+
+> Sahip kararları: puan **paraya çevrilemez, devredilemez**; puanla Spotlight indirim kodu (`IM-…`, mevcut görev kodu yolu) ve Spotlight günü
+> (görev ödülü yolu, `syncUserSpotlight` görür) alınır; markalar da kazanır; iş ortağı kuponları yalnızca altyapı. Bayrak `influcash_enabled`
+> **varsayılan KAPALI**: kapalıyken hiçbir puan yazılmaz, arayüz gizli. Kurallar `lib/influcash-shared.ts` (mobil `mobile-app/constants/influcash.js`),
+> sunucu `lib/influcash.ts`. SQL `supabase/manual/2026-11-23_influcash.sql` (= `supabase/migrations/20261123000030_influcash.sql`), **canlıda değil**.
+
+### 16.1 Yapılanlar
+- ✅ ~~**16.1-N1**~~ (defter) `influcash_ledger` (yalnızca ekleme; kullanıcı + neden + referans benzersiz → çift ödül yok), `influcash_balances` (aynı işlemde güncellenir),
+  `influcash_apply` / `influcash_redeem` (yalnızca service role). RLS: kullanıcı yalnızca kendi hareket ve bakiyesini okur; istemci yazımı yok.
+- ✅ ~~**16.1-N2**~~ (kazanım) tamamlanan iş birliği (iki taraf ödemeyi teyit edince, iki tarafa; ödeme işaretinde anlık + saatlik tarama), teslimat başına zamanında teslim,
+  zamanında ödeme (marka), günlük giriş (İstanbul günü, 7 / 30 gün serisi, aylık üst sınır; web panel açılışı `DailyLoginPing`, mobil ana sayfa `InflucashDaily`),
+  görev onayı (tür başına tutar), bir kez profil tamamlama ve hesap doğrulama. Tutarlar ve sınırlar `platform_settings.influcash_rules`, admin düzenler.
+  Geri alım: iptal edilen iş birliği ve haklı bulunan (upheld) anlaşmazlık o iş birliğinin kazanımlarını eksi hareketle geri alır; harcamada eksi bakiye 0 sayılır.
+- ✅ ~~**16.1-N3**~~ (katalog ve harcama) `influcash_catalog` (ad, puan, kitle, tür, paket / gün / yüzde, aktif, isteğe bağlı stok); harcama tek işlemde (bakiye kilidi,
+  saatlik sınır, stok, ödül kaydı `task_rewards` kaynak `influcash`, harcama hareketi). İndirim kodu hemen kullanılabilir (ödeme sayfası); Spotlight günü satış açıksa hemen
+  (abonelik kaydı `reward`), değilse "Ödülleri hesaplara işle" ile. `task_rewards.submission_id` boş olabilir (Görevler sayfası bu kayıtları göstermez).
+- ✅ ~~**16.1-N4**~~ (arayüz) web `/dashboard/influcash` (bakiye, ödüller, nasıl kazanılır, alınan ödüller + kodlar, geçmiş), menüde bakiye çipi; admin `/admin/influcash`
+  (bayraklar onaylı, kurallar, katalog, iş ortağı kodları, kullanıcı hareketleri, neden zorunlu elle düzeltme); mobil `Influcash` ekranı (Profil'den), `/api/mobile/influcash`
+  (`?ozet=1`, POST harcama), `/api/mobile/influcash/daily`.
+
+### 16.2 Açık
+- **16.2-S1 [YÜKSEK]** SQL canlıya uygulanmadı: `supabase/manual/2026-11-23_influcash.sql` (görev ve ödeme SQL'lerinden sonra). Yerel Postgres 16'da iki kez çalıştırıldı;
+  harcama fonksiyonu (kitle, stok, bakiye, saatlik sınır, kod) denendi.
+- **16.2-N1 [KARAR]** Influcash toplu testten sonra admin açar; katalog boş gelir (ödüller ve puan tutarları sahibin kararı; varsayılan tutarlar yer tutucudur).
+- **16.2-N2** İş ortağı kuponları yalnızca altyapı (`influcash_partner_coupons_enabled` kapalı); iş ortaklığı başlayınca açılır.
+- **16.2-N3** "Verilerimi indir" (`lib/data-export.ts`) Influcash hareketlerini henüz içermiyor (görev ödülleri içeriyor); eklenmeli.
+- **16.2-N4** İndirim yüzdesi için iyzico'da indirimli plan olmalı (`scripts/iyzico-sync-plans.mjs --discounts=…`); katalogdaki yüzdeler betikle eşleşmeli.

@@ -16,6 +16,7 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
 import { parseDecisionReason, recordDecision, formatReason, type DecisionReasonInput } from '@/lib/moderation'
 import { trustReady, isMissingRelation } from '@/lib/collaboration-trust'
+import { clawbackCollaboration } from '@/lib/influcash'
 import {
   ACTIVE_DISPUTE_STATUSES,
   COMMITMENT_SHORT,
@@ -625,13 +626,6 @@ export async function loadAdminDisputes(admin: SupabaseClient, filter: 'escalate
 
 export type AdminDisputeDecision = 'suspend' | 'dismiss' | 'mark_paid'
 
-/** Hook: anlaşmazlık haklı bulununca (askıya alma) çağrılır; Influcash geri alımı gibi yan etkiler buraya bağlanır. */
-export type UpheldHook = (admin: SupabaseClient, dispute: DisputeRow) => Promise<void>
-const upheldHooks: UpheldHook[] = []
-export function onDisputeUpheld(hook: UpheldHook) {
-  upheldHooks.push(hook)
-}
-
 /**
  * Admin kararı. suspend: karşı tarafın hesabı askıya alınır (karar kaydı + itiraz hakkı; neden zorunlu), anlaşmazlık "upheld".
  * dismiss: kapatılır, kısıt kalkar. mark_paid (yalnızca ödeme): ödendi olarak kapanır, ödeme işaretleri tamamlanır, kısıt kalkar.
@@ -695,13 +689,8 @@ export async function decideDisputeAsAdmin(
       decidedBy: adminUserId,
       decision: 'suspended',
     })
-    for (const hook of upheldHooks) {
-      try {
-        await hook(admin, { ...dispute, status: 'upheld' })
-      } catch (hookError) {
-        console.error('[disputes] karar sonrası işlem:', hookError)
-      }
-    }
+    // Influcash (2026-11-23): haklı bulunan anlaşmazlıkta iş birliğinin kazanımları geri alınır.
+    await clawbackCollaboration(admin, dispute.collaboration_id).catch((hookError) => console.error('[disputes] Influcash geri alım:', hookError))
   }
   if (decision === 'mark_paid') {
     await admin.from('collaboration_payments').upsert({ collaboration_id: dispute.collaboration_id }, { onConflict: 'collaboration_id', ignoreDuplicates: true })

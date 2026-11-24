@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
-import { LogOut, Menu, Settings, Sparkles, X } from 'lucide-react'
+import { Coins, LogOut, Menu, Settings, Sparkles, X } from 'lucide-react'
 import { Avatar } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
@@ -90,12 +90,14 @@ function NavBody({
   pathname,
   unread,
   navCounts,
+  influcashBalance,
   onNavigate,
 }: {
   user: ShellUser
   pathname: string
   unread: number
   navCounts?: Record<string, number>
+  influcashBalance?: number | null
   onNavigate?: () => void
 }) {
   const settingsHref = SETTINGS_HREF[user.role]
@@ -139,6 +141,24 @@ function NavBody({
             </span>
           </Link>
         )}
+        {/* Influcash bakiyesi (2026-11-23): yalnızca özellik açıkken (bakiye null değilse). */}
+        {typeof influcashBalance === 'number' && (
+          <Link
+            href="/dashboard/influcash"
+            onClick={onNavigate}
+            aria-current={pathname === '/dashboard/influcash' ? 'page' : undefined}
+            className={cn(
+              'flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] transition-colors',
+              pathname === '/dashboard/influcash' ? 'bg-surface-2 text-ink' : 'text-ink-muted hover:bg-surface-1 hover:text-ink',
+            )}
+          >
+            <Coins className="h-4 w-4" aria-hidden />
+            Influcash
+            <span className="ml-auto rounded-full border border-gold/30 bg-gold/10 px-2 text-[11.5px] font-semibold tabular-nums text-gold">
+              {influcashBalance.toLocaleString('tr-TR')}
+            </span>
+          </Link>
+        )}
         {settingsHref && (
           <Link
             href={settingsHref}
@@ -178,12 +198,15 @@ export default function AppShell({
   user,
   notices,
   navCounts,
+  influcashBalance,
   children,
 }: {
   user: ShellUser
   notices?: ReactNode
   /** Menüdeki sayı rozetleri (NavItem.countKey); isteğe bağlı. */
   navCounts?: Record<string, number>
+  /** Influcash bakiyesi (2026-11-23); null / yok ise bağlantı gösterilmez. */
+  influcashBalance?: number | null
   children: ReactNode
 }) {
   const pathname = usePathname() ?? ''
@@ -214,7 +237,7 @@ export default function AppShell({
         <Link href={NAV[user.role][0].items[0].href} className="px-2.5 pb-[18px] pt-1">
           <Logo />
         </Link>
-        <NavBody user={user} pathname={pathname} unread={unread} navCounts={navCounts} />
+        <NavBody user={user} pathname={pathname} unread={unread} navCounts={navCounts} influcashBalance={influcashBalance} />
       </aside>
 
       <div className="min-w-0">
@@ -265,7 +288,7 @@ export default function AppShell({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <NavBody user={user} pathname={pathname} unread={unread} navCounts={navCounts} onNavigate={() => setMenuOpen(false)} />
+            <NavBody user={user} pathname={pathname} unread={unread} navCounts={navCounts} influcashBalance={influcashBalance} onNavigate={() => setMenuOpen(false)} />
           </div>
         </div>
       )}
