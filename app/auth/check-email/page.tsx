@@ -9,6 +9,20 @@ import AuthShell from '@/components/auth/AuthShell'
 import { Button, Notice } from '@/components/ui'
 import { cn } from '@/utils/cn'
 
+// Supabase hata metinleri İngilizce gelir; kullanıcıya ne yapacağını söyleyen Türkçe karşılığını göster.
+function verifyErrorMessage(message: string | undefined, resent: boolean): string {
+  const m = (message || '').toLowerCase()
+  if (m.includes('expired') || m.includes('invalid')) {
+    return resent
+      ? 'Kod geçersiz ya da süresi dolmuş. Yeni kod istediğin için eski e-postalardaki kodlar artık çalışmaz; yalnızca en son gelen e-postadaki kodu gir.'
+      : 'Kod geçersiz ya da süresi dolmuş. Kodu kontrol et; olmadıysa aşağıdan yeni kod iste ve en son gelen e-postadaki kodu gir.'
+  }
+  if (m.includes('rate') || m.includes('too many') || m.includes('security purposes')) {
+    return 'Çok sık denendi. Biraz bekleyip tekrar dene.'
+  }
+  return 'Doğrulama yapılamadı, lütfen tekrar dene.'
+}
+
 function CheckEmailPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -21,6 +35,7 @@ function CheckEmailPageContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [resent, setResent] = useState(false)
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -39,6 +54,7 @@ function CheckEmailPageContent() {
 
     setIsLoading(true)
     setErrorMessage(null)
+    setSuccessMessage(null)
 
     try {
       const { error } = await supabase.auth.verifyOtp({
@@ -48,7 +64,10 @@ function CheckEmailPageContent() {
       })
 
       if (error) {
-        setErrorMessage(error.message || 'Hatalı kod, lütfen tekrar deneyin.')
+        setErrorMessage(verifyErrorMessage(error.message, resent))
+        // Kutuları boşalt: yeni kod yazılınca otomatik doğrulama tekrar çalışsın.
+        setCode(['', '', '', '', '', ''])
+        inputRefs.current[0]?.focus()
         setIsLoading(false)
       } else {
         setSuccessMessage('Hesabın doğrulandı. Profilini tamamlamaya yönlendiriliyorsun…')
@@ -115,9 +134,13 @@ function CheckEmailPageContent() {
       })
 
       if (error) {
-        setErrorMessage(error.message)
+        setErrorMessage(verifyErrorMessage(error.message, resent))
       } else {
-        setSuccessMessage('Yeni kod gönderildi.')
+        // Yeni kod eskisini geçersiz kılar; eski kodla deneme olmasın diye kutuları temizle.
+        setResent(true)
+        setCode(['', '', '', '', '', ''])
+        inputRefs.current[0]?.focus()
+        setSuccessMessage('Yeni kod gönderildi. Yalnızca bu son e-postadaki kod geçerli; önceki kodlar artık çalışmaz.')
         setTimeLeft(60)
       }
     } catch (err) {
