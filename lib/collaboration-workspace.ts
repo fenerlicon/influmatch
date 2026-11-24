@@ -24,6 +24,19 @@ import { campaignBriefForCollaboration } from '@/lib/campaigns'
 import type { CampaignBrief } from '@/lib/campaigns-shared'
 import { getDeliverableMetricsFor, startDeliverableTracking } from '@/lib/post-metrics'
 import type { DeliverableMetrics } from '@/lib/post-metrics-shared'
+import { lateStatsFor, remindersFor, trustReady, type LateStats } from '@/lib/collaboration-trust'
+import { awardCollaboration } from '@/lib/influcash'
+import { disputesForCollaboration, openDispute, runDisputeAction, type DisputeView } from '@/lib/collaboration-disputes'
+import {
+  COMMITMENT_SHORT,
+  PAYMENT_PROGRESS_LABELS,
+  nondeliveryAvailableAt,
+  paymentProgress,
+  paymentReminderBase,
+  validatePaymentDueDate,
+  workFinishedAt,
+  type PaymentProgress,
+} from '@/lib/collaboration-trust-shared'
 import {
   AGREEMENT_LIMITS,
   DELIVERABLE_KIND_LABELS,
@@ -55,6 +68,8 @@ export interface AgreementRow {
   payment_type: AgreementPaymentType
   usage_rights: string | null
   revision_limit: number
+  /** Ödeme vadesi (2026-11-23). Tablo / kolon canlıda değilse alan gelmez. */
+  payment_due_date?: string | null
   version: number
   drafted_by: string | null
   updated_by: string | null
@@ -137,10 +152,34 @@ export interface CollaborationWorkspace {
   brandReliability: { completed: number; confirmed: number }
   /** Kampanyaya bağlı iş birliğinde brief (salt okunur) ve varsayılan teslimatlar (3.19). */
   campaignBrief: CampaignBrief | null
+  /** Güvenli iş birliği (2026-11-23). enabled false ise (SQL canlıda değil) arayüz bu bölümü göstermez. */
+  trust: WorkspaceTrust
+}
+
+export interface WorkspaceTrust {
+  enabled: boolean
+  /** Ödeme vadesi zorunlu mu (nakit ödemede, özellik açıkken). */
+  dueDateRequired: boolean
+  /** "Ödeme bekleniyor / Onay bekleniyor" (iki taraf da görür). */
+  paymentProgress: PaymentProgress
+  paymentProgressLabel: string
+  /** Marka hatırlatmalarının başladığı gün (vade ile işin bitişinden geç olanı). */
+  reminderBase: string | null
+  warning: string
+  reminders: Array<{ kind: 'payment_brand' | 'receipt_influencer'; step: number; sentAt: string }>
+  disputes: DisputeView[]
+  /** Teslimat başına "Teslim edilmedi" bildiriminin açılacağı an (yalnızca marka için dolu). */
+  nondeliveryAvailableAt: Record<string, string>
+  /** Karşı tarafın gecikme sayıları (marka: geç ödeme, influencer: geç teslim). */
+  otherLateStats: LateStats | null
+  recordUrl: string
 }
 
 const AGREEMENT_COLUMNS =
   'collaboration_id, fee_amount, payment_type, usage_rights, revision_limit, version, drafted_by, updated_by, brand_confirmed_at, influencer_confirmed_at, created_at, updated_at'
+/** Ödeme vadesi kolonu canlıdaysa (güvenli iş birliği SQL'i çalıştıysa). */
+const AGREEMENT_COLUMNS_TRUST = `${AGREEMENT_COLUMNS}, payment_due_date`
+const agreementColumns = (ready: boolean) => (ready ? AGREEMENT_COLUMNS_TRUST : AGREEMENT_COLUMNS)
 const DELIVERABLE_COLUMNS =
   'id, collaboration_id, position, kind, quantity, note, due_date, status, revisions_used, draft_url, draft_note, draft_submitted_at, review_note, reviewed_at, approved_at, publish_url, published_at, created_at, updated_at'
 const SUBMISSION_COLUMNS = 'id, deliverable_id, submitted_by, url, note, review, review_note, reviewed_at, created_at'
@@ -185,6 +224,7 @@ export function validateDraftUrl(raw: unknown): { url: string } | { error: strin
 }
 
 interface NormalizedAgreement {
+  payment_due_date: string | null
   fee_amount: number | null
   payment_type: AgreementPaymentType
   usage_rights: string | null
@@ -192,7 +232,11 @@ interface NormalizedAgreement {
   deliverables: Array<{ id: string | null; kind: DeliverableKind; quantity: number; note: string | null; due_date: string | null }>
 }
 
-function normalizeAgreement(raw: unknown, existingDueDates: Map<string, string | null>): { value: NormalizedAgreement } | { error: string } {
+function normalizeAgreement(
+  raw: unknown,
+  existingDueDates: Map<string, string | null>,
+  trust: { enabled: boolean; previousPaymentDue: string | null } = { enabled: false, previousPaymentDue: null },
+): { value: NormalizedAgreement } | { error: string } {
   if (!raw || typeof raw !== 'object') return { error: 'Anlaşma bilgileri eksik.' }
   const input = raw as Partial<AgreementInput>
   const paymentType: AgreementPaymentType = input.payment_type === 'barter' ? 'barter' : 'cash'
@@ -204,6 +248,14 @@ function normalizeAgreement(raw: unknown, existingDueDates: Map<string, string |
     fee = n
   }
   if (paymentType === 'cash' && (fee === null || fee < 1)) return { error: 'Nakit ödemede anlaşılan ücreti girin.' }
+
+  // Ödeme vadesi (2026-11-23): özellik açıkken nakit ödemede zorunlu; barter'da isteğe bağlı. Özellik kapalıysa yok sayılır.
+  let paymentDue: string | null = null
+  if (trust.enabled) {
+    const checked = validatePaymentDueDate(input.payment_due_date, { required: paymentType === 'cash', previous: trust.previousPaymentDue, today: todayIso() })
+    if ('error' in checked) return { error: checked.error }
+    paymentDue = checked.value
+  }
 
   const revision = Number(input.revision_limit)
   if (!Number.isInteger(revision) || revision < 0 || revision > AGREEMENT_LIMITS.maxRevisions) {
@@ -241,6 +293,7 @@ function normalizeAgreement(raw: unknown, existingDueDates: Map<string, string |
 
   return {
     value: {
+      payment_due_date: paymentDue,
       fee_amount: fee,
       payment_type: paymentType,
       usage_rights: cleanText(input.usage_rights, AGREEMENT_LIMITS.usageRightsMax) || null,
@@ -362,8 +415,9 @@ export async function getCollaborationWorkspace(
 
   // Taraf olduğu RLS'li okumayla doğrulandı; kampanya brief'i sunucudan (lib/campaigns.ts).
   const isBrandViewer = collaboration.brand_id === userId
+  const trustEnabled = await trustReady()
   const [agreementRes, deliverablesRes, submissionsRes, paymentRes, reliability, campaignBrief, metrics] = await Promise.all([
-    supabase.from('collaboration_agreements').select(AGREEMENT_COLUMNS).eq('collaboration_id', collaborationId).maybeSingle(),
+    supabase.from('collaboration_agreements').select(agreementColumns(trustEnabled)).eq('collaboration_id', collaborationId).maybeSingle(),
     supabase.from('collaboration_deliverables').select(DELIVERABLE_COLUMNS).eq('collaboration_id', collaborationId).order('position').order('created_at'),
     supabase
       .from('collaboration_submissions')
@@ -384,7 +438,7 @@ export async function getCollaborationWorkspace(
     return { error: 'İş birliği ayrıntıları yüklenemedi.' }
   }
 
-  const agreement = (agreementRes.data ?? null) as AgreementRow | null
+  const agreement = (agreementRes.data ?? null) as unknown as AgreementRow | null
   const payment = (paymentRes.data ?? null) as PaymentRow | null
   const isBrand = collaboration.brand_id === userId
   const confirmed = isConfirmed(agreement)
@@ -408,7 +462,60 @@ export async function getCollaborationWorkspace(
       permissions: buildPermissions(collaboration, isBrand, agreement, payment, deliverables),
       brandReliability: reliability.get(collaboration.brand_id) ?? { completed: 0, confirmed: 0 },
       campaignBrief,
+      trust: await buildTrust(collaboration, userId, isBrand, agreement, payment, deliverables, trustEnabled),
     },
+  }
+}
+
+async function buildTrust(
+  collab: CollaborationListItem,
+  userId: string,
+  isBrand: boolean,
+  agreement: AgreementRow | null,
+  payment: PaymentRow | null,
+  deliverables: DeliverableRow[],
+  enabled: boolean,
+): Promise<WorkspaceTrust> {
+  const finished =
+    collab.status === 'cancelled'
+      ? null
+      : workFinishedAt(collab.status === 'completed' ? collab.completed_at : null, agreement ? allDeliverablesApprovedAt(deliverables) : null)
+  const progress: PaymentProgress = collab.status === 'cancelled' || agreement?.payment_type === 'barter' ? 'none' : paymentProgress(payment, finished)
+  const base: WorkspaceTrust = {
+    enabled,
+    dueDateRequired: false,
+    paymentProgress: progress,
+    paymentProgressLabel: PAYMENT_PROGRESS_LABELS[progress],
+    reminderBase: null,
+    warning: COMMITMENT_SHORT,
+    reminders: [],
+    disputes: [],
+    nondeliveryAvailableAt: {},
+    otherLateStats: null,
+    recordUrl: `/api/collaborations/${collab.id}/record`,
+  }
+  if (!enabled) return base
+  const [reminders, disputes, otherLateStats] = await Promise.all([
+    remindersFor(collab.id),
+    disputesForCollaboration(collab.id, userId),
+    lateStatsFor(isBrand ? collab.influencer_id : collab.brand_id, isBrand ? 'influencer' : 'brand'),
+  ])
+  const nondelivery: Record<string, string> = {}
+  if (isBrand && collab.status !== 'cancelled' && agreement) {
+    const blocked = new Set(disputes.filter((d) => d.kind === 'nondelivery' && ['open', 'responded', 'escalated'].includes(d.status)).map((d) => d.deliverableId))
+    for (const d of deliverables) {
+      const at = nondeliveryAvailableAt(d)
+      if (at && !blocked.has(d.id)) nondelivery[d.id] = at
+    }
+  }
+  return {
+    ...base,
+    dueDateRequired: true,
+    reminderBase: paymentReminderBase(agreement?.payment_due_date ?? null, finished),
+    reminders,
+    disputes,
+    nondeliveryAvailableAt: nondelivery,
+    otherLateStats,
   }
 }
 
@@ -422,6 +529,8 @@ export interface WorkspaceActionInput {
   url?: string | null
   note?: string | null
   date?: string | null
+  disputeId?: string | null
+  proofPath?: string | null
 }
 
 /** İstek gövdesini güvenli biçime çevirir (web aksiyonu ve mobil uç ortak). */
@@ -437,13 +546,16 @@ export function parseWorkspaceInput(body: unknown): WorkspaceActionInput | null 
     url: typeof b.url === 'string' ? b.url : null,
     note: typeof b.note === 'string' ? b.note : null,
     date: typeof b.date === 'string' ? b.date : null,
+    disputeId: typeof b.disputeId === 'string' ? b.disputeId : null,
+    proofPath: typeof b.proofPath === 'string' ? b.proofPath : null,
   }
 }
 
 const stale = { error: 'İş birliği bu arada güncellenmiş. Sayfayı yenileyip tekrar deneyin.' } as const
 
-function agreementSignature(a: Pick<NormalizedAgreement, 'fee_amount' | 'payment_type' | 'usage_rights' | 'revision_limit' | 'deliverables'>) {
+function agreementSignature(a: Pick<NormalizedAgreement, 'payment_due_date' | 'fee_amount' | 'payment_type' | 'usage_rights' | 'revision_limit' | 'deliverables'>) {
   return JSON.stringify([
+    a.payment_due_date,
     a.fee_amount,
     a.payment_type,
     a.usage_rights,
@@ -470,12 +582,13 @@ export async function runWorkspaceAction(userId: string, collaborationId: string
   const link = detailLink(collab.id)
   const now = new Date().toISOString()
 
-  const { data: agreementData } = await admin.from('collaboration_agreements').select(AGREEMENT_COLUMNS).eq('collaboration_id', collab.id).maybeSingle()
-  const agreement = (agreementData ?? null) as AgreementRow | null
+  const trustEnabled = await trustReady(admin)
+  const { data: agreementData } = await admin.from('collaboration_agreements').select(agreementColumns(trustEnabled)).eq('collaboration_id', collab.id).maybeSingle()
+  const agreement = (agreementData ?? null) as unknown as AgreementRow | null
 
   switch (input.action) {
     case 'save_agreement':
-      return saveAgreement(admin, collab, agreement, userId, isBrand, otherId, input, now)
+      return saveAgreement(admin, collab, agreement, userId, isBrand, otherId, input, now, trustEnabled)
 
     case 'confirm_agreement': {
       if (!EDITABLE_STATUSES.includes(collab.status)) return { error: 'Bu iş birliğinde anlaşma özeti artık onaylanamaz.' }
@@ -548,6 +661,8 @@ export async function runWorkspaceAction(userId: string, collaborationId: string
         },
         admin,
       )
+      // Influcash (2026-11-23): iki taraf da teyit ettiyse iş birliği kazanımları (bir kez; değilse hiçbir şey yazılmaz).
+      await awardCollaboration(admin, collab.id).catch((error) => console.error('[collaboration-workspace] Influcash:', error))
       return { success: true, message: isBrand ? 'Ödeme yapıldı olarak işaretlendi.' : 'Ödeme alındı olarak teyit edildi.' }
     }
 
@@ -566,6 +681,20 @@ export async function runWorkspaceAction(userId: string, collaborationId: string
     case 'report_nonpayment':
       return reportNonpayment(admin, collab, agreement, userId, isBrand, input, now)
 
+    // Güvenli iş birliği (2026-11-23): teslim edilmedi bildirimi ve anlaşmazlık adımları.
+    case 'report_nondelivery':
+    case 'dispute_respond':
+    case 'dispute_mark_resolved':
+    case 'dispute_confirm_resolved':
+    case 'dispute_escalate':
+      return runDisputeAction(admin, collab, userId, {
+        action: input.action,
+        disputeId: input.disputeId,
+        deliverableId: input.deliverableId,
+        note: input.note,
+        proofPath: input.proofPath,
+      })
+
     default:
       return { error: 'Geçersiz işlem.' }
   }
@@ -580,6 +709,7 @@ async function saveAgreement(
   otherId: string,
   input: WorkspaceActionInput,
   now: string,
+  trustEnabled = false,
 ): Promise<Result<{ message?: string }>> {
   if (!EDITABLE_STATUSES.includes(collab.status)) return { error: 'Anlaşma özeti yalnızca süren iş birliğinde değiştirilebilir.' }
   if (agreement && input.version !== agreement.version) return stale
@@ -588,7 +718,10 @@ async function saveAgreement(
   const existing = (existingData ?? []) as DeliverableRow[]
   const existingById = new Map(existing.map((d) => [d.id, d]))
 
-  const normalized = normalizeAgreement(input.agreement, new Map(existing.map((d) => [d.id, d.due_date])))
+  const normalized = normalizeAgreement(input.agreement, new Map(existing.map((d) => [d.id, d.due_date])), {
+    enabled: trustEnabled,
+    previousPaymentDue: agreement?.payment_due_date ?? null,
+  })
   if ('error' in normalized) return { error: normalized.error }
   const next = normalized.value
 
@@ -607,6 +740,8 @@ async function saveAgreement(
   // Değişiklik yoksa onaylar korunur.
   if (agreement) {
     const current = agreementSignature({
+      // Özellik kapalıyken vade karşılaştırmaya girmez (ikisi de null).
+      payment_due_date: trustEnabled ? agreement.payment_due_date ?? null : null,
       fee_amount: agreement.fee_amount,
       payment_type: agreement.payment_type,
       usage_rights: agreement.usage_rights,
@@ -653,6 +788,12 @@ async function saveAgreement(
     }
     const fallback = await saveAgreementSequential(admin, collab.id, agreement, userId, next, removed, fields, now)
     if (fallback) return fallback
+  }
+
+  // Ödeme vadesi ayrı yazılır (save_collaboration_agreement fonksiyonu vadeyi bilmez). Yazılamazsa kayıt yine geçerli; hata günlüğe.
+  if (trustEnabled && (next.payment_due_date ?? null) !== (agreement?.payment_due_date ?? null)) {
+    const { error: dueError } = await admin.from('collaboration_agreements').update({ payment_due_date: next.payment_due_date }).eq('collaboration_id', collab.id)
+    if (dueError) console.error('[collaboration-workspace] ödeme vadesi:', dueError.message)
   }
 
   const name = await displayNameOf(admin, userId)
@@ -986,6 +1127,20 @@ async function reportNonpayment(
     return { error: 'Bildirim gönderilemedi. Lütfen tekrar deneyin.' }
   }
   await admin.from('collaboration_payments').update({ nonpayment_ticket_id: ticket.id }).eq('collaboration_id', collab.id)
+
+  // Güvenli iş birliği (2026-11-23): anlaşmazlık kaydı; marka 7 gün içinde dekont yükler ya da yanıt verir (bildirimi openDispute gönderir).
+  const dispute = await openDispute(admin, {
+    collaborationId: collab.id,
+    title: collab.title,
+    kind: 'nonpayment',
+    reporterId: userId,
+    respondentId: collab.brand_id,
+    note: userNote || null,
+    ticketId: ticket.id as string,
+  })
+  if (dispute) {
+    return { success: true, message: `Bildirimin markaya ve destek ekibine iletildi (talep ${ticketCode(ticket.id as string)}). Markanın 7 gün içinde yanıt vermesi gerekiyor.` }
+  }
 
   const name = await displayNameOf(admin, userId)
   await notifyUser(

@@ -93,6 +93,8 @@ export default function BadgeProgressInfo({ userRole }: BadgeProgressInfoProps) 
       'brand-ambassador': automatic,
       'jet-approval': automatic,
       'elite-budget': automatic,
+      'on-time-payment': automatic,
+      'on-time-delivery': automatic,
     }
 
     return requirements[badge.id] || 'Bu rozet yakında kazanılabilir olacak.'

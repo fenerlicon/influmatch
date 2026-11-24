@@ -40,6 +40,7 @@ Vercel'de (Production + Preview) ve yerelde `.env.local`'de tanımlanır. Şablo
 | `TIKTOK_VIDEO_SAMPLE` | hayır | TikTok etkileşim hesabında örnek video sayısı (varsayılan 1) |
 | `SOCIAL_OAUTH_ENABLED` | hayır | `true` olmadan Instagram/TikTok OAuth uçları başlamaz (şu an kapalı) |
 | `INSTAGRAM_CLIENT_ID/SECRET`, `TIKTOK_CLIENT_KEY/SECRET` | hayır | Yalnızca OAuth açılırsa |
+| `RECORD_LINK_SECRET` | hayır | Mobilin ürettiği 10 dakikalık iş birliği kaydı bağlantısının imza anahtarı (uzun rastgele değer). Yoksa service role anahtarından türetilir. |
 | `IYZICO_API_KEY`, `IYZICO_SECRET_KEY` | satış için | iyzico abonelik (önce sandbox anahtarları). Yoksa ödeme arayüzü kapalı. Ayrıntı `docs/PAYMENTS.md`. |
 | `IYZICO_BASE_URL` | hayır | Varsayılan `https://sandbox-api.iyzipay.com`; canlı `https://api.iyzipay.com` |
 | `IYZICO_MERCHANT_ID` | hayır | Webhook imzası (X-IYZ-SIGNATURE-V3) doğrulaması |

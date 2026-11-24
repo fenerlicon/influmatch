@@ -1578,3 +1578,77 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 ### 14.7 Canlı veritabanı
 - **14.7-S1 [ORTA]** `20261026000050_kvkk_consent_audit.sql` (iki tablo, istemcilere kapalı + kayıt tetikleyicisi) canlıya uygulanmadı (Supabase bağlantısı yetkisiz).
   Sahip `supabase/manual/2026-10-26_kvkk.sql`'i SQL Editor'de çalıştırır. Çalıştırılana kadar kod çalışır; rıza ve erişim kaydı tutulmaz, indirme sınırı bellekte.
+
+---
+
+## 15. Güvenli iş birliği (2026-11-23; `claude/trust-influcash`)
+
+> Emanet yok: platform para tutmaz, ödeme taraflar arasında (CLAUDE.md 2026-10-15). Kayıt, süre, hatırlatma ve hesap kısıtı.
+> Kurallar `lib/collaboration-trust-shared.ts` (mobil kopyası `mobile-app/constants/trust.js`, parite testi), sunucu `lib/collaboration-trust.ts`,
+> `lib/collaboration-disputes.ts`, `lib/collaboration-record.ts`, `lib/trust-badges.ts`. SQL `supabase/manual/2026-11-23_guvenli_is_birligi.sql`
+> (= `supabase/migrations/20261123000020_trust_collaboration.sql`). **SQL canlıda değil**: çalıştırılana kadar bütün özellik gizli, eski akış sürer.
+
+### 15.1 Yapılanlar
+- ✅ ~~**15.1-N1 [ÖZELLİK]**~~ (marka taahhüdü) İlk ilan / ilk tekliften önce bir kez: `collaboration_commitments` (kullanıcı + metin sürümü + zaman + web/mobil).
+  Web: panel kabuğunda pencere (`components/trust/CommitmentDialog.tsx`, oturumda bir kez kendiliğinden, teklif / ilan / toplu davet hatasında yeniden);
+  mobil: `/api/mobile/commitment` + sistem penceresi (`mobile-app/lib/commitment.js`). Sunucuda `trustGateFor` (`createOfferAs`, yeni `saveAdvertAs`), veritabanında
+  `enforce_trust_rules` tetikleyicisi (offers / advert_projects / advert_applications, yalnızca istemci oturumu). Mevcut markalar da bir kez onaylar.
+  Kısa hali anlaşma özetinde ve ödeme bölümünde (web + mobil).
+- ✅ ~~**15.1-N2**~~ (ödeme vadesi) `collaboration_agreements.payment_due_date`; ücret zaten `fee_amount` (₺). Nakit ödemede kayıtta zorunlu (özellik açıkken),
+  barter'da isteğe bağlı; eski anlaşmalar vadesiz kalabilir. Vade değişikliği iki onayı sıfırlar. RPC `save_collaboration_agreement` vadeyi bilmediği için ayrı yazılır.
+- ✅ ~~**15.1-N3**~~ (tek taraflı tamamlama yok) "Ödeme bekleniyor / Onay bekleniyor" çipi (iki taraf). Saatlik görev `processPaymentReminders`: markaya
+  vade ile iş bitişinden geç olanından 0/3/7/14. gün, marka ödedi dedikten sonra influencer'a 2/5/10. gün (site içi + push + e-posta, `collab_payment_reminder` /
+  `collab_receipt_reminder`); `collaboration_reminders` günlüğü (tekrar yok; geç kalan görev yalnızca güncel adımı gönderir). Açık ödeme anlaşmazlığında markaya hatırlatma gitmez.
+- ✅ ~~**15.1-N4**~~ (ödeme alınamadı) Mevcut "Ödeme alamadım" destek kaydına ek `collaboration_disputes` kaydı: marka 7 gün içinde dekont (özel kova
+  `payment-proofs/{kullanıcı}/{anlaşmazlık}/`, imzalı yükleme) / açıklama / "çözüldü"; influencer "çözüldü" teyidi (ödeme alındı işaretlenir) ya da
+  "Destek ekibine taşı". 7 günde yanıt yoksa saatlik görev `escalateOverdueDisputes`: "İncelemede" + `account_holds` (review) → yeni ilan / teklif / başvuru kapalı,
+  panelde bant (`/dashboard/account-status`), mobil ana sayfada bant. Admin `/admin/disputes` (menüde incelemedeki sayı): iki tarafın notları, kanıt, ödeme işaretleri,
+  zaman çizelgesi, hatırlatmalar, iş birliği kaydı (sohbet dahil); karar: askıya al (neden zorunlu, `moderation_decisions` tür `collaboration_dispute` karar `suspended`,
+  itiraz `/admin/appeals`; kabulde askı kalkar, anlaşmazlık yeniden incelemeye), kapat, ödendi olarak kapat. Kesin askıya alma yalnızca admin (sahip kararı).
+- ✅ ~~**15.1-N5**~~ (teslim edilmedi) Marka, teslim tarihi + 3 gün geçmiş ve onaylanmamış teslimat için bildirir; aynı 7 gün / inceleme / admin kararı, influencer askıya alınabilir.
+- ✅ ~~**15.1-N6**~~ (iş birliği kaydı) `/api/collaborations/[id]/record`: anlaşma, teslimatlar + tarihler, taslak geçmişi, ödeme işaretleri, olaylar, bildirimler,
+  odadaki mesajlar (en fazla 2000); yazdırılabilir HTML, `?indir=1` dosya. Yalnızca taraflar + admin; her indirme `privacy_audit_log` (`collab_record_export`).
+  Mobil `/api/mobile/collaborations/[id]/record` 10 dk geçerli imzalı bağlantı (HMAC, anahtar `RECORD_LINK_SECRET` ya da service role anahtarından türetilir).
+- ✅ ~~**15.1-N7**~~ (rozetler) "Zamanında Ödeme" (marka) ve "Zamanında Teslim" (influencer); eşikler `TRUST_BADGE_RULES` (≥3, ≥%90, son 12 ayda haklı bulunmuş
+  anlaşmazlık yok); saatlik görev `sweepTrustBadges`, kural bozulunca geri alınır. Profil "Güvenilirlik" kartında ve iş birliği sayfasında geç ödeme / geç teslim sayısı (yalnızca sayım).
+- ✅ ~~**15.1-N8**~~ (mobil) `/api/mobile/commitment`, `/api/mobile/collaborations/[id]` (yeni işlemler: `report_nondelivery`, `dispute_respond`, `dispute_mark_resolved`,
+  `dispute_confirm_resolved`, `dispute_escalate`), `/dispute-proof` (yükleme adresi / görüntüleme), `/record`; ekranlar: `CollaborationDetailScreen` (vade, uyarı, durum,
+  `components/CollaborationTrust.js`), `AccountHoldNotice` (+ itiraz), teklif ve ilan formlarında taahhüt.
+
+### 15.2 Açık
+- **15.2-S1 [YÜKSEK]** SQL canlıya uygulanmadı: `supabase/manual/2026-11-23_guvenli_is_birligi.sql` (itiraz SQL'i ve KVKK SQL'inden sonra; önce çalıştırıldıysa sonra tekrar çalıştırın,
+  tür / günlük kısıtları genişletilir). Yerel Postgres 16'da yer tutucu tablolarla iki kez çalıştırıldı, tetikleyici davranışı denendi.
+- **15.2-N1 [AVUKAT]** Taahhüt metni kullanıcının verdiği şekliyle yazıldı; **avukat kontrolü bekliyor** (`COMMITMENT_TEXT`, metin değişirse `COMMITMENT_VERSION` değişir, markalar yeniden onaylar).
+- **15.2-N2 [KARAR]** Askıya alınan hesap yalnızca yeni ilan / teklif / başvuru yapamaz; giriş, mesaj, süren iş birlikleri açık; keşifte görünmeye devam eder. Daha geniş kısıt istenirse karar.
+- **15.2-N3** Kanıt dosyaları ve anlaşmazlık kayıtları için saklama süresi yok (14.4-S5 ile birlikte).
+
+---
+
+## 16. Influcash (puan, 2026-11-23; `claude/trust-influcash`)
+
+> Sahip kararları: puan **paraya çevrilemez, devredilemez**; puanla Spotlight indirim kodu (`IM-…`, mevcut görev kodu yolu) ve Spotlight günü
+> (görev ödülü yolu, `syncUserSpotlight` görür) alınır; markalar da kazanır; iş ortağı kuponları yalnızca altyapı. Bayrak `influcash_enabled`
+> **varsayılan KAPALI**: kapalıyken hiçbir puan yazılmaz, arayüz gizli. Kurallar `lib/influcash-shared.ts` (mobil `mobile-app/constants/influcash.js`),
+> sunucu `lib/influcash.ts`. SQL `supabase/manual/2026-11-23_influcash.sql` (= `supabase/migrations/20261123000030_influcash.sql`), **canlıda değil**.
+
+### 16.1 Yapılanlar
+- ✅ ~~**16.1-N1**~~ (defter) `influcash_ledger` (yalnızca ekleme; kullanıcı + neden + referans benzersiz → çift ödül yok), `influcash_balances` (aynı işlemde güncellenir),
+  `influcash_apply` / `influcash_redeem` (yalnızca service role). RLS: kullanıcı yalnızca kendi hareket ve bakiyesini okur; istemci yazımı yok.
+- ✅ ~~**16.1-N2**~~ (kazanım) tamamlanan iş birliği (iki taraf ödemeyi teyit edince, iki tarafa; ödeme işaretinde anlık + saatlik tarama), teslimat başına zamanında teslim,
+  zamanında ödeme (marka), günlük giriş (İstanbul günü, 7 / 30 gün serisi, aylık üst sınır; web panel açılışı `DailyLoginPing`, mobil ana sayfa `InflucashDaily`),
+  görev onayı (tür başına tutar), bir kez profil tamamlama ve hesap doğrulama. Tutarlar ve sınırlar `platform_settings.influcash_rules`, admin düzenler.
+  Geri alım: iptal edilen iş birliği ve haklı bulunan (upheld) anlaşmazlık o iş birliğinin kazanımlarını eksi hareketle geri alır; harcamada eksi bakiye 0 sayılır.
+- ✅ ~~**16.1-N3**~~ (katalog ve harcama) `influcash_catalog` (ad, puan, kitle, tür, paket / gün / yüzde, aktif, isteğe bağlı stok); harcama tek işlemde (bakiye kilidi,
+  saatlik sınır, stok, ödül kaydı `task_rewards` kaynak `influcash`, harcama hareketi). İndirim kodu hemen kullanılabilir (ödeme sayfası); Spotlight günü satış açıksa hemen
+  (abonelik kaydı `reward`), değilse "Ödülleri hesaplara işle" ile. `task_rewards.submission_id` boş olabilir (Görevler sayfası bu kayıtları göstermez).
+- ✅ ~~**16.1-N4**~~ (arayüz) web `/dashboard/influcash` (bakiye, ödüller, nasıl kazanılır, alınan ödüller + kodlar, geçmiş), menüde bakiye çipi; admin `/admin/influcash`
+  (bayraklar onaylı, kurallar, katalog, iş ortağı kodları, kullanıcı hareketleri, neden zorunlu elle düzeltme); mobil `Influcash` ekranı (Profil'den), `/api/mobile/influcash`
+  (`?ozet=1`, POST harcama), `/api/mobile/influcash/daily`.
+
+### 16.2 Açık
+- **16.2-S1 [YÜKSEK]** SQL canlıya uygulanmadı: `supabase/manual/2026-11-23_influcash.sql` (görev ve ödeme SQL'lerinden sonra). Yerel Postgres 16'da iki kez çalıştırıldı;
+  harcama fonksiyonu (kitle, stok, bakiye, saatlik sınır, kod) denendi.
+- **16.2-N1 [KARAR]** Influcash toplu testten sonra admin açar; katalog boş gelir (ödüller ve puan tutarları sahibin kararı; varsayılan tutarlar yer tutucudur).
+- **16.2-N2** İş ortağı kuponları yalnızca altyapı (`influcash_partner_coupons_enabled` kapalı); iş ortaklığı başlayınca açılır.
+- **16.2-N3** "Verilerimi indir" (`lib/data-export.ts`) Influcash hareketlerini henüz içermiyor (görev ödülleri içeriyor); eklenmeli.
+- **16.2-N4** İndirim yüzdesi için iyzico'da indirimli plan olmalı (`scripts/iyzico-sync-plans.mjs --discounts=…`); katalogdaki yüzdeler betikle eşleşmeli.

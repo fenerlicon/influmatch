@@ -6,14 +6,17 @@
 // - Her ret bir karar kaydıdır (moderation_decisions). Kullanıcı karar başına bir kez itiraz eder (moderation_appeals,
 //   karar başına tek satır). Admin yanıtladıktan sonra aynı karara ikinci itiraz yok; asıl işi (yeni belge, yeni gönderim) yeniden gönderebilir.
 
-export type ModerationSubjectType = 'account' | 'tax_document' | 'task_submission'
+// collaboration_dispute (2026-11-23, SYSTEM_MAP 15): ödeme / teslim anlaşmazlığında admin'in askıya alma kararı. Karar türü "suspended";
+// itiraz kabul edilirse askıya alma kalkar ve anlaşmazlık yeniden incelemeye alınır (lib/collaboration-disputes.ts).
+export type ModerationSubjectType = 'account' | 'tax_document' | 'task_submission' | 'collaboration_dispute'
 
-export const MODERATION_SUBJECT_TYPES: readonly ModerationSubjectType[] = ['account', 'tax_document', 'task_submission']
+export const MODERATION_SUBJECT_TYPES: readonly ModerationSubjectType[] = ['account', 'tax_document', 'task_submission', 'collaboration_dispute']
 
 export const MODERATION_SUBJECT_LABELS: Record<ModerationSubjectType, string> = {
   account: 'Hesap onayı',
   tax_document: 'Vergi levhası',
   task_submission: 'Görev gönderimi',
+  collaboration_dispute: 'Askıya alma (iş birliği anlaşmazlığı)',
 }
 
 export interface ReasonOption {
@@ -44,6 +47,13 @@ export const MODERATION_REASONS: Record<ModerationSubjectType, ReasonOption[]> =
     { code: 'rules_violation', label: 'Kurallara aykırı içerik' },
     { code: 'other', label: 'Diğer' },
   ],
+  collaboration_dispute: [
+    { code: 'payment_not_made', label: 'Ödeme yapılmadı, kanıt sunulmadı' },
+    { code: 'delivery_not_made', label: 'Teslim yapılmadı, kanıt sunulmadı' },
+    { code: 'proof_invalid', label: 'Sunulan kanıt geçersiz' },
+    { code: 'repeated', label: 'Tekrarlanan anlaşmazlık' },
+    { code: 'other', label: 'Diğer' },
+  ],
 }
 
 export const REASON_TEXT_MAX = 500
@@ -66,6 +76,7 @@ export const APPEAL_ACCEPT_EFFECT: Record<ModerationSubjectType, string> = {
   account: 'Hesap yeniden "Bekleyen" durumuna alınır; onayı Kullanıcılar sayfasından ayrıca verirsiniz.',
   tax_document: 'Vergi levhası yeniden "İnceleme gerekli" durumuna alınır; onayı kullanıcı kartından verirsiniz.',
   task_submission: 'Gönderim yeniden "İncelemede" durumuna alınır; onayı Görevler sayfasından verirsiniz.',
+  collaboration_dispute: 'Askıya alma kalkar; anlaşmazlık yeniden "İncelemede" olur (hesap yine yeni ilan / teklif / başvuru yapamaz). Kararı Anlaşmazlıklar sayfasından yeniden verirsiniz.',
 }
 
 export interface DecisionReasonInput {

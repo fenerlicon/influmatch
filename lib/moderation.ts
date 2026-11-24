@@ -80,6 +80,7 @@ export function isMissingTableError(error: { code?: string; message?: string } |
 export function moderationLink(subjectType: ModerationSubjectType): string {
   if (subjectType === 'tax_document') return '/dashboard/brand/profile?bolum=vergi'
   if (subjectType === 'task_submission') return '/dashboard/tasks'
+  if (subjectType === 'collaboration_dispute') return '/dashboard/account-status'
   return '/dashboard'
 }
 
@@ -91,6 +92,8 @@ export interface RecordDecisionInput {
   userId: string
   reason: DecisionReason
   decidedBy: string
+  /** Varsayılan 'rejected'. Askıya alma kararı (collaboration_dispute) 'suspended'. */
+  decision?: 'rejected' | 'suspended'
 }
 
 /** Ret kararını kaydeder. Tablo yoksa ya da yazılamazsa null döner; asıl ret işlemi bundan etkilenmez. */
@@ -101,7 +104,7 @@ export async function recordDecision(admin: SupabaseClient, input: RecordDecisio
       subject_type: input.subjectType,
       subject_id: input.subjectId,
       user_id: input.userId,
-      decision: 'rejected',
+      decision: input.decision ?? 'rejected',
       reason_code: input.reason.code,
       reason_text: input.reason.text,
       decided_by: input.decidedBy,
@@ -186,6 +189,19 @@ async function currentDecisionIds(admin: SupabaseClient, rows: DecisionRow[]): P
       )
       for (const r of tasks) if (currentSubs.has(r.subject_id)) out.add(r.id)
     }
+  }
+
+  // Askıya alma (2026-11-23): anlaşmazlık hâlâ "upheld" ve bu anlaşmazlığa bağlı askıya alma sürüyorsa karar geçerli.
+  const disputes = byType('collaboration_dispute')
+  if (disputes.length) {
+    const ids = disputes.map((r) => r.subject_id)
+    const [{ data: rows }, { data: holds }] = await Promise.all([
+      admin.from('collaboration_disputes').select('id, status').in('id', ids),
+      admin.from('account_holds').select('dispute_id').in('dispute_id', ids).eq('kind', 'suspended').is('released_at', null),
+    ])
+    const upheld = new Set(((rows ?? []) as Array<{ id: string; status: string }>).filter((d) => d.status === 'upheld').map((d) => d.id))
+    const held = new Set(((holds ?? []) as Array<{ dispute_id: string }>).map((h) => h.dispute_id))
+    for (const r of disputes) if (upheld.has(r.subject_id) && held.has(r.subject_id)) out.add(r.id)
   }
   return out
 }
@@ -528,6 +544,28 @@ async function revertDecision(admin: SupabaseClient, decision: DecisionRow, isCu
     if (error) return { ok: false, error: `Vergi levhası durumu değiştirilemedi: ${error.message}` }
     return { ok: true, changed: (data ?? []).length > 0 }
   }
+  if (decision.subject_type === 'collaboration_dispute') {
+    // Askıya alma kalkar, anlaşmazlık yeniden incelemeye alınır (hesap inceleme kısıtıyla yeni ilan / teklif / başvuru yapamaz).
+    const { data, error } = await admin
+      .from('collaboration_disputes')
+      .update({ status: 'escalated', decided_at: null, decided_by: null, updated_at: now })
+      .eq('id', decision.subject_id)
+      .eq('status', 'upheld')
+      .select('id')
+    if (error) return { ok: false, error: `Anlaşmazlık durumu değiştirilemedi: ${error.message}` }
+    if (!(data ?? []).length) return { ok: true, changed: false }
+    await admin
+      .from('account_holds')
+      .update({ released_at: now })
+      .eq('dispute_id', decision.subject_id)
+      .eq('kind', 'suspended')
+      .is('released_at', null)
+    // Aynı anlaşmazlık için açık inceleme kısıtı varsa benzersiz indeks ikinciyi reddeder (23505); sorun değil.
+    await admin
+      .from('account_holds')
+      .insert({ user_id: decision.user_id, kind: 'review', dispute_id: decision.subject_id, reason: 'İtiraz kabul edildi; anlaşmazlık yeniden inceleniyor.' })
+    return { ok: true, changed: true }
+  }
   const { data, error } = await admin
     .from('task_submissions')
     .update({ status: 'in_review', reviewed_by: null, reviewed_at: null, updated_at: now })
@@ -602,6 +640,7 @@ export async function resolveAppealAsAdmin(
     account: 'Hesabın yeniden incelemeye alındı. Sonucu ayrıca bildireceğiz.',
     tax_document: 'Vergi levhan yeniden incelemeye alındı. Sonucu ayrıca bildireceğiz.',
     task_submission: 'Görev gönderimin yeniden incelemeye alındı. Sonucu ayrıca bildireceğiz.',
+    collaboration_dispute: 'Hesabının askıya alınması kaldırıldı; anlaşmazlık yeniden inceleniyor. Sonucu ayrıca bildireceğiz.',
   }
   await notifyUser(
     {

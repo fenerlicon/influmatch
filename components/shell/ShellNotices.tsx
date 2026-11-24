@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Hourglass, Mail, UserRoundPlus } from 'lucide-react'
+import { Hourglass, Mail, ShieldAlert, UserRoundPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { Button, ButtonLink, Notice, type NoticeTone } from '@/components/ui'
@@ -12,6 +12,8 @@ export type ShellNotice =
   | { kind: 'email_unconfirmed'; email: string }
   | { kind: 'social_missing'; profileHref: string }
   | { kind: 'verification_pending' }
+  // Güvenli iş birliği (2026-11-23): ödeme / teslim anlaşmazlığında inceleme ya da admin kararıyla askıya alma.
+  | { kind: 'account_hold'; hold: 'review' | 'suspended'; reason: string | null }
 
 function ResendEmailButton({ email }: { email: string }) {
   const supabase = useSupabaseClient()
@@ -58,6 +60,21 @@ function render(n: ShellNotice, meta?: React.ReactNode) {
           {...common}
         >
           Profilinin onaylanması ve eşleşebilmen için gerekli.
+        </Notice>
+      )
+    case 'account_hold':
+      return (
+        <Notice
+          key={n.kind}
+          tone={n.hold === 'suspended' ? 'danger' : 'warning'}
+          icon={ShieldAlert}
+          title={n.hold === 'suspended' ? 'Hesabın askıya alındı.' : 'Hesabın incelemede.'}
+          action={n.hold === 'suspended' ? <ButtonLink href="/dashboard/account-status" size="sm">Ayrıntı ve itiraz</ButtonLink> : undefined}
+          {...common}
+        >
+          {n.hold === 'suspended'
+            ? `Yeni ilan, teklif ve başvuru yapamazsın.${n.reason ? ` Neden: ${n.reason}` : ''}`
+            : 'Bir ödeme / teslim bildirimine süresinde yanıt verilmedi. Destek ekibi karar verene kadar yeni ilan, teklif ve başvuru yapamazsın; kanıtını iş birliği sayfasından yükleyebilirsin.'}
         </Notice>
       )
     case 'verification_pending':

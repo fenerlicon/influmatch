@@ -9,6 +9,7 @@ import { Button, Field, Input, Modal, Notice, Select, Textarea } from '@/compone
 import { createOffer, deleteOfferTemplate, getLastOfferDraft, listOfferTemplates, saveOfferTemplate } from '@/app/profile/actions'
 import { OFFER_CAMPAIGN_TYPES, OFFER_TEMPLATE_LIMIT } from '@/lib/offer-shared'
 import type { OfferDraft, OfferTemplate } from '@/lib/offer-templates'
+import { handleCommitmentError } from '@/components/trust/CommitmentDialog'
 
 interface OfferModalProps {
   receiverId: string
@@ -177,6 +178,8 @@ export default function OfferModal({
         })
 
         if ('error' in result) {
+          // Taahhüt eksikse (2026-11-23) pencere açılır; onaydan sonra teklif yeniden gönderilir.
+          if (handleCommitmentError(result.error)) return
           toast.error(result.error)
           return
         }

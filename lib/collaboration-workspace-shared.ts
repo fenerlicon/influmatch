@@ -58,6 +58,12 @@ export type WorkspaceActionName =
   | 'confirm_payment'
   | 'unconfirm_payment'
   | 'report_nonpayment'
+  // Güvenli iş birliği (2026-11-23, lib/collaboration-disputes.ts)
+  | 'report_nondelivery'
+  | 'dispute_respond'
+  | 'dispute_mark_resolved'
+  | 'dispute_confirm_resolved'
+  | 'dispute_escalate'
 
 export const WORKSPACE_ACTIONS: WorkspaceActionName[] = [
   'save_agreement',
@@ -71,6 +77,11 @@ export const WORKSPACE_ACTIONS: WorkspaceActionName[] = [
   'confirm_payment',
   'unconfirm_payment',
   'report_nonpayment',
+  'report_nondelivery',
+  'dispute_respond',
+  'dispute_mark_resolved',
+  'dispute_confirm_resolved',
+  'dispute_escalate',
 ]
 
 export type DeliverableAction = 'submit_draft' | 'approve_draft' | 'request_revision' | 'publish_deliverable'
@@ -89,6 +100,8 @@ export interface AgreementInput {
   usage_rights?: string | null
   revision_limit: number
   deliverables: DeliverableInput[]
+  /** Ödeme vadesi YYYY-AA-GG (2026-11-23; nakit ödemede yeni kayıtta zorunlu). */
+  payment_due_date?: string | null
 }
 
 /** "X / Y revize kullanıldı" */

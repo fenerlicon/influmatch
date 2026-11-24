@@ -9,6 +9,8 @@ import { OWN_PROFILE_COLUMNS } from '../lib/userColumns';
 import { formatBudget, daysLeft } from '../lib/format';
 import { advertCategoryLabel, advertFitsCategory } from '../constants/categories';
 import AccountStatusCard from '../components/AccountStatusCard';
+import AccountHoldNotice from '../components/AccountHoldNotice';
+import InflucashDaily from '../components/InflucashDaily';
 import {
     Screen, LargeHeader, Logo, Section, Text, Button, IconButton, Card, ListGroup, ListRow, IconBox, Avatar,
     Chip, Notice, EmptyState, colors,
@@ -119,6 +121,8 @@ export default function DashboardScreen({ navigation }) {
         >
             {notices.length ? <Notice {...notices[0]} more={notices.length > 1 ? notices.length - 1 : undefined} /> : null}
 
+            <AccountHoldNotice />
+            <InflucashDaily />
             <AccountStatusCard navigation={navigation} />
 
             <Section title={fittingCount ? 'Kategorine uygun ilanlar' : 'Yeni ilanlar'} action="Tümü" onAction={() => navigation.navigate('İlanlar')}>

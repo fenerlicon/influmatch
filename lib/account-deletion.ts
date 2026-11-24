@@ -14,7 +14,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const PERMANENT_BAN = '876000h' // ~100 yıl
 // `{uid}/` klasörüyle saklanan kovalar
-const USER_FOLDER_BUCKETS = ['avatars', 'tax-documents', 'task-proofs', 'advert-hero-images', 'appeal-files'] as const
+// payment-proofs (2026-11-23): ödeme dekontu / teslim kanıtı, {uid}/{anlaşmazlık}/{dosya} (bir alt klasör, NESTED_FOLDER_DEPTH).
+const USER_FOLDER_BUCKETS = ['avatars', 'tax-documents', 'task-proofs', 'advert-hero-images', 'appeal-files', 'payment-proofs'] as const
+const NESTED_FOLDER_DEPTH: Partial<Record<(typeof USER_FOLDER_BUCKETS)[number], number>> = { 'payment-proofs': 1 }
 const LIST_PAGE = 1000
 const LIST_MAX = 10000
 
@@ -72,7 +74,7 @@ async function collectUserFiles(admin: SupabaseClient, userId: string, avatarUrl
   const targets: FileTargets = new Map()
 
   for (const bucket of USER_FOLDER_BUCKETS) {
-    for (const path of await listFolderFiles(admin, bucket, userId, 0)) addTarget(targets, bucket, path)
+    for (const path of await listFolderFiles(admin, bucket, userId, NESTED_FOLDER_DEPTH[bucket] ?? 0)) addTarget(targets, bucket, path)
   }
 
   const fromUrl = (url: unknown, bucket: string) => {

@@ -36,7 +36,11 @@ Elektronik İletiler Hakkında Yönetmelik (İYS); 5651 sayılı Kanun (yer sağ
 | Davranış verisi: son görülme, profil görüntüleme (kim kimi, günde bir), ilan görüntüleme olayları, okundu bilgisi | `user_activity`, `profile_views`, `analytics_events`, `room_reads` | Sunucu; profil sahibi yalnızca sayı görür |
 | Push token (cihaz) | `users.push_token` | Yalnızca sunucu |
 | Rıza kayıtları (yeni) | `consent_records` | Yalnızca sunucu |
-| Hassas erişim günlüğü (yeni) | `privacy_audit_log` | Yalnızca sunucu |
+| Hassas erişim günlüğü (yeni) | `privacy_audit_log` (2026-11-23: iş birliği kaydı indirme ve kanıt dosyası açma da yazılır) | Yalnızca sunucu |
+| Güvenli iş birliği (2026-11-23, SYSTEM_MAP 15): marka taahhüdü (sürüm + zaman), ödeme vadesi, hatırlatma günlüğü, ödeme / teslim anlaşmazlıkları (notlar, yanıt, karar), hesap kısıtları | `collaboration_commitments`, `collaboration_agreements.payment_due_date`, `collaboration_reminders`, `collaboration_disputes`, `account_holds` | Taraflar sunucu üzerinden kendi kayıtlarını; admin. İstemcilere kapalı (taahhüt yalnızca sahibine) |
+| Ödeme dekontu / teslim kanıtı (banka adı, tutar, hesap sahibi gibi bilgiler içerebilir) | Storage `payment-proofs/{uid}/{anlaşmazlık}/` (gizli) | Anlaşmazlığın iki tarafı ve admin, 10 dk imzalı bağlantı; her açılış günlükte. Hesap silmede silinir |
+| Influcash (2026-11-23, SYSTEM_MAP 16): puan hareketleri (neden, referans, admin notu), bakiye, harcamalar, alınan kodlar | `influcash_ledger`, `influcash_balances`, `influcash_redemptions`, `task_rewards` (kaynak influcash) | Kullanıcı kendi hareket / bakiyesini; admin. "Verilerimi indir"e henüz eklenmedi (16.2-N3) |
+| İş birliği kaydı dışa aktarımı (anlaşma, teslimatlar, ödeme işaretleri, odadaki iki tarafın mesajları) | Kalıcı dosya yok; istekte üretilir | Yalnızca taraflar + admin; indirme günlükte. Karşı tarafın mesajlarını da içerir (yasal süreç amacı, avukata sorulacak) |
 | Tarayıcıda | Supabase oturum çerezleri (`sb-*`), `im_cookie_consent` (12 ay), şifre sıfırlama çerezleri (`im_pw_reset_req` 1 saat, `im_pw_recovery` 15 dk), OAuth durum çerezi (kapalı özellik); localStorage: onboarding taslağı, çerez tercihi eşitleme işareti | Kullanıcının tarayıcısı |
 | IP adresi | Uygulama **kendi tablosunda IP tutmuyor**. Supabase Auth denetim kayıtları ve Vercel istek kayıtları IP içerir (servis sağlayıcı tarafı). | Servis sağlayıcı panelleri |
 

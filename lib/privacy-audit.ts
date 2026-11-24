@@ -5,7 +5,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isMissingTableError } from '@/lib/consent'
 
-export type PrivacyAuditAction = 'tax_document_view' | 'attachment_view' | 'task_proof_view' | 'data_export'
+export type PrivacyAuditAction = 'tax_document_view' | 'attachment_view' | 'task_proof_view' | 'data_export' | 'collab_record_export' | 'payment_proof_view'
 
 export async function logPrivacyAccess(
   admin: SupabaseClient | null,

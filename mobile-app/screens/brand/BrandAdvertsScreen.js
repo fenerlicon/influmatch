@@ -5,6 +5,7 @@ import { decode } from 'base64-arraybuffer';
 import { Plus, ChevronRight, Pause, Play, Trash2, Pencil, Ellipsis, ImagePlus, Inbox, Megaphone, Bookmark } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { apiRequest } from '../../lib/api';
+import { askCommitment, isCommitmentError } from '../../lib/commitment';
 import { COLLAB_STAGE_SHORT, loadApplicationCollabs } from '../../constants/collaborations';
 import { useFocusEffect } from '@react-navigation/native';
 import { formatBudget, formatCount, formatPercent, formatTRY, daysLeft } from '../../lib/format';
@@ -407,6 +408,12 @@ export default function BrandAdvertsScreen({ navigation, route }) {
             }
 
             const result = await apiRequest('adverts', { method: 'POST', body });
+            // Taahhüt eksikse (2026-11-23) sorulur; onaylanınca ilan yeniden kaydedilir.
+            if (result.error && isCommitmentError(result.error)) {
+                setSaving(false);
+                if (await askCommitment()) await createProject();
+                return;
+            }
             if (result.error) throw new Error(result.error);
 
             if (editMode && selectedProject?.id === editId) {

@@ -1,6 +1,8 @@
 // Rozet kataloğu: web'deki app/badges/data.ts ile aynı tutulur (adlar, açıklamalar, aşamalar).
 import {
     BadgeCheck,
+    CalendarCheck,
+    Wallet,
     Crown,
     UserCheck,
     Megaphone,
@@ -67,6 +69,13 @@ export const influencerBadges = [
     icon: Zap,
     phase: 'mvp',
   },
+  {
+    id: 'on-time-delivery',
+    name: 'Zamanında Teslim',
+    description: 'En az 3 tamamlanan iş birliği; tarihli teslimatların en az %90’ı tarihinde, son 12 ayda haklı bulunan teslim bildirimi yok.',
+    icon: CalendarCheck,
+    phase: 'mvp',
+  },
   // v1.2 (Silver)
   {
     id: 'five-star',
@@ -128,6 +137,13 @@ export const brandBadges = [
     name: 'Elit Bütçe',
     description: '50.000 TL ve üzeri bütçeli ilan veya teklif.',
     icon: Gem,
+    phase: 'mvp',
+  },
+  {
+    id: 'on-time-payment',
+    name: 'Zamanında Ödeme',
+    description: 'İki tarafça teyitli ödemesi olan en az 3 iş birliği; vadeli ödemelerin en az %90’ı vadesinde, son 12 ayda haklı bulunan ödeme bildirimi yok.',
+    icon: Wallet,
     phase: 'mvp',
   },
   // v1.2 (Silver)
@@ -205,6 +221,8 @@ export const BADGE_REQUIREMENTS = {
     'brand-ambassador': AUTOMATIC,
     'jet-approval': AUTOMATIC,
     'elite-budget': AUTOMATIC,
+    'on-time-payment': AUTOMATIC,
+    'on-time-delivery': AUTOMATIC,
 };
 
 export const badgeRequirement = (id) => BADGE_REQUIREMENTS[id] || 'Bu rozet yakında kazanılabilir olacak.';

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
+import { useInflucashSummary } from '../../lib/influcash';
 import { View, Alert, ActivityIndicator, Pressable, Linking } from 'react-native';
-import { Camera, LogOut, ShieldCheck, FileText, LifeBuoy, Settings, Pencil, Award, Sparkles, ExternalLink, Trophy } from 'lucide-react-native';
+import { Camera, LogOut, ShieldCheck, FileText, LifeBuoy, Settings, Pencil, Award, Sparkles, ExternalLink, Trophy, Coins } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { signOutAndClearPush } from '../../utils/notifications';
@@ -24,6 +25,7 @@ const FIELDS = [
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function BrandProfileScreen({ navigation }) {
+    const influcash = useInflucashSummary();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -199,6 +201,7 @@ export default function BrandProfileScreen({ navigation }) {
                     <ListRow onPress={() => navigation.navigate('Badges')} left={<IconBox icon={Award} />} title="Rozetler" chevron />
                     <ListRow onPress={() => navigation.navigate('Spotlight')} left={<IconBox icon={Sparkles} tone="gold" />} title="Spotlight" subtitle="Akıllı eşleştirme ve öne çıkma" chevron />
                     <ListRow onPress={() => navigation.navigate('Tasks')} left={<IconBox icon={Trophy} tone="gold" />} title="Görevler" subtitle="İlk ilan, teklif ve iş birliği görevleri" chevron />
+                    {influcash.enabled ? <ListRow onPress={() => navigation.navigate('Influcash')} left={<IconBox icon={Coins} tone="gold" />} title="Influcash" subtitle={`${influcash.balance.toLocaleString('tr-TR')} puan · ödüller`} chevron /> : null}
                 </ListGroup>
             </Section>
 

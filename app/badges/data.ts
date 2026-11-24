@@ -1,4 +1,4 @@
-import { BadgeCheck, Crown, UserCheck, Megaphone, Zap, Star, TrendingUp, Trophy, Wand2, Building, Rocket, LayoutTemplate, MessageCircleHeart, Gem, Repeat, Globe2, type LucideIcon } from 'lucide-react'
+import { BadgeCheck, CalendarCheck, Crown, Wallet, UserCheck, Megaphone, Zap, Star, TrendingUp, Trophy, Wand2, Building, Rocket, LayoutTemplate, MessageCircleHeart, Gem, Repeat, Globe2, type LucideIcon } from 'lucide-react'
 
 export type BadgePhase = 'mvp' | 'v1.2' | 'v1.3'
 
@@ -58,6 +58,13 @@ export const influencerBadges: Badge[] = [
     name: 'Hızlı Dönüş',
     description: 'Son 90 günde mesajlara ortalama 2 saatin altında yanıt (en az 5 yanıt).',
     icon: Zap,
+    phase: 'mvp',
+  },
+  {
+    id: 'on-time-delivery',
+    name: 'Zamanında Teslim',
+    description: 'En az 3 tamamlanan iş birliği; tarihli teslimatların en az %90’ı tarihinde, son 12 ayda haklı bulunan teslim bildirimi yok.',
+    icon: CalendarCheck,
     phase: 'mvp',
   },
   // v1.2 (Silver)
@@ -121,6 +128,13 @@ export const brandBadges: Badge[] = [
     name: 'Elit Bütçe',
     description: '50.000 TL ve üzeri bütçeli ilan veya teklif.',
     icon: Gem,
+    phase: 'mvp',
+  },
+  {
+    id: 'on-time-payment',
+    name: 'Zamanında Ödeme',
+    description: 'İki tarafça teyitli ödemesi olan en az 3 iş birliği; vadeli ödemelerin en az %90’ı vadesinde, son 12 ayda haklı bulunan ödeme bildirimi yok.',
+    icon: Wallet,
     phase: 'mvp',
   },
   // v1.2 (Silver)

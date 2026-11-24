@@ -16,6 +16,7 @@ import type { InviteOutcome } from '@/lib/campaigns'
 import { cn } from '@/utils/cn'
 import WizardSteps from './WizardSteps'
 import { formatFollowers } from './campaign-ui'
+import { handleCommitmentError } from '@/components/trust/CommitmentDialog'
 
 interface Props {
   campaignId: string
@@ -73,6 +74,7 @@ export default function CampaignInvite({ campaignId, campaignName, totalBudget, 
       }
       if ('outcome' in result && result.outcome) {
         setOutcome(result.outcome)
+        handleCommitmentError(result.outcome.quotaError)
         router.refresh()
       }
     })

@@ -14,6 +14,7 @@ import { dispatchInstantAdvertAlerts } from '@/lib/advert-alerts'
 import { runInBackground } from '@/lib/background'
 import { ANSWER_MAX_LENGTH, isQuestionRequired, type AdvertAnswer, type AdvertQuestion } from '@/lib/adverts-shared'
 import { ADVERT_GENERAL_CATEGORY, isAdvertCategoryKey } from '@/utils/categories'
+import { trustErrorFromDb, trustGateFor } from '@/lib/collaboration-trust'
 
 export type AdvertStatus = 'open' | 'paused' | 'closed'
 export type ApplicationStatus = 'pending' | 'shortlisted' | 'rejected' | 'accepted'
@@ -195,6 +196,11 @@ export async function saveAdvertAs(supabase: SupabaseClient, userId: string, inp
     return { success: true, id: input.id }
   }
 
+  // Güvenli iş birliği (2026-11-23): taahhüt onaylanmadan ya da hesap incelemede / askıdayken yeni ilan açılamaz.
+  // Hata metni COMMITMENT_REQUIRED_ERROR ise arayüz taahhüt penceresini açar.
+  const gate = await trustGateFor(userId, 'advert')
+  if (gate) return { error: gate.error }
+
   const limitError = await openAdvertLimitError(userId)
   if (limitError) return { error: limitError }
 
@@ -202,7 +208,7 @@ export async function saveAdvertAs(supabase: SupabaseClient, userId: string, inp
   const { data: created, error } = await supabase.from('advert_projects').insert(row).select('id').single()
   if (error || !created) {
     console.error('[saveAdvert] insert error', error?.message)
-    return { error: brandLimitErrorFromDb(error?.message) ?? 'İlan oluşturulamadı. Lütfen tekrar deneyin.' }
+    return { error: brandLimitErrorFromDb(error?.message) ?? trustErrorFromDb(error?.message)?.error ?? 'İlan oluşturulamadı. Lütfen tekrar deneyin.' }
   }
   // Anlık ilan alarmı (Spotlight influencer'lar, 3.15-S1): yanıt beklemeden arka planda; kalanları saatlik görev tamamlar.
   await runInBackground('instant-advert-alerts', () => dispatchInstantAdvertAlerts(created.id as string))
@@ -320,6 +326,9 @@ export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, 
     return { error: 'Hesabınız henüz onaylanmadı. İlanlara başvurabilmek için hesabınızın onaylanması gerekmektedir.' }
   }
   if (!(await hasVerifiedSocialAccount(supabase, userId))) return { error: SOCIAL_VERIFICATION_REQUIRED }
+  // Güvenli iş birliği (2026-11-23): hesap incelemede / askıdayken yeni başvuru yapılamaz.
+  const gate = await trustGateFor(userId, 'application')
+  if (gate) return { error: gate.error }
 
   const coverLetter = input.coverLetter?.trim() ?? ''
   if (!coverLetter) return { error: 'Kısa bir niyet mesajı paylaşmalısınız.' }
@@ -351,6 +360,8 @@ export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, 
   })
   if (error) {
     if (error.code === '23505') return { error: 'Bu ilana zaten başvurdunuz.' }
+    const trustError = trustErrorFromDb(error.message)
+    if (trustError) return { error: trustError.error }
     console.error('[applyToAdvert] insert error', error.message)
     return { error: 'Başvuru kaydedilemedi. Lütfen tekrar deneyin.' }
   }

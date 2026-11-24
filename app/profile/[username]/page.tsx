@@ -13,6 +13,7 @@ import BrandLockScreen from '@/components/dashboard/BrandLockScreen'
 import { completedCollaborationCounts } from '@/lib/collaborations'
 import { brandReliability } from '@/lib/collaboration-workspace'
 import { reliabilityText } from '@/lib/collaboration-workspace-shared'
+import { lateStatsFor } from '@/lib/collaboration-trust'
 import { getVisibleRateCard } from '@/lib/rate-card'
 import RateCardView from '@/components/profile/RateCardView'
 import DiscoveryWheelCard from '@/components/dashboard/DiscoveryWheelCard'
@@ -172,6 +173,9 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
   const completedCollaborations = completedCounts.get(profile.id) ?? 0
   // Marka güvenilirliği (3.18): tamamlanan iş birliği ve influencer'ın ödemeyi teyit ettiği sayı (sunucuda, yalnızca sayılar).
   const reliability = isBrand ? (await brandReliability(supabase, [profile.id])).get(profile.id) ?? { completed: 0, confirmed: 0 } : null
+  // Gecikme sayıları (2026-11-23, yalnızca sayım; vade / teslim tarihi olan kayıtlar). Güvenli iş birliği SQL'i yoksa 0.
+  const lateStats = isBrand || isInfluencer ? await lateStatsFor(profile.id, isBrand ? 'brand' : 'influencer') : null
+  const lateRow = lateStats ? (isBrand ? lateStats.payments : lateStats.deliveries) : null
   const isOwnProfile = viewer?.id === profile.id
   // Portföyde iş birliği sonuçları (4.3-S7): başkalarına yalnızca profil sahibi Influencer Pro ise; sahibi her zaman görür
   // (gizle / göster + Pro değilse kilit notu). Kurallar sunucuda (lib/portfolio-results.ts).
@@ -369,6 +373,14 @@ export default async function ProfileDetailPage({ params, searchParams }: Profil
                   <div className="flex justify-between py-2.5">
                     <dt className="text-ink-muted">Ödemesi teyitli iş</dt>
                     <dd className="font-semibold tabular-nums">{reliability.confirmed}</dd>
+                  </div>
+                )}
+                {lateRow && lateRow.total > 0 && (
+                  <div className="flex justify-between border-t border-line py-2.5">
+                    <dt className="text-ink-muted">{isBrand ? 'Geç ödeme' : 'Geç teslim'}</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {lateRow.late} / {lateRow.total}
+                    </dd>
                   </div>
                 )}
                 {isInfluencer && (

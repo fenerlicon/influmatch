@@ -169,6 +169,35 @@ yeni görünüme henüz taşınmadı (REDESIGN, 3. aşama sürüyor). Bu sayfala
 - [ ] Mobil Spotlight ekranı: web aboneliği olan I1'de "Spotlight aktif · Kartla ödeme (web)" ve "Aktif aboneliğin var"; satın alma düğmesi yok (IAP kapalı).
 - [ ] **Bitince "Web satışı"nı kapat**; sandbox abonelikleri sandbox panelinden iptal et.
 
+## 7f. Güvenli iş birliği (SQL `2026-11-23_guvenli_is_birligi.sql` çalıştırıldıktan sonra; SYSTEM_MAP 15)
+
+- [ ] M1 panele girince "İş birliği taahhüdü" penceresi (oturumda bir kez); "Şimdi değil" → teklif gönder → pencere yeniden açılıyor, teklif gitmiyor.
+      Kutuyu işaretle → Onayla → teklif tekrar gönderilince gidiyor. Aynısı yeni ilan ve mobil teklif / ilan formu için (sistem penceresi).
+- [ ] Anlaşma özeti: nakit ödemede "Ödeme vadesi" boşsa kayıt reddediliyor; barter'da isteğe bağlı. Vade değişince iki onay sıfırlanıyor. Özette ve ödeme bölümünde kısa uyarı.
+- [ ] İş bitince (bütün teslimatlar onaylandı ya da tamamlandı) ve vade geçince: iki tarafta "Ödeme bekleniyor"; saatlik görevden sonra markaya hatırlatma (site içi + push + e-posta),
+      vadeyi geçmişe çekerek 3 / 7 / 14. gün adımlarını dene; aynı adım ikinci kez gitmiyor. Marka "Ödeme yapıldı" → "Onay bekleniyor" → 2. günden sonra influencer'a teyit hatırlatması.
+- [ ] I1 "Ödeme alamadım" (14 gün kuralı) → markaya "7 gün içinde yanıt verin"; M1 dekont (PDF / görsel) yükler → I1 "Kanıtı aç" görüyor → "Ödemeyi aldım, çözüldü" → kapandı, ödeme teyitli.
+- [ ] Yanıtsız: `collaboration_disputes.response_due_at`'ı SQL ile geçmişe çek → saatlik görev → M1 panelinde "Hesabın incelemede", yeni ilan / teklif reddediliyor; `/admin/disputes` "İncelemede" listesinde.
+- [ ] **A** "Karşı tarafı askıya al" (neden zorunlu) → M1 bant "askıya alındı" + `/dashboard/account-status`'ta itiraz → `/admin/appeals`'ta kabul → askı kalkıyor, anlaşmazlık yeniden "İncelemede".
+      "Kapat" ve "Ödendi olarak kapat" kısıtı kaldırıyor. Mobil ana sayfada aynı bant + itiraz kartı.
+- [ ] Teslim edilmedi: teslim tarihi 4+ gün geçmiş, onaylanmamış teslimatta M1 "Teslim edilmedi" → I1'e bildirim; aynı akış (influencer için yeni başvuru kapanıyor).
+- [ ] "İş birliği kaydını indir" (web + mobil): anlaşma, teslimatlar, ödeme işaretleri, olaylar, sohbet; yazdır → PDF. Taraf olmayan hesap ve oturumsuz istek 404 / 401.
+- [ ] Rozetler: 3 zamanında, iki tarafça teyitli ödeme → marka "Zamanında Ödeme"; geç ödeme oranı artınca saatlik görevde geri alınıyor. Influencer "Zamanında Teslim" benzer.
+      Profil "Güvenilirlik" kartında "Geç ödeme / Geç teslim X / Y".
+
+## 7g. Influcash (SQL `2026-11-23_influcash.sql` çalıştırıldıktan sonra; SYSTEM_MAP 16)
+
+- [ ] Bayrak kapalıyken: menüde Influcash yok, `/dashboard/influcash` 404, mobil Profil'de satır yok; görev onayında puan yazılmıyor.
+- [ ] **A** `/admin/influcash` → "Influcash açık" (onaylı). Katalog: %20 indirim kodu (herkes, 50 puan), 7 gün Basic (influencer, 300 puan, stok 1), 7 gün Basic (marka).
+- [ ] I1 panele girince "+2 Influcash" (günlük giriş), aynı gün tekrar girişte yok; profil %100 ve doğrulanmış hesapta bir kez +30 / +50. Mobil açılışta aynı (günde bir).
+- [ ] **A** elle düzeltme +300 (neden zorunlu) → I1 geçmişinde "Admin düzeltmesi". I1 indirim kodunu al → kod görünüyor; Spotlight ödeme sayfasında kullanılabiliyor (sandbox).
+- [ ] Bakiye yetmeyen ödül pasif ("bakiyen yetmiyor"); stok 1 olan ödül ikinci alışta "stoğu bitti"; saatte 5'ten fazla harcama reddediliyor.
+- [ ] Marka hesabında marka ödülü görünüyor, influencer ödülü görünmüyor.
+- [ ] İş birliği: iki taraf ödemeyi teyit edince iki tarafa +100, vadesinde ödemede markaya +50, tarihinde teslimat başına influencer'a +20 (bir kez; işareti kaldırıp yeniden koyunca tekrar yok).
+- [ ] İş birliğini iptal et (ya da anlaşmazlıkta askıya al) → aynı kazanımlar "Geri alındı" ile eksiye; bakiye eksiye düşerse harcamada 0 sayılıyor.
+- [ ] Görev onayı (A) → türüne göre puan + bildirim. Görevler sayfasında Influcash ödülleri görünmüyor; admin Görevler ödül listesinde "Influcash" başlığıyla görünüyor.
+- [ ] **Bitince karar:** bayrak açık mı kalacak, katalog ve tutarlar (16.2-N1).
+
 ## 8. Ücretsiz marka sınırları (kısa süre, canlıyı etkiler)
 
 - [ ] A `/admin/limits`'te bayrağı aç → M1 (Spotlight'sız): keşif çarkı, teklif günlük/aylık sınırı, aktif ilan sınırı, favori/liste kilidi.

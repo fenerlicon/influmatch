@@ -14,6 +14,7 @@ import { OFFER_EXPIRY_DAYS, OFFER_EXPIRY_MS, effectiveOfferStatus } from '@/lib/
 import { brandLimitErrorFromDb, getBrandLimitContext, getOfferQuota, offerQuotaError } from '@/lib/brand-limits'
 import { canBrandViewInfluencer, getWheelState } from '@/lib/discovery-wheel'
 import { closeOfferRoomOnWithdraw } from '@/lib/room-close'
+import { trustErrorFromDb, trustGateFor, type TrustGateCode } from '@/lib/collaboration-trust'
 
 export interface CreateOfferInput {
   receiverId: string
@@ -27,7 +28,7 @@ export interface CreateOfferInput {
 }
 
 /** Teklif oluşturma sonucu. code: 'quota' teklif hakkı doldu (toplu davet bu durumda durur). */
-export type CreateOfferResult = { success: true; offerId: string | null } | { error: string; code?: 'quota' | 'campaign' }
+export type CreateOfferResult = { success: true; offerId: string | null } | { error: string; code?: 'quota' | 'campaign' | TrustGateCode }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -87,6 +88,10 @@ export async function createOfferAs(
   if ('error' in fields) return { error: fields.error }
   const { campaignName, campaignType, budgetValue, paymentType, message } = fields
 
+  // Güvenli iş birliği (2026-11-23): taahhüt onaylanmadan ya da hesap incelemede / askıdayken teklif gönderilemez.
+  const gate = await trustGateFor(userId, 'offer')
+  if (gate) return gate
+
   // Kampanya bağlantısı: yalnızca markanın kendi taslak / aktif kampanyası (RLS'li oturum istemcisi yalnızca kendi
   // kampanyalarını döndürür; DB'de enforce_campaign_owner tetikleyicisi de yedek kontrol yapar).
   let campaignId: string | null = null
@@ -142,6 +147,8 @@ export async function createOfferAs(
     console.error('[createOffer] insert error:', error)
     const limitError = brandLimitErrorFromDb(error.message)
     if (limitError) return { error: limitError, code: 'quota' }
+    const trustError = trustErrorFromDb(error.message)
+    if (trustError) return trustError
     if (error.message?.includes('campaign_owner_mismatch')) return { error: 'Kampanya bulunamadı.', code: 'campaign' }
     return { error: 'Teklif gönderilemedi. Lütfen tekrar deneyin.' }
   }
