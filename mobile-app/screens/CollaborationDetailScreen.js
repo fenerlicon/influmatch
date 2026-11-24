@@ -8,6 +8,7 @@ import { apiRequest } from '../lib/api';
 import CampaignBrief from '../components/CampaignBrief';
 import DeliverableMetrics from '../components/DeliverableMetrics';
 import { DeliverableFileView, pickAndUploadDeliverable } from '../components/DeliverableFile';
+import ShippingSection from '../components/ShippingSection';
 import { DELIVERABLE_LOCK_NOTE, isDeliverableFileRef } from '../constants/deliverableFiles';
 import CollaborationTrust, { PaymentProgress } from '../components/CollaborationTrust';
 import { COMMITMENT_SHORT, lateCountText } from '../constants/trust';
@@ -391,6 +392,9 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                     </Card>
                 )}
             </Section>
+
+            {/* Barter teslimat adresi (2026-11-24) */}
+            <ShippingSection collaborationId={id} shipping={ws?.shipping} isBrand={isBrand} onSaved={load} />
 
             {/* Teslimatlar */}
             {deliverables.length > 0 ? (

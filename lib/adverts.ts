@@ -3,6 +3,7 @@
 //
 // BU DOSYA KASITLI OLARAK 'use server' DEĞİLDİR: istemciden çağrılamamalıdır.
 
+import { advertApplicationLimitReached } from '@/lib/brand-limits'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { storagePathFromPublicUrl } from '@/lib/account-deletion'
@@ -348,6 +349,11 @@ export async function applyToAdvertAs(supabase: SupabaseClient, userId: string, 
 
   const checked = validateAnswers(advert.custom_questions, input.answers)
   if ('error' in checked) return { error: checked.error }
+
+  // İlan başvuru sınırı (2026-11-24; markanın paketine göre, bayrak kapalıyken yok).
+  if (await advertApplicationLimitReached(advert.brand_user_id as string | null, advert.id as string)) {
+    return { error: 'Bu ilan başvuru sınırına ulaştı; yeni başvuru alınmıyor.' }
+  }
 
   const { error } = await supabase.from('advert_applications').insert({
     advert_id: input.advertId,

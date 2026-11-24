@@ -40,7 +40,7 @@ export default function BrandLockScreen({ status = 'pending' }: BrandLockScreenP
         </h2>
         <p className="mx-auto mt-2 max-w-md text-[13.5px] leading-relaxed text-ink-muted">
           {isPending
-            ? 'Keşfet’i, ayrıntılı istatistikleri ve iş birliği tekliflerini görmek için hesabının onaylanması gerekiyor. Güvenli bir topluluk için markaları tek tek inceliyoruz.'
+            ? 'Keşfet’i, ayrıntılı istatistikleri, influencer’ların fiyat kartlarını (“₺X’ten başlayan” başlangıç fiyatları) ve iş birliği tekliflerini görmek için hesabının onaylanması gerekiyor. Onaylanınca doğrulanmış marka olarak hepsini görürsün. Güvenli bir topluluk için markaları tek tek inceliyoruz.'
             : 'Hesabın onaylanmadı ya da kullanım koşullarına aykırılık nedeniyle askıya alındı. Ayrıntılar için destek ekibine yazabilirsin.'}
         </p>
 

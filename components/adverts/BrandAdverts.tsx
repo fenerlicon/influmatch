@@ -21,12 +21,14 @@ interface Props {
   currentUserId: string
   verificationStatus: 'pending' | 'verified' | 'rejected'
   hasSpotlight: boolean
+  /** İlan başına başvuru sınırı (paket; bayrak kapalıysa null = sınırsız). */
+  applicationLimit?: number | null
 }
 
 type TabKey = 'mine' | 'community'
 
 /** Marka İlanlar sayfası: ilanlarım + seçili ilanın başvuruları; diğer markaların ilanları ayrı sekmede. */
-export default function BrandAdverts({ myProjects, communityProjects, applications, currentUserId, verificationStatus, hasSpotlight }: Props) {
+export default function BrandAdverts({ myProjects, communityProjects, applications, currentUserId, verificationStatus, hasSpotlight, applicationLimit = null }: Props) {
   const router = useRouter()
   const params = useSearchParams()
   const verified = verificationStatus === 'verified'
@@ -276,6 +278,12 @@ export default function BrandAdverts({ myProjects, communityProjects, applicatio
 
           {selected && (
             <div ref={panelRef} className="scroll-mt-4">
+              {applicationLimit !== null && (byAdvert.get(selected.id)?.length ?? 0) >= applicationLimit && (
+                <Notice tone="warning" className="mb-3">
+                  Bu ilan başvuru sınırına ulaştı ({applicationLimit} başvuru); yeni başvuru alınmıyor. Daha fazla başvuru almak için{' '}
+                  <a href="/dashboard/spotlight/brand" className="underline underline-offset-2">paketini yükseltebilirsin</a>.
+                </Notice>
+              )}
               <ApplicationsPanel advertTitle={selected.title} applications={byAdvert.get(selected.id) ?? []} currentUserId={currentUserId} />
             </div>
           )}

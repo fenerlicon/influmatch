@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { getAdvertOwnerCards } from '@/lib/profile-reads'
 import { hasActiveSpotlight } from '@/lib/spotlight-access'
 import { collaborationStagesBySource } from '@/lib/collaborations'
+import { getBrandLimitContext } from '@/lib/brand-limits'
 
 export const revalidate = 0
 export const dynamic = 'force-dynamic'
@@ -28,6 +29,8 @@ export default async function BrandAdvertPage() {
     .single()
 
   const verificationStatus = (userProfile?.verification_status ?? 'pending') as 'pending' | 'verified' | 'rejected'
+  // İlan başvuru sınırı (2026-11-24): paket + bayrak; kapalıyken null.
+  const limitContext = await getBrandLimitContext(user.id)
 
   const [{ data: allOpenRows, error: openError }, { data: myRows, error: myError }] = await Promise.all([
     supabase
@@ -198,6 +201,7 @@ export default async function BrandAdvertPage() {
       currentUserId={user.id}
       verificationStatus={verificationStatus}
       hasSpotlight={hasActiveSpotlight(userProfile)}
+      applicationLimit={limitContext.active ? limitContext.limits.applicationsPerAdvert : null}
     />
   )
 }

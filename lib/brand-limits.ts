@@ -24,6 +24,8 @@ export interface BrandLimits {
   offersPerDay: number | null
   offersPerMonth: number | null
   activeAdverts: number | null
+  /** İlan başına başvuru (2026-11-24). */
+  applicationsPerAdvert: number | null
 }
 
 export interface BrandLimitContext {
@@ -36,7 +38,7 @@ export interface BrandLimitContext {
   wheel: boolean
 }
 
-const NO_LIMITS: BrandLimits = { offersPerDay: null, offersPerMonth: null, activeAdverts: null }
+const NO_LIMITS: BrandLimits = { offersPerDay: null, offersPerMonth: null, activeAdverts: null, applicationsPerAdvert: null }
 
 /** Sınır bağlamı. Ayar ya da kullanıcı okunamazsa sınır uygulanmaz (bugünkü davranış). */
 export async function getBrandLimitContext(userId: string, admin?: SupabaseClient | null): Promise<BrandLimitContext> {
@@ -62,11 +64,13 @@ export async function getBrandLimitContext(userId: string, admin?: SupabaseClien
             offersPerDay: settings.basic_offers_per_day,
             offersPerMonth: settings.basic_offers_per_month,
             activeAdverts: settings.basic_active_adverts,
+            applicationsPerAdvert: settings.basic_applications_per_advert,
           }
         : {
             offersPerDay: settings.free_offers_per_day,
             offersPerMonth: settings.free_offers_per_month,
             activeAdverts: settings.free_active_adverts,
+            applicationsPerAdvert: settings.free_applications_per_advert,
           }
   return { active: true, plan, settings, limits, wheel: plan === 'free' }
 }
@@ -198,4 +202,27 @@ export function brandLimitErrorFromDb(message: string | null | undefined): strin
     return 'Aktif ilan sınırına ulaştın. Yeni bir ilanı yayına almak için açık ilanlarından birini duraklat ya da kapat.'
   }
   return null
+}
+
+/**
+ * İlan başvuru sınırı (2026-11-24): ilanı açan markanın paketine göre (ücretsiz 10, Basic 50, Pro sınırsız; admin
+ * /admin/limits'ten değiştirir). Bayrak kapalıyken sınır yok. Sınır doluysa { limit, count } döner.
+ */
+export async function advertApplicationLimitReached(
+  brandUserId: string | null | undefined,
+  advertId: string,
+  admin?: SupabaseClient | null,
+): Promise<{ limit: number; count: number } | null> {
+  if (!brandUserId) return null
+  const client = admin ?? createSupabaseAdminClient()
+  if (!client) return null
+  const ctx = await getBrandLimitContext(brandUserId, client)
+  const limit = ctx.active ? ctx.limits.applicationsPerAdvert : null
+  if (limit === null) return null
+  const { count, error } = await client.from('advert_applications').select('id', { count: 'exact', head: true }).eq('advert_id', advertId)
+  if (error) {
+    console.error('[brand-limits] başvuru sayısı okunamadı:', error.message)
+    return null
+  }
+  return (count ?? 0) >= limit ? { limit, count: count ?? 0 } : null
 }

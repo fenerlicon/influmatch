@@ -32,6 +32,7 @@ import {
 import type { CollaborationWorkspace, DeliverableView } from '@/lib/collaboration-workspace'
 import CollaborationTrustPanel, { PaymentProgressRow } from '@/components/trust/CollaborationTrustPanel'
 import PaymentClaimForm from '@/components/trust/PaymentClaimForm'
+import ShippingCard from '@/components/dashboard/ShippingCard'
 import { COMMITMENT_SHORT, lateCountText } from '@/lib/collaboration-trust-shared'
 
 interface Props {
@@ -571,6 +572,9 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
           </Card>
 
           {/* Teslimatlar */}
+          {/* Barter teslimat adresi (2026-11-24) */}
+          {workspace.shipping && <ShippingCard collaborationId={collab.id} shipping={workspace.shipping} isBrand={isBrand} />}
+
           {deliverables.length > 0 && (
             <Card>
               <CardHeader

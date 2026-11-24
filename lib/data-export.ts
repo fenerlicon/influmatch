@@ -270,6 +270,13 @@ export async function buildUserDataExport(admin: SupabaseClient, user: User) {
       .eq('user_id', userId)
       .maybeSingle()
       .then((r) => r.data ?? null, () => null),
+    // Barter teslimat adresleri (2026-11-24, influencer'ın kendi girdiği; lib/collaboration-shipping.ts).
+    shipping_addresses: await admin
+      .from('collaboration_shipping')
+      .select('collaboration_id, recipient_name, phone, address_line, district, city, postal_code, note, created_at, updated_at')
+      .eq('influencer_id', userId)
+      .limit(ROW_LIMIT)
+      .then((r) => r.data ?? [], () => []),
     consent_records: section(consentRes),
     sensitive_access_log: section(accessLogRes),
     files: { avatars: avatarFiles, tax_documents: taxFiles, task_proofs: proofFiles, advert_images: heroFiles },
