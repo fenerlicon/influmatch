@@ -19,6 +19,10 @@ import * as webTrust from '@/lib/collaboration-trust-shared'
 import * as mobileTrust from '@/mobile-app/constants/trust.js'
 import * as webInflucash from '@/lib/influcash-shared'
 import * as mobileInflucash from '@/mobile-app/constants/influcash.js'
+import * as webDeliverableFiles from '@/lib/deliverable-files-shared'
+import * as mobileDeliverableFiles from '@/mobile-app/constants/deliverableFiles.js'
+import * as webPhone from '@/lib/phone-shared'
+import * as mobilePhone from '@/mobile-app/constants/phone.js'
 import { INFLUENCER_CATEGORIES } from '@/utils/categories'
 import { INFLUENCER_CATEGORIES as MOBILE_INFLUENCER_CATEGORIES } from '@/mobile-app/constants/categories.js'
 
@@ -33,6 +37,32 @@ describe('web ↔ mobil sabitleri', () => {
     expect(mobileAlerts.ADVERT_ALERT_PLATFORMS).toEqual(webAlerts.ADVERT_ALERT_PLATFORMS)
     const alert = { category_key: 'beauty', category: 'cilt', platform: 'tiktok', min_budget: 2500 }
     expect(mobileAlerts.describeAlert(alert)).toBe(webAlerts.describeAlert(alert))
+  })
+
+  it('telefon numarası', () => {
+    for (const key of ['PHONE_REQUIRED_ERROR', 'PHONE_INVALID_ERROR', 'PHONE_PURPOSE_NOTE', 'MARKETING_SMS_LABEL'] as const) {
+      expect((mobilePhone as Record<string, unknown>)[key], key).toBe(webPhone[key])
+    }
+    for (const v of ['0532 123 45 67', '5321234567', '+90 (532) 123-45-67', '00905321234567', '+44 20 7946 0958', '0123', '', 'abc', '+90 012 345 67 89']) {
+      expect(mobilePhone.normalizePhone(v), v).toEqual(webPhone.normalizePhone(v))
+    }
+    expect(mobilePhone.formatPhone('+905321234567')).toBe(webPhone.formatPhone('+905321234567'))
+  })
+
+  it('teslimat dosyası (R2, teslim kilidi)', () => {
+    expect(mobileDeliverableFiles.DELIVERABLE_VIDEO_MAX_BYTES).toBe(webDeliverableFiles.DELIVERABLE_VIDEO_MAX_BYTES)
+    expect(mobileDeliverableFiles.DELIVERABLE_IMAGE_MAX_BYTES).toBe(webDeliverableFiles.DELIVERABLE_IMAGE_MAX_BYTES)
+    expect(mobileDeliverableFiles.DELIVERABLE_LOCK_NOTE).toBe(webDeliverableFiles.DELIVERABLE_LOCK_NOTE)
+    const ref = 'r2://deliverables/11111111-1111-1111-1111-111111111111/22222222-2222-2222-2222-222222222222/1700000000_abc.mov'
+    for (const v of [ref, 'r2://deliverables/x/y/z.mp4', 'https://drive.google.com/x', ref.replace('.mov', '.exe')]) {
+      expect(mobileDeliverableFiles.isDeliverableFileRef(v)).toBe(webDeliverableFiles.isDeliverableFileRef(v))
+      expect(mobileDeliverableFiles.deliverableFileKind(v)).toBe(webDeliverableFiles.deliverableFileKind(v))
+    }
+    for (const [name, mime] of [['a.MP4', null], ['b.jpeg', null], ['c', 'video/quicktime'], ['d.gif', 'image/gif']] as const) {
+      expect(mobileDeliverableFiles.deliverableFileExtension(name, mime)).toBe(webDeliverableFiles.deliverableFileExtension(name, mime))
+    }
+    expect(mobileDeliverableFiles.deliverableFileMaxBytes('mov')).toBe(webDeliverableFiles.deliverableFileMaxBytes('mov'))
+    expect(mobileDeliverableFiles.deliverableFileMaxBytes('png')).toBe(webDeliverableFiles.deliverableFileMaxBytes('png'))
   })
 
   it('iş birliği takip alanı', () => {
@@ -84,6 +114,7 @@ describe('web ↔ mobil sabitleri', () => {
     expect(mobileTrust.COMMITMENT_CHECKBOX_LABEL).toBe(webTrust.COMMITMENT_CHECKBOX_LABEL)
     expect(mobileTrust.COMMITMENT_REQUIRED_ERROR).toBe(webTrust.COMMITMENT_REQUIRED_ERROR)
     expect(mobileTrust.DISPUTE_RESPONSE_DAYS).toBe(webTrust.DISPUTE_RESPONSE_DAYS)
+    expect(mobileTrust.PAYMENT_CONFIRM_HOURS).toBe(webTrust.PAYMENT_CONFIRM_HOURS)
     expect(mobileTrust.DISPUTE_PROOF_BUCKET).toBe(webTrust.DISPUTE_PROOF_BUCKET)
     expect(mobileTrust.DISPUTE_PROOF_MAX_BYTES).toBe(webTrust.DISPUTE_PROOF_MAX_BYTES)
     expect(mobileTrust.DISPUTE_NOTE_MAX).toBe(webTrust.DISPUTE_NOTE_MAX)

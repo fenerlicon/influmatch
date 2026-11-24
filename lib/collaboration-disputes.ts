@@ -25,8 +25,10 @@ import {
   DISPUTE_PROOF_BUCKET,
   DISPUTE_RESPONSE_DAYS,
   DISPUTE_STATUS_LABELS,
+  isOwnClaimProofPath,
   isOwnProofPath,
   nondeliveryAvailableAt,
+  PAYMENT_CONFIRM_HOURS,
   proofExtension,
   type DisputeKind,
   type DisputeStatus,
@@ -99,6 +101,8 @@ function actionsFor(d: DisputeRow, viewerId: string): DisputeActionName[] {
   const active = ACTIVE_DISPUTE_STATUSES.includes(d.status)
   if (!active) return []
   const out: DisputeActionName[] = []
+  // Marka "Ödeme teyit edilmedi" başvurusu doğrudan destek ekibinde; influencer yalnızca açıklama yazar ya da "Ödeme alındı" der.
+  if (d.kind === 'payment_unconfirmed') return viewerId === d.respondent_id ? ['respond'] : []
   if (viewerId === d.respondent_id) {
     out.push('respond', 'upload_proof')
     if (!d.respondent_resolved_at) out.push('mark_resolved')
@@ -163,6 +167,8 @@ interface OpenDisputeInput {
   deliverableLabel?: string | null
   note?: string | null
   ticketId?: string | null
+  /** payment_unconfirmed: bildirenin (marka) dekontu; kayıt doğrudan "İncelemede" açılır. */
+  reporterProofPath?: string | null
 }
 
 /** Anlaşmazlık açar ve karşı tarafa bildirir. Tablo yoksa ya da aynı tür açık kayıt varsa null. */
@@ -181,6 +187,9 @@ export async function openDispute(admin: SupabaseClient, input: OpenDisputeInput
       reporter_note: input.note ? input.note.slice(0, 500) : null,
       response_due_at: dueAt,
       support_ticket_id: input.ticketId ?? null,
+      ...(input.kind === 'payment_unconfirmed'
+        ? { status: 'escalated', escalated_at: new Date(now).toISOString(), proof_path: input.reporterProofPath ?? null, proof_uploaded_at: new Date(now).toISOString() }
+        : {}),
     })
     .select('id')
     .maybeSingle()
@@ -190,6 +199,21 @@ export async function openDispute(admin: SupabaseClient, input: OpenDisputeInput
   }
   const name = await displayNameOf(admin, input.reporterId)
   const dueText = new Date(dueAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+  if (input.kind === 'payment_unconfirmed') {
+    await notifyUser(
+      {
+        userId: input.respondentId,
+        event: 'collab_dispute',
+        title: 'Marka ödemeyi dekontla bildirdi',
+        message: `${name}, "${input.title}" iş birliğinin ödemesini yaptığını dekontla bildirdi ve teyit için destek ekibine başvurdu. Ödeme geldiyse iş birliği sayfasından "Ödeme alındı" ile teyit et; gelmediyse açıklamanı yaz. Kararı destek ekibi verir.`,
+        link: collabLink(input.collaborationId),
+        type: 'warning',
+      },
+      admin,
+    )
+    return { id: data.id as string }
+  }
+
   const message =
     input.kind === 'nonpayment'
       ? `${name}, "${input.title}" iş birliğinin ödemesini alamadığını bildirdi. ${dueText} tarihine kadar iş birliği sayfasından ödeme dekontunu yükleyin ya da durumu açıklayın; yanıt verilmezse hesabınız incelemeye alınır ve yeni ilan / teklif açamazsınız. ${COMMITMENT_SHORT}`
@@ -292,7 +316,9 @@ export async function runDisputeAction(admin: SupabaseClient, collab: CollabLite
       if (!allowed.includes('respond')) return { error: 'Bu bildirime artık yanıt verilemez.' }
       const note = cleanText(input.note, DISPUTE_NOTE_MAX)
       let proofPath: string | null = null
-      if (input.proofPath) {
+      // "Ödeme teyit edilmedi" başvurusunda kanıt markanın dekontudur; influencer yalnızca açıklama yazar.
+      if (dispute.kind === 'payment_unconfirmed' && note.length < 10) return { error: 'Durumu en az 10 karakterle açıklayın.' }
+      if (input.proofPath && dispute.kind !== 'payment_unconfirmed') {
         if (!isOwnProofPath(userId, dispute.id, input.proofPath) || !(await proofExists(admin, input.proofPath))) {
           return { error: 'Dosya bulunamadı. Lütfen yeniden yükleyin.' }
         }
@@ -444,6 +470,109 @@ export async function proofUrlFor(viewerId: string, disputeId: unknown, opts: { 
   const { data: signed, error } = await admin.storage.from(DISPUTE_PROOF_BUCKET).createSignedUrl(data.proof_path as string, 600)
   if (error || !signed) return { error: 'Bağlantı oluşturulamadı.' }
   return { success: true, url: signed.signedUrl }
+}
+
+// --- Ödeme teyidi başvurusu (2026-11-24) ------------------------------------------------------------
+
+/** Marka dekontu için imzalı yükleme adresi (yalnızca iş birliğinin markası). Başvuru başına en fazla 10 dosya. */
+export async function createClaimProofUploadUrlAs(
+  userId: string,
+  collaborationId: string,
+  extensionInput: unknown,
+): Promise<Result<{ path: string; token: string; bucket: string }>> {
+  const admin = createSupabaseAdminClient()
+  if (!admin || !(await trustReady(admin))) return { error: 'Bu özellik henüz açılmadı.' }
+  if (!isUuid(collaborationId)) return { error: 'İş birliği bulunamadı.' }
+  const { data: collab } = await admin.from('collaborations').select('brand_id').eq('id', collaborationId).maybeSingle()
+  if (!collab || collab.brand_id !== userId) return { error: 'İş birliği bulunamadı.' }
+  const ext = proofExtension(extensionInput)
+  if (!ext) return { error: 'Yalnızca PDF, JPG, PNG ya da WEBP yüklenebilir.' }
+  const folder = `${userId}/claim-${collaborationId}`
+  const { data: existing } = await admin.storage.from(DISPUTE_PROOF_BUCKET).list(folder, { limit: 20 })
+  if ((existing ?? []).length >= 10) return { error: 'Bu iş birliği için en fazla 10 dosya yüklenebilir.' }
+  const path = `${folder}/${Date.now()}.${ext}`
+  const { data, error } = await admin.storage.from(DISPUTE_PROOF_BUCKET).createSignedUploadUrl(path)
+  if (error || !data) return { error: 'Yükleme adresi oluşturulamadı.' }
+  return { success: true, path, token: data.token, bucket: DISPUTE_PROOF_BUCKET }
+}
+
+/** Marka "Ödemeyi yaptım ama onaylanmadı" başvurusunu ne zaman açabilir (ödeme işaretinden 24 saat sonra). */
+export function paymentClaimAvailableAt(brandPaidAt: string | null | undefined): string | null {
+  if (!brandPaidAt) return null
+  const t = new Date(brandPaidAt).getTime()
+  return Number.isFinite(t) ? new Date(t + PAYMENT_CONFIRM_HOURS * 60 * 60 * 1000).toISOString() : null
+}
+
+/**
+ * Marka başvurusu: "Ödeme yapıldı" işaretinden 24 saat geçmiş, influencer teyit etmemiş ve "Ödeme gelmedi" dememişse,
+ * dekontla destek ekibine başvurur. Kayıt "İncelemede" açılır; influencer bilgilendirilir, kararı admin verir
+ * ("Ödendi" kararı ödemeyi teyitli sayar ve teslim dosyalarının indirilmesini açar).
+ */
+export async function claimPayment(
+  admin: SupabaseClient,
+  collab: CollabLite,
+  userId: string,
+  input: { note?: string | null; proofPath?: string | null },
+): Promise<Result<{ message?: string }>> {
+  if (!(await trustReady(admin))) return { error: 'Bu özellik henüz açılmadı.' }
+  if (collab.brand_id !== userId) return { error: 'Bu işlem şu an yapılamaz.' }
+  if (collab.status === 'cancelled') return { error: 'İptal edilen iş birliğinde başvuru yapılamaz.' }
+  const { data: payment } = await admin
+    .from('collaboration_payments')
+    .select('brand_paid_at, influencer_received_at, nonpayment_reported_at')
+    .eq('collaboration_id', collab.id)
+    .maybeSingle()
+  if (!payment?.brand_paid_at) return { error: 'Önce ödemeyi "Ödeme yapıldı" olarak işaretleyin.' }
+  if (payment.influencer_received_at) return { error: 'Influencer ödemeyi zaten teyit etti.' }
+  if (payment.nonpayment_reported_at) {
+    return { error: 'Influencer "Ödeme gelmedi" dedi; açılan bildirimde dekontunuzu yükleyerek yanıt verin.' }
+  }
+  const availableAt = paymentClaimAvailableAt(payment.brand_paid_at as string)
+  if (!availableAt || Date.now() < new Date(availableAt).getTime()) {
+    return { error: `Başvuru, ödeme işaretinden ${PAYMENT_CONFIRM_HOURS} saat sonra açılır; influencer'ın teyit süresi devam ediyor.` }
+  }
+  if (!isOwnClaimProofPath(userId, collab.id, input.proofPath) || !(await proofExists(admin, input.proofPath))) {
+    return { error: 'Ödeme dekontunu yükleyin.' }
+  }
+  const opened = await openDispute(admin, {
+    collaborationId: collab.id,
+    title: collab.title,
+    kind: 'payment_unconfirmed',
+    reporterId: userId,
+    respondentId: collab.influencer_id,
+    note: cleanText(input.note, 500) || null,
+    reporterProofPath: input.proofPath,
+  })
+  if (!opened) return { error: 'Bu iş birliği için zaten açık bir başvuru var ya da başvuru kaydedilemedi.' }
+  return { success: true, message: 'Başvurunuz dekontla birlikte destek ekibine iletildi; influencer da bilgilendirildi.' }
+}
+
+/** Influencer "Ödeme alındı" deyince açık "Ödeme teyit edilmedi" başvurusu çözüldü olarak kapanır. */
+export async function resolvePaymentClaims(admin: SupabaseClient, collaborationId: string, byUserId: string) {
+  if (!(await trustReady(admin))) return
+  const now = new Date().toISOString()
+  const { data } = await admin
+    .from('collaboration_disputes')
+    .update({ status: 'resolved', respondent_resolved_at: now, reporter_confirmed_at: now, updated_at: now })
+    .eq('collaboration_id', collaborationId)
+    .eq('kind', 'payment_unconfirmed')
+    .in('status', ACTIVE_DISPUTE_STATUSES)
+    .select('id')
+  for (const row of data ?? []) await releaseHolds(admin, row.id as string, byUserId)
+}
+
+/** Açık "Ödeme teyit edilmedi" başvurusu var mı (izinlerde düğmeyi gizlemek için). */
+export async function hasActivePaymentClaim(admin: SupabaseClient, collaborationId: string): Promise<boolean> {
+  if (!(await trustReady(admin))) return false
+  const { data } = await admin
+    .from('collaboration_disputes')
+    .select('id')
+    .eq('collaboration_id', collaborationId)
+    .eq('kind', 'payment_unconfirmed')
+    .in('status', ACTIVE_DISPUTE_STATUSES)
+    .limit(1)
+    .maybeSingle()
+  return !!data
 }
 
 // --- Saatlik görev ---------------------------------------------------------------------------------
@@ -644,7 +773,7 @@ export async function decideDisputeAsAdmin(
   const dispute = data as DisputeRow | null
   if (!dispute) return { error: 'Anlaşmazlık bulunamadı.' }
   if (!ACTIVE_DISPUTE_STATUSES.includes(dispute.status)) return { error: 'Bu anlaşmazlık zaten kapanmış.' }
-  if (decision === 'mark_paid' && dispute.kind !== 'nonpayment') return { error: '"Ödendi" yalnızca ödeme bildiriminde kullanılır.' }
+  if (decision === 'mark_paid' && dispute.kind === 'nondelivery') return { error: '"Ödendi" yalnızca ödeme bildiriminde kullanılır.' }
 
   let note = cleanText(input.note, 1000)
   let reason: ReturnType<typeof parseDecisionReason> | null = null

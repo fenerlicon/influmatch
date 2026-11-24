@@ -41,8 +41,9 @@ export function PaymentProgress({ trust }) {
  * Güvenli iş birliği (2026-11-23; web components/trust/CollaborationTrustPanel.tsx ile aynı): hatırlatmalar, bildirimler (anlaşmazlık)
  * ve işlemleri, "Teslim edilmedi" (marka), iş birliği kaydı. Bütün işlemler web sunucusunda (/api/mobile/collaborations/[id]).
  */
-export default function CollaborationTrust({ collaborationId, trust, deliverables, isBrand, onChanged }) {
-    const [sheet, setSheet] = useState(null); // { kind: 'respond'|'resolve'|'escalate'|'nondelivery', dispute?, deliverable?, note, file }
+export default function CollaborationTrust({ collaborationId, trust, deliverables, isBrand, onChanged, canClaimPayment }) {
+    // claim: marka "Ödemeyi yaptım ama onaylanmadı" (dekont zorunlu; 2026-11-24)
+    const [sheet, setSheet] = useState(null); // { kind: 'respond'|'resolve'|'escalate'|'nondelivery'|'claim', dispute?, deliverable?, note, file }
     const [busy, setBusy] = useState(false);
     if (!trust?.enabled) return null;
 
@@ -90,6 +91,22 @@ export default function CollaborationTrust({ collaborationId, trust, deliverable
         if (s.kind === 'nondelivery') return post({ action: 'report_nondelivery', deliverableId: s.deliverable.id, note: s.note });
         if (s.kind === 'resolve') return post({ action: 'dispute_mark_resolved', disputeId: s.dispute.id, note: s.note });
         if (s.kind === 'escalate') return post({ action: 'dispute_escalate', disputeId: s.dispute.id, note: s.note });
+        if (s.kind === 'claim') {
+            if (!s.file) return Alert.alert('Dekont gerekli', 'Ödeme dekontunu yükleyin.');
+            setBusy(true);
+            const upload = await apiRequest(`collaborations/${collaborationId}/dispute-proof`, {
+                method: 'POST',
+                body: { action: 'claim-upload-url', extension: s.file.extension },
+            });
+            if (upload.error || !upload.path || !upload.token) {
+                setBusy(false);
+                return Alert.alert('Dosya yüklenemedi', upload.error || 'Lütfen tekrar dene.');
+            }
+            const { error } = await supabase.storage.from(DISPUTE_PROOF_BUCKET).uploadToSignedUrl(upload.path, upload.token, s.file.bytes, { contentType: s.file.contentType });
+            setBusy(false);
+            if (error) return Alert.alert('Dosya yüklenemedi', 'Lütfen tekrar dene.');
+            return post({ action: 'claim_payment', proofPath: upload.path, note: s.note });
+        }
         // Yanıt: dosya varsa önce imzalı adresle yüklenir (kovaya doğrudan yükleme kapalı).
         let proofPath = null;
         if (s.file) {
@@ -153,6 +170,9 @@ export default function CollaborationTrust({ collaborationId, trust, deliverable
                     {d.reporterNote ? <Text variant="caption" tone="fg2">Not: {d.reporterNote}</Text> : null}
                     {d.responseNote ? <Text variant="caption" tone="fg2">Yanıt: {d.responseNote}</Text> : null}
                     {d.decisionNote ? <Text variant="caption" tone="fg2">Karar: {d.decisionNote}</Text> : null}
+                    {d.kind === 'payment_unconfirmed' && !d.viewerIsReporter && ['escalated', 'open', 'responded'].includes(d.status) ? (
+                        <Notice tone="warning" text={'Marka ödemeyi yaptığını dekontla bildirdi. Ödeme geldiyse "Ödeme alındı" ile teyit et; gelmediyse açıklamanı yaz. Kararı destek ekibi verir.'} />
+                    ) : null}
                     {d.status === 'open' && !d.viewerIsReporter ? (
                         <Notice
                             tone="warning"
@@ -162,7 +182,7 @@ export default function CollaborationTrust({ collaborationId, trust, deliverable
                     <View className="flex-row flex-wrap" style={{ gap: 8 }}>
                         {d.hasProof ? <Button title="Kanıtı aç" icon={Paperclip} variant="ghost" size="sm" onPress={() => openProof(d)} /> : null}
                         {d.actions.includes('respond') ? (
-                            <Button title={d.kind === 'nonpayment' ? 'Dekont yükle / yanıtla' : 'Kanıt yükle / yanıtla'} size="sm" disabled={busy} onPress={() => setSheet({ kind: 'respond', dispute: d, note: '', file: null })} />
+                            <Button title={d.kind === 'payment_unconfirmed' ? 'Açıklama yaz' : d.kind === 'nonpayment' ? 'Dekont yükle / yanıtla' : 'Kanıt yükle / yanıtla'} size="sm" disabled={busy} onPress={() => setSheet({ kind: 'respond', dispute: d, note: '', file: null })} />
                         ) : null}
                         {d.actions.includes('mark_resolved') ? (
                             <Button title={d.kind === 'nonpayment' ? 'Ödendi, çözüldü' : 'Teslim edildi, çözüldü'} variant="secondary" size="sm" disabled={busy} onPress={() => setSheet({ kind: 'resolve', dispute: d, note: '' })} />
@@ -181,16 +201,23 @@ export default function CollaborationTrust({ collaborationId, trust, deliverable
                 <Button key={d.id} title={`Teslim edilmedi: ${DELIVERABLE_KIND_LABELS[d.kind] || 'Teslimat'} ×${d.quantity}`} variant="danger" size="sm" disabled={busy} onPress={() => setSheet({ kind: 'nondelivery', deliverable: d, note: '' })} />
             ))}
 
+            {canClaimPayment ? (
+                <Button title="Ödemeyi yaptım ama onaylanmadı" variant="secondary" size="sm" disabled={busy} onPress={() => setSheet({ kind: 'claim', note: '', file: null })} />
+            ) : null}
+
             <Button title="İş birliği kaydını indir" icon={FileDown} variant="ghost" size="sm" onPress={openRecord} />
             <Text variant="caption" tone="fg3">Anlaşma, teslimatlar, ödeme işaretleri, olaylar ve sohbet; yazdırılabilir sayfa (bağlantı 10 dakika geçerli).</Text>
 
             <Sheet
                 visible={!!sheet}
                 onClose={() => (busy ? null : setSheet(null))}
-                title={sheet?.kind === 'nondelivery' ? 'Teslim edilmedi' : sheet?.kind === 'resolve' ? 'Çözüldü olarak bildir' : sheet?.kind === 'escalate' ? 'Destek ekibine taşı' : 'Yanıt ver'}
+                title={sheet?.kind === 'claim' ? 'Ödeme teyit edilmedi' : sheet?.kind === 'nondelivery' ? 'Teslim edilmedi' : sheet?.kind === 'resolve' ? 'Çözüldü olarak bildir' : sheet?.kind === 'escalate' ? 'Destek ekibine taşı' : 'Yanıt ver'}
             >
                 {sheet ? (
                     <>
+                        {sheet.kind === 'claim' ? (
+                            <Notice tone="info" text="Dekontun destek ekibine iletilir, influencer da bilgilendirilir. Ödeme doğrulanırsa teslim dosyalarının indirilmesi açılır." />
+                        ) : null}
                         {sheet.kind === 'nondelivery' ? (
                             <Notice tone="info" text="Influencer'a bildirilir; 7 gün içinde kanıt ya da yanıt vermezse hesabı incelemeye alınır, kararı destek ekibi verir." />
                         ) : null}
@@ -202,7 +229,7 @@ export default function CollaborationTrust({ collaborationId, trust, deliverable
                             height={96}
                             maxLength={sheet.kind === 'respond' ? DISPUTE_NOTE_MAX : 500}
                         />
-                        {sheet.kind === 'respond' ? (
+                        {(sheet.kind === 'respond' && sheet.dispute?.kind !== 'payment_unconfirmed') || sheet.kind === 'claim' ? (
                             <View className="flex-row flex-wrap" style={{ gap: 8 }}>
                                 <Button title="PDF seç" variant="secondary" size="sm" onPress={pickPdf} />
                                 <Button title="Görsel seç" variant="secondary" size="sm" onPress={pickPhoto} />

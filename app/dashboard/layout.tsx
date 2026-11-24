@@ -1,3 +1,4 @@
+import { needsPhone } from '@/lib/user-contact'
 import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/shell/AppShell'
@@ -143,6 +144,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   ])
   if (finalUserProfile.role === 'influencer' && !verifiedAccountResult.data) {
     redirect('/onboarding/verify')
+  }
+  // Zorunlu telefon (2026-11-24): numarası olmayan influencer / UGC / marka bir kez numara sayfasına gider (lib/user-contact.ts).
+  if (await needsPhone(user.id, finalUserProfile.role, trustAdmin)) {
+    redirect('/onboarding/phone')
   }
   const adminNotices = (adminNoticeResult.data ?? []) as AdminNotice[]
 

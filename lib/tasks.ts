@@ -371,7 +371,8 @@ export async function getTasksOverviewAs(userId: string, adminClient: SupabaseCl
     }))
 
     let invite: TasksOverview['invite'] = null
-    if (audience === 'creator' && tasks.some((t) => t.kind === 'invites' || t.kind === 'story_link')) {
+    // Davet kodu kartı influencer / UGC'ye her zaman görünür (2026-11-24): kodla kaç kişinin kaydolduğu ve onaylandığı.
+    if (audience === 'creator') {
       const code = await ensureInviteCode(admin, userId)
       if (code) {
         const counts = await countInvites(admin, userId)

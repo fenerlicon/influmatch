@@ -10,6 +10,7 @@
 // 4. Giriş kaydı silinir (social_accounts, user_invites, consent_records auth.users'a CASCADE). Başarısız olursa
 //    kullanıcı kilitli kalır (giriş yapamaz).
 
+import { deleteR2Prefix, isR2Configured } from '@/lib/r2'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const PERMANENT_BAN = '876000h' // ~100 yıl
@@ -58,6 +59,9 @@ async function listFolderFiles(admin: SupabaseClient, bucket: string, folder: st
 
 type FileTargets = Map<string, Set<string>>
 
+/** R2 önekleri bu sahte kova adıyla toplanır; removeFiles öneki toplu siler (lib/r2.ts). */
+const R2_TARGET = '__r2_prefix__'
+
 function addTarget(targets: FileTargets, bucket: string, path: string) {
   if (!targets.has(bucket)) targets.set(bucket, new Set())
   targets.get(bucket)!.add(path)
@@ -69,6 +73,7 @@ function addTarget(targets: FileTargets, bucket: string, path: string) {
  * - eski kök yüklemeler: profildeki avatar, ilan kapakları
  * - kullanıcının taraf olduğu sohbet odalarının ekleri (`chat-attachments/{oda}/…`; oda CASCADE silinir, ekler sahipsiz kalırdı)
  * - destek talebi ve geri bildirim ekleri (`feedback-images`, kökte rastgele adla)
+ * - R2 (2026-11-24): odaların sohbet görselleri `chat/{oda}/` ve iş birliklerinin teslimat dosyaları `deliverables/{iş birliği}/`
  */
 async function collectUserFiles(admin: SupabaseClient, userId: string, avatarUrl: string | null): Promise<FileTargets> {
   const targets: FileTargets = new Map()
@@ -83,11 +88,12 @@ async function collectUserFiles(admin: SupabaseClient, userId: string, avatarUrl
   }
   fromUrl(avatarUrl, 'avatars')
 
-  const [rooms, adverts, tickets, feedback] = await Promise.all([
+  const [rooms, adverts, tickets, feedback, collabs] = await Promise.all([
     admin.from('rooms').select('id').or(`brand_id.eq.${userId},influencer_id.eq.${userId}`).limit(5000),
     admin.from('advert_projects').select('hero_image').or(`brand_user_id.eq.${userId},brand_id.eq.${userId}`).limit(5000),
     admin.from('support_tickets').select('file_url').eq('user_id', userId).not('file_url', 'is', null).limit(5000),
     admin.from('feedback_submissions').select('image_url').eq('user_id', userId).not('image_url', 'is', null).limit(5000),
+    admin.from('collaborations').select('id').or(`brand_id.eq.${userId},influencer_id.eq.${userId}`).limit(5000),
   ])
   for (const row of (adverts.data ?? []) as Array<{ hero_image: string | null }>) fromUrl(row.hero_image, 'advert-hero-images')
   for (const row of (tickets.data ?? []) as Array<{ file_url: string | null }>) fromUrl(row.file_url, 'feedback-images')
@@ -96,6 +102,10 @@ async function collectUserFiles(admin: SupabaseClient, userId: string, avatarUrl
   // Sohbet ekleri: {oda}/{gönderen}/{dosya}
   for (const room of (rooms.data ?? []) as Array<{ id: string }>) {
     for (const path of await listFolderFiles(admin, 'chat-attachments', room.id, 1)) addTarget(targets, 'chat-attachments', path)
+    if (isR2Configured()) addTarget(targets, R2_TARGET, `chat/${String(room.id).toLowerCase()}/`)
+  }
+  if (isR2Configured()) {
+    for (const c of (collabs.data ?? []) as Array<{ id: string }>) addTarget(targets, R2_TARGET, `deliverables/${String(c.id).toLowerCase()}/`)
   }
 
   return targets
@@ -104,6 +114,10 @@ async function collectUserFiles(admin: SupabaseClient, userId: string, avatarUrl
 async function removeFiles(admin: SupabaseClient, targets: FileTargets) {
   for (const [bucket, paths] of Array.from(targets.entries())) {
     const all = Array.from(paths)
+    if (bucket === R2_TARGET) {
+      for (const prefix of all) await deleteR2Prefix(prefix)
+      continue
+    }
     for (let i = 0; i < all.length; i += 500) {
       const { error } = await admin.storage.from(bucket).remove(all.slice(i, i + 500))
       if (error) console.error(`[account-deletion] ${bucket} dosyaları silinemedi:`, error.message)

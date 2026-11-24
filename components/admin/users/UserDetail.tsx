@@ -7,6 +7,7 @@ import {
 import { influencerBadges, brandBadges, type Badge } from '@/app/badges/data'
 import BadgeCompactList from '@/components/badges/BadgeCompactList'
 import TaxVerificationReview from '@/components/admin/TaxVerificationReview'
+import UserPhone from './UserPhone'
 import { Avatar, Button, buttonClasses, Card, Chip, Eyebrow, Notice } from '@/components/ui'
 import { getCategoryLabel } from '@/utils/categories'
 import { validateTaxNumber } from '@/lib/tax-id'
@@ -106,6 +107,11 @@ export default function UserDetail({ user, lastSeen, now, busy, actions, onClose
           </Chip>
           {user.spotlight_active && <Chip tone="gold">Spotlight</Chip>}
         </div>
+        {user.role && (
+          <div className="mt-2">
+            <UserPhone key={user.id} userId={user.id} />
+          </div>
+        )}
 
         {/* Uyarılar */}
         {isBrand && user.tax_id && !user.tax_id_verified && (

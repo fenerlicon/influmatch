@@ -47,6 +47,8 @@ Vercel'de (Production + Preview) ve yerelde `.env.local`'de tanımlanır. Şablo
 | `PAYMENTS_CALLBACK_BASE_URL` | hayır | iyzico dönüş adresi kökü (boşsa `NEXT_PUBLIC_SITE_URL`) |
 | `APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_BUNDLE_ID` | mağaza için | App Store Server API (In-App Purchase anahtarı); paket `net.influmatch.app` |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_PACKAGE`, `GOOGLE_RTDN_SECRET` | mağaza için | Play Developer API hizmet hesabı; RTDN push adresindeki gizli anahtar |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | hayır | Cloudflare R2 (sohbet görselleri, teslimat videoları). Yoksa sohbet Supabase'de kalır, teslimatta yalnızca link. Aşağıda "Cloudflare R2". |
+| `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` | hayır | `true` olunca giriş/kayıtta "Google ile devam et" görünür. Önce aşağıdaki "Google ile giriş" adımları. |
 
 Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yazılmaz.
 
@@ -75,6 +77,24 @@ Gizli değerler hiçbir dosyaya, commit'e ya da sohbete açık metin olarak yaz�
   | `chat-attachments` | gizli; okuma ve yükleme oda taraflarına (mobil imzalı yükleme adresiyle), imzalı URL | `{oda}/{uid}/…` |
   | `tax-documents` | gizli | `{uid}/…` |
 
+- **Cloudflare R2 (2026-11-24):** sohbet görselleri `chat/{oda}/{gönderen}/…`, teslimat dosyaları `deliverables/{iş birliği}/{influencer}/…`
+  (`lib/r2.ts`). Kurulum:
+  1. Cloudflare → R2 → kova oluştur (ör. `influmatch`), herkese açık erişim **kapalı**.
+  2. R2 → "Manage API tokens" → yalnızca bu kovaya "Object Read & Write" yetkili token; Access Key ID / Secret ve hesap kimliği Vercel'e
+     (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`; Production + Preview).
+  3. Kova → Settings → CORS policy (tarayıcı doğrudan yükler ve oynatır):
+     ```json
+     [{ "AllowedOrigins": ["https://influmatch.net", "https://www.influmatch.net", "https://*.vercel.app"],
+        "AllowedMethods": ["GET", "PUT", "HEAD"], "AllowedHeaders": ["content-type"], "MaxAgeSeconds": 3600 }]
+     ```
+  4. İsteğe bağlı: Object lifecycle kuralıyla `deliverables/` önekinde eski dosyaları (ör. 180 gün) silmek; ücretsiz katman 10 GB.
+- **Google ile giriş (2026-11-24, bayrak kapalı):**
+  1. Google Cloud Console → OAuth istemcisi (Web application). Authorized redirect URI: `https://aiftdpagcnwqzzemtkwt.supabase.co/auth/v1/callback`.
+  2. Supabase → Authentication → Providers → Google: Client ID / Secret, açık.
+  3. Supabase → Authentication → URL Configuration → Redirect URLs: `https://influmatch.net/auth/callback`, önizlemeler için
+     `https://*.vercel.app/auth/callback`, mobil için `influmatch://**` (Expo Go ile denemede `exp://**`).
+  4. Vercel'de `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`, mobilde `mobile-app/lib/googleAuth.js` içinde `GOOGLE_AUTH_ENABLED = true`.
+  Not: iOS'ta Google ile giriş sunan uygulama App Store'da Apple ile giriş de sunmalı (yönerge 4.8); mağaza yayınından önce eklenir.
 - **Realtime yayını:** messages, offers, advert_applications, rooms, dismissed_offers, notifications,
   support_tickets, message_reports, user_badges. `users` gizli kolonları yüzünden bilerek dışarıda.
 

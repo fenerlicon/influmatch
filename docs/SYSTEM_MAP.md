@@ -95,6 +95,14 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
     `/auth/update-password` sayfasına yönlendiriyor; `/auth/callback` de her durumda oturumu kapatıyor → şifre sıfırlama kırık.
   - ✅ ~~**1.4-S2 [DÜŞÜK]**~~ (sabit metin gösteriliyor) `?error=rate_limit&message=` URL'deki metni ekrana basıyor (React kaçışlıyor ama içerik saldırgan kontrolünde).
   - ✅ ~~**1.4-S3 [DÜŞÜK]**~~ (silme sonrası `/login?deleted=true` → "Hesabınız ve verileriniz silindi") `account_deleted` dalı ölü; kullanılmayan `supabase` değişkeni.
+  - ✅ ~~**1.4-N1**~~ (2026-11-24, kullanıcı isteği: influencer tarafı için Google ile giriş; `claude/inspiring-euler-de8z2n`) Web giriş ve kayıt
+    sayfalarında "Google ile devam et / kaydol" (`components/auth/GoogleSignInButton.tsx`, Supabase OAuth PKCE → `/auth/callback`), mobilde
+    `mobile-app/lib/googleAuth.js` (uygulama içi tarayıcı, `influmatch://auth/callback`; `app.json` `scheme`, `expo-web-browser` + `expo-linking`).
+    Kayıtta yalnızca influencer / UGC için (markalar kurumsal e-postayla); yeni Google hesabı influencer rolüyle açılır. Kullanım Koşulları onayı ve davet kodu
+    onboarding'de istenir, onaysız profil kaydedilmez (`lib/oauth-signup.ts`, `saveOnboarding`); onay `consent_records`'a, davet `user_invites`'a sunucuda yazılır.
+    E-postayla kayıtlı hesap aynı Gmail ile Google'a basarsa Supabase kimliği bağlar, mevcut hesaba girer. **Bayrak kapalı:** web
+    `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`, mobil `GOOGLE_AUTH_ENABLED` (lib/googleAuth.js); önce Google Cloud OAuth istemcisi + Supabase Google sağlayıcısı
+    + yönlendirme adresleri (`docs/SETUP.md` "Google ile giriş"). Not: iOS mağaza yayınında Google ile giriş varsa Apple ile giriş de istenir (App Store 4.8).
 
 ### 1.5 E-posta doğrulama
 - **Dosyalar:** `app/auth/check-email/page.tsx` (OTP), `app/auth/callback/route.ts` (bağlantı),
@@ -113,6 +121,13 @@ doğrulama) → dashboard layout kapıları → admin `verifyUser` ile `verifica
 - **Sorunlar:**
   - ✅ ~~**1.6-S1 [ORTA]**~~ (taslak yalnızca DB'de boş alanları dolduruyor; varsayılanlar birleştirmeden sonra; DB avatarı öncelikli) localStorage taslağı DB değerlerinin üzerine yazıyor; eski taslak yeni profili ezebilir.
   - ✅ ~~**1.6-S2 [DÜŞÜK]**~~ (sabit 'tech' kaldırıldı; kategori yalnızca seçilince yazılıyor, mevcut değer silinmiyor) Marka kategorisi `'tech'` olarak sabit (`page.tsx`).
+  - ✅ ~~**1.6-N1**~~ (2026-11-24, kullanıcı kararı: zorunlu telefon, yalnızca platform görür; isteğe bağlı pazarlama izni) Influencer, UGC ve marka için
+    telefon numarası onboarding'de zorunlu (web + mobil); numarası olmayan mevcut hesap panele girerken bir kez `/onboarding/phone`'a (mobilde `PhoneGate`)
+    gider. Ayarlar'dan değiştirilir (web `PhoneSettings`, mobil Ayarlar). Tablo `user_contacts` istemcilere tamamen kapalı (canlıda, `20261124000020`);
+    yazım / okuma `lib/user-contact.ts` (service role), biçim `lib/phone-shared.ts` (E.164; mobil kopya `constants/phone.js`). Admin kullanıcı ayrıntısında
+    "Telefonu göster" (her görüntüleme `privacy_audit_log` `contact_view`). Pazarlama izni ayrı kutu, varsayılan kapalı; geçmişi `consent_records`
+    `marketing_sms`. "Verilerimi indir"de var, hesap silmede cascade. SMS doğrulaması yok (`phone_verified_at` hazır, sağlayıcı seçilince). Pazarlama
+    iletisinden önce İYS kaydı ve avukat metni gerekir (docs/KVKK.md bölüm 5 madde 2b).
   - ✅ ~~**1.6-S3 [DÜŞÜK]**~~ (onboarding ve profil kayıtlarında ham DB hata metni yerine genel mesaj; avatar/logo adresi sunucuda `lib/avatar-url.ts` ile yalnızca kullanıcının `avatars/{id}/` klasörü veya mevcut değer olarak kabul ediliyor) RLS hata metni kullanıcıya gösteriliyor; `avatar_url` istemciden gelen herhangi bir string.
 
 ### 1.7 Onboarding sosyal doğrulama adımı
@@ -639,8 +654,22 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     teslimat yayınlandı, ödeme işaretlendi, ödeme alınamadı. E-posta: özet hazırlandı/değişti, taslak, revize, ödeme alınamadı ("Teklif bildirimleri" tercihi);
     diğerleri site içi + push. İş birliği bildirimleri artık detay sayfasına (`/dashboard/collaborations/<id>`) gider, mobilde detay ekranı açılır.
 - **Sorunlar / notlar:**
-  - **3.18-N4** Teslim kilidi (taslak dosyası yükleme; marka ödeme teyidine kadar orijinal dosyayı indiremez) Cloudflare R2 ile Kasım'da. Veri modeli hazır:
-    `collaboration_submissions.file_key`, `file_locked` (kontrol kısıtı url veya file_key ister).
+  - ✅ ~~**3.18-N4**~~ (2026-11-24, `claude/inspiring-euler-de8z2n`: influencer taslağı link yerine video / görsel dosyası olarak da gönderebilir
+    (MP4/MOV/WEBM en fazla 200 MB, JPEG/PNG/WEBP en fazla 15 MB). Dosya imzalı PUT ile doğrudan Cloudflare R2'ye gider (`lib/deliverable-files.ts`,
+    anahtar `deliverables/{iş birliği}/{influencer}/…`; teslimatta `draft_url = r2://…`, taslak kaydında `file_key`, `file_locked = true`). Marka uygulama içinde
+    önizler (10 dk bağlantı, oynatıcıda indirme menüsü kapalı); orijinal dosyayı indirme influencer "Ödeme alındı" işaretleyince açılır, influencer kendi
+    dosyasını her zaman indirir. Web `components/dashboard/DeliverableFile.tsx`, mobil `mobile-app/components/DeliverableFile.js` + `/api/mobile/collaborations/[id]/files`.
+    R2 ortam değişkenleri yoksa yalnızca link seçeneği görünür. Hesap silmede `deliverables/{iş birliği}/` öneki silinir) Teslim kilidi (taslak dosyası yükleme;
+    marka ödeme teyidine kadar orijinal dosyayı indiremez) Cloudflare R2 ile Kasım'da. Veri modeli hazır: `collaboration_submissions.file_key`, `file_locked`.
+  - ✅ ~~**3.18-N7**~~ (2026-11-24, kullanıcı kararı: ödeme teyidi 24 saat) Marka "Ödeme yapıldı" deyince influencer'ın 24 saati var
+    (`PAYMENT_CONFIRM_HOURS`): "Ödeme alındı" (teslim dosyalarının indirilmesi açılır) ya da "Ödeme gelmedi" (hemen açılır; mevcut "ödeme alınamadı"
+    anlaşmazlığı: marka 7 gün içinde dekont yükler). 24 saat dolup yanıt yoksa marka "Ödemeyi yaptım ama onaylanmadı" ile dekontlu başvurur:
+    yeni anlaşmazlık türü `payment_unconfirmed` (bildiren marka, doğrudan "İncelemede"; dekont `payment-proofs/{marka}/claim-{iş birliği}/…`).
+    Influencer bilgilendirilir, açıklama yazabilir; "Ödeme alındı" derse başvuru çözüldü olarak kapanır. Admin "Ödendi olarak kapat" ödemeyi teyitli
+    sayar ve indirmeyi açar. Kısıt genişletme canlıda (`20261124000010_payment_unconfirmed_dispute.sql`). Web + mobil + admin.
+  - ✅ ~~**3.18-N6**~~ (2026-11-24, kullanıcı kararı: influencer'a en fazla 2 revize) Anlaşma özetinde revize sayısı 0–2 (`AGREEMENT_LIMITS.maxRevisions`, web + mobil;
+    sunucu 2'nin üstünü reddeder). Veritabanı kısıtı (0–10 → 0–2) `supabase/manual/2026-11-24_revize_siniri.sql`; kullanıcı isteğiyle 2026-11-24'te canlıya
+    uygulandı ve doğrulandı (canlıda hiç anlaşma kaydı yoktu).
   - ✅ ~~**3.18-S1 [DÜŞÜK]**~~ (2026-10-11 kullanıcı kararı: olduğu gibi kalır; UGC'de de teslimat yayın linkiyle tamamlanır, marka onayı tek başına teslim sayılmaz) UGC video teslimatı da yayın linki istiyor (Instagram/TikTok/YouTube); marka içeriği kendi hesabında yayınlıyorsa influencer
     markanın gönderi linkini girmeli. UGC için "onaylandı = teslim edildi" ayrımı istenirse kararla eklenir.
   - ✅ ~~**3.18-S2 [DÜŞÜK]**~~ (2026-10-15: yeniden açılışta eski anlaşma özeti, teslimatlar (taslak geçmişi ve ölçümler cascade) ve ödeme kaydı silinir, iş birliği temiz başlar; tek işlemde `reopen_collaboration` (service role). Fonksiyon canlıya uygulanana kadar kod aynı işi sırayla yapar (bkz. 3.18-S6). Mevcut veriye dokunulmadı) (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
@@ -977,6 +1006,15 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**5.1-S7 [ORTA]**~~ (2026-10-14, yeni görünüm: sondan 500 mesaj okunuyor) Seçilen sohbetin mesajları eskiden yeniye ve sınırsız
     çekiliyordu; PostgREST 1000 satır sınırı yüzünden 1000 mesajı geçen sohbette en yeni mesajlar hiç görünmüyordu. Daha eskileri için
     "önceki mesajlar" yüklemesi henüz yok (500'den uzun sohbet nadir).
+  - ✅ ~~**5.1-N1**~~ (2026-11-24, kullanıcı isteği: sohbet görselleri Supabase yerine üçüncü taraf depoda, kota için) R2 ayarlıysa yeni sohbet görselleri
+    Cloudflare R2'ye imzalı PUT ile yüklenir (`lib/chat-upload.ts`, web `createChatUpload`, mobil `/api/mobile/messages/upload-url` `size` ile); mesajda
+    `![image](r2://chat/{oda}/{gönderen}/{dosya})`. Gönderimde yol ve dosyanın varlığı / boyutu sunucuda kontrol edilir (`sendMessageAs`). Görüntüleme yalnızca
+    odanın taraflarına 1 saatlik imzalı bağlantı (`lib/chat-attachments.ts`, web `signChatAttachments`, mobil `/api/mobile/messages/attachments`); admin şikâyet
+    ekranı da açar (`getAttachmentUrl`, erişim günlüğü). Eski Supabase görselleri olduğu gibi çalışır; R2 ayarlı değilse eski yol sürer. Hesap silmede `chat/{oda}/` silinir.
+  - ✅ ~~**5.1-N2**~~ (2026-11-24, kullanıcı kararı: sohbette sıkıştırılmış önizleme, "İndir" ile tam boy; zamana bağlı görünmezlik yok) R2'de önizleme
+    (en uzun kenar 1600 px) ve tam boy orijinal (JPEG/PNG/WEBP, en fazla 20 MB) ayrı saklanır; mesajda `…/{ad}.webp?full=jpg`. Görsel kalıcıdır; erişim bağlantısı
+    12 saatlik ve süresi dolunca / açılmazsa istemci kendiliğinden yeniler (görsel başına en fazla 3 deneme). "İndir" tam boyu verir (`chatAttachmentDownloadAs`,
+    web `downloadChatAttachment`, mobil `/api/mobile/messages/attachments` `action: 'download'`). Admin şikâyet ekranı tam boyu açar.
 
 ### 5.2 Eski sohbet sayfası
 - **Dosyalar:** `app/chat/[roomId]/page.tsx`, `components/chat/ChatWindow.tsx`
@@ -1327,6 +1365,8 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   görsel boyutlandırma Vercel'de. Tasarımda düşünülecekler: yüklemede boyut/format küçültme (ör. WebP, en fazla 1080 px),
   kullanıcı/varlık bazlı klasörler, silinen kayıtların dosyalarının temizlenmesi (hesap silmede yapılıyor), gizli dosyalar için
   imzalı URL, gerekirse ucuz depolama (ör. Cloudflare R2) ve CDN.
+  **2026-11-24 ilerleme:** R2 katmanı kuruldu (`lib/r2.ts`, `aws4fetch`; ortam değişkenleri `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+  `R2_BUCKET`). Sohbet görselleri (5.1-N1) ve teslimat dosyaları (3.18-N4) R2'de. Kalan: avatar, logo, ilan kapağı, eski sohbet eklerinin taşınması, Akademi videoları.
 
 ### 8.8 Dokümanlar
 - Kökteki `DEPLOYMENT.md`, `FINAL_DEPLOYMENT_CHECKLIST.md`, `SUPABASE_SETUP_CHECKLIST.md`, `TRIGGER_SETUP.md`, `SUPABASE_RLS_FIX.md`,

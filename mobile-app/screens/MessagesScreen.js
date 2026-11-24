@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { CHAT_READ_EVENT, CHAT_TYPING_EVENT, CHAT_TYPING_SHOW_MS, CHAT_TYPING_THROTTLE_MS, chatLiveChannel, isSeenBy } from '../constants/chatLive';
-import { View, ScrollView, Image, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Pressable } from 'react-native';
+import { View, ScrollView, Image, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Bell, MessageCircle, ChevronLeft, ArrowUp, Briefcase, Send, Megaphone, ChevronRight, ImagePlus } from 'lucide-react-native';
@@ -21,10 +21,14 @@ import {
 const IMAGE_PREFIX = '![image](';
 const ATTACHMENT_MARKER = '/storage/v1/object/public/chat-attachments/';
 
+const R2_PREFIX = 'r2://chat/';
+
 // Görsel mesaj: "![image](<public url>)". Kova gizli; yol çıkarılıp imzalı bağlantı istenir.
+// R2 görselleri (2026-11-24): "![image](r2://chat/...)"; referansın kendisi anahtar olur, bağlantıyı sunucu imzalar.
 function attachmentPath(content) {
     if (!content?.startsWith(IMAGE_PREFIX) || !content.endsWith(')')) return null;
     const url = content.slice(IMAGE_PREFIX.length, -1);
+    if (url.startsWith(R2_PREFIX)) return /^[a-z0-9/_.:-]+(\?full=(jpg|png|webp))?$/i.test(url) && !url.includes('..') ? url : null;
     const i = url.indexOf(ATTACHMENT_MARKER);
     if (i < 0) return null;
     const path = decodeURIComponent(url.slice(i + ATTACHMENT_MARKER.length).split('?')[0]);
@@ -261,8 +265,33 @@ export default function MessagesScreen({ route, navigation }) {
         });
     }, [route?.params?.openRoomId]);
 
+    // Görsel kalıcıdır; bağlantı süresi dolarsa (ya da açılmazsa) yeniden istenir. Görsel başına en fazla 3 kez.
+    const resignTries = useRef({});
+    const resignRef = (ref) => {
+        const tries = resignTries.current[ref] || 0;
+        if (tries >= 3) return;
+        resignTries.current[ref] = tries + 1;
+        apiRequest('messages/attachments', { method: 'POST', body: { refs: [ref] } }).then((r) => {
+            if (r?.success && r.urls) setImageUrls((prev) => ({ ...prev, ...r.urls }));
+        });
+    };
+
+    // "İndir": tam boy orijinal (yoksa önizleme); tarayıcıda indirilir.
+    const downloadFull = async (ref) => {
+        const r = await apiRequest('messages/attachments', { method: 'POST', body: { action: 'download', ref } });
+        if (r?.success && r.url) Linking.openURL(r.url).catch(() => null);
+        else Alert.alert('İndirilemedi', r?.error || 'Tekrar dene.');
+    };
+
     const signImages = async (rows) => {
-        const paths = Array.from(new Set(rows.map((m) => attachmentPath(m.content)).filter(Boolean)));
+        const all = Array.from(new Set(rows.map((m) => attachmentPath(m.content)).filter(Boolean)));
+        const refs = all.filter((p) => p.startsWith(R2_PREFIX));
+        const paths = all.filter((p) => !p.startsWith(R2_PREFIX));
+        if (refs.length > 0) {
+            apiRequest('messages/attachments', { method: 'POST', body: { refs } }).then((r) => {
+                if (r?.success && r.urls) setImageUrls((prev) => ({ ...prev, ...r.urls }));
+            });
+        }
         if (paths.length === 0) return;
         const { data } = await supabase.storage.from('chat-attachments').createSignedUrls(paths, 60 * 60);
         if (!data) return;
@@ -573,7 +602,17 @@ export default function MessagesScreen({ route, navigation }) {
                                     >
                                         {path ? (
                                             imageUrls[path]
-                                                ? <Image source={{ uri: imageUrls[path] }} style={{ width: 220, height: 165, borderRadius: 14 }} resizeMode="cover" />
+                                                ? (
+                                                    <View>
+                                                        <Image
+                                                            source={{ uri: imageUrls[path] }} style={{ width: 220, height: 165, borderRadius: 14 }} resizeMode="cover"
+                                                            onError={() => path.startsWith(R2_PREFIX) && resignRef(path)}
+                                                        />
+                                                        {path.startsWith(R2_PREFIX) ? (
+                                                            <Text variant="caption" tone="fg2" style={{ marginTop: 4, marginLeft: 6 }} onPress={() => downloadFull(path)} suppressHighlighting>İndir</Text>
+                                                        ) : null}
+                                                    </View>
+                                                )
                                                 : <View style={{ width: 220, height: 165 }} className="items-center justify-center"><ActivityIndicator color={colors.gold} /></View>
                                         ) : (
                                             <Text style={{ fontSize: 14.5, lineHeight: 20 }}>{msg.content}</Text>

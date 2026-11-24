@@ -9,12 +9,15 @@ import InfluencerForm, { InfluencerFormState } from '@/components/onboarding/Inf
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import type { UserRole } from '@/types/auth'
 import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } from '@/utils/socialLinkValidation'
-import { saveOnboardingProfile } from './actions'
+import { getSignupRequirements, saveOnboardingProfile } from './actions'
+import Link from 'next/link'
+import { OAUTH_SIGNUP_STORAGE_KEY, readOAuthSignupIntent } from '@/lib/oauth-signup-shared'
+import { MARKETING_SMS_LABEL, PHONE_PURPOSE_NOTE, normalizePhone } from '@/lib/phone-shared'
 import { validateUsername } from '@/utils/usernameValidation'
 import { validateCorporateEmail } from '@/lib/corporate-email'
 import { ArrowRight } from 'lucide-react'
 import OnboardingShell from '@/components/onboarding/OnboardingShell'
-import { Button, Card, CardBody, Notice } from '@/components/ui'
+import { Button, Card, CardBody, Field, Input, Notice } from '@/components/ui'
 
 type SocialLinks = {
   instagram?: string | null
@@ -81,6 +84,27 @@ export default function OnboardingPage() {
   const [brandForm, setBrandForm] = useState<BrandFormState>(defaultBrandForm)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  // Google ile gelen yeni hesap: Kullanım Koşulları onayı + davet kodu burada (lib/oauth-signup.ts).
+  const [needsConsent, setNeedsConsent] = useState(false)
+  const [legalConsent, setLegalConsent] = useState(false)
+  const [inviteCode, setInviteCode] = useState('')
+  // Zorunlu telefon (2026-11-24): yalnızca platform görür.
+  const [phone, setPhone] = useState('')
+  const [marketingSms, setMarketingSms] = useState(false)
+
+  useEffect(() => {
+    if (!session) return
+    getSignupRequirements()
+      .then((r) => {
+        setNeedsConsent(r.needsConsent)
+        if (r.needsConsent) {
+          const intent = readOAuthSignupIntent()
+          if (intent?.inviteCode) setInviteCode(intent.inviteCode)
+          if (intent?.creatorType) setInfluencerForm((f) => (f.creatorType ? f : { ...f, creatorType: intent.creatorType! }))
+        }
+      })
+      .catch(() => null)
+  }, [session])
 
   const role: UserRole | null = useMemo(() => {
     if (profile?.role) return profile.role
@@ -287,6 +311,17 @@ export default function OnboardingPage() {
       return
     }
 
+    const phoneCheck = normalizePhone(phone)
+    if ('error' in phoneCheck) {
+      setErrorMessage(phoneCheck.error)
+      return
+    }
+
+    if (needsConsent && !legalConsent) {
+      setErrorMessage("Devam etmek için Kullanım Koşulları ve Gizlilik Politikası'nı onaylayın.")
+      return
+    }
+
     setIsSaving(true)
     setErrorMessage(null)
 
@@ -431,6 +466,10 @@ export default function OnboardingPage() {
       avatarUrl: avatarUrl,
       socialLinks: socialLinks,
       creatorType: role === 'influencer' ? influencerForm.creatorType : undefined,
+      legalConsent: needsConsent ? legalConsent : undefined,
+      phone,
+      marketingSms,
+      inviteCode: needsConsent && /^[A-Z0-9]{6,12}$/.test(inviteCode) ? inviteCode : null,
     })
 
     if (!result.success) {
@@ -450,6 +489,9 @@ export default function OnboardingPage() {
       localStorage.removeItem('onboarding_influencer_form')
       localStorage.removeItem('onboarding_brand_form')
       localStorage.removeItem('onboarding_avatar_url')
+      try {
+        localStorage.removeItem(OAUTH_SIGNUP_STORAGE_KEY)
+      } catch {}
     }
   }
 
@@ -486,6 +528,45 @@ export default function OnboardingPage() {
               <BrandForm form={brandForm} onChange={handleBrandChange} />
             ) : (
               <InfluencerForm form={influencerForm} onChange={handleInfluencerChange} />
+            )}
+            <div className="grid gap-3 border-t border-line pt-5">
+              <Field label="Telefon numarası" hint={PHONE_PURPOSE_NOTE}>
+                {(props) => (
+                  <Input {...props} type="tel" inputMode="tel" autoComplete="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0532 123 45 67" />
+                )}
+              </Field>
+              <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-ink-muted">
+                <input type="checkbox" checked={marketingSms} onChange={(e) => setMarketingSms(e.target.checked)} className="mt-0.5 h-4 w-4 flex-none accent-gold" />
+                <span>{MARKETING_SMS_LABEL}</span>
+              </label>
+            </div>
+            {needsConsent && (
+              <div className="grid gap-4 border-t border-line pt-5">
+                <Field label="Davet kodu" hint="İsteğe bağlı">
+                  {(props) => (
+                    <Input
+                      {...props}
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12))}
+                      placeholder="Örn. AB3K9QXZ"
+                      autoComplete="off"
+                    />
+                  )}
+                </Field>
+                <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-ink-muted">
+                  <input type="checkbox" checked={legalConsent} onChange={(e) => setLegalConsent(e.target.checked)} className="mt-0.5 h-4 w-4 flex-none accent-gold" />
+                  <span>
+                    <Link href="/legal?tab=terms" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-[3px]">
+                      Kullanım Koşulları
+                    </Link>{' '}
+                    ve{' '}
+                    <Link href="/legal?tab=privacy" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-[3px]">
+                      Gizlilik Politikası
+                    </Link>
+                    &apos;nı okudum, kabul ediyorum.
+                  </span>
+                </label>
+              </div>
             )}
             {errorMessage && <Notice tone="danger">{errorMessage}</Notice>}
             <div className="flex justify-end border-t border-line pt-5">

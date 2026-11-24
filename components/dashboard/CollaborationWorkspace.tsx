@@ -6,6 +6,9 @@ import { useEffect, useState, useTransition } from 'react'
 import { Check, ExternalLink, History, MessageCircle, Pencil, Plus, Send, X } from 'lucide-react'
 import CampaignBriefView from '@/components/campaigns/CampaignBriefView'
 import DeliverableMetricsPanel from '@/components/dashboard/DeliverableMetricsPanel'
+import { DeliverableFilePreview, DeliverableFileUpload } from '@/components/dashboard/DeliverableFile'
+import { isDeliverableFileRef } from '@/lib/deliverable-files-shared'
+import { r2Ref } from '@/lib/r2-shared'
 import { Avatar, Button, ButtonLink, Card, CardBody, CardHeader, Chip, Field, Input, Notice, Select, Textarea, type ChipTone } from '@/components/ui'
 import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 import { workspaceAction } from '@/app/dashboard/collaborations/[id]/actions'
@@ -28,6 +31,7 @@ import {
 } from '@/lib/collaboration-workspace-shared'
 import type { CollaborationWorkspace, DeliverableView } from '@/lib/collaboration-workspace'
 import CollaborationTrustPanel, { PaymentProgressRow } from '@/components/trust/CollaborationTrustPanel'
+import PaymentClaimForm from '@/components/trust/PaymentClaimForm'
 import { COMMITMENT_SHORT, lateCountText } from '@/lib/collaboration-trust-shared'
 
 interface Props {
@@ -593,6 +597,8 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
                     toggleHistory={() => setHistoryOpen((h) => ({ ...h, [d.id]: !h[d.id] }))}
                     run={run}
                     nondeliveryAt={trust.nondeliveryAvailableAt[d.id] ?? null}
+                    filesEnabled={!!workspace.filesEnabled}
+                    downloadUnlocked={!!payment?.influencer_received_at}
                   />
                 ))}
               </ul>
@@ -621,7 +627,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
               <Notice tone="warning">Ödeme alınamadı bildirimi {formatDate(payment.nonpayment_reported_at)} tarihinde destek ekibine iletildi.</Notice>
             )}
 
-            {(permissions.canMarkPaid || permissions.canUnmarkPaid || permissions.canConfirmPayment || permissions.canUnconfirmPayment || permissions.canReportNonpayment) && (
+            {(permissions.canMarkPaid || permissions.canUnmarkPaid || permissions.canConfirmPayment || permissions.canUnconfirmPayment || permissions.canReportNonpayment || permissions.canClaimPayment) && (
               <div className="flex flex-wrap gap-2">
                 {permissions.canMarkPaid && (
                   <Button size="sm" variant="primary" disabled={busy} onClick={() => openForm('mark_paid')}>
@@ -645,11 +651,30 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
                 )}
                 {permissions.canReportNonpayment && (
                   <Button size="sm" variant="danger" disabled={busy} onClick={() => openForm('report_nonpayment')}>
-                    Ödeme alamadım
+                    {payment?.brand_paid_at ? 'Ödeme gelmedi' : 'Ödeme alamadım'}
+                  </Button>
+                )}
+                {permissions.canClaimPayment && (
+                  <Button size="sm" variant="secondary" disabled={busy} onClick={() => openForm('claim_payment')}>
+                    Ödemeyi yaptım ama onaylanmadı
                   </Button>
                 )}
               </div>
             )}
+            {/* Ödeme teyidi 24 saat (2026-11-24) */}
+            {!isBrand && permissions.paymentConfirmDueAt && !payment?.nonpayment_reported_at && (
+              <Notice tone="warning">
+                Marka ödemeyi yaptığını işaretledi. {formatDateTime(permissions.paymentConfirmDueAt)} tarihine kadar &quot;Ödeme alındı&quot; ya da
+                &quot;Ödeme gelmedi&quot; ile yanıt ver; yanıt vermezsen marka dekontla destek ekibine başvurabilir.
+              </Notice>
+            )}
+            {isBrand && !permissions.canClaimPayment && permissions.claimPaymentAvailableAt && (
+              <p className="text-xs text-ink-faint">
+                Influencer&apos;ın teyit süresi {formatDateTime(permissions.claimPaymentAvailableAt)} tarihinde doluyor. Teyit gelmezse buradan dekontla destek
+                ekibine başvurabilirsin.
+              </p>
+            )}
+            {form?.key === 'claim_payment' && <PaymentClaimForm collaborationId={collab.id} busy={busy} run={run} />}
             {!permissions.canReportNonpayment && permissions.nonpaymentAvailableAt && !payment?.nonpayment_reported_at && (
               <p className="text-xs text-ink-faint">
                 Ödemeyi alamazsan {formatDate(permissions.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsin (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan {NONPAYMENT_REPORT_DAYS} gün sonra açılır).
@@ -718,6 +743,8 @@ function DeliverableCard({
   toggleHistory,
   run,
   nondeliveryAt,
+  filesEnabled,
+  downloadUnlocked,
 }: {
   d: DeliverableView
   collaborationId: string
@@ -725,13 +752,17 @@ function DeliverableCard({
   isBrand: boolean
   busy: boolean
   form: { key: string; url: string; note: string; date: string } | null
-  setForm: (f: { key: string; url: string; note: string; date: string } | null) => void
+  setForm: React.Dispatch<React.SetStateAction<{ key: string; url: string; note: string; date: string } | null>>
   openForm: (key: string) => void
   historyOpen: boolean
   toggleHistory: () => void
   run: (payload: Record<string, unknown>) => void
   /** "Teslim edilmedi" bildiriminin açılacağı an (yalnızca marka; 2026-11-23). */
   nondeliveryAt: string | null
+  /** Taslak dosyası yükleme açık mı (R2). */
+  filesEnabled: boolean
+  /** Marka orijinal dosyayı indirebilir mi (influencer "Ödeme alındı" işaretlediyse). */
+  downloadUnlocked: boolean
 }) {
   const canReportNondelivery = isBrand && !!nondeliveryAt && Date.now() >= new Date(nondeliveryAt).getTime()
   const key = (name: string) => `${name}:${d.id}`
@@ -754,14 +785,22 @@ function DeliverableCard({
 
       {(d.draft_url || d.publish_url || (d.status === 'revision_requested' && d.review_note)) && (
         <div className="grid gap-1.5 text-[13px]">
-          {d.draft_url && (
-            <p>
-              <span className="text-xs text-ink-faint">Son taslak: </span>
-              <a href={d.draft_url} target="_blank" rel="noopener noreferrer nofollow" className={linkClass}>
-                {d.draft_url}
-              </a>
+          {d.draft_url && isDeliverableFileRef(d.draft_url) ? (
+            <div className="grid gap-1">
+              <span className="text-xs text-ink-faint">Son taslak (dosya):</span>
+              <DeliverableFilePreview collaborationId={collaborationId} fileRef={d.draft_url} isBrand={isBrand} downloadUnlocked={downloadUnlocked} />
               {d.draft_note && <span className="block text-xs text-ink-muted">{d.draft_note}</span>}
-            </p>
+            </div>
+          ) : (
+            d.draft_url && (
+              <p>
+                <span className="text-xs text-ink-faint">Son taslak: </span>
+                <a href={d.draft_url} target="_blank" rel="noopener noreferrer nofollow" className={linkClass}>
+                  {d.draft_url}
+                </a>
+                {d.draft_note && <span className="block text-xs text-ink-muted">{d.draft_note}</span>}
+              </p>
+            )
           )}
           {d.status === 'revision_requested' && d.review_note && <Notice tone="warning">Revize isteği: {d.review_note}</Notice>}
           {d.publish_url && (
@@ -818,15 +857,25 @@ function DeliverableCard({
             run({ action: 'submit_draft', deliverableId: d.id, url: form.url, note: form.note })
           }}
         >
-          <Input
-            type="url"
-            required
-            maxLength={500}
-            aria-label="Taslak linki"
-            placeholder="https://drive.google.com/... veya WeTransfer / önizleme linki"
-            value={form.url}
-            onChange={(e) => setForm({ ...form, url: e.target.value })}
-          />
+          {filesEnabled && (
+            <DeliverableFileUpload
+              collaborationId={collaborationId}
+              deliverableId={d.id}
+              disabled={busy}
+              onUploaded={(ref) => setForm((f) => (f ? { ...f, url: ref ?? '' } : f))}
+            />
+          )}
+          {!isDeliverableFileRef(form.url) && (
+            <Input
+              type="url"
+              required
+              maxLength={500}
+              aria-label="Taslak linki"
+              placeholder={filesEnabled ? 'ya da link: https://drive.google.com/... veya WeTransfer' : 'https://drive.google.com/... veya WeTransfer / önizleme linki'}
+              value={form.url}
+              onChange={(e) => setForm({ ...form, url: e.target.value })}
+            />
+          )}
           <Textarea
             rows={2}
             maxLength={AGREEMENT_LIMITS.draftNoteMax}
@@ -919,6 +968,11 @@ function DeliverableCard({
                     taslak
                   </a>
                 </>
+              )}
+              {s.file_key && (
+                <div className="mt-1">
+                  <DeliverableFilePreview collaborationId={collaborationId} fileRef={r2Ref(s.file_key)} isBrand={isBrand} downloadUnlocked={downloadUnlocked} compact />
+                </div>
               )}
               {s.note ? ` · ${s.note}` : ''}
               {s.review === 'approved' && <span className="text-success"> · onaylandı</span>}

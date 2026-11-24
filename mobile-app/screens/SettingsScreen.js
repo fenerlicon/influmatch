@@ -3,8 +3,9 @@ import { Alert, Linking, Share } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import {
-    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink, CalendarClock, Download, Trash2,
+    UserRound, AtSign, KeyRound, BellRing, Link2, LifeBuoy, Mail, FileText, LogOut, Eye, EyeOff, ExternalLink, CalendarClock, Download, Trash2, Phone,
 } from 'lucide-react-native';
+import { MARKETING_SMS_LABEL, PHONE_PURPOSE_NOTE, formatPhone, normalizePhone } from '../constants/phone';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { signOutAndClearPush } from '../utils/notifications';
@@ -12,7 +13,7 @@ import SupportTicketForm from '../components/SupportTicketForm';
 import { AVAILABILITY_NOTE_MAX, availabilityText } from '../constants/availability';
 import { BRAND_PORTFOLIO_SETTING_HELP, BRAND_PORTFOLIO_SETTING_LABEL } from '../constants/portfolio';
 import {
-    Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, DateField, colors, ICON_STROKE,
+    Screen, StackHeader, Text, Button, ListGroup, ListRow, IconBox, ToggleRow, Sheet, TextField, IconButton, DateField, Checkbox, colors, ICON_STROKE,
 } from '../components/ui';
 
 // Ayarlar (design/mobile/ortak.html). E-posta tercihleri web ile aynı alan (users.email_notifications,
@@ -152,11 +153,53 @@ function AvailabilitySheet({ visible, onClose, initial, onSaved }) {
     );
 }
 
+// Telefon (2026-11-24): zorunlu numara ve isteğe bağlı pazarlama izni; yalnızca Influmatch ekibi görür (web lib/user-contact.ts).
+function PhoneSheet({ visible, onClose, initial, onSaved }) {
+    const [phone, setPhone] = useState(formatPhone(initial?.phone));
+    const [marketingSms, setMarketingSms] = useState(!!initial?.marketingSms);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
+
+    const save = async () => {
+        setError(null);
+        const checked = normalizePhone(phone);
+        if (checked.error) return setError(checked.error);
+        setSaving(true);
+        const result = await apiRequest('contact', { method: 'POST', body: { phone: checked.phone, marketingSms } });
+        setSaving(false);
+        if (!result?.success) return setError(result?.error || 'Kaydedilemedi.');
+        onSaved({ phone: result.phone, marketingSms });
+        onClose();
+    };
+
+    return (
+        <Sheet visible={visible} onClose={onClose} title="Telefon numarası" scroll>
+            <TextField
+                label="Telefon numarası"
+                hint={PHONE_PURPOSE_NOTE}
+                error={error || undefined}
+                placeholder="0532 123 45 67"
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                value={phone}
+                onChangeText={setPhone}
+                maxLength={20}
+            />
+            <Checkbox checked={marketingSms} onChange={setMarketingSms}>
+                <Text variant="small" tone="fg2" style={{ lineHeight: 20 }}>{MARKETING_SMS_LABEL}</Text>
+            </Checkbox>
+            <Button title="Kaydet" onPress={save} loading={saving} block />
+        </Sheet>
+    );
+}
+
 export default function SettingsScreen({ navigation }) {
     const [role, setRole] = useState(null);
     const [username, setUsername] = useState('');
     const [prefs, setPrefs] = useState(null);
     const [passwordOpen, setPasswordOpen] = useState(false);
+    const [contact, setContact] = useState(null);
+    const [phoneOpen, setPhoneOpen] = useState(false);
     const [supportOpen, setSupportOpen] = useState(false);
     const [availability, setAvailability] = useState(null);
     const [availabilityOpen, setAvailabilityOpen] = useState(false);
@@ -169,6 +212,7 @@ export default function SettingsScreen({ navigation }) {
         (async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+            apiRequest('contact').then((r) => r?.success && setContact({ phone: r.phone, marketingSms: !!r.marketingSms }));
             const [{ data }, pref] = await Promise.all([
                 supabase.from('users').select('role, username').eq('id', user.id).maybeSingle(),
                 apiRequest('email-preferences'),
@@ -284,6 +328,15 @@ export default function SettingsScreen({ navigation }) {
                         chevron
                     />
                 ) : null}
+                {role === 'influencer' || role === 'brand' ? (
+                    <ListRow
+                        left={<IconBox icon={Phone} />}
+                        title="Telefon numarası"
+                        subtitle={contact?.phone ? formatPhone(contact.phone) : 'Eklenmemiş'}
+                        onPress={() => setPhoneOpen(true)}
+                        chevron
+                    />
+                ) : null}
                 <ListRow left={<IconBox icon={KeyRound} />} title="Şifre değiştir" onPress={() => setPasswordOpen(true)} chevron />
                 <ListRow
                     left={<IconBox icon={BellRing} />}
@@ -387,6 +440,9 @@ export default function SettingsScreen({ navigation }) {
             <Text variant="caption" tone="fg3" style={{ textAlign: 'center' }}>Influmatch · sürüm {version}</Text>
 
             <PasswordSheet visible={passwordOpen} onClose={() => setPasswordOpen(false)} />
+            {phoneOpen ? (
+                <PhoneSheet visible={phoneOpen} onClose={() => setPhoneOpen(false)} initial={contact} onSaved={setContact} />
+            ) : null}
             <DeleteAccountSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} onDeleted={handleDeleted} />
             {availabilityOpen ? (
                 <AvailabilitySheet visible onClose={() => setAvailabilityOpen(false)} initial={availability} onSaved={setAvailability} />

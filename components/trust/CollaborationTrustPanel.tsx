@@ -174,6 +174,11 @@ function DisputeCard({ collaborationId, dispute: d }: { collaborationId: string;
           yeni {d.kind === 'nonpayment' ? 'ilan / teklif açamazsın' : 'başvuru yapamazsın'}.
         </Notice>
       )}
+      {d.kind === 'payment_unconfirmed' && !d.viewerIsReporter && ['escalated', 'open', 'responded'].includes(d.status) && (
+        <Notice tone="warning">
+          Marka ödemeyi yaptığını dekontla bildirdi. Ödeme geldiyse yukarıdan &quot;Ödeme alındı&quot; ile teyit et; gelmediyse açıklamanı yaz. Kararı destek ekibi verir.
+        </Notice>
+      )}
       <div className="flex flex-wrap gap-2">
         {d.hasProof && (
           <Button size="sm" variant="ghost" disabled={busy} onClick={openProof} leftIcon={<Paperclip />}>
@@ -182,7 +187,7 @@ function DisputeCard({ collaborationId, dispute: d }: { collaborationId: string;
         )}
         {d.actions.includes('respond') && (
           <Button size="sm" variant="primary" disabled={busy} onClick={() => setForm(form === 'respond' ? null : 'respond')}>
-            {d.kind === 'nonpayment' ? 'Dekont yükle / yanıtla' : 'Kanıt yükle / yanıtla'}
+            {d.kind === 'payment_unconfirmed' ? 'Açıklama yaz' : d.kind === 'nonpayment' ? 'Dekont yükle / yanıtla' : 'Kanıt yükle / yanıtla'}
           </Button>
         )}
         {d.actions.includes('mark_resolved') && (
@@ -226,7 +231,7 @@ function DisputeCard({ collaborationId, dispute: d }: { collaborationId: string;
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-          {form === 'respond' && (
+          {form === 'respond' && d.kind !== 'payment_unconfirmed' && (
             <div className="flex flex-wrap items-center gap-2">
               <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               <Button size="sm" variant="ghost" disabled={busy} onClick={() => fileRef.current?.click()} leftIcon={<Paperclip />}>
