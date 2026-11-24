@@ -15,8 +15,21 @@
   --sh: 0 1px 0 rgba(255,255,255,.04) inset, 0 28px 48px -28px rgba(0,0,0,.85), 0 2px 6px rgba(0,0,0,.25);
   --ease: cubic-bezier(.2,0,0,1);
   background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--sans);
-  -webkit-font-smoothing: antialiased; overflow-x: hidden; min-height: 100vh;
+  /* overflow-x: hidden kapsayıcıyı kaydırma kutusu yapıp yapışkan üst menüyü bozuyordu (2026-11-24); clip taşmayı keser ama
+     kaydırma kutusu oluşturmaz. clip'i tanımayan eski tarayıcılar hidden'da kalır (menü yapışmaz, sayfa yine düzgün). */
+  -webkit-font-smoothing: antialiased; overflow-x: hidden; overflow-x: clip; min-height: 100vh;
 }
+
+/* Yukarı çık düğmesi (BackToTop.tsx): aşağı inince sağ altta belirir. */
+.lp .to-top {
+  position: fixed; right: 20px; bottom: 20px; z-index: 30; width: 48px; height: 48px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  background: rgba(23,25,31,.94); color: var(--fg); border: 1px solid var(--line2); box-shadow: var(--sh);
+  opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s var(--ease), transform .2s var(--ease), border-color .15s;
+}
+.lp .to-top.show { opacity: 1; transform: none; pointer-events: auto }
+.lp .to-top:hover { border-color: var(--gold) }
+@media (prefers-reduced-motion: reduce) { .lp .to-top { transition: none } }
 .lp *, .lp *::before, .lp *::after { box-sizing: border-box }
 .lp a { color: inherit }
 .lp svg { display: block }
