@@ -1,6 +1,6 @@
 import {
   Bell, Briefcase, CalendarDays, Clapperboard, CreditCard, Gavel, Building2, Compass, Flag, Home, KeyRound, LifeBuoy, LineChart, Link2, Megaphone, MessageSquare,
-  MessagesSquare, SlidersHorizontal, Target, Trophy, UserRound, Users, type LucideIcon,
+  MessagesSquare, Scale, SlidersHorizontal, Target, Trophy, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 
 export type ShellRole = 'influencer' | 'brand' | 'admin'
@@ -98,6 +98,8 @@ const ADMIN: NavGroup[] = [
       { id: 'feedback', label: 'Geri Bildirimler', href: '/admin/feedback', icon: MessagesSquare },
       { id: 'reports', label: 'Raporlanan Mesajlar', href: '/admin/messages', icon: Flag },
       { id: 'appeals', label: 'İtirazlar', href: '/admin/appeals', icon: Gavel, countKey: 'appeals' },
+      // Güvenli iş birliği (2026-11-23): ödeme / teslim anlaşmazlıkları; sayı = incelemedeki (karar bekleyen) kayıtlar.
+      { id: 'disputes', label: 'Anlaşmazlıklar', href: '/admin/disputes', icon: Scale, countKey: 'disputes' },
       { id: 'messages', label: 'Mesajlar', href: '/dashboard/messages', icon: MessageSquare, unread: true },
     ],
   },

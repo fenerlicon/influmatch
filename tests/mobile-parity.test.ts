@@ -15,6 +15,8 @@ import * as webModeration from '@/lib/moderation-shared'
 import * as mobileModeration from '@/mobile-app/constants/moderation.js'
 import * as webConsent from '@/lib/consent-shared'
 import * as mobileConsent from '@/mobile-app/constants/consent.js'
+import * as webTrust from '@/lib/collaboration-trust-shared'
+import * as mobileTrust from '@/mobile-app/constants/trust.js'
 import { INFLUENCER_CATEGORIES } from '@/utils/categories'
 import { INFLUENCER_CATEGORIES as MOBILE_INFLUENCER_CATEGORIES } from '@/mobile-app/constants/categories.js'
 
@@ -71,6 +73,24 @@ describe('web ↔ mobil sabitleri', () => {
   it('KVKK rıza sürümü ve veri indirme sınırı', () => {
     expect(mobileConsent.LEGAL_CONSENT_VERSION).toBe(webConsent.LEGAL_CONSENT_VERSION)
     expect(mobileConsent.DATA_EXPORT_COOLDOWN_MINUTES).toBe(webConsent.DATA_EXPORT_COOLDOWN_MINUTES)
+  })
+
+  it('güvenli iş birliği', () => {
+    expect(mobileTrust.COMMITMENT_VERSION).toBe(webTrust.COMMITMENT_VERSION)
+    expect(mobileTrust.COMMITMENT_TEXT).toBe(webTrust.COMMITMENT_TEXT)
+    expect(mobileTrust.COMMITMENT_SHORT).toBe(webTrust.COMMITMENT_SHORT)
+    expect(mobileTrust.COMMITMENT_CHECKBOX_LABEL).toBe(webTrust.COMMITMENT_CHECKBOX_LABEL)
+    expect(mobileTrust.COMMITMENT_REQUIRED_ERROR).toBe(webTrust.COMMITMENT_REQUIRED_ERROR)
+    expect(mobileTrust.DISPUTE_RESPONSE_DAYS).toBe(webTrust.DISPUTE_RESPONSE_DAYS)
+    expect(mobileTrust.DISPUTE_PROOF_BUCKET).toBe(webTrust.DISPUTE_PROOF_BUCKET)
+    expect(mobileTrust.DISPUTE_PROOF_MAX_BYTES).toBe(webTrust.DISPUTE_PROOF_MAX_BYTES)
+    expect(mobileTrust.DISPUTE_NOTE_MAX).toBe(webTrust.DISPUTE_NOTE_MAX)
+    expect(mobileTrust.DISPUTE_KIND_LABELS).toEqual(webTrust.DISPUTE_KIND_LABELS)
+    expect(mobileTrust.DISPUTE_STATUS_LABELS).toEqual(webTrust.DISPUTE_STATUS_LABELS)
+    expect(Object.keys(mobileTrust.DISPUTE_STATUS_TONES).sort()).toEqual(Object.keys(webTrust.DISPUTE_STATUS_LABELS).sort())
+    expect(mobileTrust.PAYMENT_PROGRESS_LABELS).toEqual(webTrust.PAYMENT_PROGRESS_LABELS)
+    expect(mobileTrust.lateCountText('payment', 1, 3)).toBe(webTrust.lateCountText('payment', 1, 3))
+    expect(mobileTrust.lateCountText('delivery', 0, 0)).toBe(webTrust.lateCountText('delivery', 0, 0))
   })
 
   it('influencer kategorileri', () => {

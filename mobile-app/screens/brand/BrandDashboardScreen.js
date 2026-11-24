@@ -7,6 +7,7 @@ import { apiRequest } from '../../lib/api';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { useFocusEffect } from '@react-navigation/native';
 import AccountStatusCard from '../../components/AccountStatusCard';
+import AccountHoldNotice from '../../components/AccountHoldNotice';
 import { formatCount, timeAgo } from '../../lib/format';
 import {
     Screen, LargeHeader, Logo, Section, Text, Button, IconButton, Card, ListGroup, ListRow, Avatar, NameWithTick, Chip,
@@ -143,6 +144,7 @@ export default function BrandDashboardScreen({ navigation }) {
                 />
             ) : null}
 
+            <AccountHoldNotice />
             <AccountStatusCard navigation={navigation} />
 
             <View className="flex-row" style={{ gap: 10 }}>

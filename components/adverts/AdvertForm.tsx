@@ -10,6 +10,7 @@ import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { Button, Field, Input, Modal, Select, Textarea } from '@/components/ui'
 import { isQuestionRequired, type AdvertProject, type AdvertQuestion } from '@/lib/adverts-shared'
 import { ADVERT_GENERAL_CATEGORY, INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS, isAdvertCategoryKey, isGeneralAdvertCategory } from '@/utils/categories'
+import { handleCommitmentError } from '@/components/trust/CommitmentDialog'
 
 const HERO_IMAGE_BUCKET = 'advert-hero-images'
 const MAX_QUESTIONS = 5
@@ -125,6 +126,8 @@ export default function AdvertForm({ open, onClose, project, onSaved }: Props) {
           .map((q) => ({ ...q, question: q.question.trim(), options: q.type === 'text' ? [] : q.options.map((o) => o.trim()).filter(Boolean) })),
       })
       if (result?.error) {
+        // Taahhüt eksikse (2026-11-23) pencere açılır; onaydan sonra ilan yeniden kaydedilir.
+        handleCommitmentError(result.error)
         setError(result.error)
         return
       }

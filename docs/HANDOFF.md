@@ -18,6 +18,10 @@
   birleşmez. Mobil: sunucu doğrulaması + bildirim uçları hazır, uygulamada satın alma `IAP_ENABLED=false` (expo-iap eklenmedi). **Satış KAPALI** (`payments_enabled`);
   **SQL canlıda değil** (`supabase/manual/2026-11-23_odeme.sql`, MCP izin vermedi; kod tablolar yokken çalışır, ödeme arayüzü gizli). iyzico'ya bu oturumdan ağ erişimi
   yoktu: uç noktalar resmi Node SDK'sıyla karşılaştırıldı ama gerçek istek atılmadı (doğrulanacaklar `docs/PAYMENTS.md` bölüm 5). `/legal`'de üç boş "Avukat metni bekleniyor" sekmesi.
+- **Güvenli iş birliği (2026-11-23, `claude/trust-influcash`, PR açılmadı; SYSTEM_MAP 15):** emanet yok. Marka taahhüdü (ilk ilan / teklif öncesi, metin **avukat kontrolü bekliyor**),
+  anlaşmada ödeme vadesi, ödeme / teyit hatırlatmaları (marka 0/3/7/14, influencer 2/5/10. gün), "Ödeme alamadım" / "Teslim edilmedi" anlaşmazlığı (7 gün kanıt → yoksa hesap incelemede,
+  kesin karar admin `/admin/disputes`, askıya alma itiraz sistemine bağlı), iş birliği kaydı indirme (`/api/collaborations/[id]/record`), "Zamanında Ödeme / Teslim" rozetleri,
+  profilde geç ödeme / teslim sayısı, mobil uçlar ve ekranlar. **SQL canlıda değil:** `supabase/manual/2026-11-23_guvenli_is_birligi.sql`; çalıştırılana kadar özellik gizli.
 - **İçerik planı (2026-11-01, `claude/toplanti-planner`):** `/toplanti` yalnızca Damla Dalay'ın hesabına açık (`CONTENT_PLAN_OWNER_ID`, `lib/content-plan.ts`; diğer hesaplar 404, admin takip ekranına gider):
   takvim, liste, seri + alt başlıklar, fikirler, video/açıklama metni, çekim ve paylaşım tarihi. Takip `/admin/icerik-plani`'de salt okunur (admin rolündeki her hesap görür, yeni yönetici hesabında ek iş yok).
   Tablolar `content_series`, `content_items` istemcilere kapalı, migration `20261101000010_content_plan.sql`.
@@ -141,7 +145,7 @@
   (menüde açık itiraz sayısı): kabulde kayıt yeniden incelemeye alınır (hesap → Bekleyen, levha → İnceleme gerekli, görev → İncelemede), retle yanıt zorunlu.
   Kod `lib/moderation.ts` + `lib/moderation-shared.ts`. **Tablolar canlıda yok** (bu oturumda Supabase bağlantısı izin vermedi): `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql`
   çalıştırılmalı; çalıştırılana kadar kod çökmez, itiraz gizli kalır. KVKK oturumu için: hesap silmede `appeal-files/{uid}/` dosyaları da silinmeli (6.10-S5).
-- **Canlı SQL:** bekleyen: `supabase/manual/2026-11-23_odeme.sql` (ödemeler ve abonelik, eklemeli, tekrar çalıştırılabilir; mevcut admin Spotlight üyeliklerini aktarır). `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql` (ret kararı + itiraz tabloları ve kovası; eklemeli, tekrar çalıştırılabilir).
+- **Canlı SQL:** bekleyen: `supabase/manual/2026-11-23_guvenli_is_birligi.sql` (güvenli iş birliği; ret/itiraz ve KVKK SQL'lerinden sonra). `supabase/manual/2026-11-23_odeme.sql` (ödemeler ve abonelik, eklemeli, tekrar çalıştırılabilir; mevcut admin Spotlight üyeliklerini aktarır). `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql` (ret kararı + itiraz tabloları ve kovası; eklemeli, tekrar çalıştırılabilir).
   `supabase/manual/2026-10-15_is_birligi_rpc.sql` (`reopen_collaboration`, `save_collaboration_agreement`; eklemeli,
   sıra / yayın bağımsız; MCP onayında zaman aşımı, 3.18-S6). Çalıştırılana kadar kod eski sıralı yolla çalışır.
   `20261015000021_advert_category_mapping.sql` PR #94 yayına girdikten sonra 2026-10-15'te canlıya uygulandı (general 4, fashion 2, beauty 1).

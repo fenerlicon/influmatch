@@ -2,7 +2,8 @@
 // - Her olay site içi bildirim (notifications tablosu, zil) olarak yazılır.
 // - Önemli olaylarda e-posta da gider: yeni teklif, teklif yanıtı, başvuru sonucu, destek yanıtı,
 //   iş birliği yayın linki / tamamlanma / iptal, anlaşma özeti / taslak / revize / ödeme alınamadı (3.18), süresi dolan teklif (markaya), ilan alarmı (influencer'a),
-//   hesap onayı / reddi (admin kararı), ilana yeni başvuru (markaya), ret kararı (nedeniyle) ve itiraz sonucu.
+//   hesap onayı / reddi (admin kararı), ilana yeni başvuru (markaya), ret kararı (nedeniyle) ve itiraz sonucu,
+//   ödeme / teyit hatırlatmaları, anlaşmazlık adımları, hesap incelemesi ve askıya alma (2026-11-23).
 //   Yeni mesaj e-postası alıcı başına en fazla saatte bir; alıcı o an çevrimiçiyse gönderilmez. Yeni başvuru e-postası da
 //   aynı bağlantı için saatte en fazla bir (arada gelen başvurular yalnızca site içi + push).
 // - Kullanıcının ayarlardaki e-posta tercihleri (users.email_notifications) uygulanır.
@@ -54,6 +55,11 @@ export type NotificationEvent =
   | 'moderation_decision'
   | 'appeal_result'
   | 'billing'
+  | 'collab_payment_reminder'
+  | 'collab_receipt_reminder'
+  | 'collab_dispute'
+  | 'account_hold'
+  | 'influcash'
 
 type EmailPreferenceKey = 'offers' | 'advert_applications' | 'messages' | 'updates'
 
@@ -101,6 +107,14 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   appeal_result: { preference: 'updates', email: true },
   // Üyelik ve ödeme (2026-11-23): ödeme alınamadı, üyelik bitiyor / bitti, yıllık yenileme hatırlatması, iptal. "Platform Güncellemeleri" tercihine bağlı.
   billing: { preference: 'updates', email: true },
+  // Güvenli iş birliği (2026-11-23, SYSTEM_MAP 15): ödeme hatırlatması (marka, 0/3/7/14. gün), teyit hatırlatması (influencer, 2/5/10. gün),
+  // anlaşmazlık adımları ve hesap incelemesi / askıya alma önemli olay sayılır: site içi + push + e-posta.
+  collab_payment_reminder: { preference: 'offers', email: true },
+  collab_receipt_reminder: { preference: 'offers', email: true },
+  collab_dispute: { preference: 'offers', email: true },
+  account_hold: { preference: 'updates', email: true },
+  // Influcash (2026-11-23, SYSTEM_MAP 16): puan kazanımı / kullanımı yalnızca site içi + push (e-posta kotası korunur).
+  influcash: { preference: 'updates', email: false },
 }
 
 /** E-postası alıcı + bağlantı başına saatte en fazla bir kez giden olaylar (site içi bildirim her seferinde yazılır). */

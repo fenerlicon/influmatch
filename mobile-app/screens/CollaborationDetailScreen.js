@@ -7,6 +7,8 @@ import {
 import { apiRequest } from '../lib/api';
 import CampaignBrief from '../components/CampaignBrief';
 import DeliverableMetrics from '../components/DeliverableMetrics';
+import CollaborationTrust, { PaymentProgress } from '../components/CollaborationTrust';
+import { COMMITMENT_SHORT, lateCountText } from '../constants/trust';
 import {
     AGREEMENT_LIMITS,
     AGREEMENT_SUMMARY_NOTE,
@@ -20,7 +22,7 @@ import {
 } from '../constants/collaborationWorkspace';
 import {
     Screen, StackHeader, BottomBar, Section, Text, Button, IconButton, Card, ListGroup, IconBox, KeyValue, Avatar,
-    Chip, Segment, FilterChip, ChipRow, Timeline, Notice, EmptyState, Sheet, TextField, colors, ICON_STROKE,
+    Chip, Segment, FilterChip, ChipRow, Timeline, Notice, EmptyState, Sheet, TextField, DateField, colors, ICON_STROKE,
 } from '../components/ui';
 
 // İş birliği takip alanı: anlaşma özeti, teslimatlar (taslak / revize / yayın) ve ödeme teyidi (design/mobile/ortak.html).
@@ -153,6 +155,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
             fee_amount: agreement?.fee_amount != null ? String(agreement.fee_amount) : '',
             revision_limit: String(agreement?.revision_limit ?? 2),
             usage_rights: agreement?.usage_rights || '',
+            payment_due_date: agreement?.payment_due_date || '',
             // Teslimat yoksa kampanyanın varsayılan teslimatlarıyla (3.19) ya da tek Reels satırıyla başlar.
             deliverables: deliverables.length
                 ? deliverables.map((d) => ({ id: d.id, kind: d.kind, quantity: String(d.quantity), note: d.note || '', due_date: d.due_date || '' }))
@@ -172,6 +175,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                     fee_amount: draft.fee_amount.trim() === '' ? null : Number(draft.fee_amount),
                     revision_limit: Number(draft.revision_limit),
                     usage_rights: draft.usage_rights,
+                    ...(ws?.trust?.enabled ? { payment_due_date: draft.payment_due_date || null } : {}),
                     deliverables: draft.deliverables.map((d) => ({
                         id: d.id,
                         kind: d.kind,
@@ -338,11 +342,13 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                         <View>
                             <KeyValue label="Ücret" value={`${formatTryAmount(agreement.fee_amount)} · ${PAYMENT_TYPE_LABELS[agreement.payment_type] || ''}`} />
                             <KeyValue label="Revize hakkı" value={String(agreement.revision_limit)} />
+                            {ws.trust?.enabled ? <KeyValue label="Ödeme vadesi" value={agreement.payment_due_date ? formatDate(agreement.payment_due_date) : '—'} /> : null}
                             <KeyValue label="Kullanım hakkı" value={agreement.usage_rights || '—'} />
                             <KeyValue label="Marka onayı" value={agreement.brand_confirmed_at ? formatDateTime(agreement.brand_confirmed_at) : 'Bekleniyor'} valueTone={agreement.brand_confirmed_at ? undefined : 'fg3'} />
                             <KeyValue label="Influencer onayı" value={agreement.influencer_confirmed_at ? formatDateTime(agreement.influencer_confirmed_at) : 'Bekleniyor'} valueTone={agreement.influencer_confirmed_at ? undefined : 'fg3'} last />
                         </View>
                         <Text variant="caption" tone="fg3">{AGREEMENT_SUMMARY_NOTE}</Text>
+                        {ws.trust?.enabled ? <Text variant="caption" tone="fg2">{COMMITMENT_SHORT}</Text> : null}
                         {(perms.canConfirmAgreement && !isPrimary('confirm_agreement')) || perms.canEditAgreement ? (
                             <View className="flex-row" style={{ gap: 8 }}>
                                 {perms.canConfirmAgreement && !isPrimary('confirm_agreement') ? (
@@ -445,6 +451,15 @@ export default function CollaborationDetailScreen({ navigation, route }) {
             {/* Ödeme: platform dışında yapılır; uygulama yalnızca iki tarafın onayını kaydeder */}
             <Section title="Ödeme">
                 <Card style={{ gap: 12 }}>
+                    <PaymentProgress trust={ws.trust} />
+                    {ws.trust?.otherLateStats ? (
+                        <Text variant="caption" tone="fg3">
+                            {isBrand ? 'Teslim geçmişi: ' : 'Ödeme geçmişi: '}
+                            {isBrand
+                                ? lateCountText('delivery', ws.trust.otherLateStats.deliveries.late, ws.trust.otherLateStats.deliveries.total)
+                                : lateCountText('payment', ws.trust.otherLateStats.payments.late, ws.trust.otherLateStats.payments.total)}
+                        </Text>
+                    ) : null}
                     {agreement ? (
                         <View className="flex-row items-baseline justify-between">
                             <Text tone="fg2">Anlaşılan ücret</Text>
@@ -499,6 +514,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                             Ödemeyi alamazsanız {formatDate(perms.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan 14 gün sonra açılır).
                         </Text>
                     ) : null}
+                    <CollaborationTrust collaborationId={id} trust={ws.trust} deliverables={deliverables} isBrand={isBrand} onChanged={load} />
                 </Card>
             </Section>
 
@@ -600,6 +616,15 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                             keyboardType="number-pad"
                             maxLength={2}
                         />
+                        {ws?.trust?.enabled ? (
+                            <DateField
+                                label={`Ödeme vadesi (son ödeme günü)${draft.payment_type === 'barter' ? ', isteğe bağlı' : ''}`}
+                                hint="İş bitip bu gün geldiğinde markaya ödeme hatırlatmaları başlar."
+                                value={draft.payment_due_date}
+                                min={today()}
+                                onChange={(v) => setDraft({ ...draft, payment_due_date: v || '' })}
+                            />
+                        ) : null}
                         <TextField
                             label="Kullanım hakkı (kısa)"
                             value={draft.usage_rights}

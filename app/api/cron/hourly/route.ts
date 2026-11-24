@@ -15,6 +15,9 @@ import { processDueMetrics } from '@/lib/post-metrics'
 import { processDueTaskMeasurements } from '@/lib/tasks'
 import { sweepFounderBadges } from '@/lib/founder-badge'
 import { runBillingJobs } from '@/lib/payments/billing-jobs'
+import { processPaymentReminders } from '@/lib/collaboration-trust'
+import { escalateOverdueDisputes } from '@/lib/collaboration-disputes'
+import { sweepTrustBadges } from '@/lib/trust-badges'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -36,6 +39,8 @@ const HOURLY_STATS_START_BUDGET_MS = 10_000
  * - 7 gün yanıtlanmayan teklifler "Süresi doldu" olur, markaya bildirim gider (lib/offers.ts).
  * - Yeni açılan ilanlar influencer ilan alarmlarıyla eşleştirilir (lib/advert-alerts.ts).
  * - Yayınlanan teslimatların gönderi ölçümleri (sonuç raporu, lib/post-metrics.ts): tek Apify koşusu, en fazla 10 gönderi.
+ * - Güvenli iş birliği (lib/collaboration-trust.ts, lib/collaboration-disputes.ts, lib/trust-badges.ts): ödeme / teyit hatırlatmaları,
+ *   7 gün yanıtsız anlaşmazlıkların incelemeye alınması, Zamanında Ödeme / Teslim rozetleri. Tablolar yoksa atlanır.
  * - Abonelikler (lib/payments/billing-jobs.ts): kaçan iyzico/mağaza bildirimleri, ödemesi alınamayanların ek süre sonu,
  *   hatırlatmalar, 0₺ dönemi Pro dağıtımı. İstatistikle paralel, kendi süre bütçesiyle (45. saniyede durur).
  */
@@ -106,6 +111,13 @@ export async function GET(req: Request) {
     result.activityBadgesError = error instanceof Error ? error.message : String(error)
   }
 
+  try {
+    result.trustBadges = await sweepTrustBadges(admin)
+  } catch (error) {
+    console.error('[cron/hourly] Zamanında Ödeme / Teslim rozetleri değerlendirilemedi:', error)
+    result.trustBadgesError = error instanceof Error ? error.message : String(error)
+  }
+
   // Tur başına en fazla 100 kişi (ilk çalıştırmada birikmiş hesaplar); istatistik yenilemesinin başlama bütçesini korumak için süre sınırlı.
   try {
     result.founderBadges = await sweepFounderBadges(admin, { limit: 100, deadline: startedAt + 8_000 })
@@ -120,6 +132,20 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error('[cron/hourly] İş birliği otomatik tamamlama başarısız:', error)
     result.collaborationsError = error instanceof Error ? error.message : String(error)
+  }
+
+  // Güvenli iş birliği (2026-11-23): kısa veritabanı işleri, kendi süre sınırlarıyla.
+  try {
+    result.disputes = await escalateOverdueDisputes(admin, { limit: 25, deadline: startedAt + 40_000 })
+  } catch (error) {
+    console.error('[cron/hourly] Anlaşmazlık süre kontrolü başarısız:', error)
+    result.disputesError = error instanceof Error ? error.message : String(error)
+  }
+  try {
+    result.paymentReminders = await processPaymentReminders(admin, { limit: 40, deadline: startedAt + 40_000 })
+  } catch (error) {
+    console.error('[cron/hourly] Ödeme hatırlatmaları başarısız:', error)
+    result.paymentRemindersError = error instanceof Error ? error.message : String(error)
   }
 
   try {

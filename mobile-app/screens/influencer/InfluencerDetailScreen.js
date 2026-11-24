@@ -4,6 +4,7 @@ import { Award, MessageCircle, BarChart3, Info } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import { getThumbnailUrl } from '../../utils/image';
 import { apiRequest } from '../../lib/api';
+import { askCommitment, isCommitmentError } from '../../lib/commitment';
 import { influencerBadges } from '../../constants/badges';
 import { influencerCategoryLabel } from '../../constants/categories';
 import { RATE_CARD_ITEMS, RATE_CARD_SELECT, formatTry } from '../../constants/rateCard';
@@ -165,6 +166,11 @@ export default function InfluencerDetailScreen({ navigation, route }) {
         const result = await apiRequest('offers', { method: 'POST', body: { receiverId: influencer.id, ...form, campaignId: campaignId || null } });
         setSending(false);
         if (result.error) {
+            // Taahhüt eksikse (2026-11-23) sorulur; onaylanınca teklif yeniden gönderilir.
+            if (isCommitmentError(result.error)) {
+                if (await askCommitment()) await sendOffer();
+                return;
+            }
             Alert.alert('Teklif gönderilemedi', result.error);
             return;
         }

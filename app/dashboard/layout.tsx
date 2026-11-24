@@ -11,6 +11,9 @@ import { ADMIN_NOTICE_PARAM, type AdminNotice } from '@/lib/admin-notices-shared
 import { buttonClasses } from '@/components/ui'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { loadLatestDecision } from '@/lib/moderation'
+import CommitmentDialog from '@/components/trust/CommitmentDialog'
+import { getCommitmentStatus } from '@/lib/collaboration-trust'
+import { holdNoticeFor } from '@/lib/collaboration-disputes'
 
 const PROFILE_SELECT = `${SHELL_USER_COLUMNS}, verification_status, social_links, bio, category, city`
 
@@ -110,7 +113,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Influencer / UGC hesapları Instagram veya TikTok hesaplarından en az birini
   // doğrulamadan panele giremez (yeni ve mevcut kullanıcılar için aynı kural).
   // Admin duyuruları (ör. kaldırılan ilan, lib/admin-notices-shared.ts) aynı anda okunur: ek bekleme yok.
-  const [verifiedAccountResult, adminNoticeResult] = await Promise.all([
+  // Güvenli iş birliği (2026-11-23): hesap kısıtı ve marka taahhüdü (tablolar yoksa ikisi de boş döner).
+  const trustAdmin = createSupabaseAdminClient()
+  const [verifiedAccountResult, adminNoticeResult, hold, commitment] = await Promise.all([
     finalUserProfile.role === 'influencer'
       ? supabase
           .from('social_accounts')
@@ -129,6 +134,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       .like('link', `%${ADMIN_NOTICE_PARAM}=%`)
       .order('created_at', { ascending: true })
       .limit(5),
+    holdNoticeFor(user.id, trustAdmin).catch(() => null),
+    finalUserProfile.role === 'brand' && verificationStatus === 'verified' ? getCommitmentStatus(user.id, trustAdmin).catch(() => null) : Promise.resolve(null),
   ])
   if (finalUserProfile.role === 'influencer' && !verifiedAccountResult.data) {
     redirect('/onboarding/verify')
@@ -140,6 +147,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   // Tek bildirim alanı; sıra = önem. (Eski dört bant: e-posta, sosyal hesap, onay bekleniyor, MVP — MVP notu kenar çubuğunda.)
   const notices: ShellNotice[] = []
+  if (hold) notices.push({ kind: 'account_hold', hold: hold.kind, reason: hold.reason })
   if (!user.email_confirmed_at) notices.push({ kind: 'email_unconfirmed', email: user.email ?? '' })
   if (verificationStatus === 'pending') {
     const hasSocialLink = Object.values(socialLinks).some((link) => typeof link === 'string' && link.trim().length > 0)
@@ -153,6 +161,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <AppShell user={shellUser} notices={<ShellNotices notices={notices} />}>
       {children}
       {adminNotices.length > 0 && <AdminNoticeDialog notices={adminNotices} />}
+      {commitment?.required && !commitment.accepted && <CommitmentDialog />}
     </AppShell>
   )
 }

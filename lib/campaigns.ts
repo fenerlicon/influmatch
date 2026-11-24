@@ -573,7 +573,8 @@ export async function inviteCreatorsAs(
     }
     const result = await createOfferAs(supabase, userId, { ...offerFields, receiverId: id, campaignId: campaign.id })
     if ('error' in result) {
-      if (result.code === 'quota') {
+      // Kota, eksik taahhüt ya da hesap kısıtı (2026-11-23) kalan davetlerin de başarısız olacağı anlamına gelir: durur.
+      if (result.code === 'quota' || result.code === 'commitment' || result.code === 'hold') {
         outcome.quotaError = result.error
         outcome.failed.push({ id, error: result.error })
         outcome.notAttempted = ids.slice(i + 1).filter((rest) => !already.has(rest))

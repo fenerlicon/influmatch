@@ -27,6 +27,8 @@ import {
   NONPAYMENT_REPORT_DAYS,
 } from '@/lib/collaboration-workspace-shared'
 import type { CollaborationWorkspace, DeliverableView } from '@/lib/collaboration-workspace'
+import CollaborationTrustPanel, { PaymentProgressRow } from '@/components/trust/CollaborationTrustPanel'
+import { COMMITMENT_SHORT, lateCountText } from '@/lib/collaboration-trust-shared'
 
 interface Props {
   workspace: CollaborationWorkspace
@@ -69,6 +71,8 @@ interface AgreementDraft {
   revision_limit: string
   usage_rights: string
   deliverables: DraftRow[]
+  /** Ödeme vadesi (2026-11-23; güvenli iş birliği açıkken). */
+  payment_due_date: string
 }
 
 /** Etiket + değer satırı (anlaşma ve ödeme özetleri). */
@@ -85,7 +89,7 @@ const linkClass = 'break-all text-gold hover:underline'
 
 export default function CollaborationWorkspaceView({ workspace, currentUserId }: Props) {
   const router = useRouter()
-  const { collaboration: collab, agreement, deliverables, payment, permissions, brandReliability } = workspace
+  const { collaboration: collab, agreement, deliverables, payment, permissions, brandReliability, trust } = workspace
   const isBrand = collab.brand_id === currentUserId
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
@@ -157,6 +161,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
       fee_amount: agreement?.fee_amount != null ? String(agreement.fee_amount) : '',
       revision_limit: String(agreement?.revision_limit ?? 2),
       usage_rights: agreement?.usage_rights ?? '',
+      payment_due_date: agreement?.payment_due_date ?? '',
       // Teslimat yoksa kampanyanın varsayılan teslimatlarıyla (3.19) ya da tek Reels satırıyla başlar.
       deliverables: deliverables.length
         ? deliverables.map((d) => ({ id: d.id, kind: d.kind, quantity: String(d.quantity), note: d.note ?? '', due_date: d.due_date ?? '' }))
@@ -179,6 +184,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
           fee_amount: draft.fee_amount.trim() === '' ? null : Number(draft.fee_amount),
           revision_limit: Number(draft.revision_limit),
           usage_rights: draft.usage_rights,
+          ...(trust.enabled ? { payment_due_date: draft.payment_due_date || null } : {}),
           deliverables: draft.deliverables.map((d) => ({
             id: d.id,
             kind: d.kind,
@@ -221,6 +227,16 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
               {!isBrand && (
                 <p className="mt-0.5 text-xs text-ink-faint">
                   Marka geçmişi: <span className="text-ink-muted">{reliabilityText(brandReliability.completed, brandReliability.confirmed)}</span>
+                </p>
+              )}
+              {trust.otherLateStats && (
+                <p className="mt-0.5 text-xs text-ink-faint">
+                  {isBrand ? 'Teslim geçmişi' : 'Ödeme geçmişi'}:{' '}
+                  <span className="text-ink-muted">
+                    {isBrand
+                      ? lateCountText('delivery', trust.otherLateStats.deliveries.late, trust.otherLateStats.deliveries.total)
+                      : lateCountText('payment', trust.otherLateStats.payments.late, trust.otherLateStats.payments.total)}
+                  </span>
                 </p>
               )}
             </div>
@@ -393,6 +409,23 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
                       )}
                     </Field>
                   </div>
+                  {trust.enabled && (
+                    <Field
+                      label={`Ödeme vadesi (son ödeme günü)${draft.payment_type === 'barter' ? ', isteğe bağlı' : ''}`}
+                      hint="İş bitip bu gün geldiğinde markaya ödeme hatırlatmaları başlar."
+                    >
+                      {(props) => (
+                        <Input
+                          {...props}
+                          type="date"
+                          required={draft.payment_type === 'cash'}
+                          min={agreement?.payment_due_date && agreement.payment_due_date < today() ? agreement.payment_due_date : today()}
+                          value={draft.payment_due_date}
+                          onChange={(e) => setDraft({ ...draft, payment_due_date: e.target.value })}
+                        />
+                      )}
+                    </Field>
+                  )}
                   <Field label="Kullanım hakkı (kısa)">
                     {(props) => (
                       <Textarea
@@ -475,6 +508,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
                       {formatTry(agreement.fee_amount)} · {PAYMENT_TYPE_LABELS[agreement.payment_type]}
                     </Fact>
                     <Fact label="Revize sayısı">{agreement.revision_limit}</Fact>
+                    {trust.enabled && <Fact label="Ödeme vadesi">{formatDate(agreement.payment_due_date) ?? '—'}</Fact>}
                     <Fact label="Kullanım hakkı" className="sm:col-span-2">
                       <span className="whitespace-pre-line">{agreement.usage_rights || '—'}</span>
                     </Fact>
@@ -501,6 +535,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
                     </p>
                   </div>
                   <p className="text-xs text-ink-faint">{AGREEMENT_SUMMARY_NOTE}</p>
+                  {trust.enabled && <p className="text-xs text-ink-muted">{COMMITMENT_SHORT}</p>}
                   {(permissions.canConfirmAgreement || permissions.canEditAgreement) && (
                     <div className="flex flex-wrap gap-2">
                       {permissions.canConfirmAgreement && (
@@ -557,6 +592,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
                     historyOpen={!!historyOpen[d.id]}
                     toggleHistory={() => setHistoryOpen((h) => ({ ...h, [d.id]: !h[d.id] }))}
                     run={run}
+                    nondeliveryAt={trust.nondeliveryAvailableAt[d.id] ?? null}
                   />
                 ))}
               </ul>
@@ -568,6 +604,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
         <Card as="aside">
           <CardHeader title="Ödeme" description="Ödeme taraflar arasında yapılır; burada yalnızca kaydı tutulur." />
           <CardBody className="grid gap-4">
+            <PaymentProgressRow trust={trust} />
             <dl className="grid gap-3">
               <Fact label="Marka">
                 {payment?.brand_paid_at ? `Ödeme yapıldı (${formatDate(payment.brand_paid_date) ?? formatDate(payment.brand_paid_at)})` : 'İşaretlenmedi'}
@@ -660,6 +697,7 @@ export default function CollaborationWorkspaceView({ workspace, currentUserId }:
                 </div>
               </form>
             )}
+            <CollaborationTrustPanel collaborationId={collab.id} trust={trust} />
           </CardBody>
         </Card>
       </div>
@@ -679,6 +717,7 @@ function DeliverableCard({
   historyOpen,
   toggleHistory,
   run,
+  nondeliveryAt,
 }: {
   d: DeliverableView
   collaborationId: string
@@ -691,7 +730,10 @@ function DeliverableCard({
   historyOpen: boolean
   toggleHistory: () => void
   run: (payload: Record<string, unknown>) => void
+  /** "Teslim edilmedi" bildiriminin açılacağı an (yalnızca marka; 2026-11-23). */
+  nondeliveryAt: string | null
 }) {
+  const canReportNondelivery = isBrand && !!nondeliveryAt && Date.now() >= new Date(nondeliveryAt).getTime()
   const key = (name: string) => `${name}:${d.id}`
   const limitReached = d.revisions_used >= revisionLimit
   return (
@@ -754,6 +796,11 @@ function DeliverableCard({
         {d.actions.includes('publish_deliverable') && (
           <Button size="sm" variant="primary" disabled={busy} onClick={() => openForm(key('publish_deliverable'))} leftIcon={<ExternalLink />}>
             Yayın linkini gir
+          </Button>
+        )}
+        {canReportNondelivery && (
+          <Button size="sm" variant="danger" disabled={busy} onClick={() => openForm(key('report_nondelivery'))}>
+            Teslim edilmedi
           </Button>
         )}
         {d.submissions.length > 0 && (
@@ -838,6 +885,28 @@ function DeliverableCard({
         </form>
       )}
 
+      {form?.key === key('report_nondelivery') && (
+        <form
+          className="grid gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            run({ action: 'report_nondelivery', deliverableId: d.id, note: form.note })
+          }}
+        >
+          <p className="text-xs text-ink-muted">Influencer&apos;a bildirilir; 7 gün içinde kanıt ya da yanıt vermezse hesabı incelemeye alınır, kararı destek ekibi verir.</p>
+          <Textarea
+            rows={2}
+            maxLength={500}
+            aria-label="Açıklama"
+            placeholder="Kısa açıklama (isteğe bağlı)"
+            value={form.note}
+            onChange={(e) => setForm({ ...form, note: e.target.value })}
+          />
+          <div>
+            <Button type="submit" size="sm" variant="danger" loading={busy}>Bildir</Button>
+          </div>
+        </form>
+      )}
       {historyOpen && (
         <ol className="grid gap-1.5 border-l border-line pl-3 text-xs text-ink-muted">
           {d.submissions.map((s) => (
