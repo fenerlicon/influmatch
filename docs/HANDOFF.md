@@ -24,7 +24,7 @@
   profilde geç ödeme / teslim sayısı, mobil uçlar ve ekranlar. **SQL canlıda değil:** `supabase/manual/2026-11-23_guvenli_is_birligi.sql`; çalıştırılana kadar özellik gizli.
 - **Influcash (2026-11-23, aynı dal; SYSTEM_MAP 16):** puan defteri + bakiye (çift ödül yok), kazanım kuralları (iş birliği, zamanında teslim / ödeme, günlük giriş + seri,
   görev, profil, doğrulama; admin düzenler), geri alım, katalog + tek işlemde harcama (Spotlight indirim kodu / günü, görev ödülü yolundan), web + admin + mobil ekranlar.
-  **Bayrak KAPALI** (`influcash_enabled`); **SQL canlıda değil:** `supabase/manual/2026-11-23_influcash.sql`. Puan paraya çevrilemez, devredilemez.
+  **Bayrak KAPALI** (`influcash_enabled`), **ilk etapta açılmayacak (2026-11-24 kullanıcı kararı)**; **SQL canlıda değil:** `supabase/manual/2026-11-23_influcash.sql`. Puan paraya çevrilemez, devredilemez.
 - **İçerik planı (2026-11-01, `claude/toplanti-planner`):** `/toplanti` yalnızca Damla Dalay'ın hesabına açık (`CONTENT_PLAN_OWNER_ID`, `lib/content-plan.ts`; diğer hesaplar 404, admin takip ekranına gider):
   takvim, liste, seri + alt başlıklar, fikirler, video/açıklama metni, çekim ve paylaşım tarihi. Takip `/admin/icerik-plani`'de salt okunur (admin rolündeki her hesap görür, yeni yönetici hesabında ek iş yok).
   Tablolar `content_series`, `content_items` istemcilere kapalı, migration `20261101000010_content_plan.sql`.

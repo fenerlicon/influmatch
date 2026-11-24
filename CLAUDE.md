@@ -81,6 +81,7 @@ ve sıradaki iş orada. Bir işe başlamadan o tabloda kilitle, bitince güncell
    - **2026-10-26:** 0₺ kampanyasından önce hesabı doğrulanan her influencer / UGC / marka kalıcı **Kurucu Üye** rozeti alır (son tarih
      `/admin/tasks`, geri alınmaz, ayrıcalık iddiası yok); mobil sohbette görsel gönderme var; fiyat kartı satıştan sonra da bütün doğrulanmış
      markalara açık (Spotlight kapısı yok); Supabase Frankfurt taşıması **Kasım'da** (plan `docs/REGION_MOVE.md`).
+   - **2026-11-24:** iş birliği ödemesi platformdan geçmez; güven kayıt + hatırlatma + admin kararıyla askıya alma ile sağlanır (SYSTEM_MAP 15). Lisanslı kuruluş üzerinden isteğe bağlı "güvenli ödeme" (iyzico pazaryeri) ileride, avukat + muhasebeci görüşünden sonra; parayı kendi hesabımızda tutmak yok. **Influcash ilk etapta açılmaz** (bayrak kapalı kalır, kod hazır; SYSTEM_MAP 16).
    - Kuyruğun en sonu (sonda hatırlat): 5 Yıldız rozeti (puanlama sistemi, yayından sonra); avukattan gelecek yasal metinler.
 7. Arayüze iş/politika iddiası yazma (ör. "iade yapılmaz", fiyat, garanti) — kullanıcıya sor.
 8. Gizli bilgiler: Vercel ortam değişkenlerini **asla** açık metne çevirme/yazdırma. `supabase/cron/hourly_jobs.sql`
