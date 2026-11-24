@@ -1,4 +1,5 @@
--- Revize üst sınırı 2 (kullanıcı kararı 2026-11-24). Kısıt daraltma olduğu için elle çalıştırılır (CLAUDE.md kural 4).
+-- Revize üst sınırı 2 (kullanıcı kararı 2026-11-24). Kısıt daraltma (CLAUDE.md kural 4).
+-- DURUM: 2026-11-24'te kullanıcı isteğiyle canlıya uygulandı ve doğrulandı; yeniden çalıştırmak zararsız.
 -- Uygulama zaten 0–2 dışını reddediyor (lib/collaboration-workspace-shared.ts AGREEMENT_LIMITS.maxRevisions); bu dosya
 -- veritabanını da aynı kurala bağlar. 2026-11-24 kontrolü: canlıda hiç anlaşma kaydı yok (2'den büyük değer yok).
 -- Önce kontrol (0 satır dönmeli; dönerse önce o anlaşmaları 2'ye indirin):

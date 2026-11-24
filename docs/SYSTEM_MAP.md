@@ -668,8 +668,8 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     Influencer bilgilendirilir, açıklama yazabilir; "Ödeme alındı" derse başvuru çözüldü olarak kapanır. Admin "Ödendi olarak kapat" ödemeyi teyitli
     sayar ve indirmeyi açar. Kısıt genişletme canlıda (`20261124000010_payment_unconfirmed_dispute.sql`). Web + mobil + admin.
   - ✅ ~~**3.18-N6**~~ (2026-11-24, kullanıcı kararı: influencer'a en fazla 2 revize) Anlaşma özetinde revize sayısı 0–2 (`AGREEMENT_LIMITS.maxRevisions`, web + mobil;
-    sunucu 2'nin üstünü reddeder). Veritabanı kısıtı (0–10 → 0–2) daraltma olduğu için `supabase/manual/2026-11-24_revize_siniri.sql` ile elle çalıştırılır;
-    canlıda hiç anlaşma kaydı yok (kontrol edildi).
+    sunucu 2'nin üstünü reddeder). Veritabanı kısıtı (0–10 → 0–2) `supabase/manual/2026-11-24_revize_siniri.sql`; kullanıcı isteğiyle 2026-11-24'te canlıya
+    uygulandı ve doğrulandı (canlıda hiç anlaşma kaydı yoktu).
   - ✅ ~~**3.18-S1 [DÜŞÜK]**~~ (2026-10-11 kullanıcı kararı: olduğu gibi kalır; UGC'de de teslimat yayın linkiyle tamamlanır, marka onayı tek başına teslim sayılmaz) UGC video teslimatı da yayın linki istiyor (Instagram/TikTok/YouTube); marka içeriği kendi hesabında yayınlıyorsa influencer
     markanın gönderi linkini girmeli. UGC için "onaylandı = teslim edildi" ayrımı istenirse kararla eklenir.
   - ✅ ~~**3.18-S2 [DÜŞÜK]**~~ (2026-10-15: yeniden açılışta eski anlaşma özeti, teslimatlar (taslak geçmişi ve ölçümler cascade) ve ödeme kaydı silinir, iş birliği temiz başlar; tek işlemde `reopen_collaboration` (service role). Fonksiyon canlıya uygulanana kadar kod aynı işi sırayla yapar (bkz. 3.18-S6). Mevcut veriye dokunulmadı) (yeni bulgu) İptal edilip yeniden kabul edilen başvuruda (`createCollaborationFor` yeniden açma) eski anlaşma özeti, teslimatlar ve ödeme kaydı
