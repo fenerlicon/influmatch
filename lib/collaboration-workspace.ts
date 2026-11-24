@@ -19,6 +19,8 @@
 import { isDeliverableFileRef } from '@/lib/deliverable-files-shared'
 import { validateDeliverableFileRef } from '@/lib/deliverable-files'
 import { isR2Configured } from '@/lib/r2'
+import { shippingViewFor } from '@/lib/collaboration-shipping'
+import type { ShippingView } from '@/lib/collaboration-shipping-shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
@@ -151,6 +153,8 @@ export interface DeliverableView extends DeliverableRow {
 export interface CollaborationWorkspace {
   /** Taslak dosyası yükleme açık mı (R2 ayarlı; lib/deliverable-files.ts). Kapalıysa yalnızca link. */
   filesEnabled?: boolean
+  /** Barter teslimat adresi (2026-11-24; lib/collaboration-shipping.ts). Barter değilse null. */
+  shipping?: ShippingView | null
   collaboration: CollaborationListItem
   agreement: AgreementRow | null
   agreementConfirmed: boolean
@@ -500,6 +504,7 @@ export async function getCollaborationWorkspace(
     success: true,
     workspace: {
       filesEnabled: isR2Configured(),
+      shipping: await shippingViewFor(collaboration, userId, agreement).catch(() => null),
       collaboration,
       agreement,
       agreementConfirmed: confirmed,

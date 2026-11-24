@@ -19,6 +19,8 @@
   influencer / UGC'ye her zaman görünür (kodla kaydolan ve onaylanan sayısı). Ekran kaydı engeli eklenmedi (kullanıcı kararı: gerek yok).
   3. tur: **zorunlu telefon numarası** (yalnızca admin görür, pazarlama izni ayrı; SYSTEM_MAP 1.6-N1, `user_contacts` canlıda). SMS doğrulaması
   sağlayıcı seçilince; pazarlama iletisinden önce İYS + avukat (docs/KVKK.md 2b).
+  4. tur: ilan başına başvuru sınırı (ücretsiz 10 / Basic 50 / Pro sınırsız, bayrakla; 3.17-N6), barter teslimat adresi (marka iki onaydan sonra
+  görür; 3.18-N8, `collaboration_shipping` canlıda), onaysız marka kilit ekranında fiyat kartı notu (3.14-N2). Google / R2 kurulumu kullanıcıyla topluca yapılacak.
 
 - **Ödemeler (2026-11-23, `claude/payments`, PR açılmadı; ayrıntı `docs/PAYMENTS.md`, SYSTEM_MAP 4.7):** sahip kararı iyzico + Spotlight aylık / yıllık otomatik
   yenilenen abonelik; mobilde App Store / Google Play. Kod hazır ve **iyzico sandbox'a** karşı yazıldı, canlıya geçiş yalnızca ortam değişkeni. Spotlight artık

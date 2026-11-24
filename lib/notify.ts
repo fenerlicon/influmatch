@@ -44,6 +44,7 @@ export type NotificationEvent =
   | 'collab_deliverable_approved'
   | 'collab_update'
   | 'collab_payment'
+  | 'collab_shipping'
   | 'collab_nonpayment'
   | 'offer_expired'
   | 'offer_withdrawn'
@@ -88,6 +89,7 @@ const EVENT_CONFIG: Record<NotificationEvent, { preference: EmailPreferenceKey; 
   collab_deliverable_approved: { preference: 'offers', email: false },
   collab_update: { preference: 'offers', email: false },
   collab_payment: { preference: 'offers', email: false },
+  collab_shipping: { preference: 'offers', email: false },
   collab_nonpayment: { preference: 'offers', email: true },
   // Yanıtlanmadan süresi dolan teklif markaya bildirilir.
   offer_expired: { preference: 'offers', email: true },

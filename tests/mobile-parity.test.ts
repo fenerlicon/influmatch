@@ -21,6 +21,8 @@ import * as webInflucash from '@/lib/influcash-shared'
 import * as mobileInflucash from '@/mobile-app/constants/influcash.js'
 import * as webDeliverableFiles from '@/lib/deliverable-files-shared'
 import * as mobileDeliverableFiles from '@/mobile-app/constants/deliverableFiles.js'
+import * as webShipping from '@/lib/collaboration-shipping-shared'
+import * as mobileShipping from '@/mobile-app/constants/shipping.js'
 import * as webPhone from '@/lib/phone-shared'
 import * as mobilePhone from '@/mobile-app/constants/phone.js'
 import { INFLUENCER_CATEGORIES } from '@/utils/categories'
@@ -37,6 +39,12 @@ describe('web ↔ mobil sabitleri', () => {
     expect(mobileAlerts.ADVERT_ALERT_PLATFORMS).toEqual(webAlerts.ADVERT_ALERT_PLATFORMS)
     const alert = { category_key: 'beauty', category: 'cilt', platform: 'tiktok', min_budget: 2500 }
     expect(mobileAlerts.describeAlert(alert)).toBe(webAlerts.describeAlert(alert))
+  })
+
+  it('barter teslimat adresi', () => {
+    expect(mobileShipping.SHIPPING_LIMITS).toEqual(webShipping.SHIPPING_LIMITS)
+    expect(mobileShipping.SHIPPING_BRAND_LOCKED_NOTE).toBe(webShipping.SHIPPING_BRAND_LOCKED_NOTE)
+    expect(mobileShipping.SHIPPING_INFLUENCER_NOTE).toBe(webShipping.SHIPPING_INFLUENCER_NOTE)
   })
 
   it('telefon numarası', () => {

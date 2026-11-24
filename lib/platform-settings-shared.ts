@@ -12,6 +12,9 @@ export interface PlatformSettings {
   basic_offers_per_day: number | null
   basic_offers_per_month: number | null
   basic_active_adverts: number | null
+  /** İlan başına alınabilecek başvuru (2026-11-24 kararı: ücretsiz 10, Basic 50, Pro sınırsız). */
+  free_applications_per_advert: number | null
+  basic_applications_per_advert: number | null
 }
 
 export const PLATFORM_SETTING_KEYS = [
@@ -24,6 +27,8 @@ export const PLATFORM_SETTING_KEYS = [
   'basic_offers_per_day',
   'basic_offers_per_month',
   'basic_active_adverts',
+  'free_applications_per_advert',
+  'basic_applications_per_advert',
 ] as const satisfies readonly (keyof PlatformSettings)[]
 
 export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
@@ -37,6 +42,9 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   basic_offers_per_day: 10,
   basic_offers_per_month: 60,
   basic_active_adverts: 3,
+  // İlan başına başvuru (2026-11-24). Pro sınırsız.
+  free_applications_per_advert: 10,
+  basic_applications_per_advert: 50,
 }
 
 export const WHEEL_PROFILES_RANGE = { min: 1, max: 50 } as const
@@ -68,6 +76,8 @@ export function normalizePlatformSettings(raw: Record<string, unknown>): Platfor
     'basic_offers_per_day',
     'basic_offers_per_month',
     'basic_active_adverts',
+    'free_applications_per_advert',
+    'basic_applications_per_advert',
   ] as const) {
     if (!(key in raw)) continue
     const n = toInt(raw[key])
@@ -100,6 +110,8 @@ export function validatePlatformSettingsInput(input: Record<string, unknown>): P
     'basic_offers_per_day',
     'basic_offers_per_month',
     'basic_active_adverts',
+    'free_applications_per_advert',
+    'basic_applications_per_advert',
   ] as const) {
     const value = input[key]
     if (value === null || value === undefined || value === '') {

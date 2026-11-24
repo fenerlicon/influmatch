@@ -340,7 +340,7 @@ export default function DiscoverScreen({ navigation, route }) {
             {loading ? (
                 <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.gold} /></View>
             ) : locked ? (
-                <View className="px-4"><Notice tone="warning" icon={ShieldAlert} title="Hesabın henüz onaylanmadı" text="Profilleri görebilmek için hesabınızın onaylanması gerekiyor." onPress={() => navigation.navigate('BrandVerification')} /></View>
+                <View className="px-4"><Notice tone="warning" icon={ShieldAlert} title="Hesabın henüz onaylanmadı" text="Profilleri ve influencer’ların fiyat kartlarını (“₺X’ten başlayan” fiyatlar) görebilmek için hesabının onaylanması gerekiyor." onPress={() => navigation.navigate('BrandVerification')} /></View>
             ) : (
                 <FlatList
                     data={visible}

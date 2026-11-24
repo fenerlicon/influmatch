@@ -508,6 +508,9 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**3.14-S1 [DÜŞÜK]**~~ (2026-10-15, `claude/open-collab`: kabul edilen teklif / başvuru listelerde iş birliği aşamasını (Anlaşıldı / Devam ediyor / Yayında / Tamamlandı / İptal edildi) ve iş birliği detayına bağlantıyı gösterir: web İşler teklifleri (iki rol, `OffersManager`, `BrandOffersList`; aşama zaten yüklü iş birliklerinden), web ilan başvuruları (`MyApplications`, `ApplicationsPanel`; `collaborationStagesBySource`, RLS'li okuma), mobil İşler, İlanlar (başvurularım) ve marka ilan başvuruları (`constants/collaborations.js`)) (yeni bulgu) Teklif ve başvuru listeleri iş birliği aşamasını göstermiyor (yalnızca "Kabul edildi"); kullanıcı aşamayı
     İş Birlikleri sayfasında görüyor. 2. aşamada (takip alanı) listelere bağlantı/aşama etiketi eklenebilir.
   - ✅ ~~**3.14-S2 [DÜŞÜK]**~~ (2026-10-15: `/api/mobile/discover?budget=`; `listDiscoverProfiles` marka izleyicide her profile `min_price` ekler (fiyat kartı RLS'li okunur) ve bütçe filtresini sunucuda uygular; mobildeki 1000 kartlık istemci okuması kalktı) (yeni bulgu) Mobil keşif bütçe filtresi fiyat kartlarını istemcide süzüyor (en fazla 1000 kart); kart sayısı büyüyünce sunucu ucuna taşınmalı.
+  - ✅ ~~**3.14-N2**~~ (2026-11-24, kullanıcı isteği: fiyat kartını göremeyen markaya uyarı) Onaylanmamış marka keşfi ve profilleri zaten hiç göremiyor
+    (kilit ekranı); kilit ekranı (web `BrandLockScreen`, mobil Keşfet uyarısı) artık fiyat kartlarının ("₺X'ten başlayan") da onaydan sonra görüneceğini söylüyor.
+    Görme kuralı veritabanında `can_view_rate_cards()`: rolü marka ve hesabı onaylı (sarı tik şartı yok).
   - ✅ ~~**3.14-N1**~~ (2026-10-26 kullanıcı kararı: fiyat kartı satış başladıktan sonra da bütün doğrulanmış markalara açık kalır, Spotlight kapısı yok; kodda kapı yok, değişiklik gerekmedi) Fiyat kartı bugün tüm doğrulanmış markalara açık; ücretsiz/ücretli marka ayrımı (3.13-N3/N4) gelince burada da ele alınmalı.
   - **3.14-N2** Revize hakkı, teslimat listesi, taslak onayı ve anlaşma özeti yol haritasının 2. aşamasında (ROADMAP "Buluşturmayı kolaylaştıran özellikler" 2).
     ✅ Anlaşma özeti, teslimat takibi (taslak linki, revize sayacı, teslimat başına yayın linki) ve ödeme teyidi yapıldı (2026-10-10, bkz. 3.18).
@@ -591,6 +594,10 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     yalnızca yenisini açamaz) Aktif ilan sınırı yoktu.
   - ✅ ~~**3.17-S1 [DÜŞÜK]**~~ (2026-10-10, yeni bulgu) Mobil marka ana sayfasındaki öneri kartlarında sabit "%94 Uyumlu" / "Eşleşme oranını gör" yazısı
     (gerçek hesap yoktu) kaldırıldı.
+  - ✅ ~~**3.17-N6 [ÖZELLİK]**~~ (2026-11-24 kararı: ilan başına başvuru ücretsiz 10, Basic 50, Pro sınırsız; **aynı bayrak**) `platform_settings`
+    `free_applications_per_advert` / `basic_applications_per_advert` (admin `/admin/limits` "İlan başına başvuru"), `advertApplicationLimitReached`
+    (`lib/brand-limits.ts`), `applyToAdvertAs` sınır dolunca "Bu ilan başvuru sınırına ulaştı" der (web + mobil aynı kod). Marka İlanlar ekranında sınır dolunca
+    uyarı + paket bağlantısı. Bayrak kapalıyken sınır yok. DB tetikleyicisi yok (yalnızca sunucu kuralı; başvuru yalnızca bu koddan yazılıyor).
   - ✅ ~~**3.17-N5 [ÖZELLİK]**~~ (2026-10-10 kararı: ücretsiz markada favori ve liste (Inflist) yok, yalnızca Spotlight Basic/Pro; **aynı bayrak**
     `free_brand_limits_enabled`. Ortak kod `lib/favorites.ts` (`areFavoritesLocked`, `toggleFavoriteAs`, `createListAs`, `deleteListAs`, `toggleInListAs`,
     `listFavoriteIdsAs`); web `app/actions/favorites.ts` + `favoriteLists.ts` bunu çağırır, mobil favori artık doğrudan tabloya değil
@@ -661,6 +668,11 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     dosyasını her zaman indirir. Web `components/dashboard/DeliverableFile.tsx`, mobil `mobile-app/components/DeliverableFile.js` + `/api/mobile/collaborations/[id]/files`.
     R2 ortam değişkenleri yoksa yalnızca link seçeneği görünür. Hesap silmede `deliverables/{iş birliği}/` öneki silinir) Teslim kilidi (taslak dosyası yükleme;
     marka ödeme teyidine kadar orijinal dosyayı indiremez) Cloudflare R2 ile Kasım'da. Veri modeli hazır: `collaboration_submissions.file_key`, `file_locked`.
+  - ✅ ~~**3.18-N8**~~ (2026-11-24, kullanıcı kararı: barter adresi) Barter anlaşmada influencer teslimat adresini girer (alıcı, telefon, açık adres, ilçe,
+    il, posta kodu, not); önceki iş birliğindeki adresi öneri olarak gelir. Marka adresi **yalnızca anlaşma özeti iki tarafça onaylandıktan sonra** görür;
+    onaydan sonra eklenirse markaya bildirim. Tablo `collaboration_shipping` istemcilere kapalı (canlıda, `20261124000030`), kod `lib/collaboration-shipping.ts`;
+    web `ShippingCard`, mobil `ShippingSection` + `/api/mobile/collaborations/[id]/shipping`. "Verilerimi indir"de var, silmede cascade.
+    Ayrıca: sonuç raporu "Şimdi güncelle" zaten 6 saatte bir (`MANUAL_REFRESH_HOURS = 6`, 3.20), değişmedi.
   - ✅ ~~**3.18-N7**~~ (2026-11-24, kullanıcı kararı: ödeme teyidi 24 saat) Marka "Ödeme yapıldı" deyince influencer'ın 24 saati var
     (`PAYMENT_CONFIRM_HOURS`): "Ödeme alındı" (teslim dosyalarının indirilmesi açılır) ya da "Ödeme gelmedi" (hemen açılır; mevcut "ödeme alınamadı"
     anlaşmazlığı: marka 7 gün içinde dekont yükler). 24 saat dolup yanıt yoksa marka "Ödemeyi yaptım ama onaylanmadı" ile dekontlu başvurur:

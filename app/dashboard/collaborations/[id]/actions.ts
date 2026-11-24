@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { parseWorkspaceInput, runWorkspaceAction } from '@/lib/collaboration-workspace'
 import { refreshDeliverableMetricsAs } from '@/lib/post-metrics'
 import { createDeliverableUploadAs, deliverableFileUrlAs } from '@/lib/deliverable-files'
+import { saveShippingAs } from '@/lib/collaboration-shipping'
 
 // Takip alanı işlemleri. Yetki kontrolü ortak kodda: kullanıcı kaydın tarafı değilse veya işlem rolüne/duruma uymuyorsa reddedilir.
 export async function workspaceAction(
@@ -63,4 +64,16 @@ export async function deliverableFileAction(collaborationId: string, ref: string
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Oturumunuz bulunamadı.' }
   return deliverableFileUrlAs(user.id, String(collaborationId), String(ref), mode === 'download' ? 'download' : 'view')
+}
+
+// Barter teslimat adresi (2026-11-24): yalnızca influencer girer; marka iki onaydan sonra görür.
+export async function saveShippingAction(collaborationId: string, input: Record<string, unknown>) {
+  const supabase = createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Oturumunuz bulunamadı.' }
+  const result = await saveShippingAs(user.id, String(collaborationId), input)
+  if (result.success) revalidatePath(`/dashboard/collaborations/${collaborationId}`)
+  return result
 }

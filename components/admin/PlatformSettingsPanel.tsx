@@ -14,11 +14,14 @@ type LimitKey =
   | 'basic_offers_per_day'
   | 'basic_offers_per_month'
   | 'basic_active_adverts'
+  | 'free_applications_per_advert'
+  | 'basic_applications_per_advert'
 
 const LIMIT_ROWS: { label: string; free: LimitKey; basic: LimitKey }[] = [
   { label: 'Günlük teklif', free: 'free_offers_per_day', basic: 'basic_offers_per_day' },
   { label: 'Aylık teklif (takvim ayı, Türkiye saati)', free: 'free_offers_per_month', basic: 'basic_offers_per_month' },
   { label: 'Aynı anda aktif ilan', free: 'free_active_adverts', basic: 'basic_active_adverts' },
+  { label: 'İlan başına başvuru', free: 'free_applications_per_advert', basic: 'basic_applications_per_advert' },
 ]
 
 type FormState = Record<keyof PlatformSettings, string | boolean>
