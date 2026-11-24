@@ -653,7 +653,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
     (`nonpaymentAvailableAt`, izinler ve `reportNonpayment` aynı kural), destek kaydına "Teslimatların hepsi onaylandı" tarihi eklendi; web ve mobil
     açıklama metni iki yolu söylüyor) Marka teslimatı onaylayıp içeriği yayınlamazsa yayın linki girilemez, iş birliği "devam ediyor"da kalır ve
     tamamlanmadığı için "Ödeme alamadım" düğmesi (tamamlanma + 14 gün) hiç çıkmaz. Çözüm önerisi: tüm teslimatlar onaylandıktan 14 gün sonra da düğme açılsın.
-  - **3.18-S6 [DÜŞÜK]** (2026-10-15, yeni bulgu) `reopen_collaboration` ve `save_collaboration_agreement` SQL fonksiyonları canlıya MCP ile
+  - ✅ ~~**3.18-S6 [DÜŞÜK]**~~ (2026-11-24: sahip SQL Editor'de `BEKLEYEN_HEPSI_2026-11-24.sql` çalıştırdı; canlıda doğrulandı) (2026-10-15, yeni bulgu) `reopen_collaboration` ve `save_collaboration_agreement` SQL fonksiyonları canlıya MCP ile
     uygulanamadı (gövdede DELETE olduğu için onay zaman aşımına uğradı). `supabase/manual/2026-10-15_is_birligi_rpc.sql` SQL Editor'de çalıştırılınca
     3.18-S2/S3 tek işlemde çalışır; o zamana kadar kod aynı işi eski sıralı yolla yapar (fonksiyon yok hatasında yedek yol). Sıralama önemli değil.
 
@@ -941,7 +941,7 @@ Marka layout'u ve rol koruması yok (bkz. 1.8-S1).
   - ✅ ~~**4.7-N9**~~ 0₺ kampanyası: anahtar açık + bitiş tarihi girilmişse doğrulanmış her influencer / markaya bitişe kadar Pro (`promo` kaydı, saatlik görev + düğme); tarih
     değişince kayıtlar güncellenir; 7 gün önce bildirim + e-posta; bitişte kapanır. (ROADMAP "toplu Pro verme ve süre sonu, bitiş hatırlatmaları, ilk ay indirimi".)
   - ✅ ~~**4.7-N10**~~ e-Arşiv: `payments.invoice_status` + `issueInvoice` kancası (boş, TODO), `docs/PAYMENTS.md` bölüm 8.
-  - **4.7-S1 [YÜKSEK]** SQL canlıda değil (Supabase MCP bu oturumda izin vermedi): `supabase/manual/2026-11-23_odeme.sql` SQL Editor'de çalıştırılmalı. Çalıştırılana kadar
+  - ✅ ~~**4.7-S1 [YÜKSEK]**~~ (2026-11-24: sahip SQL Editor'de `BEKLEYEN_HEPSI_2026-11-24.sql` çalıştırdı; canlıda doğrulandı) SQL canlıda değil (Supabase MCP bu oturumda izin vermedi): `supabase/manual/2026-11-23_odeme.sql` SQL Editor'de çalıştırılmalı. Çalıştırılana kadar
     ödeme arayüzü gizli, admin Spotlight eski yoldan çalışır. Yerel Postgres'te taslak tablolarla iki kez denendi.
   - **4.7-S2 [YÜKSEK]** iyzico sandbox'ta uçtan uca denenmedi (oturumdan iyzico'ya ağ erişimi yoktu). Doğrulanacaklar: GET imzasında gövde, abonelik yanıt alanları
     (`orders`, tarih biçimi), `upgrade NOW` ücretlendirmesi ve yeni referans, abonelik tahsilatı iadesi (`/v2/payment/refund`). Liste `docs/PAYMENTS.md` bölüm 5, adımlar `docs/TOPLU_TEST.md` 7e.
@@ -1117,7 +1117,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   nedeni, itiraz metni, ek (10 dk imzalı bağlantı). **Kabul et:** hesap → "Bekleyen", levha → "İnceleme gerekli", görev → "İncelemede" (onay ayrıca verilir; ekranda
   yazar). Kayıt o sırada reddedilmiş değilse değişiklik yapılmaz, kullanıcıya bildirilir. Görevde aynı tur için yeni gönderim varsa kabul hata verir. **Reddet:** yanıt zorunlu.
   Yanıtı yazan ve zaman kaydedilir; iki admin aynı anda yanıtlarsa yalnızca biri geçer.
-- **6.10-S4 [ORTA]** Tablolar ve `appeal-files` kovası **canlıda yok**: bu oturumda Supabase bağlantısı izin vermedi. `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql`
+- ✅ ~~**6.10-S4 [ORTA]**~~ (2026-11-24: sahip SQL Editor'de `BEKLEYEN_HEPSI_2026-11-24.sql` çalıştırdı; canlıda doğrulandı) Tablolar ve `appeal-files` kovası **canlıda yok**: bu oturumda Supabase bağlantısı izin vermedi. `supabase/manual/2026-10-26_ret_nedeni_itiraz.sql`
   SQL Editor'de çalıştırılmalı. O zamana kadar kod çökmez: retler nedenle bildirilir, karar kaydı/itiraz arayüzü görünmez, `/admin/appeals` uyarı gösterir.
 - ✅ ~~**6.10-S5 [DÜŞÜK]**~~ (2026-10-26: `appeal-files` kullanıcı klasörü `USER_FOLDER_BUCKETS` listesine eklendi; hesap silinince itiraz ekleri de siliniyor) (KVKK işine) Hesap silinince karar ve itiraz satırları CASCADE ile siliniyor ama `appeal-files/{uid}/` dosyaları `lib/account-deletion.ts`
   tarafından henüz silinmiyor (o dosya paralel KVKK oturumunun alanında; ekleme yapılmadı).
@@ -1576,7 +1576,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
 - **14.6-N12** Çerez bandı metni geçici, avukat onayı yok.
 
 ### 14.7 Canlı veritabanı
-- **14.7-S1 [ORTA]** `20261026000050_kvkk_consent_audit.sql` (iki tablo, istemcilere kapalı + kayıt tetikleyicisi) canlıya uygulanmadı (Supabase bağlantısı yetkisiz).
+- ✅ ~~**14.7-S1 [ORTA]**~~ (2026-11-24: sahip SQL Editor'de `BEKLEYEN_HEPSI_2026-11-24.sql` çalıştırdı; canlıda doğrulandı) `20261026000050_kvkk_consent_audit.sql` (iki tablo, istemcilere kapalı + kayıt tetikleyicisi) canlıya uygulanmadı (Supabase bağlantısı yetkisiz).
   Sahip `supabase/manual/2026-10-26_kvkk.sql`'i SQL Editor'de çalıştırır. Çalıştırılana kadar kod çalışır; rıza ve erişim kaydı tutulmaz, indirme sınırı bellekte.
 
 ---
@@ -1616,7 +1616,7 @@ Tüm admin sayfaları rolü kendi içinde kontrol ediyor; `app/admin/layout.tsx`
   `components/CollaborationTrust.js`), `AccountHoldNotice` (+ itiraz), teklif ve ilan formlarında taahhüt.
 
 ### 15.2 Açık
-- **15.2-S1 [YÜKSEK]** SQL canlıya uygulanmadı: `supabase/manual/2026-11-23_guvenli_is_birligi.sql` (itiraz SQL'i ve KVKK SQL'inden sonra; önce çalıştırıldıysa sonra tekrar çalıştırın,
+- ✅ ~~**15.2-S1 [YÜKSEK]**~~ (2026-11-24: sahip SQL Editor'de `BEKLEYEN_HEPSI_2026-11-24.sql` çalıştırdı; canlıda doğrulandı) SQL canlıya uygulanmadı: `supabase/manual/2026-11-23_guvenli_is_birligi.sql` (itiraz SQL'i ve KVKK SQL'inden sonra; önce çalıştırıldıysa sonra tekrar çalıştırın,
   tür / günlük kısıtları genişletilir). Yerel Postgres 16'da yer tutucu tablolarla iki kez çalıştırıldı, tetikleyici davranışı denendi.
 - **15.2-N1 [AVUKAT]** Taahhüt metni kullanıcının verdiği şekliyle yazıldı; **avukat kontrolü bekliyor** (`COMMITMENT_TEXT`, metin değişirse `COMMITMENT_VERSION` değişir, markalar yeniden onaylar).
 - **15.2-N2 [KARAR]** Askıya alınan hesap yalnızca yeni ilan / teklif / başvuru yapamaz; giriş, mesaj, süren iş birlikleri açık; keşifte görünmeye devam eder. Daha geniş kısıt istenirse karar.
