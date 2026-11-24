@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { resolveHomeRoute, REJECTED_MESSAGE } from '../lib/routing';
+import { GOOGLE_AUTH_ENABLED, signInWithGoogle } from '../lib/googleAuth';
 import { CustomToast } from '../components/CustomToast';
 import { Text, Button, TextField, colors } from '../components/ui';
 
@@ -39,6 +40,32 @@ export default function LoginScreen({ navigation }) {
     const hideToast = () => {
         setToast(prev => ({ ...prev, visible: false }));
     };
+
+    // Giriş sonrası yönlendirme (e-posta ve Google ortak): veritabanındaki bilgilere göre (lib/routing.js).
+    async function goHome(userId) {
+        let route;
+        try {
+            route = await resolveHomeRoute(userId);
+        } catch (e) {
+            showToast('Profil bilgileri alınamadı. Lütfen tekrar deneyin.', 'error');
+            return;
+        }
+        if (route === 'Rejected') {
+            showToast(REJECTED_MESSAGE, 'error');
+            navigation.replace('Rejected');
+            return;
+        }
+        navigation.replace(route);
+    }
+
+    const [googleLoading, setGoogleLoading] = useState(false);
+    async function signInGoogle() {
+        setGoogleLoading(true);
+        const result = await signInWithGoogle();
+        if (result.user) await goHome(result.user.id);
+        else if (result.error) showToast(result.error, 'error');
+        setGoogleLoading(false);
+    }
 
     async function signInWithEmail() {
         if (!email || !password) {
@@ -139,6 +166,9 @@ export default function LoginScreen({ navigation }) {
 
                     <View style={{ gap: 14 }}>
                         <Button title="Giriş yap" onPress={signInWithEmail} loading={loading} block />
+                        {GOOGLE_AUTH_ENABLED ? (
+                            <Button title="Google ile devam et" variant="secondary" onPress={signInGoogle} loading={googleLoading} disabled={loading} block />
+                        ) : null}
                         <Text variant="small" tone="fg2" style={{ textAlign: 'center' }}>
                             Hesabın yok mu?{' '}
                             <Text variant="small" weight="medium" tone="gold" onPress={() => navigation.navigate('RegisterRole')} suppressHighlighting>Kayıt ol</Text>

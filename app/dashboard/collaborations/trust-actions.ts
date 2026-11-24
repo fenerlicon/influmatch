@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { acceptCommitment } from '@/lib/collaboration-trust'
-import { createProofUploadUrlAs, proofUrlFor } from '@/lib/collaboration-disputes'
+import { createClaimProofUploadUrlAs, createProofUploadUrlAs, proofUrlFor } from '@/lib/collaboration-disputes'
 import { logPrivacyAccess } from '@/lib/privacy-audit'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 
@@ -45,4 +45,14 @@ export async function disputeProofUrlAction(disputeId: string): Promise<{ succes
   const result = await proofUrlFor(userId, disputeId)
   if (result.success) await logPrivacyAccess(createSupabaseAdminClient(), { actorId: userId, action: 'payment_proof_view', resourceId: String(disputeId) })
   return result
+}
+
+/** Marka "Ödemeyi yaptım ama onaylanmadı" başvurusunun dekontu için imzalı yükleme adresi (2026-11-24). */
+export async function claimProofUploadAction(
+  collaborationId: string,
+  extension: string,
+): Promise<{ success: true; error?: undefined; path: string; token: string; bucket: string } | { success?: undefined; error: string }> {
+  const userId = await currentUserId()
+  if (!userId) return { error: 'Oturumunuz bulunamadı.' }
+  return createClaimProofUploadUrlAs(userId, typeof collaborationId === 'string' ? collaborationId : '', extension)
 }

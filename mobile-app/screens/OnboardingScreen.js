@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, Pressable, Image } from 'react-native';
+import { View, ActivityIndicator, Pressable, Image, Linking } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { apiRequest } from '../lib/api';
 import { resolveHomeRoute } from '../lib/routing';
@@ -11,8 +11,10 @@ import { decode } from 'base64-arraybuffer';
 // Web ile aynı kategori anahtarları (utils/categories.ts); tek kategori seçilir.
 import { INFLUENCER_CATEGORIES, INFLUENCER_CATEGORY_KEYS } from '../constants/categories';
 import {
-    Screen, StackHeader, BottomBar, Text, Button, TextField, SelectField, OptionSheet, FilterChip, Chip, Notice, colors, ICON_STROKE,
+    Screen, StackHeader, BottomBar, Text, Button, TextField, SelectField, OptionSheet, FilterChip, Chip, Notice, Checkbox, colors, ICON_STROKE,
 } from '../components/ui';
+import { readGoogleSignupIntent, clearGoogleSignupIntent } from '../lib/googleAuth';
+import { MARKETING_SMS_LABEL, PHONE_PURPOSE_NOTE, normalizePhone } from '../constants/phone';
 
 // Web'deki seçeneklerle aynı (components/onboarding/InfluencerForm.tsx).
 const CREATOR_TYPES = [
@@ -66,8 +68,23 @@ export default function OnboardingScreen({ navigation }) {
         setToast(prev => ({ ...prev, visible: false }));
     };
 
+    // Google ile gelen yeni hesap: Kullanım Koşulları onayı ve davet kodu burada (web ile aynı; lib/oauth-signup.ts).
+    const [needsConsent, setNeedsConsent] = useState(false);
+    const [legalConsent, setLegalConsent] = useState(false);
+    const [inviteCode, setInviteCode] = useState('');
+    // Zorunlu telefon (2026-11-24; yalnızca Influmatch ekibi görür) ve isteğe bağlı pazarlama izni.
+    const [phone, setPhone] = useState('');
+    const [marketingSms, setMarketingSms] = useState(false);
+
     useEffect(() => {
         getCurrentUser();
+        apiRequest('onboarding').then(async (r) => {
+            if (!r?.needsConsent) return;
+            setNeedsConsent(true);
+            const intent = await readGoogleSignupIntent();
+            if (intent?.inviteCode) setInviteCode(intent.inviteCode);
+            if (intent?.creatorType) setFormData((f) => (f.creatorType ? f : { ...f, creatorType: intent.creatorType }));
+        });
     }, []);
 
     // Real-time Username Check
@@ -209,6 +226,17 @@ export default function OnboardingScreen({ navigation }) {
             return;
         }
 
+        const phoneCheck = normalizePhone(phone);
+        if (phoneCheck.error) {
+            showToast(phoneCheck.error, 'info');
+            return;
+        }
+
+        if (needsConsent && !legalConsent) {
+            showToast('Lütfen Kullanım Koşulları ve Gizlilik Politikasını kabul edin.', 'info');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -223,6 +251,9 @@ export default function OnboardingScreen({ navigation }) {
                     bio: formData.bio,
                     avatarUrl: formData.avatar_url || null,
                     // Kullanıcı adı veya link; sunucu web kurallarıyla doğrulayıp normalize eder.
+                    phone,
+                    marketingSms,
+                    ...(needsConsent ? { legalConsent, inviteCode: /^[A-Z0-9]{6,12}$/.test(inviteCode) ? inviteCode : null } : {}),
                     socialLinks: {
                         instagram: formData.instagram.trim() || null,
                         tiktok: formData.tiktok.trim() || null,
@@ -246,6 +277,7 @@ export default function OnboardingScreen({ navigation }) {
                 return;
             }
 
+            if (needsConsent) clearGoogleSignupIntent();
             showToast('Profiliniz oluşturuldu!', 'success');
             // Influencer doğrulanmış sosyal hesabı yoksa zorunlu doğrulama ekranına gider (lib/routing.js).
             const dest = await resolveHomeRoute(user.id).catch(() => (role === 'brand' ? 'BrandDashboard' : 'Dashboard'));
@@ -429,6 +461,42 @@ export default function OnboardingScreen({ navigation }) {
                 value={formData[cityField]}
                 onSelect={(city) => updateField(cityField, city)}
             />
+            <View style={{ gap: 12 }}>
+                <TextField
+                    label="Telefon numarası"
+                    hint={PHONE_PURPOSE_NOTE}
+                    placeholder="0532 123 45 67"
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                    value={phone}
+                    onChangeText={setPhone}
+                    maxLength={20}
+                />
+                <Checkbox checked={marketingSms} onChange={setMarketingSms}>
+                    <Text variant="small" tone="fg2" style={{ lineHeight: 20 }}>{MARKETING_SMS_LABEL}</Text>
+                </Checkbox>
+            </View>
+            {needsConsent ? (
+                <View style={{ gap: 12 }}>
+                    <TextField
+                        label="Davet kodu"
+                        hint="İsteğe bağlı"
+                        placeholder="Örn. AB3K9QXZ"
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                        value={inviteCode}
+                        onChangeText={(t) => setInviteCode(t.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12))}
+                    />
+                    <Checkbox checked={legalConsent} onChange={setLegalConsent}>
+                        <Text variant="small" tone="fg2" style={{ lineHeight: 20 }}>
+                            <Text variant="small" weight="medium" tone="gold" onPress={() => Linking.openURL('https://influmatch.net/legal?tab=terms').catch(() => null)}>Kullanım koşulları</Text>
+                            {' '}ve{' '}
+                            <Text variant="small" weight="medium" tone="gold" onPress={() => Linking.openURL('https://influmatch.net/legal?tab=privacy').catch(() => null)}>gizlilik politikasını</Text>
+                            {' '}okudum, kabul ediyorum.
+                        </Text>
+                    </Checkbox>
+                </View>
+            ) : null}
         </Screen>
     );
 }

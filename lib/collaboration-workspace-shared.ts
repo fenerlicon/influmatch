@@ -38,7 +38,8 @@ export const AGREEMENT_LIMITS = {
   maxDeliverables: 20,
   maxQuantity: 50,
   maxFee: 10_000_000,
-  maxRevisions: 10,
+  // Influencer en fazla 2 revize alır (kullanıcı kararı 2026-11-24; DB kısıtı supabase/manual/2026-11-24_revize_siniri.sql).
+  maxRevisions: 2,
   usageRightsMax: 300,
   deliverableNoteMax: 200,
   draftNoteMax: 500,
@@ -64,6 +65,8 @@ export type WorkspaceActionName =
   | 'dispute_mark_resolved'
   | 'dispute_confirm_resolved'
   | 'dispute_escalate'
+  // Ödeme teyidi 24 saat (2026-11-24): marka dekontla "Ödemeyi yaptım ama onaylanmadı"
+  | 'claim_payment'
 
 export const WORKSPACE_ACTIONS: WorkspaceActionName[] = [
   'save_agreement',
@@ -82,6 +85,7 @@ export const WORKSPACE_ACTIONS: WorkspaceActionName[] = [
   'dispute_mark_resolved',
   'dispute_confirm_resolved',
   'dispute_escalate',
+  'claim_payment',
 ]
 
 export type DeliverableAction = 'submit_draft' | 'approve_draft' | 'request_revision' | 'publish_deliverable'

@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { CustomToast } from '../components/CustomToast';
 import { getTurkishErrorMessage } from '../lib/errorUtils';
 import { LEGAL_CONSENT_VERSION } from '../constants/consent';
+import { GOOGLE_AUTH_ENABLED, signInWithGoogle, saveGoogleSignupIntent } from '../lib/googleAuth';
+import { resolveHomeRoute } from '../lib/routing';
 import { Screen, StackHeader, BottomBar, Text, Button, TextField, Checkbox, colors } from '../components/ui';
 
 function EyeToggle({ shown, onPress }) {
@@ -98,6 +100,23 @@ export default function RegisterFormScreen({ route, navigation }) {
         setLoading(false);
     }
 
+    const [googleLoading, setGoogleLoading] = useState(false);
+    const registerWithGoogle = async () => {
+        setGoogleLoading(true);
+        await saveGoogleSignupIntent({
+            creatorType: route.params?.creatorType === 'ugc' ? 'ugc' : 'influencer',
+            inviteCode: /^[A-Z0-9]{6,12}$/.test(formData.inviteCode) ? formData.inviteCode : undefined,
+        });
+        const result = await signInWithGoogle();
+        if (result.user) {
+            const dest = await resolveHomeRoute(result.user.id).catch(() => 'Onboarding');
+            navigation.replace(dest);
+        } else if (result.error) {
+            showToast(result.error, 'error');
+        }
+        setGoogleLoading(false);
+    };
+
     const mismatch = !!formData.confirmPassword && formData.password !== formData.confirmPassword;
 
     return (
@@ -117,6 +136,14 @@ export default function RegisterFormScreen({ route, navigation }) {
                 <Text variant="title" style={{ fontSize: 32, lineHeight: 36 }}>Hesabını oluştur</Text>
                 <Text tone="fg2">{role === 'brand' ? 'Marka' : 'Influencer'} olarak kaydoluyorsun.</Text>
             </View>
+
+            {/* Google ile kayıt yalnızca influencer / UGC (markalar kurumsal e-postayla). Onay ve davet kodu onboarding'de. */}
+            {GOOGLE_AUTH_ENABLED && role !== 'brand' ? (
+                <View style={{ gap: 10 }}>
+                    <Button title="Google ile kaydol" variant="secondary" loading={googleLoading} disabled={loading} onPress={registerWithGoogle} block />
+                    <Text variant="caption" tone="fg3" style={{ textAlign: 'center' }}>ya da e-postayla</Text>
+                </View>
+            ) : null}
 
             <TextField
                 label={role === 'brand' ? 'Yetkili ad soyad' : 'Ad soyad'}

@@ -48,6 +48,7 @@ import BrandVerificationScreen from './screens/brand/BrandVerificationScreen';
 import CampaignsScreen from './screens/brand/CampaignsScreen';
 import CampaignDetailScreen from './screens/brand/CampaignDetailScreen';
 import SocialVerifyGateScreen from './screens/influencer/SocialVerifyGateScreen';
+import PhoneGateScreen from './screens/PhoneGateScreen';
 import { resolveHomeRoute } from './lib/routing';
 
 // ─── Shared Screens ───────────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ const DEV_SCREEN = __DEV__ && Platform.OS === 'web' && typeof window !== 'undefi
   : null;
 
 // MVP bandının gösterilmediği giriş/kayıt/doğrulama ekranları
-const AUTH_ROUTES = new Set(['Login', 'ForgotPassword', 'RegisterRole', 'RegisterForm', 'VerifyEmail', 'Onboarding', 'SocialVerifyGate', 'BrandVerification', 'Rejected']);
+const AUTH_ROUTES = new Set(['Login', 'ForgotPassword', 'RegisterRole', 'RegisterForm', 'VerifyEmail', 'Onboarding', 'SocialVerifyGate', 'PhoneGate', 'BrandVerification', 'Rejected']);
 
 // ─── Tema (components/ui/theme.js) ────────────────────────────────────────────
 const AppTheme = {
@@ -247,6 +248,7 @@ export default function App() {
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} initialParams={DEV_SCREEN ? { email: 'ornek@mail.com' } : undefined} />
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="SocialVerifyGate" component={SocialVerifyGateScreen} options={{ gestureEnabled: false }} />
+          <Stack.Screen name="PhoneGate" component={PhoneGateScreen} options={{ gestureEnabled: false }} />
           <Stack.Screen name="Rejected" component={AccountRejectedScreen} options={{ gestureEnabled: false }} />
 
           {/* ── Influencer Main ── */}

@@ -6,6 +6,8 @@ import { Suspense, useMemo, useState } from 'react'
 import { Building2, UserRound, Video, type LucideIcon } from 'lucide-react'
 import AuthShell from '@/components/auth/AuthShell'
 import PasswordInput from '@/components/auth/PasswordInput'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
+import { GOOGLE_AUTH_ENABLED } from '@/lib/oauth-signup-shared'
 import { Button, Field, Input, Notice } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
@@ -106,6 +108,21 @@ function SignupPageContent() {
             })}
           </div>
         </div>
+
+        {/* Google ile kayıt yalnızca influencer / UGC için (markalar kurumsal e-postayla kaydolur). Onay ve davet kodu onboarding'de. */}
+        {GOOGLE_AUTH_ENABLED && kind !== 'brand' && (
+          <div className="grid gap-3">
+            <GoogleSignInButton
+              label="Google ile kaydol"
+              intent={{ creatorType: kind, inviteCode: /^[A-Z0-9]{6,12}$/.test(inviteCode) ? inviteCode : undefined }}
+            />
+            <div className="flex items-center gap-3 text-[12px] text-ink-faint">
+              <span className="h-px flex-1 bg-line" />
+              ya da e-postayla
+              <span className="h-px flex-1 bg-line" />
+            </div>
+          </div>
+        )}
 
         <Field label={kind === 'brand' ? 'Marka adı' : 'Ad soyad'}>
           {(props) => (

@@ -12,6 +12,9 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { isAllowedAvatarUrl } from '@/lib/avatar-url'
 import { validateInstagram, validateTikTok, validateYouTube, validateWebsite } from '@/utils/socialLinkValidation'
 import { validateUsername } from '@/utils/usernameValidation'
+import { completeOAuthSignup, needsSignupConsent } from '@/lib/oauth-signup'
+import { normalizePhone } from '@/lib/phone-shared'
+import { saveOwnContact } from '@/lib/user-contact'
 
 export interface OnboardingPayload {
   role: 'influencer' | 'brand'
@@ -26,6 +29,13 @@ export interface OnboardingPayload {
   taxOfficeCity?: string | null
   corporateEmail?: string | null
   creatorType?: 'influencer' | 'ugc' | 'both'
+  /** Google ile gelen yeni hesapta Kullanım Koşulları onayı ve davet kodu burada alınır (lib/oauth-signup.ts). */
+  legalConsent?: boolean
+  inviteCode?: string | null
+  signupSource?: 'web' | 'mobile'
+  /** Zorunlu telefon (2026-11-24; yalnızca platform görür, lib/user-contact.ts) ve isteğe bağlı pazarlama izni. */
+  phone?: string | null
+  marketingSms?: boolean
   socialLinks: {
     instagram?: string | null
     tiktok?: string | null
@@ -100,6 +110,17 @@ export async function saveOnboarding(
         ? 'brand'
         : 'influencer'
 
+  // Google ile gelen yeni hesap: Kullanım Koşulları onayı olmadan profil kaydedilmez (onboarding'de istenir).
+  const consentAdmin = createSupabaseAdminClient()
+  let completeSignup = false
+  if (consentAdmin) {
+    const { data: authUser } = await consentAdmin.auth.admin.getUserById(user.id)
+    if (authUser?.user && (await needsSignupConsent(consentAdmin, authUser.user))) {
+      if (payload.legalConsent !== true) return fail('Devam etmek için Kullanım Koşulları ve Gizlilik Politikası\'nı onaylayın.')
+      completeSignup = true
+    }
+  }
+
   const normalizedFullName = payload.fullName?.trim() || null
   if (!normalizedFullName) return fail(role === 'brand' ? 'Marka adı gerekli.' : 'Ad soyad gerekli.')
 
@@ -115,6 +136,10 @@ export async function saveOnboarding(
   if (!isAllowedAvatarUrl(payload.avatarUrl, user.id, existingProfile?.avatar_url)) {
     return fail('Geçersiz profil fotoğrafı adresi. Lütfen fotoğrafı yeniden yükleyin.')
   }
+
+  // Telefon zorunlu (acil durumda yalnızca platform ulaşır). Profil kaydından önce doğrulanır, sonra yazılır (FK).
+  const phoneCheck = normalizePhone(payload.phone)
+  if ('error' in phoneCheck) return fail(phoneCheck.error)
 
   const social = normalizeSocialLinks(role, payload.socialLinks ?? {})
   if ('error' in social) return fail(social.error)
@@ -190,6 +215,13 @@ export async function saveOnboarding(
         console.error('[saveOnboarding] Corporate email error:', corporateError)
       }
     }
+  }
+
+  const savedPhone = await saveOwnContact(user.id, { phone: phoneCheck.phone, marketingSms: payload.marketingSms === true }, payload.signupSource ?? 'web')
+  if (!savedPhone.success) return fail(savedPhone.error)
+
+  if (completeSignup && consentAdmin) {
+    await completeOAuthSignup(consentAdmin, user.id, { inviteCode: payload.inviteCode ?? null, source: payload.signupSource ?? 'web' })
   }
 
   try {

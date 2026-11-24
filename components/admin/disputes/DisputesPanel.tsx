@@ -183,7 +183,8 @@ export default function DisputesPanel({
                       <Button size="sm" variant="danger" disabled={pending} onClick={() => open(d, 'suspend')}>
                         Karşı tarafı askıya al
                       </Button>
-                      {d.kind === 'nonpayment' && (
+                      {/* payment_unconfirmed (marka dekontla başvurdu): "Ödendi" ödemeyi teyitli sayar, teslim dosyalarının indirilmesini açar. */}
+                      {(d.kind === 'nonpayment' || d.kind === 'payment_unconfirmed') && (
                         <Button size="sm" disabled={pending} onClick={() => open(d, 'mark_paid')}>
                           Ödendi olarak kapat
                         </Button>

@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import AuthShell from '@/components/auth/AuthShell'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
+import { GOOGLE_AUTH_ENABLED } from '@/lib/oauth-signup-shared'
 import PasswordInput from '@/components/auth/PasswordInput'
 import { Button, Field, Input, Notice } from '@/components/ui'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
@@ -85,6 +87,16 @@ function LoginPageContent() {
         <Button type="submit" variant="primary" block className="h-[42px]" loading={isSubmitting} disabled={!isFormValid}>
           Giriş yap
         </Button>
+        {GOOGLE_AUTH_ENABLED && (
+          <>
+            <div className="flex items-center gap-3 text-[12px] text-ink-faint">
+              <span className="h-px flex-1 bg-line" />
+              ya da
+              <span className="h-px flex-1 bg-line" />
+            </div>
+            <GoogleSignInButton />
+          </>
+        )}
         <p className="text-center text-[13px] text-ink-muted">
           Hesabın yok mu?{' '}
           <Link href="/signup" className="text-gold hover:underline">

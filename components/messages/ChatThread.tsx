@@ -4,9 +4,9 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { toast } from 'sonner'
-import { ArrowLeft, Briefcase, MessageSquare, UserRound } from 'lucide-react'
+import { ArrowLeft, Briefcase, Download, MessageSquare, UserRound } from 'lucide-react'
 import { isUserBlocked } from '@/app/dashboard/users/block/actions'
-import { sendMessage } from '@/app/dashboard/messages/send/actions'
+import { createChatUpload, downloadChatAttachment, sendMessage, signChatAttachments } from '@/app/dashboard/messages/send/actions'
 import { getParticipantLastRead } from '@/app/dashboard/messages/actions'
 import { compressImage } from '@/lib/image-compress'
 import {
@@ -17,7 +17,7 @@ import {
   chatLiveChannel,
   isSeenBy,
 } from '@/lib/chat-live-shared'
-import { chatAttachmentPath, parseChatImageUrl } from '@/lib/chat-image'
+import { CHAT_FULL_IMAGE_MAX_BYTES, CHAT_IMAGE_MAX_BYTES, chatAttachmentPath, chatAttachmentR2Key, parseChatImageUrl } from '@/lib/chat-image'
 import { markRoomsRead } from '@/lib/room-reads'
 import { JOB_KIND_LABEL, type ConversationJob } from '@/lib/conversation-jobs'
 import { Avatar, Button, ButtonLink, Chip, EmptyState, VerifiedTick } from '@/components/ui'
@@ -63,6 +63,8 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [signed, setSigned] = useState<Record<string, string>>({})
   const requested = useRef<Set<string>>(new Set())
+  const refreshes = useRef<Map<string, number>>(new Map())
+  const [signTick, setSignTick] = useState(0)
   const [isSending, setIsSending] = useState(false)
   const [blockedByThem, setBlockedByThem] = useState(false)
   const [blockedByMe, setBlockedByMe] = useState(false)
@@ -82,6 +84,22 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
   useEffect(() => setMessages(initialMessages), [initialMessages])
 
   // Sohbet ekleri gizli kovada; görüntülemek için 1 saatlik imzalı bağlantı üretilir.
+  // R2'dekiler (r2://chat/...) sunucuda imzalanır; eski Supabase ekleri istemcide (RLS).
+  useEffect(() => {
+    const refs = Array.from(
+      new Set(
+        messages
+          .map((m) => parseChatImageUrl(m.content))
+          .filter((url): url is string => !!url && !!chatAttachmentR2Key(url) && !requested.current.has(url)),
+      ),
+    )
+    if (refs.length === 0) return
+    refs.forEach((r) => requested.current.add(r))
+    signChatAttachments(refs)
+      .then((urls) => setSigned((prev) => ({ ...prev, ...urls })))
+      .catch(() => refs.forEach((r) => requested.current.delete(r)))
+  }, [messages, signTick])
+
   useEffect(() => {
     const missing = Array.from(
       new Set(
@@ -107,7 +125,30 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
           return next
         })
       })
-  }, [messages, supabase])
+  }, [messages, supabase, signTick])
+
+  // Bağlantı yalnızca erişim içindir (görsel kalıcı): süresi dolan / açılamayan görselin bağlantısı yeniden istenir.
+  const refreshSigned = (key: string) => {
+    if (!requested.current.has(key)) return
+    // Kalıcı bozuk dosyada sonsuz döngü olmasın: görsel başına en fazla 3 yenileme.
+    const tries = refreshes.current.get(key) ?? 0
+    if (tries >= 3) return
+    refreshes.current.set(key, tries + 1)
+    requested.current.delete(key)
+    setSigned((prev) => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    setSignTick((t) => t + 1)
+  }
+
+  // "İndir": tam boy orijinal (yoksa önizleme), yalnızca odanın tarafları.
+  const downloadFull = async (ref: string) => {
+    const result = await downloadChatAttachment(ref).catch(() => ({ success: false as const, error: 'Bağlantı hatası.' }))
+    if (result.success) window.location.assign(result.url)
+    else toast.error(result.error || 'Görsel indirilemedi.')
+  }
 
   useEffect(() => {
     isUserBlocked(participant.id).then((r) => {
@@ -213,13 +254,35 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
 
   const upload = async (file: File) => {
     if (!file.type.startsWith('image/')) return toast.error('Yalnızca görsel gönderebilirsin (PNG, JPEG, WEBP).')
-    if (file.size > 5 * 1024 * 1024) return toast.error('Görsel en fazla 5 MB olabilir.')
+    if (file.size > CHAT_FULL_IMAGE_MAX_BYTES) return toast.error('Görsel en fazla 20 MB olabilir.')
     setIsSending(true)
     try {
-      // Yüklemeden önce küçültülür (en uzun kenar 1600 px, WebP): depolama ve indirme kotası korunur, görsel hızlı açılır.
+      // Sohbette küçültülmüş önizleme görünür (en uzun kenar 1600 px, WebP): sohbet hızlı açılır, kota korunur.
       const compressed = await compressImage(file)
+      if (compressed.file.size > CHAT_IMAGE_MAX_BYTES) {
+        toast.error('Görsel çok büyük. Daha küçük bir görsel dene.')
+        return
+      }
+      const contentType = compressed.file.type || file.type
+      // R2 açıksa önizleme + tam boy orijinal doğrudan R2'ye (imzalı PUT); "İndir" tam boyu verir. Değilse eski Supabase yolu.
+      const fullExt = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string, string>)[file.type]
+      const r2 = await createChatUpload(
+        roomId,
+        compressed.extension === 'jpeg' ? 'jpg' : compressed.extension,
+        compressed.file.size,
+        fullExt ? { extension: fullExt, size: file.size } : null,
+      )
+      if (!r2.success) throw new Error(r2.error)
+      if (r2.provider === 'r2') {
+        const puts = [fetch(r2.uploadUrl, { method: 'PUT', headers: { 'Content-Type': r2.contentType }, body: compressed.file })]
+        if (r2.full) puts.push(fetch(r2.full.uploadUrl, { method: 'PUT', headers: { 'Content-Type': r2.full.contentType }, body: file }))
+        const results = await Promise.all(puts)
+        if (results.some((r) => !r.ok)) throw new Error('R2 upload failed')
+        await send(`![image](${r2.url})`)
+        return
+      }
       const path = `${roomId}/${currentUserId}/${Date.now()}_${Math.random().toString(36).slice(2, 11)}.${compressed.extension}`
-      const { error } = await supabase.storage.from('chat-attachments').upload(path, compressed.file, { contentType: compressed.file.type || file.type, cacheControl: '31536000' })
+      const { error } = await supabase.storage.from('chat-attachments').upload(path, compressed.file, { contentType, cacheControl: '31536000' })
       if (error) throw error
       const {
         data: { publicUrl },
@@ -301,7 +364,7 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
             const own = m.sender_id === currentUserId
             const newDay = i === 0 || dayKey(messages[i - 1].created_at) !== dayKey(m.created_at)
             const stored = parseChatImageUrl(m.content)
-            const path = stored ? chatAttachmentPath(stored) : null
+            const path = stored ? chatAttachmentPath(stored) ?? (chatAttachmentR2Key(stored) ? stored : null) : null
             const imageUrl = path ? signed[path] : null
             if (m.is_system) {
               return (
@@ -326,11 +389,22 @@ export default function ChatThread({ roomId, roomIds, closedNotice, currentUserI
                   >
                     {stored ? (
                       imageUrl ? (
-                        <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="relative block aspect-[4/3] w-60 max-w-full overflow-hidden rounded-lg bg-black/20">
-                          {/* İmzalı bağlantı kısa ömürlü ve gizli kovadan; görsel optimizasyonundan geçirilmez. */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={imageUrl} alt="Fotoğraf" className="absolute inset-0 h-full w-full object-cover" />
-                        </a>
+                        <>
+                          <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="relative block aspect-[4/3] w-60 max-w-full overflow-hidden rounded-lg bg-black/20">
+                            {/* İmzalı bağlantı kısa ömürlü ve gizli kovadan; görsel optimizasyonundan geçirilmez. Süresi dolarsa yeniden istenir. */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={imageUrl} alt="Fotoğraf" className="absolute inset-0 h-full w-full object-cover" onError={() => path && refreshSigned(path)} />
+                          </a>
+                          {stored && chatAttachmentR2Key(stored) && (
+                            <button
+                              type="button"
+                              onClick={() => downloadFull(stored)}
+                              className="mt-1 inline-flex items-center gap-1 px-1 text-[11.5px] text-ink-muted hover:text-ink"
+                            >
+                              <Download className="h-3.5 w-3.5" aria-hidden /> İndir
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <div className="grid aspect-[4/3] w-60 max-w-full place-items-center rounded-lg bg-black/20 text-xs text-ink-faint">Fotoğraf yükleniyor…</div>
                       )

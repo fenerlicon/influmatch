@@ -6,7 +6,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
-import { chatAttachmentPath, parseChatImageUrl } from '@/lib/chat-image'
+import { CHAT_FULL_IMAGE_MAX_BYTES, CHAT_IMAGE_MAX_BYTES, chatAttachmentFullKey, chatAttachmentPath, chatAttachmentR2Key, parseChatImageUrl } from '@/lib/chat-image'
+import { headR2Object } from '@/lib/r2'
 import { runInBackground } from '@/lib/background'
 
 const MAX_MESSAGE_LENGTH = 5000
@@ -70,10 +71,21 @@ export async function sendMessageAs(
   if (content.length > MAX_MESSAGE_LENGTH) return { success: false, error: 'Mesaj çok uzun.' }
 
   // Görsel mesaj yalnızca bu odaya, gönderenin kendi klasörüne yüklenmiş dosyayı gösterebilir
-  // (web ve mobil aynı yol: {oda}/{gönderen}/{dosya}).
+  // (web ve mobil aynı yol: {oda}/{gönderen}/{dosya}; R2'de chat/{oda}/{gönderen}/{dosya} ve dosya gerçekten yüklenmiş olmalı).
   const imageUrl = parseChatImageUrl(content)
-  if (imageUrl && !chatAttachmentPath(imageUrl)?.startsWith(`${roomId}/${userId}/`)) {
-    return { success: false, error: 'Geçersiz görsel.' }
+  if (imageUrl) {
+    const r2Key = chatAttachmentR2Key(imageUrl)
+    if (r2Key) {
+      if (!r2Key.toLowerCase().startsWith(`chat/${roomId.toLowerCase()}/${userId.toLowerCase()}/`)) {
+        return { success: false, error: 'Geçersiz görsel.' }
+      }
+      const fullKey = chatAttachmentFullKey(imageUrl)
+      const [head, fullHead] = await Promise.all([headR2Object(r2Key), fullKey ? headR2Object(fullKey) : Promise.resolve(null)])
+      if (!head || head.size > CHAT_IMAGE_MAX_BYTES) return { success: false, error: 'Görsel yüklenemedi. Tekrar dene.' }
+      if (fullKey && (!fullHead || fullHead.size > CHAT_FULL_IMAGE_MAX_BYTES)) return { success: false, error: 'Görsel yüklenemedi. Tekrar dene.' }
+    } else if (!chatAttachmentPath(imageUrl)?.startsWith(`${roomId}/${userId}/`)) {
+      return { success: false, error: 'Geçersiz görsel.' }
+    }
   }
 
   const access = await checkRoomWritableAs(supabase, userId, roomId)

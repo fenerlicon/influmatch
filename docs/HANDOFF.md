@@ -9,6 +9,17 @@
 - **Yeni görünüm (2026-10-13'ten beri, asıl iş):** durum, sıra ve hangi oturumun neyi yaptığı `docs/REDESIGN.md`'de
   ("Paralel oturumlar" tablosu + "Aşamalar"). Bu belgenin aşağıdaki kısmı yeni görünümden önceki işleri anlatır.
 
+- **Influencer istekleri (2026-11-24, `claude/inspiring-euler-de8z2n`):** (1) **Google ile giriş** web + mobil, bayrak kapalı (SYSTEM_MAP 1.4-N1;
+  kurulum `docs/SETUP.md` "Google ile giriş"; iOS mağazasında Apple ile giriş de gerekecek). (2) **Cloudflare R2** katmanı (`lib/r2.ts`): sohbet görselleri
+  (5.1-N1) ve teslimat video / görselleri + teslim kilidi (3.18-N4) R2'de; R2 ortam değişkenleri yoksa eski yol / yalnızca link. Kurulum `docs/SETUP.md`
+  "Cloudflare R2" (kova, token, CORS). (3) **Revize en fazla 2** (3.18-N6); DB kısıtı `supabase/manual/2026-11-24_revize_siniri.sql` elle.
+  (4) Davet kodu alanı kayıtta zaten vardı (web + mobil); Google ile gelenlere onboarding'de soruluyor. Mobilde yeni paketler: `expo-web-browser`, `expo-linking`
+  (`npx expo install --check`), `app.json` `scheme: influmatch`. 2. tur (aynı gün): sohbette önizleme + "İndir" ile tam boy, bağlantı kendiliğinden
+  yenilenir (5.1-N2); ödeme teyidi 24 saat + markanın dekontlu başvurusu (3.18-N7, `payment_unconfirmed` canlıda); davet kodu kartı Görevler'de
+  influencer / UGC'ye her zaman görünür (kodla kaydolan ve onaylanan sayısı). Ekran kaydı engeli eklenmedi (kullanıcı kararı: gerek yok).
+  3. tur: **zorunlu telefon numarası** (yalnızca admin görür, pazarlama izni ayrı; SYSTEM_MAP 1.6-N1, `user_contacts` canlıda). SMS doğrulaması
+  sağlayıcı seçilince; pazarlama iletisinden önce İYS + avukat (docs/KVKK.md 2b).
+
 - **Ödemeler (2026-11-23, `claude/payments`, PR açılmadı; ayrıntı `docs/PAYMENTS.md`, SYSTEM_MAP 4.7):** sahip kararı iyzico + Spotlight aylık / yıllık otomatik
   yenilenen abonelik; mobilde App Store / Google Play. Kod hazır ve **iyzico sandbox'a** karşı yazıldı, canlıya geçiş yalnızca ortam değişkeni. Spotlight artık
   `subscriptions` kayıtlarından tek fonksiyonla türetiliyor (`lib/payments/subscriptions.ts` `syncUserSpotlight`; kaynaklar iyzico / apple / google / admin / promo / reward);

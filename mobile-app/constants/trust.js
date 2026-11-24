@@ -15,6 +15,8 @@ export const COMMITMENT_CHECKBOX_LABEL = 'Okudum, kabul ediyorum.';
 export const COMMITMENT_REQUIRED_ERROR = 'Devam etmeden önce iş birliği taahhüdünü onaylaman gerekiyor.';
 
 export const DISPUTE_RESPONSE_DAYS = 7;
+// Ödeme teyidi süresi (saat; web lib/collaboration-trust-shared.ts ile aynı).
+export const PAYMENT_CONFIRM_HOURS = 24;
 export const DISPUTE_PROOF_BUCKET = 'payment-proofs';
 export const DISPUTE_PROOF_MAX_BYTES = 10 * 1024 * 1024;
 export const DISPUTE_NOTE_MAX = 1000;
@@ -22,6 +24,7 @@ export const DISPUTE_NOTE_MAX = 1000;
 export const DISPUTE_KIND_LABELS = {
     nonpayment: 'Ödeme alınamadı',
     nondelivery: 'Teslim edilmedi',
+    payment_unconfirmed: 'Ödeme teyit edilmedi',
 };
 
 export const DISPUTE_STATUS_LABELS = {

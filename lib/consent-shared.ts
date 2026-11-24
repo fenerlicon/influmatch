@@ -11,7 +11,7 @@ export const LEGAL_CONSENT_VERSION = '2026-01-01'
 /** app/legal/page.tsx Çerez Politikası sürümü. */
 export const COOKIE_POLICY_VERSION = '2026-01-01'
 
-export const CONSENT_KINDS = ['terms_privacy', 'cookies_optional', 'marketing_email'] as const
+export const CONSENT_KINDS = ['terms_privacy', 'cookies_optional', 'marketing_email', 'marketing_sms'] as const
 export type ConsentKind = (typeof CONSENT_KINDS)[number]
 
 /** Alt bilgideki / ayarlardaki "Çerez tercihleri" bağlantısı bu tarayıcı olayını yayınlar; çerez banner'ı yeniden açılır. */

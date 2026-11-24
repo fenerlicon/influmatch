@@ -263,6 +263,13 @@ export async function buildUserDataExport(admin: SupabaseClient, user: User) {
     task_rewards: section(rewardsRes),
     invite_code: section(inviteCodeRes),
     invited_users_count: invitedCount,
+    // Telefon numarası ve pazarlama izni (2026-11-24, lib/user-contact.ts).
+    contact: await admin
+      .from('user_contacts')
+      .select('phone, marketing_sms, phone_verified_at, created_at, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then((r) => r.data ?? null, () => null),
     consent_records: section(consentRes),
     sensitive_access_log: section(accessLogRes),
     files: { avatars: avatarFiles, tax_documents: taxFiles, task_proofs: proofFiles, advert_images: heroFiles },

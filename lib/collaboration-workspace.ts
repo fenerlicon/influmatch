@@ -3,7 +3,8 @@
 //     iki onay zaman damgasıyla tutulur. Onaydan sonra yapılan her değişiklik iki onayı da sıfırlar (değişikliği kaydeden tarafın
 //     kaydı yeni sürümü onayı sayılır, karşı taraf yeniden onaylar). Hukuki şablon metni yok (avukattan gelecek).
 //   - Teslimat takibi: bekliyor → taslak gönderildi → revize istendi → onaylandı → yayınlandı. Taslak bugün yalnızca link
-//     (http/https); dosya yükleme ve teslim kilidi R2 ile gelecek (collaboration_submissions.file_key / file_locked).
+//     (http/https) ya da R2'ye yüklenen dosya (2026-11-24, lib/deliverable-files.ts: marka önizler, indirme influencer "Ödeme alındı"
+//     işaretleyene kadar kilitli; collaboration_submissions.file_key / file_locked).
 //     Revize sayısı anlaşmadaki sınırla karşılaştırılır; sınır dolunca marka yeni revize isteyemez. Bütün teslimatlar yayınlanınca
 //     iş birliği "published" olur ve mevcut 7 günlük marka onayı / otomatik tamamlama işler.
 //   - Ödeme teyidi: marka "Ödeme yapıldı", influencer "Ödeme alındı" işaretler. Tamamlanmadan ya da bütün teslimatlar onaylandıktan
@@ -15,6 +16,9 @@
 //
 // BU DOSYA KASITLI OLARAK 'use server' DEĞİLDİR: istemciden çağrılamamalıdır.
 
+import { isDeliverableFileRef } from '@/lib/deliverable-files-shared'
+import { validateDeliverableFileRef } from '@/lib/deliverable-files'
+import { isR2Configured } from '@/lib/r2'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseAdminClient } from '@/utils/supabase/admin'
 import { displayNameOf, notifyUser } from '@/lib/notify'
@@ -26,9 +30,19 @@ import { getDeliverableMetricsFor, startDeliverableTracking } from '@/lib/post-m
 import type { DeliverableMetrics } from '@/lib/post-metrics-shared'
 import { lateStatsFor, remindersFor, trustReady, type LateStats } from '@/lib/collaboration-trust'
 import { awardCollaboration } from '@/lib/influcash'
-import { disputesForCollaboration, openDispute, runDisputeAction, type DisputeView } from '@/lib/collaboration-disputes'
+import {
+  claimPayment,
+  disputesForCollaboration,
+  hasActivePaymentClaim,
+  openDispute,
+  paymentClaimAvailableAt,
+  resolvePaymentClaims,
+  runDisputeAction,
+  type DisputeView,
+} from '@/lib/collaboration-disputes'
 import {
   COMMITMENT_SHORT,
+  PAYMENT_CONFIRM_HOURS,
   PAYMENT_PROGRESS_LABELS,
   nondeliveryAvailableAt,
   paymentProgress,
@@ -106,6 +120,8 @@ export interface SubmissionRow {
   deliverable_id: string
   submitted_by: string | null
   url: string | null
+  /** R2 taslak dosyası (teslim kilidi); varsa url boştur. */
+  file_key: string | null
   note: string | null
   review: 'approved' | 'revision_requested' | null
   review_note: string | null
@@ -133,6 +149,8 @@ export interface DeliverableView extends DeliverableRow {
 }
 
 export interface CollaborationWorkspace {
+  /** Taslak dosyası yükleme açık mı (R2 ayarlı; lib/deliverable-files.ts). Kapalıysa yalnızca link. */
+  filesEnabled?: boolean
   collaboration: CollaborationListItem
   agreement: AgreementRow | null
   agreementConfirmed: boolean
@@ -148,6 +166,11 @@ export interface CollaborationWorkspace {
     canReportNonpayment: boolean
     /** "Ödeme alamadım" düğmesinin açılacağı an (tamamlanmış ve teyitsizse). */
     nonpaymentAvailableAt: string | null
+    /** Ödeme teyidi (2026-11-24): marka "Ödeme yapıldı" dedikten sonra influencer'ın teyit süresinin sonu (24 saat). */
+    paymentConfirmDueAt?: string | null
+    /** Marka "Ödemeyi yaptım ama onaylanmadı" başvurusu yapabilir mi / ne zaman açılır. */
+    canClaimPayment?: boolean
+    claimPaymentAvailableAt?: string | null
   }
   brandReliability: { completed: number; confirmed: number }
   /** Kampanyaya bağlı iş birliğinde brief (salt okunur) ve varsayılan teslimatlar (3.19). */
@@ -182,7 +205,7 @@ const AGREEMENT_COLUMNS_TRUST = `${AGREEMENT_COLUMNS}, payment_due_date`
 const agreementColumns = (ready: boolean) => (ready ? AGREEMENT_COLUMNS_TRUST : AGREEMENT_COLUMNS)
 const DELIVERABLE_COLUMNS =
   'id, collaboration_id, position, kind, quantity, note, due_date, status, revisions_used, draft_url, draft_note, draft_submitted_at, review_note, reviewed_at, approved_at, publish_url, published_at, created_at, updated_at'
-const SUBMISSION_COLUMNS = 'id, deliverable_id, submitted_by, url, note, review, review_note, reviewed_at, created_at'
+const SUBMISSION_COLUMNS = 'id, deliverable_id, submitted_by, url, file_key, note, review, review_note, reviewed_at, created_at'
 const PAYMENT_COLUMNS =
   'collaboration_id, brand_paid_at, brand_paid_date, brand_note, influencer_received_at, influencer_received_date, influencer_note, nonpayment_reported_at, nonpayment_ticket_id'
 const COLLAB_COLUMNS =
@@ -350,12 +373,20 @@ function nonpaymentAvailableAt(collab: Pick<CollaborationRow, 'status' | 'comple
   return new Date(Math.min(...valid) + NONPAYMENT_REPORT_DAYS * DAY_MS).toISOString()
 }
 
+/** Ödeme işaretli ama teyitsizse açık "Ödeme teyit edilmedi" başvurusu var mı. */
+async function activeClaimFor(collaborationId: string, payment: PaymentRow | null): Promise<boolean> {
+  if (!payment?.brand_paid_at || payment.influencer_received_at) return false
+  const admin = createSupabaseAdminClient()
+  return admin ? hasActivePaymentClaim(admin, collaborationId).catch(() => false) : false
+}
+
 function buildPermissions(
   collab: CollaborationRow,
   isBrand: boolean,
   agreement: AgreementRow | null,
   payment: PaymentRow | null,
   deliverables: DeliverableTiming[],
+  activePaymentClaim = false,
 ) {
   const editable = EDITABLE_STATUSES.includes(collab.status)
   const ownConfirmation = agreement ? (isBrand ? agreement.brand_confirmed_at : agreement.influencer_confirmed_at) : null
@@ -369,13 +400,27 @@ function buildPermissions(
     canUnmarkPaid: isBrand && paymentOpen && !!payment?.brand_paid_at,
     canConfirmPayment: !isBrand && paymentOpen,
     canUnconfirmPayment: !isBrand && paymentOpen && !!payment?.influencer_received_at,
+    // "Ödeme alamadım / gelmedi": tamamlanma ya da bütün teslimatların onayından 14 gün sonra; marka "Ödeme yapıldı" dediyse hemen.
     canReportNonpayment:
       !isBrand &&
-      !!availableAt &&
-      Date.now() >= new Date(availableAt).getTime() &&
+      paymentOpen &&
+      (!!payment?.brand_paid_at || (!!availableAt && Date.now() >= new Date(availableAt).getTime())) &&
       !payment?.influencer_received_at &&
       !payment?.nonpayment_reported_at,
     nonpaymentAvailableAt: !isBrand && availableAt && !payment?.influencer_received_at ? availableAt : null,
+    paymentConfirmDueAt: payment?.brand_paid_at && !payment.influencer_received_at ? paymentClaimAvailableAt(payment.brand_paid_at) : null,
+    canClaimPayment:
+      isBrand &&
+      paymentOpen &&
+      !!payment?.brand_paid_at &&
+      !payment.influencer_received_at &&
+      !payment.nonpayment_reported_at &&
+      !activePaymentClaim &&
+      Date.now() >= new Date(paymentClaimAvailableAt(payment.brand_paid_at) ?? 0).getTime(),
+    claimPaymentAvailableAt:
+      isBrand && payment?.brand_paid_at && !payment.influencer_received_at && !payment.nonpayment_reported_at && !activePaymentClaim
+        ? paymentClaimAvailableAt(payment.brand_paid_at)
+        : null,
   }
 }
 
@@ -454,12 +499,20 @@ export async function getCollaborationWorkspace(
   return {
     success: true,
     workspace: {
+      filesEnabled: isR2Configured(),
       collaboration,
       agreement,
       agreementConfirmed: confirmed,
       deliverables,
       payment,
-      permissions: buildPermissions(collaboration, isBrand, agreement, payment, deliverables),
+      permissions: buildPermissions(
+        collaboration,
+        isBrand,
+        agreement,
+        payment,
+        deliverables,
+        await activeClaimFor(collaboration.id, payment),
+      ),
       brandReliability: reliability.get(collaboration.brand_id) ?? { completed: 0, confirmed: 0 },
       campaignBrief,
       trust: await buildTrust(collaboration, userId, isBrand, agreement, payment, deliverables, trustEnabled),
@@ -654,13 +707,15 @@ export async function runWorkspaceAction(userId: string, collaborationId: string
           event: 'collab_payment',
           title: isBrand ? 'Ödeme yapıldı olarak işaretlendi' : 'Ödeme alındı olarak teyit edildi',
           message: isBrand
-            ? `${name}, "${collab.title}" iş birliğinin ödemesini yaptığını işaretledi. Ödemeyi aldıysanız "Ödeme alındı" ile teyit edin.`
+            ? `${name}, "${collab.title}" iş birliğinin ödemesini yaptığını işaretledi. ${PAYMENT_CONFIRM_HOURS} saat içinde "Ödeme alındı" ya da "Ödeme gelmedi" ile yanıt verin; yanıt verilmezse marka dekontla destek ekibine başvurabilir.`
             : `${name}, "${collab.title}" iş birliğinin ödemesini aldığını teyit etti.`,
           link,
           type: 'success',
         },
         admin,
       )
+      // Influencer teyit edince açık "Ödeme teyit edilmedi" başvurusu kapanır (2026-11-24).
+      if (!isBrand) await resolvePaymentClaims(admin, collab.id, userId).catch((e) => console.error('[collaboration-workspace] başvuru kapatma:', e))
       // Influcash (2026-11-23): iki taraf da teyit ettiyse iş birliği kazanımları (bir kez; değilse hiçbir şey yazılmaz).
       await awardCollaboration(admin, collab.id).catch((error) => console.error('[collaboration-workspace] Influcash:', error))
       return { success: true, message: isBrand ? 'Ödeme yapıldı olarak işaretlendi.' : 'Ödeme alındı olarak teyit edildi.' }
@@ -680,6 +735,10 @@ export async function runWorkspaceAction(userId: string, collaborationId: string
 
     case 'report_nonpayment':
       return reportNonpayment(admin, collab, agreement, userId, isBrand, input, now)
+
+    // Ödeme teyidi (2026-11-24): influencer 24 saatte teyit etmediyse marka dekontla destek ekibine başvurur.
+    case 'claim_payment':
+      return claimPayment(admin, collab, userId, { note: input.note, proofPath: input.proofPath })
 
     // Güvenli iş birliği (2026-11-23): teslim edilmedi bildirimi ve anlaşmazlık adımları.
     case 'report_nondelivery':
@@ -941,15 +1000,28 @@ async function deliverableAction(
 
   switch (input.action) {
     case 'submit_draft': {
-      const checked = validateDraftUrl(input.url)
-      if ('error' in checked) return { error: checked.error }
+      // Taslak link (http/https) ya da R2'ye yüklenmiş dosya (r2://deliverables/..., teslim kilidi; lib/deliverable-files.ts).
+      let draftUrl: string
+      let fileKey: string | null = null
+      if (isDeliverableFileRef(input.url)) {
+        const file = await validateDeliverableFileRef(input.url!, collab.id, userId)
+        if ('error' in file) return { error: file.error }
+        draftUrl = input.url!
+        fileKey = file.key
+      } else {
+        const checked = validateDraftUrl(input.url)
+        if ('error' in checked) return { error: checked.error }
+        draftUrl = checked.url
+      }
       const note = cleanText(input.note, AGREEMENT_LIMITS.draftNoteMax) || null
-      if (!(await transition({ status: 'draft_submitted', draft_url: checked.url, draft_note: note, draft_submitted_at: now, review_note: null }))) return stale
+      if (!(await transition({ status: 'draft_submitted', draft_url: draftUrl, draft_note: note, draft_submitted_at: now, review_note: null }))) return stale
       await admin.from('collaboration_submissions').insert({
         collaboration_id: collab.id,
         deliverable_id: deliverable.id,
         submitted_by: userId,
-        url: checked.url,
+        url: fileKey ? null : draftUrl,
+        file_key: fileKey,
+        file_locked: !!fileKey,
         note,
       })
       if (collab.status === 'agreed') {
@@ -1079,7 +1151,9 @@ async function reportNonpayment(
   // Anlaşma özeti olmayan iş birliğindeki teslimat yalnızca tek yayın linkidir (3.20-S2); marka onayı sayılmaz.
   const deliverables = agreement ? ((deliverableData ?? []) as DeliverableTiming[]) : []
   const availableAt = nonpaymentAvailableAt(collab, deliverables)
-  if (!availableAt || Date.now() < new Date(availableAt).getTime()) {
+  // Marka "Ödeme yapıldı" dediyse influencer hemen "Ödeme gelmedi" diyebilir (2026-11-24, 24 saatlik teyit süresi).
+  const { data: paidRow } = await admin.from('collaboration_payments').select('brand_paid_at').eq('collaboration_id', collab.id).maybeSingle()
+  if (!paidRow?.brand_paid_at && (!availableAt || Date.now() < new Date(availableAt).getTime())) {
     return {
       error: `Bu bildirim, iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan ${NONPAYMENT_REPORT_DAYS} gün sonra açılır.`,
     }

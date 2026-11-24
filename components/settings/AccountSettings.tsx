@@ -8,6 +8,7 @@ import { Button, Card, CardHeader, ListRow } from '@/components/ui'
 import { COOKIE_PREFERENCES_EVENT } from '@/lib/consent-shared'
 import ChangePasswordModal from './ChangePasswordModal'
 import DeleteAccountModal from './DeleteAccountModal'
+import PhoneSettings from './PhoneSettings'
 
 export default function AccountSettings() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
@@ -42,6 +43,7 @@ export default function AccountSettings() {
 
   return (
     <>
+      <PhoneSettings />
       <Card>
         <CardHeader title="Güvenlik" description="Şifreni güncelle ya da hesabını kapat." />
         <ListRow>

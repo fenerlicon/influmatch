@@ -26,7 +26,7 @@ export const AGREEMENT_SUMMARY_NOTE = 'Bu özet iki tarafın uygulamada onaylad�
 export const AGREEMENT_LIMITS = {
     maxDeliverables: 20,
     maxQuantity: 50,
-    maxRevisions: 10,
+    maxRevisions: 2, // 2026-11-24 kararı (web ile aynı)
     usageRightsMax: 300,
     deliverableNoteMax: 200,
     draftNoteMax: 500,

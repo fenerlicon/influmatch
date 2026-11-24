@@ -7,6 +7,8 @@ import {
 import { apiRequest } from '../lib/api';
 import CampaignBrief from '../components/CampaignBrief';
 import DeliverableMetrics from '../components/DeliverableMetrics';
+import { DeliverableFileView, pickAndUploadDeliverable } from '../components/DeliverableFile';
+import { DELIVERABLE_LOCK_NOTE, isDeliverableFileRef } from '../constants/deliverableFiles';
 import CollaborationTrust, { PaymentProgress } from '../components/CollaborationTrust';
 import { COMMITMENT_SHORT, lateCountText } from '../constants/trust';
 import {
@@ -27,7 +29,8 @@ import {
 
 // İş birliği takip alanı: anlaşma özeti, teslimatlar (taslak / revize / yayın) ve ödeme teyidi (design/mobile/ortak.html).
 // Web'deki /dashboard/collaborations/[id] ile aynı akış; bütün işlemler /api/mobile/collaborations/[id] üzerinden
-// web'in sunucu kodundan geçer (lib/collaboration-workspace.ts). Taslak bugün yalnızca link (dosya yükleme R2 ile gelecek).
+// web'in sunucu kodundan geçer (lib/collaboration-workspace.ts). Taslak link ya da R2'ye yüklenen dosya (2026-11-24, teslim kilidi:
+// marka önizler, indirme influencer "Ödeme alındı" işaretleyince açılır; components/DeliverableFile.js).
 
 const COLLAB_STATUS = {
     agreed: { label: 'Anlaşıldı', tone: 'info', stage: 1 },
@@ -86,6 +89,7 @@ export default function CollaborationDetailScreen({ navigation, route }) {
     const [draft, setDraft] = useState(null); // anlaşma düzenleme formu
     const [sheet, setSheet] = useState(null); // { kind, deliverable?, url, note, date }
     const [historyOpen, setHistoryOpen] = useState({});
+    const [upload, setUpload] = useState(null); // { progress, name } taslak dosyası yüklenirken
 
     const load = useCallback(async () => {
         if (!id) { setError('İş birliği bulunamadı.'); setLoading(false); return; }
@@ -191,7 +195,25 @@ export default function CollaborationDetailScreen({ navigation, route }) {
     const updateRow = (index, patch) =>
         setDraft((d) => ({ ...d, deliverables: d.deliverables.map((row, i) => (i === index ? { ...row, ...patch } : row)) }));
 
-    const openSheet = (kind, deliverable) => setSheet({ kind, deliverable, url: '', note: '', date: today() });
+    const openSheet = (kind, deliverable) => {
+        setUpload(null);
+        setSheet({ kind, deliverable, url: '', note: '', date: today() });
+    };
+
+    const uploadDraftFile = async () => {
+        const target = sheet?.deliverable;
+        if (!target) return;
+        setUpload({ progress: 0, name: null });
+        const result = await pickAndUploadDeliverable(id, target.id, (progress) => setUpload((u) => ({ ...(u || {}), progress })));
+        if (!result) { setUpload(null); return; }
+        if (result.error) {
+            setUpload(null);
+            Alert.alert('Yüklenemedi', result.error);
+            return;
+        }
+        setUpload({ progress: 100, name: result.name });
+        setSheet((s) => (s ? { ...s, url: result.ref } : s));
+    };
 
     const submitSheet = () => {
         const s = sheet;
@@ -404,7 +426,13 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                                     </View>
                                     {d.note ? <Text variant="small" tone="fg3">{d.note}</Text> : null}
                                     <Text variant="caption" tone="fg3">{revisionUsageText(d.revisions_used, revisionLimit)}</Text>
-                                    {d.draft_url ? (
+                                    {d.draft_url && isDeliverableFileRef(d.draft_url) ? (
+                                        <View style={{ gap: 4 }}>
+                                            <Text variant="small" tone="fg3">Son taslak (dosya)</Text>
+                                            <DeliverableFileView collaborationId={id} fileRef={d.draft_url} isBrand={isBrand} downloadUnlocked={!!payment?.influencer_received_at} />
+                                            {d.draft_note ? <Text variant="small" tone="fg2">{d.draft_note}</Text> : null}
+                                        </View>
+                                    ) : d.draft_url ? (
                                         <View style={{ gap: 2 }}>
                                             <LinkLine label="Son taslak" url={d.draft_url} />
                                             {d.draft_note ? <Text variant="small" tone="fg2">{d.draft_note}</Text> : null}
@@ -434,6 +462,9 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                                                 <View key={s.id} style={{ gap: 2 }}>
                                                     <Text variant="caption" tone="fg2">{formatDateTime(s.created_at)}</Text>
                                                     <LinkLine label="Taslak" url={s.url} />
+                                                    {s.file_key ? (
+                                                        <DeliverableFileView collaborationId={id} fileRef={`r2://${s.file_key}`} isBrand={isBrand} downloadUnlocked={!!payment?.influencer_received_at} compact />
+                                                    ) : null}
                                                     {s.note ? <Text variant="small" tone="fg2">{s.note}</Text> : null}
                                                     {s.review === 'approved' ? <Text variant="caption" tone="success">Onaylandı</Text> : null}
                                                     {s.review === 'revision_requested' ? <Text variant="caption" tone="warning">Revize: {s.review_note}</Text> : null}
@@ -507,14 +538,26 @@ export default function CollaborationDetailScreen({ navigation, route }) {
                         ) : null;
                     })()}
                     {perms.canReportNonpayment ? (
-                        <Button title="Ödeme alamadım" variant="danger" size="sm" disabled={busy} onPress={() => openSheet('report_nonpayment')} />
+                        <Button title={payment?.brand_paid_at ? 'Ödeme gelmedi' : 'Ödeme alamadım'} variant="danger" size="sm" disabled={busy} onPress={() => openSheet('report_nonpayment')} />
+                    ) : null}
+                    {/* Ödeme teyidi 24 saat (2026-11-24) */}
+                    {!isBrand && perms.paymentConfirmDueAt && !payment?.nonpayment_reported_at ? (
+                        <Notice
+                            tone="warning"
+                            text={`Marka ödemeyi yaptığını işaretledi. ${formatDateTime(perms.paymentConfirmDueAt)} tarihine kadar "Ödeme alındı" ya da "Ödeme gelmedi" ile yanıt ver; yanıt vermezsen marka dekontla destek ekibine başvurabilir.`}
+                        />
+                    ) : null}
+                    {isBrand && !perms.canClaimPayment && perms.claimPaymentAvailableAt ? (
+                        <Text variant="caption" tone="fg3">
+                            Influencer'ın teyit süresi {formatDateTime(perms.claimPaymentAvailableAt)} tarihinde doluyor. Teyit gelmezse aşağıdan dekontla destek ekibine başvurabilirsin.
+                        </Text>
                     ) : null}
                     {!perms.canReportNonpayment && perms.nonpaymentAvailableAt && !payment?.nonpayment_reported_at ? (
                         <Text variant="caption" tone="fg3">
                             Ödemeyi alamazsanız {formatDate(perms.nonpaymentAvailableAt)} tarihinden sonra buradan destek ekibine bildirebilirsiniz (iş birliği tamamlandıktan ya da bütün teslimatlar onaylandıktan 14 gün sonra açılır).
                         </Text>
                     ) : null}
-                    <CollaborationTrust collaborationId={id} trust={ws.trust} deliverables={deliverables} isBrand={isBrand} onChanged={load} />
+                    <CollaborationTrust collaborationId={id} trust={ws.trust} deliverables={deliverables} isBrand={isBrand} onChanged={load} canClaimPayment={!!perms.canClaimPayment} />
                 </Card>
             </Section>
 
@@ -528,7 +571,18 @@ export default function CollaborationDetailScreen({ navigation, route }) {
             <Sheet visible={!!sheet} onClose={() => setSheet(null)} title={sheet ? (sheet.deliverable ? `${kindLabel(sheet.deliverable)} — ${SHEET_TITLES[sheet.kind]}` : SHEET_TITLES[sheet.kind]) : ''}>
                 {sheet ? (
                     <>
-                        {['submit_draft', 'publish_deliverable', 'collab_publish'].includes(sheet.kind) ? (
+                        {sheet.kind === 'submit_draft' && ws?.filesEnabled ? (
+                            <View style={{ gap: 6 }}>
+                                <Button
+                                    title={upload?.name ? 'Başka dosya seç' : 'Video / görsel yükle'} variant="secondary" size="sm"
+                                    loading={!!upload && upload.progress < 100} disabled={busy} onPress={uploadDraftFile}
+                                />
+                                {upload && upload.progress < 100 ? <Text variant="caption" tone="fg2">Yükleniyor… %{upload.progress || 0}</Text> : null}
+                                {upload?.name && upload.progress === 100 ? <Text variant="caption" tone="success">{upload.name} yüklendi. Göndermek için "Gönder"e bas.</Text> : null}
+                                <Text variant="caption" tone="fg3">Video en fazla 200 MB, görsel en fazla 15 MB. {DELIVERABLE_LOCK_NOTE}</Text>
+                            </View>
+                        ) : null}
+                        {['submit_draft', 'publish_deliverable', 'collab_publish'].includes(sheet.kind) && !isDeliverableFileRef(sheet.url) ? (
                             <TextField
                                 label={sheet.kind === 'submit_draft' ? 'Taslak bağlantısı' : 'Yayın bağlantısı'}
                                 hint={sheet.kind === 'submit_draft' ? 'Drive, WeTransfer veya önizleme bağlantısı.' : 'Instagram, TikTok veya YouTube bağlantısı.'}

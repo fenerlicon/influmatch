@@ -31,6 +31,12 @@ export const PAYMENT_REMINDER_DAYS = [0, 3, 7, 14] as const
 /** Influencer teyit hatırlatmaları: marka "ödeme yapıldı" dedikten sonraki günler. */
 export const RECEIPT_REMINDER_DAYS = [2, 5, 10] as const
 
+/**
+ * Ödeme teyidi süresi (saat; kullanıcı kararı 2026-11-24): marka "Ödeme yapıldı" dedikten sonra influencer bu süre içinde
+ * "Ödeme alındı" ya da "Ödeme gelmedi" der. Süre dolunca marka dekontla "Ödemeyi yaptım ama onaylanmadı" başvurusu yapabilir.
+ */
+export const PAYMENT_CONFIRM_HOURS = 24
+
 /** Anlaşmazlıkta karşı tarafın yanıt süresi (gün). */
 export const DISPUTE_RESPONSE_DAYS = 7
 /** "Teslim edilmedi" bildirimi: teslim tarihinden bu kadar gün sonra açılır. */
@@ -53,13 +59,14 @@ export const TRUST_BADGE_RULES = {
   onTimeDelivery: { badgeId: 'on-time-delivery', minCompleted: 3, minOnTimeRatio: 0.9, disputeWindowDays: 365 },
 } as const
 
-export type DisputeKind = 'nonpayment' | 'nondelivery'
+export type DisputeKind = 'nonpayment' | 'nondelivery' | 'payment_unconfirmed'
 export type DisputeStatus = 'open' | 'responded' | 'resolved' | 'escalated' | 'upheld' | 'dismissed' | 'paid'
 export const ACTIVE_DISPUTE_STATUSES: DisputeStatus[] = ['open', 'responded', 'escalated']
 
 export const DISPUTE_KIND_LABELS: Record<DisputeKind, string> = {
   nonpayment: 'Ödeme alınamadı',
   nondelivery: 'Teslim edilmedi',
+  payment_unconfirmed: 'Ödeme teyit edilmedi',
 }
 
 export const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
@@ -227,6 +234,13 @@ export function proofExtension(value: unknown): (typeof DISPUTE_PROOF_EXTENSIONS
   const ext = String(value ?? '').toLowerCase().replace(/^\./, '')
   const normalized = ext === 'jpeg' ? 'jpg' : ext
   return (DISPUTE_PROOF_EXTENSIONS as readonly string[]).includes(normalized) ? (normalized as (typeof DISPUTE_PROOF_EXTENSIONS)[number]) : null
+}
+
+/** Marka "Ödeme teyit edilmedi" başvurusunun dekont yolu: {marka}/claim-{iş birliği}/{zaman}.{uzantı}. */
+export function isOwnClaimProofPath(userId: string, collaborationId: string, path: unknown): path is string {
+  if (typeof path !== 'string') return false
+  const parts = path.split('/')
+  return parts.length === 3 && parts[0] === userId && parts[1] === `claim-${collaborationId}` && /^\d{10,16}\.(pdf|jpg|png|webp)$/.test(parts[2])
 }
 
 /** Kanıt dosyası yolu: {kullanıcı}/{anlaşmazlık}/{zaman}.{uzantı} biçiminde olmalı. */
